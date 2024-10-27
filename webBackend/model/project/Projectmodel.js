@@ -5,7 +5,8 @@ const mongoose = require('mongoose');
 const poejectSchema = new mongoose.Schema({
   partName: String,
   costPerUnit: Number,
-  totalMachiningHours: Number,
+  timePerUnit: Number,
+  quantity: Number,
   processes: [
     {
       subpartName: String,

@@ -53,7 +53,7 @@ ProjectRouter.get("/:_id", async (req, res) => {
   
 // POST Route: Add a part to an existing project's allProjects array
 ProjectRouter.post('/:_id/allProjects', async (req, res) => {
-  const { partName, costPerUnit, totalMachiningHours, processes } = req.body;
+  const { partName, costPerUnit, timePerUnit,quantity, processes } = req.body;
 
   try {
       // Find the project by ID
@@ -66,7 +66,8 @@ ProjectRouter.post('/:_id/allProjects', async (req, res) => {
       const newPart = {
           partName,
           costPerUnit,
-          totalMachiningHours,
+          timePerUnit,
+          quantity,
           processes
       };
 
@@ -84,7 +85,7 @@ ProjectRouter.post('/:_id/allProjects', async (req, res) => {
 // Update or Put Request Route: Update a part to an existing project's allProjects array
 // PUT Route: Update a part in the existing project's allProjects array
 ProjectRouter.put('/:_id/allProjects/:partId', async (req, res) => {
-  const { partName, costPerUnit, totalMachiningHours, processes } = req.body;
+  const { partName, costPerUnit, timePerUnit,quantity, processes } = req.body;
 
   try {
     // Find the project by ID
@@ -105,7 +106,8 @@ ProjectRouter.put('/:_id/allProjects/:partId', async (req, res) => {
       ...project.allProjects[partIndex], // Keep existing fields that are not being updated
       partName,
       costPerUnit,
-      totalMachiningHours,
+      timePerUnit,
+      quantity,
       processes
     };
 
