@@ -199,17 +199,38 @@ import { Card, CardBody, Col, DropdownItem, Button, DropdownMenu, DropdownToggle
 import DeleteModal from "../../../Components/Common/DeleteModal";
 import { ToastContainer, toast } from 'react-toastify';
 import FeatherIcon from 'feather-icons-react/build/FeatherIcon';
+import Autocomplete from "@mui/material/Autocomplete";
+import TextField from "@mui/material/TextField";
+
+const categories = [
+    { name: "Category 1" },
+    { name: "Category 2" },
+    { name: "Category 3" },
+    { name: "Category 4" },
+    { name: "Category 5" },
+  ];
+
 
 const List = () => {
+//   const [modal_category, setModal_category] = useState(false);
     const [modal_list, setModalList] = useState(false);
     const [newPartName, setNewPartName] = useState(''); // For storing new part name
     const [listData, setListData] = useState([]); // Local state to store project list
     const [loading, setLoading] = useState(true); // State to manage loading state
     const [error, setError] = useState(null); // State for handling errors
 
+    const [costPerUnit, setCostPerUnit] = useState(0);
+    const [timePerUnit, setTimePerUnit] = useState(0);
+    const [stockPOQty, setStockPOQty] = useState(0);
+
+
     const toggleModal = () => {
         setModalList(!modal_list);
     };
+
+    // const toggleModalCategory = () => {
+    //     setModal_category(!modal_category);
+    //   };
 
     const fetchData = useCallback(async () => {
         setLoading(true);
@@ -237,37 +258,39 @@ const List = () => {
         if (newPartName.trim() !== '') {
             const newPart = {
                 partName: newPartName,
-                costPerUnit: 0,
-                totalHours: 0,
-                onHand: 0
+                costPerUnit: costPerUnit || 0,      // Default to 0 if undefined
+                timePerUnit: timePerUnit || 0,      // Default to 0 if undefined
+                stockPOQty: stockPOQty || 0         // Default to 0 if undefined
             };
-
+    
             try {
                 const response = await fetch('http://localhost:4040/api/parts', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify(newPart), // Send new part data
+                    body: JSON.stringify(newPart), 
                 });
-
+    
                 if (!response.ok) {
                     throw new Error('Failed to add the part');
                 }
-
+    
                 const addedPart = await response.json();
-
-                // Update the list with the new part from the server
                 setListData((prevData) => [...prevData, addedPart]); 
                 toast.success('Part added successfully!');
             } catch (error) {
                 toast.error(`Error: ${error.message}`);
             } finally {
-                setNewPartName(''); // Reset the input field
-                toggleModal(); // Close the modal
+                setNewPartName(''); 
+                setCostPerUnit(0);       // Reset fields
+                setTimePerUnit(0);
+                setStockPOQty(0);
+                toggleModal();
             }
         }
     };
+    
 
     // Handle removing a part
     const handleRemovePart = (indexToRemove) => {
@@ -297,6 +320,10 @@ const List = () => {
                     <div>
                         <Button color="success" className="add-btn me-1" onClick={toggleModal} id="create-btn">
                             <i className="ri-add-line align-bottom me-1"></i> Add Part
+                        </Button>
+
+                        <Button className="btn btn-success">
+                            <i className="ri-add-line align-bottom me-1"></i> Choose Category
                         </Button>
                     </div>
                 </div>
@@ -354,20 +381,20 @@ const List = () => {
                                         <Col xs={6}>
                                             <div>
                                                 <p className="text-muted mb-1">Cost per unit</p>
-                                                <div>0</div>
+                                                <div>{item.costPerUnit}</div>
                                             </div>
                                         </Col>
                                         <Col xs={6}>
                                             <div>
                                                 <p className="text-muted mb-1">Total Hours</p>
-                                                <h5 className="fs-14">0</h5>
+                                                <h5 className="fs-14">{item.timePerUnit}</h5>
                                             </div>
                                         </Col>
                                     </Row>
 
                                     <div className="d-flex align-items-center mt-3">
                                         <p className="text-muted mb-0 me-2">On Hand :</p>
-                                        <p className="mb-0 me-2">0</p>
+                                        <p className="mb-0 me-2">{item.stockPOQty}</p>
                                     </div>
                                 </div>
                             </CardBody>
@@ -392,14 +419,22 @@ const List = () => {
                                 onChange={(e) => setNewPartName(e.target.value)}
                                 required
                             />
+                       <div className="mb-3 mt-3">
+                        <Autocomplete
+                          options={categories}
+                          getOptionLabel={(option) => option.name}
+                          renderInput={(params) => (<TextField {...params} label="Choose Category" variant="outlined" /> )}/>
                         </div>
-
+                        </div>
                         <Button type="submit" color="success" className="add-btn me-1">
                             <i className="ri-add-line align-bottom me-1"></i> Add
                         </Button>
                     </ModalBody>
                 </form>
+
             </Modal>
+
+
         </React.Fragment>
     );
 };

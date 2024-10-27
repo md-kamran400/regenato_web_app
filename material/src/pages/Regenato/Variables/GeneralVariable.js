@@ -9,6 +9,7 @@ const GeneralVariable = () => {
     const [loading, setLoading] = useState(true); // State to manage loading state
     const [error, setError] = useState(null); // State for handling errors
     const [posting, setPosting] = useState(false); // State to manage posting state
+    const [selectedId, setSelectedId] = useState(null); // To track the selected RM variable for deletion
 
     const [formData, setFormData] = useState({
         categoryId: '',
@@ -70,11 +71,7 @@ const GeneralVariable = () => {
                 // Option 1: Re-fetch the entire data
                 await fetchData();
     
-                // Option 2: If API returns the new item, append it
-                // const newData = await response.json();
-                // setRmtableData((prevData) => [...prevData, newData]);
-    
-                // Reset the form
+
                 setFormData({ categoryId: '', name: '', });
                 toggleListModal(); // Close the modal
             } catch (error) {
@@ -84,6 +81,26 @@ const GeneralVariable = () => {
             }
         };
     
+     // Handle delete action
+    const handleDelete = async (_id) => {
+        setPosting(true);
+        setError(null);
+        try {
+            const response = await fetch(`http://localhost:4040/api/general/${_id}`, {
+                method: 'DELETE',
+            });
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            await fetchData(); // Refetch the data to update the table
+            toggleDeleteModal(); // Close the modal
+        } catch (error) {
+            setError(error.message);
+        } finally {
+            setPosting(false);
+        }
+    };
+
         // Render loading state or error if any
         if (loading) {
             return <div>Loading...</div>;
@@ -155,7 +172,12 @@ const GeneralVariable = () => {
                                                     <td>
                                                         <div className="d-flex gap-2">
                                                             <Button className="btn btn-sm btn-success" onClick={toggleListModal}>Edit</Button>
-                                                            <Button className="btn btn-sm btn-danger" onClick={toggleDeleteModal}>Remove</Button>
+                                                            <button className="btn btn-sm btn-danger remove-item-btn" data-bs-toggle="modal" data-bs-target="#deleteRecordModal" onClick={() => {
+                                                                    setSelectedId(item._id);
+                                                                    toggleDeleteModal();
+                                                                }}>
+                                                                    Remove
+                                                                </button>
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -208,7 +230,7 @@ const GeneralVariable = () => {
             </Modal>
 
             {/* Delete Modal */}
-            <Modal isOpen={modalDeleteOpen} toggle={toggleDeleteModal} centered>
+            {/* <Modal isOpen={modalDeleteOpen} toggle={toggleDeleteModal} centered>
                 <ModalBody>
                     <div className="text-center">
                         <lord-icon src="https://cdn.lordicon.com/gsqxdxog.json" trigger="loop" style={{ width: "100px", height: "100px" }}></lord-icon>
@@ -220,6 +242,32 @@ const GeneralVariable = () => {
                         <Button color="danger">Yes, Delete It!</Button>
                     </div>
                 </ModalBody>
+            </Modal> */}
+
+            <Modal isOpen={modalDeleteOpen} toggle={toggleDeleteModal} centered>
+                <ModalHeader className="bg-light p-3" toggle={toggleDeleteModal}>Delete Record</ModalHeader>
+                <ModalBody>
+                <div className="mt-2 text-center">
+                        <lord-icon
+                            src="https://cdn.lordicon.com/gsqxdxog.json"
+                            trigger="loop"
+                            colors="primary:#f7b84b,secondary:#f06548"
+                            style={{ width: '100px', height: '100px' }}
+                        ></lord-icon>
+                        <div className="mt-4 pt-2 fs-15 mx-4 mx-sm-5">
+                            <h4>Are you Sure?</h4>
+                            <p className="text-muted mx-4 mb-0">
+                                Are you sure you want to remove this record?
+                            </p>
+                        </div>
+                    </div>
+                </ModalBody>
+                <ModalFooter>
+                    <Button color="danger" onClick={() => handleDelete(selectedId)} disabled={posting}>
+                        {posting ? 'Deleting...' : 'Yes! Delete It'}
+                    </Button>
+                    <Button color="secondary" onClick={toggleDeleteModal} disabled={posting}>Cancel</Button>
+                </ModalFooter>
             </Modal>
         </React.Fragment>
     );

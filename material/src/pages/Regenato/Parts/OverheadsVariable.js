@@ -741,19 +741,19 @@ const OverheadsVariable = ({partDetails}) => {
 
 
     // Calculate total cost
-    const countTotalRate = overheadsData.reduce((total, item) => total + Number(item.totalRate || 0), 0);
+    const OverHeadsTotalCount = overheadsData.reduce((total, item) => total + Number(item.totalRate || 0), 0);
 
     return (
         <React.Fragment>
             {/* General Variable */}
-            <Row>
+            {/* <Row>
                 <Col lg={12}>
                     <Card>
                         <CardHeader>
                             <h4 className="card-title mb-0">Overheads and Profits</h4>
                         </CardHeader>
                         <CardBody>
-                            <div className="listjs-table" id="customerList">
+                            <div className="listjs-table" id="customerList"> */}
                                 <Row className="g-4 mb-3">
                                     <Col className="col-sm-auto">
                                         <div>
@@ -784,11 +784,6 @@ const OverheadsVariable = ({partDetails}) => {
                                     </Col>
                                 </Row>
 
-                                {/* Display total cost */}
-                                <div className="d-flex align-items-center mt-3">
-                                    <p className="fw-bold mb-0 me-2">Total Cost:</p>
-                                    <p className="fw-bold mb-0 me-2">{countTotalRate.toFixed(2)}</p>
-                                </div>
 
                                 {/* Table */}
                                 <div className="table-responsive table-card mt-3 mb-1">
@@ -874,23 +869,10 @@ const OverheadsVariable = ({partDetails}) => {
                                     </div>
                                 </div>
 
-                                {/* Pagination (Placeholder) */}
-                                <div className="d-flex justify-content-end">
-                                    <div className="pagination-wrap hstack gap-2">
-                                        <Link className="page-item pagination-prev disabled" to="#">
-                                            Previous
-                                        </Link>
-                                        <ul className="pagination listjs-pagination mb-0"></ul>
-                                        <Link className="page-item pagination-next" to="#">
-                                            Next
-                                        </Link>
-                                    </div>
-                                </div>
-                            </div>
-                        </CardBody>
+                        {/* </CardBody>
                     </Card>
                 </Col>
-            </Row>
+            </Row> */}
 
             {/* Add/Edit Modal */}
         <Modal isOpen={modal_add} toggle={tog_add}>

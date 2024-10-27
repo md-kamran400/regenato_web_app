@@ -531,10 +531,7 @@ const ManufacturingVariable = ({partDetails}) => {
               fetchManufacturingData();
             }
           }, [partDetails, fetchManufacturingData]);
-        // if (partDetails) {
-        //   fetchManufacturingData();
-        // }
-    //   }, [partDetails]);
+
 
       const totalRate = formData.hourlyRate * formData.hours;
 
@@ -700,18 +697,11 @@ const ManufacturingVariable = ({partDetails}) => {
     }
 
     // Calculate total rate based on fetched data
-    const CoutntotalRate = manufacturingData.reduce((total, item) => total + Number(item.totalRate), 0);
+    const manufacturingtotalCount = manufacturingData.reduce((total, item) => total + Number(item.totalRate), 0);
 
     return (
         <React.Fragment>
-            {/* Manufacturing Table */}
-            <Row>
-                <Col lg={12}>
-                    <Card>
-                        <CardHeader>
-                            <h4 className="card-title mb-0">Manufacturing</h4>
-                        </CardHeader>
-                        <CardBody>
+
                             <Row className="g-4 mb-3">
                                 <Col className="col-sm-auto">
                                     <div>
@@ -736,12 +726,6 @@ const ManufacturingVariable = ({partDetails}) => {
                                     </div>
                                 </Col>
                             </Row>
-
-                            {/* Display total cost */}
-                            <div className="d-flex align-items-center mt-3">
-                                <p className="fw-bold mb-0 me-2">Total Cost:</p>
-                                <p className="fw-bold mb-0 me-2">{CoutntotalRate.toFixed(2)}</p>
-                            </div>
 
                             {/* Table */}
                             <div className="table-responsive table-card mt-3 mb-1">
@@ -795,20 +779,12 @@ const ManufacturingVariable = ({partDetails}) => {
                                 )}
                                 <div className="noresult" style={{ display: "none" }}>
                                     <div className="text-center">
-                                        <lord-icon
-                                            src="https://cdn.lordicon.com/msoeawqm.json"
-                                            trigger="loop"
-                                            style={{ width: "75px", height: "75px" }}
-                                        ></lord-icon>
+                                        <lord-icon src="https://cdn.lordicon.com/msoeawqm.json" trigger="loop"style={{ width: "75px", height: "75px" }} ></lord-icon>
                                         <h5 className="mt-2">Sorry! No Result Found</h5>
                                         <p className="text-muted mb-0">We couldn't find any results for your search.</p>
                                     </div>
                                 </div>
                             </div>
-                        </CardBody>
-                    </Card>
-                </Col>
-            </Row>
 
       {/* Add modal */}
       <Modal isOpen={modal_add} toggle={tog_add}>
@@ -816,27 +792,14 @@ const ManufacturingVariable = ({partDetails}) => {
         <ModalBody>
           <form onSubmit={handleSubmit}>
             <div className="mb-3">
-              <label htmlFor="id" className="form-label">
-                Category ID
-              </label>
-              <input
-                type="text"
-                className="form-control"
-                name="id"
-                value={formData.id}
-                onChange={handleChange}
-                required
-              />
+              <label htmlFor="id" className="form-label">Category ID</label>
+              <input  type="text"  className="form-control"  name="id"  value={formData.id}  onChange={handleChange}  required/>
             </div>
             <div className="mb-3">
               <label htmlFor="name" className="form-label">
                 Name
               </label>
-              <Autocomplete
-                options={manufacturingVariables}
-                getOptionLabel={(option) => option.name}
-                onChange={handleAutocompleteChange}
-                renderInput={(params) => (
+              <Autocomplete options={manufacturingVariables}  getOptionLabel={(option) => option.name}  onChange={handleAutocompleteChange}  renderInput={(params) => (
                   <TextField
                     {...params}
                     label="Select Material"
@@ -846,44 +809,18 @@ const ManufacturingVariable = ({partDetails}) => {
               />
             </div>
             <div className="mb-3">
-              <label htmlFor="hours" className="form-label">
-                Hours
-              </label>
-              <input
-                type="number"
-                className="form-control"
-                name="hours"
-                value={formData.hours}
-                onChange={handleChange}
-                required
-              />
+              <label htmlFor="hours" className="form-label">Hours</label>
+              <input  type="number"  className="form-control"  name="hours"  value={formData.hours}  onChange={handleChange}  required/>
             </div>
             <div className="mb-3">
-              <label htmlFor="hourlyRate" className="form-label">
-                Hourly Rate
-              </label>
-              <input
-                type="number"
-                className="form-control"
-                name="hourlyRate"
-                value={formData.hourlyRate}
-                // readOnly
-                onChange={handleChange}
-                required
-              />
+              <label htmlFor="hourlyRate" className="form-label">Hourly Rate</label>
+              <input  type="number"  className="form-control"  name="hourlyRate"  value={formData.hourlyRate} onChange={handleChange}  required/>
             </div>
             <div className="mb-3">
               <label htmlFor="totalRate" className="form-label">
                 Total Rate
               </label>
-              <input
-                type="number"
-                className="form-control"
-                name="totalRate"
-                value={totalRate}
-                readOnly
-                required
-              />
+              <input  type="number"  className="form-control"  name="totalRate"  value={totalRate}  readOnly  required/>
             </div>
             <ModalFooter>
               <Button type="submit" color="primary" disabled={posting}>
@@ -906,14 +843,7 @@ const ManufacturingVariable = ({partDetails}) => {
               <label htmlFor="id" className="form-label">
                 Category ID
               </label>
-              <input
-                type="text"
-                className="form-control"
-                name="id"
-                value={formData.id}
-                onChange={handleChange}
-                required
-              />
+              <input  type="text"  className="form-control"  name="id"  value={formData.id}  onChange={handleChange}  required/>
             </div>
             <div className="mb-3">
               <label htmlFor="name" className="form-label">
@@ -935,52 +865,20 @@ const ManufacturingVariable = ({partDetails}) => {
               <input type='number ' className='form-control' id="name" name="name" value={formData.name} onChange={handleChange}/>
             </div>
             <div className="mb-3">
-              <label htmlFor="hours" className="form-label">
-                Hours
-              </label>
-              <input
-                type="number"
-                className="form-control"
-                name="hours"
-                value={formData.hours}
-                onChange={handleChange}
-                required
-              />
+              <label htmlFor="hours" className="form-label">Hours</label>
+              <input type="number" className="form-control" name="hours" value={formData.hours} onChange={handleChange} required />
             </div>
             <div className="mb-3">
-              <label htmlFor="hourlyRate" className="form-label">
-              Hourly Rate
-              </label>
-              <input
-                type="number"
-                className="form-control"
-                name="hourlyRate"
-                value={formData.hourlyRate}
-                onChange={handleChange}
-                // readOnly
-                required
-              />
+              <label htmlFor="hourlyRate" className="form-label">Hourly Rate</label>
+              <input  type="number"  className="form-control"  name="hourlyRate"  value={formData.hourlyRate}  onChange={handleChange}    required />
             </div>
             <div className="mb-3">
-              <label htmlFor="totalRate" className="form-label">
-                Total Rate
-              </label>
-              <input
-                type="number"
-                className="form-control"
-                name="totalRate"
-                value={totalRate}
-                readOnly
-                required
-              />
+              <label htmlFor="totalRate" className="form-label">Total Rate</label>
+              <input  type="number"  className="form-control"  name="totalRate"  value={totalRate}  readOnly  required/>
             </div>
             <ModalFooter>
-              <Button type="submit" color="primary" disabled={posting}>
-                Update
-              </Button>
-              <Button type="button" color="secondary" onClick={tog_edit}>
-                Cancel
-              </Button>
+              <Button type="submit" color="primary" disabled={posting}>Update</Button>
+              <Button type="button" color="secondary" onClick={tog_edit}>Cancel</Button>
             </ModalFooter>
           </form>
         </ModalBody>
@@ -993,12 +891,7 @@ const ManufacturingVariable = ({partDetails}) => {
         </ModalHeader>
         <ModalBody>
           <div className="mt-2 text-center">
-            <lord-icon
-              src="https://cdn.lordicon.com/gsqxdxog.json"
-              trigger="loop"
-              colors="primary:#f7b84b,secondary:#f06548"
-              style={{ width: "100px", height: "100px" }}
-            ></lord-icon>
+            <lord-icon  src="https://cdn.lordicon.com/gsqxdxog.json"  trigger="loop"  colors="primary:#f7b84b,secondary:#f06548"  style={{ width: "100px", height: "100px" }}  ></lord-icon>
             <div className="mt-4 pt-2 fs-15 mx-4 mx-sm-5">
               <h4>Are you Sure?</h4>
               <p className="text-muted mx-4 mb-0">
@@ -1008,11 +901,7 @@ const ManufacturingVariable = ({partDetails}) => {
           </div>
         </ModalBody>
         <ModalFooter>
-          <Button
-            color="danger"
-            onClick={() => handleDelete(selectedId)}
-            disabled={posting}
-          >
+          <Button  color="danger"  onClick={() => handleDelete(selectedId)}  disabled={posting}  >
             {posting ? "Deleting..." : "Yes! Delete It"}
           </Button>
           <Button color="secondary" onClick={tog_delete} disabled={posting}>

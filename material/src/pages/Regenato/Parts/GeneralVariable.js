@@ -272,6 +272,7 @@ const GeneralVariable = ({partDetails}) => {
                                                 </th>
                                                 <th>ID</th>
                                                 <th>Name</th>
+                                                <th>Values</th>
                                                 <th>Action</th>
                                             </tr>
                                         </thead>
@@ -285,6 +286,8 @@ const GeneralVariable = ({partDetails}) => {
                                                     </td>
                                                     <td>{item.id}</td>
                                                     <td>{item.name}</td>
+                                                    <td>--</td>
+                                                    
                                                     <td>
                                                     <div className="d-flex gap-2">
                                                         <button className="btn btn-sm btn-success edit-item-btn" data-bs-toggle="modal" data-bs-target="#showModal"

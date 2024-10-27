@@ -382,6 +382,7 @@
 
 // export default RmVariable;
 
+
 import React, { useCallback, useEffect, useState } from "react";
 import {
   Button,
@@ -398,7 +399,7 @@ import {
 import Autocomplete from "@mui/material/Autocomplete";
 import TextField from "@mui/material/TextField";
 
-const RmVariable = ({ partDetails }) => {
+const RmVariable = ({ partDetails, setRmTotalCount  }) => {
   const [modal_add, setModalList] = useState(false);
   const [modal_edit, setModalEdit] = useState(false);
   const [modal_delete, setModalDelete] = useState(false);
@@ -482,6 +483,7 @@ const RmVariable = ({ partDetails }) => {
 
   // useEffect(() => {
     const fetchRmData = useCallback(async () => {
+
       try {
         const response = await fetch(
           `http://localhost:4040/api/parts/${partDetails._id}/rmVariables`
@@ -494,9 +496,12 @@ const RmVariable = ({ partDetails }) => {
       } catch (error) {
         console.error("Error fetching RM data:", error);
       }
+
     
   }, [partDetails?._id])
 
+  
+    const rmTotaCost = RmtableData.reduce((total, item) => total + Number(item.totalRate), 0);
 
   useEffect(() => {
     if (partDetails && partDetails._id) {
@@ -640,17 +645,16 @@ const RmVariable = ({ partDetails }) => {
     }
 };
 
-const countTotalRate = RmtableData.reduce((total, item) => total + Number(item.totalRate), 0);
 
   return (
     <React.Fragment>
-      <Row>
-        <Col lg={12}>
-          <Card>
-            <CardHeader>
+      {/* <Row> */}
+        {/* <Col lg={12}> */}
+          {/* <Card> */}
+            {/* <CardHeader>
               <h4 className="card-title mb-0">RM Variables</h4>
-            </CardHeader>
-            <CardBody>
+            </CardHeader> */}
+            {/* <CardBody> */}
               <Col className="col-sm-auto">
                 <div>
                   <Button
@@ -665,10 +669,10 @@ const countTotalRate = RmtableData.reduce((total, item) => total + Number(item.t
               </Col>
 
               {/* Display total cost */}
-              <div className="d-flex align-items-center mt-3">
+              {/* <div className="d-flex align-items-center mt-3">
               <p className="fw-bold mb-0 me-2">Total Cost:</p>
-              <p className="fw-bold mb-0 me-2">{countTotalRate.toFixed(2)}</p>
-              </div>
+              <p className="fw-bold mb-0 me-2">{rmTotaCost.toFixed(2)}</p>
+              </div> */}
               <div className="table-responsive table-card mt-3 mb-1">
                 <table className="table align-middle table-nowrap">
                   <thead className="table-light">
@@ -715,10 +719,10 @@ const countTotalRate = RmtableData.reduce((total, item) => total + Number(item.t
                   </tbody>
                 </table>
               </div>
-            </CardBody>
-          </Card>
-        </Col>
-      </Row>
+            {/* </CardBody> */}
+          {/* </Card> */}
+        {/* </Col> */}
+        {/* </Row> */}
 
 
       {/* Add modal */}

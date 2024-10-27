@@ -227,7 +227,7 @@ import { useSelector, useDispatch } from "react-redux";
 
 // third party impprts
 import { Link } from "react-router-dom";
-import { ToastContainer } from "react-toastify";
+// import { ToastContainer } from "react-toastify";
 import {
   Card,
   CardBody,
@@ -238,8 +238,10 @@ import {
   Input,
   Row,
   UncontrolledDropdown,
+  Modal, ModalBody, ModalHeader,Button
 } from "reactstrap";
 import FeatherIcon from "feather-icons-react";
+import { ToastContainer, toast } from 'react-toastify';
 
 
 // component import
@@ -248,13 +250,24 @@ import DeleteModal from "../../../Components/Common/DeleteModal";
 
 
 const List = () => {
-
+  const [modal_list, setModalList] = useState(false);
+  const [modal_category, setModal_category] = useState(false);
   const [projectListsData, setprojectListsData] = useState([]);
   const [deleteModal, setDeleteModal] = useState(false);
   const [loading, setLoading] = useState(true); // State to manage loading state
+  const [newprojectName, setNewprojectName] = useState(''); // For storing new part name
+
   const [error, setError] = useState(null); // State for handling errors
 
 
+  const toggleModal = () => {
+    setModalList(!modal_list);
+};
+
+
+const toggleModalCategory = () => {
+  setModal_category(!modal_category);
+};
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -277,6 +290,43 @@ useEffect(() => {
 }, [fetchData]);
 
 
+    // Handle adding a new part
+    const handleAddPart = async () => {
+      if (newprojectName.trim() !== '') {
+          const newPart = {
+              projectName: newprojectName,
+              costPerUnit: 0,
+              totalHours: 0,
+              onHand: 0
+          };
+
+          try {
+              const response = await fetch('http://localhost:4040/api/projects', {
+                  method: 'POST',
+                  headers: {
+                      'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify(newPart), // Send new part data
+              });
+
+              if (!response.ok) {
+                  throw new Error('Failed to add the part');
+              }
+
+              const addedPart = await response.json();
+
+              // Update the list with the new part from the server
+              setprojectListsData((prevData) => [...prevData, addedPart]); 
+              toast.success('Part added successfully!');
+          } catch (error) {
+              toast.error(`Error: ${error.message}`);
+          } finally {
+              setNewprojectName(''); // Reset the input field
+              toggleModal(); // Close the modal
+          }
+      }
+  };
+
   const activebtn = (ele) => {
     if (ele.closest("button").classList.contains("active")) {
       ele.closest("button").classList.remove("active");
@@ -295,9 +345,14 @@ useEffect(() => {
       <Row className="g-4 mb-3">
         <div className="col-sm-auto">
           <div>
-            <Link to="/apps-projects-create" className="btn btn-success">
+            {/* <Link className="btn btn-success">
               <i className="ri-add-line align-bottom me-1"></i> Add New
-            </Link>
+            </Link> */}
+            <Button className="btn btn-success" onClick={toggleModal}>
+               <i className="ri-add-line align-bottom me-1"></i> Add New 
+            </Button>
+
+
           </div>
         </div>
         <div className="col-sm-3 ms-auto">
@@ -421,6 +476,33 @@ useEffect(() => {
           </React.Fragment>
         ))}
       </div>
+
+            {/* Modal for adding a new item */}
+            <Modal isOpen={modal_list} toggle={toggleModal} centered>
+                <ModalHeader className="bg-light p-3" toggle={toggleModal}> Add Part </ModalHeader>
+                <form onSubmit={(e) => { e.preventDefault(); handleAddPart(); }}>
+                    <ModalBody>
+                        <div className="mb-3">
+                            <label htmlFor="parts-field" className="form-label">Parts Name</label>
+                            <input
+                                type="text"
+                                id="parts-field"
+                                className="form-control"
+                                placeholder="Enter Name"
+                                value={newprojectName}
+                                onChange={(e) => setNewprojectName(e.target.value)}
+                                required
+                            />
+                        </div>
+
+                        <Button type="submit" color="success" className="add-btn me-1">
+                            <i className="ri-add-line align-bottom me-1"></i> Add
+                        </Button>
+                    </ModalBody>
+                </form>
+            </Modal>
+
+
     </React.Fragment>
   );
 };
