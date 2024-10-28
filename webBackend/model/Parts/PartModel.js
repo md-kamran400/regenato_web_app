@@ -4,6 +4,7 @@ const mongoose = require("mongoose");
 const generalVariableSchema = new mongoose.Schema({
   id: String,
   name: String,
+  value: Number
 });
 
 // Schema for RM Variables

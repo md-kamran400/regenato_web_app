@@ -35,6 +35,23 @@ ProjectRouter.post('/', async (req, res) => {
     }
 });
 
+// PUT - Update a specific part
+ProjectRouter.put("/:_id", async (req, res) => {
+  try {
+    const updatedPart = await ProjectModal.findByIdAndUpdate(
+      req.params._id,
+      req.body,
+      { new: true }
+    );
+    if (!updatedPart) {
+      return res.status(404).json({ message: "Project not found" });
+    }
+    res.status(200).json(updatedPart);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
 
 // GET - Retrieve a specific part
 ProjectRouter.get("/:_id", async (req, res) => {

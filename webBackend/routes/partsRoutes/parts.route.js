@@ -98,6 +98,7 @@ PartRoutes.get("/:_id/generalVariables", async (req, res) => {
       const newGeneralVariable = {
         id: req.body.id,
         name: req.body.name,
+        value: req.body.value
       };
   
       const updatedPart = await PartsModel.findByIdAndUpdate(
