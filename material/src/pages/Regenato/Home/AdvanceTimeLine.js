@@ -52,35 +52,22 @@ const AdvanceTimeLine = ({ dataColors }) => {
       {
         partName: "Project 1",
         steps: {
-          "VMC Local": 500.0,
-          "Grinding Final": 500.0,
-          "Wire Cut Rough": 400.0,
-          "Grinding Blank/Rough": 300.0,
+          "VMC Imported ": 1000.0,
+          "VMC Local" : 3050,
+          "Grinding Final": 4150,
+          "CNC Lathe" : 1150,
+          "Wire Cut Rough": 400,
+          "Grinding Blank/Rough": 1675,
         },
       },
-      {
-        partName: "Project 2",
-        steps: {
-          "VMC Local": 1000.0,
-          "Grinding Final": 1125.0,
-          "Grinding Blank/Rough": 375.0,
-        },
-      },
-      {
-        partName: "Project 3",
-        steps: {
-          "Milling Manual": 250.0,
-          "Grinding Final": 250.0,
-        },
-      },
-      {
-        partName: "Project 4",
-        steps: {
-          "Milling Manual": 60.0,
-          "Grinding Final": 375.0,
-          "Grinding Blank/Rough": 125.0,
-        },
-      },
+      // {
+      //   partName: "Project 2",
+      //   steps: {
+      //     "VMC Local": 1000.0,
+      //     "Grinding Final": 1125.0,
+      //     "Grinding Blank/Rough": 375.0,
+      //   },
+      // },
     ];
 
     // Process data and set series

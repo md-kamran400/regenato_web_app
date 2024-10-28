@@ -195,7 +195,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Card, CardBody, Col, DropdownItem, Button, DropdownMenu, DropdownToggle, Input, Row, UncontrolledDropdown, Modal, ModalBody, ModalHeader } from 'reactstrap';
+import { Card, CardBody, Col, DropdownItem, Button, DropdownMenu, DropdownToggle, Input, Row, UncontrolledDropdown, Modal, ModalBody, ModalHeader, ModalFooter } from 'reactstrap';
 import DeleteModal from "../../../Components/Common/DeleteModal";
 import { ToastContainer, toast } from 'react-toastify';
 import FeatherIcon from 'feather-icons-react/build/FeatherIcon';
@@ -214,23 +214,55 @@ const categories = [
 const List = () => {
 //   const [modal_category, setModal_category] = useState(false);
     const [modal_list, setModalList] = useState(false);
+    const [modal_edit, setModalEdit] = useState(false);
+    const [modal_delete, setModalDelete] = useState(false);
     const [newPartName, setNewPartName] = useState(''); // For storing new part name
     const [listData, setListData] = useState([]); // Local state to store project list
     const [loading, setLoading] = useState(true); // State to manage loading state
     const [error, setError] = useState(null); // State for handling errors
-
+    const [editId, setEditId] = useState(null); // ID for the item being edited
     const [costPerUnit, setCostPerUnit] = useState(0);
     const [timePerUnit, setTimePerUnit] = useState(0);
     const [stockPOQty, setStockPOQty] = useState(0);
+    const [posting, setPosting] = useState(false);
 
+    const [formData, setFormData] = useState({
+        partName: "",
+        costPerUnit: "",
+        timePerUnit: "",
+        stockPOQty: "",
+      });
 
     const toggleModal = () => {
         setModalList(!modal_list);
     };
+  // Function to toggle 'Delete' modal
+  const tog_delete = () => {
+    setModalDelete(!modal_delete);
+  };
 
-    // const toggleModalCategory = () => {
-    //     setModal_category(!modal_category);
-    //   };
+  const toggleEditModal = (item = null) => {
+    if (item) {
+        // Pre-fill the modal with data from the selected item
+        setFormData({
+            partName: item.partName,
+            costPerUnit: item.costPerUnit,
+            timePerUnit: item.timePerUnit,
+            stockPOQty: item.stockPOQty
+        });
+        setEditId(item._id); // Save the ID for the PUT request
+    } else {
+        // Clear form data if no item is selected
+        setFormData({
+            partName: "",
+            costPerUnit: 0,
+            timePerUnit: 0,
+            stockPOQty: 0
+        });
+        setEditId(null);
+    }
+    setModalEdit(!modal_edit);
+};
 
     const fetchData = useCallback(async () => {
         setLoading(true);
@@ -290,6 +322,45 @@ const List = () => {
             }
         }
     };
+
+    const handleEditSubmit = async (e) => {
+        e.preventDefault();
+        setPosting(true);
+        setError(null);
+        try {
+          const response = await fetch(
+            `http://localhost:4040/api/parts/${editId}`,
+            {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(formData),
+            }
+          );
+          if (response.ok) {
+            // Refresh the page after successful POST request
+            await fetchData();
+          } else {
+            // Handle errors here
+            throw new Error("Network response was not ok");
+          }
+
+          await fetchData();
+          setFormData({
+            partName: "",
+            costPerUnit: "",
+            timePerUnit: "",
+            stockPOQty: "",
+          });
+          
+          tog_edit();
+        } catch (error) {
+          setError(error.message);
+        } finally {
+          setPosting(false);
+        }
+      };
     
 
     // Handle removing a part
@@ -365,8 +436,7 @@ const List = () => {
                                                     </DropdownToggle>
 
                                                     <DropdownMenu className="dropdown-menu-end">
-                                                        <DropdownItem href="apps-projects-overview"><i className="ri-eye-fill align-bottom me-2 text-muted"></i> View</DropdownItem>
-                                                        <DropdownItem href="apps-projects-create"><i className="ri-pencil-fill align-bottom me-2 text-muted"></i> Edit</DropdownItem>
+                                                        <DropdownItem  onClick={() => toggleEditModal(item)} ><i className="ri-pencil-fill align-bottom me-2 text-muted"></i> Edit</DropdownItem>
                                                         <div className="dropdown-divider"></div>
                                                         <DropdownItem href="#" onClick={() => handleRemovePart(index)}><i className="ri-delete-bin-fill align-bottom me-2 text-muted"></i> Remove</DropdownItem>
                                                     </DropdownMenu>
@@ -434,7 +504,60 @@ const List = () => {
 
             </Modal>
 
-
+ {/* Edit Modal */}
+ <Modal isOpen={modal_edit} toggle={toggleEditModal}>
+                <ModalHeader toggle={toggleEditModal}>Edit Part</ModalHeader>
+                <ModalBody>
+                    <form onSubmit={handleEditSubmit}>
+                        <div className="mb-3">
+                            <label htmlFor="partName" className="form-label">Name</label>
+                            <Input
+                                type="text"
+                                id="partName"
+                                value={formData.partName}
+                                onChange={(e) => setFormData({ ...formData, partName: e.target.value })}
+                                required
+                            />
+                        </div>
+                        <div className="mb-3">
+                            <label htmlFor="costPerUnit" className="form-label">Cost Per Unit</label>
+                            <Input
+                                type="number"
+                                id="costPerUnit"
+                                value={formData.costPerUnit}
+                                onChange={(e) => setFormData({ ...formData, costPerUnit: parseFloat(e.target.value) || 0 })}
+                                required
+                            />
+                        </div>
+                        <div className="mb-3">
+                            <label htmlFor="timePerUnit" className="form-label">Total Hours</label>
+                            <Input
+                                type="number"
+                                id="timePerUnit"
+                                value={formData.timePerUnit}
+                                onChange={(e) => setFormData({ ...formData, timePerUnit: parseFloat(e.target.value) || 0 })}
+                            />
+                        </div>
+                        <div className="mb-3">
+                            <label htmlFor="stockPOQty" className="form-label">On Hand</label>
+                            <Input
+                                type="number"
+                                id="stockPOQty"
+                                value={formData.stockPOQty}
+                                onChange={(e) => setFormData({ ...formData, stockPOQty: parseFloat(e.target.value) || 0 })}
+                            />
+                        </div>
+                        <ModalFooter>
+                 <Button type="submit" color="primary" disabled={posting}>
+                Update
+                </Button>
+                <Button type="button" color="secondary" onClick={toggleEditModal}>
+                Cancel
+               </Button>
+            </ModalFooter>
+                    </form>
+                </ModalBody>
+            </Modal>
         </React.Fragment>
     );
 };

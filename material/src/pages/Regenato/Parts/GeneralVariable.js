@@ -20,6 +20,7 @@ const GeneralVariable = ({partDetails}) => {
     const [formData, setFormData] = useState({
         id: '',
         name: '',
+        value: '',
     });
 
     
@@ -55,12 +56,14 @@ const GeneralVariable = ({partDetails}) => {
           setFormData({
             id: item.id,
             name: item.name,
+            value: item.value,
           });
           setEditId(item._id);
         } else {
           setFormData({
             id: "",
             name: "",
+            value: "",
           });
           setEditId(null);
         }
@@ -152,6 +155,7 @@ const GeneralVariable = ({partDetails}) => {
           setFormData({
             id: "",
             name: "",
+            value: "",
           });
           tog_add();
         } catch (error) {
@@ -187,6 +191,7 @@ const GeneralVariable = ({partDetails}) => {
                   setFormData({
                     id: "",
                     name: "",
+                    value: ""
                   });
                   tog_edit();
                 } catch (error) {
@@ -286,7 +291,7 @@ const GeneralVariable = ({partDetails}) => {
                                                     </td>
                                                     <td>{item.id}</td>
                                                     <td>{item.name}</td>
-                                                    <td>--</td>
+                                                    <td>{item.value}</td>
                                                     
                                                     <td>
                                                     <div className="d-flex gap-2">
@@ -346,6 +351,11 @@ const GeneralVariable = ({partDetails}) => {
               />
             </div>
 
+                 <div className="mb-3">
+                            <label htmlFor="value-field" className="form-label">value</label>
+                            <input type="text" id="value-field" className="form-control" placeholder="Enter Value" name='value' value={formData.value} onChange={handleChange}  required />
+                        </div>
+
                     </ModalBody>
 
                     <ModalFooter>
@@ -376,6 +386,12 @@ const GeneralVariable = ({partDetails}) => {
                 Name
               </label>
               <input type='number ' className='form-control' id="name" name="name" value={formData.name} onChange={handleChange}/>
+            </div>
+              <div className="mb-3">
+              <label htmlFor="value" className="form-label">
+              value
+              </label>
+              <input type='number ' className='form-control' id="value" name="value" value={formData.value} onChange={handleChange}/>
             </div>
             <ModalFooter> <Button type="submit" color="primary" disabled={posting}> Update</Button> 
             <Button type="button" color="secondary" onClick={tog_edit}> Cancel </Button>

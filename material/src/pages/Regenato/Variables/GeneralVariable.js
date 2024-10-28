@@ -14,6 +14,7 @@ const GeneralVariable = () => {
     const [formData, setFormData] = useState({
         categoryId: '',
         name: '',
+        value: '',
     });
 
     // Toggles for modals
@@ -72,7 +73,7 @@ const GeneralVariable = () => {
                 await fetchData();
     
 
-                setFormData({ categoryId: '', name: '', });
+                setFormData({ categoryId: '', name: '',value: '', });
                 toggleListModal(); // Close the modal
             } catch (error) {
                 setError(error.message); // Set error message

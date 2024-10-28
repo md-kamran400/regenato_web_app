@@ -12,7 +12,7 @@ import Widgets from './Widgets';
 import AdvanceTimeLine from './AdvanceTimeLine';
 
 const Home = () => {
-    document.title="Projects | Velzon - React Admin & Dashboard Template";
+    // document.title="Projects | Velzon - React Admin & Dashboard Template";
     return (
         <React.Fragment>
             <div className="page-content">

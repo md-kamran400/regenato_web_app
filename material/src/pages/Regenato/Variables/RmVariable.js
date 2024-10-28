@@ -291,7 +291,7 @@ const RmVariable = () => {
     const tog_list = () => {
         setModalList(!modal_list);
     };
-
+    
     // Function to toggle 'Delete' modal
     const tog_delete = () => {
         setModalDelete(!modal_delete);
@@ -450,7 +450,7 @@ const RmVariable = () => {
                                                         <input className="form-check-input" type="checkbox" id="checkAll" value="option" />
                                                     </div>
                                                 </th>
-                                                <th className="sort" data-sort="id">Id</th>
+                                                <th className="sort" data-sort="id">ID</th>
                                                 <th className="sort" data-sort="name">Name</th>
                                                 <th className="sort" data-sort="price">Price (INR/Kg)</th>
                                                 <th className="sort" data-sort="action">Action</th>
@@ -458,7 +458,7 @@ const RmVariable = () => {
                                         </thead>
                                         <tbody className="list form-check-all">
                                             {RmtableData.map((item) => (
-                                                <tr key={item.id}>
+                                                <tr key={item._id}>
                                                     <th scope="row">
                                                         <div className="form-check">
                                                             <input className="form-check-input" type="checkbox" name="chk_child" value="option1" />
