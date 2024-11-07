@@ -96,7 +96,7 @@ PartRoutes.get("/:_id/generalVariables", async (req, res) => {
   PartRoutes.post("/:_id/generalVariables", async (req, res) => {
     try {
       const newGeneralVariable = {
-        id: req.body.id,
+        categoryId: req.body.categoryId,
         name: req.body.name,
         value: req.body.value
       };
@@ -184,7 +184,7 @@ PartRoutes.get("/:_id/rmVariables", async (req, res) => {
 PartRoutes.post("/:_id/rmVariables", async (req, res) => {
     try {
       const newRMVariable = {
-        id: req.body.id,
+        categoryId: req.body.categoryId,
         name: req.body.name,
         netWeight: req.body.netWeight,
         pricePerKg: req.body.pricePerKg,
@@ -278,7 +278,7 @@ PartRoutes.get("/:_id/manufacturingVariables", async (req, res) => {
 PartRoutes.post("/:_id/manufacturingVariables", async (req, res) => {
   try {
     const newManufacturingVariable = {
-      id: req.body.id,  
+      categoryId: req.body.categoryId,  
       name: req.body.name,
       hours: req.body.hours,
       hourlyRate: req.body.hourlyRate,
@@ -370,7 +370,7 @@ PartRoutes.get("/:_id/shipmentVariables", async (req, res) => {
 PartRoutes.post("/:_id/shipmentVariables", async (req, res) => {
   try {
     const newShipmentVariable = {
-      id: req.body.id,
+      categoryId: req.body.categoryId,
       name: req.body.name,
       hourlyRate: req.body.hourlyRate
     };
@@ -456,7 +456,7 @@ PartRoutes.get("/:_id/overheadsAndProfits", async (req, res) => {
 PartRoutes.post("/:_id/overheadsAndProfits", async (req, res) => {
   try {
     const newOverhead = {
-      id: req.body.id,
+      categoryId: req.body.categoryId,
       name: req.body.name,
       percentage: req.body.percentage,
       totalRate: req.body.totalRate

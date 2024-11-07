@@ -2,14 +2,14 @@ const mongoose = require("mongoose");
 
 // general variable schema 
 const generalVariableSchema = new mongoose.Schema({
-  id: String,
+  categoryId: String,
   name: String,
-  value: Number
+  value: String,
 });
 
 // Schema for RM Variables
 const rmVariableSchema = new mongoose.Schema({
-  id: String,
+  categoryId: String,
   name: String,
   netWeight: Number,
   pricePerKg: Number,
@@ -18,7 +18,7 @@ const rmVariableSchema = new mongoose.Schema({
 
 // Schema for Manufacturing Variables
 const manufacturingVariableSchema = new mongoose.Schema({
-  id: String,
+  categoryId: String,
   name: String,
   hours: Number,
   hourlyRate: Number,
@@ -27,14 +27,14 @@ const manufacturingVariableSchema = new mongoose.Schema({
 
 // Schema for Shipment Variables
 const shipmentVariableSchema = new mongoose.Schema({
-  id: String,
+  categoryId: String,
   name: String,
   hourlyRate: Number,
 });
 
 // Schema for Overheads and Profits
 const overheadsAndProfitsSchema = new mongoose.Schema({
-  id: String,
+  categoryId: String,
   name: String,
   percentage: Number,
   totalRate: Number,
@@ -42,10 +42,11 @@ const overheadsAndProfitsSchema = new mongoose.Schema({
 
 // Main Part schema
 const partSchema = new mongoose.Schema({
-  partName: { type: String,  },
-  costPerUnit: { type: Number,  },
-  timePerUnit: { type: Number,  },
-  stockPOQty: { type: Number,  },
+  id: { type: String, unique: true },  // add unique: true to ensure no duplicates
+  partName: { type: String },
+  costPerUnit: { type: Number },
+  timePerUnit: { type: Number },
+  stockPOQty: { type: Number },
   generalVariables: [generalVariableSchema],
   rmVariables: [rmVariableSchema],
   manufacturingVariables: [manufacturingVariableSchema],
@@ -53,7 +54,6 @@ const partSchema = new mongoose.Schema({
   overheadsAndProfits: [overheadsAndProfitsSchema],
 });
 
-// module.exports = mongoose.model('Part', partSchema);
 
 
 const PartsModel = mongoose.model("Part", partSchema);
