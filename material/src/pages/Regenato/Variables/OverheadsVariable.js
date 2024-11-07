@@ -449,7 +449,7 @@ const OverheadsVariable = () => {
 
       {/* Edit modal */}
       <Modal isOpen={modal_edit} toggle={tog_edit}>
-        <ModalHeader toggle={tog_edit}>Edit Mwnufacturing</ModalHeader>
+        <ModalHeader toggle={tog_edit}>Edit Overheads And Profit</ModalHeader>
         <ModalBody>
           <form onSubmit={handleEditSubmit}>
             <div className="mb-3">

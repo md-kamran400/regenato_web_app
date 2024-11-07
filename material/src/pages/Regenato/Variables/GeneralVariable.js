@@ -201,7 +201,7 @@ const GeneralVariable = () => {
 
             {/* Add Modal */}
             <Modal isOpen={modalListOpen} toggle={toggleListModal} centered>
-                <ModalHeader className="bg-light p-3" toggle={toggleListModal}> Add Customer </ModalHeader>
+                <ModalHeader className="bg-light p-3" toggle={toggleListModal}> Add General Variable </ModalHeader>
                 <ModalBody>
                 <form className="tablelist-form" onSubmit={handleSubmit}>
                     <ModalBody>

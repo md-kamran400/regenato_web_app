@@ -221,7 +221,7 @@ const ManufacturingVariable = () => {
         <Col lg={12}>
           <Card>
             <CardHeader>
-              <h4 className="card-title mb-0">Manufacturing</h4>
+              <h4 className="card-title mb-0">Manufacturing Variable</h4>
             </CardHeader>
             <CardBody>
               <Row className="g-4 mb-3">
@@ -349,7 +349,7 @@ const ManufacturingVariable = () => {
       {/* Add Modal */}
       <Modal isOpen={modal_add} toggle={tog_add} centered>
         <ModalHeader className="bg-light p-3" toggle={tog_add}>
-          {formData.id ? "Edit Shipment Variable" : "Add Shipment Variable"}
+              Add Manufacturing Variable
         </ModalHeader>
         <ModalBody>
           <form className="tablelist-form" onSubmit={handleSubmit}>
@@ -415,7 +415,7 @@ const ManufacturingVariable = () => {
 
       {/* Edit modal */}
       <Modal isOpen={modal_edit} toggle={tog_edit}>
-        <ModalHeader toggle={tog_edit}>Edit Mwnufacturing</ModalHeader>
+        <ModalHeader toggle={tog_edit}>Edit Manufacturing Variable</ModalHeader>
         <ModalBody>
           <form onSubmit={handleEditSubmit}>
             <div className="mb-3">

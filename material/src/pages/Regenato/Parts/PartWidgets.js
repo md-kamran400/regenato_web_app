@@ -51,15 +51,18 @@
 
 // export default PartWidgets;
 
-
-
-
-
-
-
-import React from 'react';
-import { Card, CardBody, Col, DropdownItem, DropdownMenu, DropdownToggle, Row, UncontrolledDropdown } from 'reactstrap';
-import { Link } from 'react-router-dom';
+import React from "react";
+import {
+  Card,
+  CardBody,
+  Col,
+  DropdownItem,
+  DropdownMenu,
+  DropdownToggle,
+  Row,
+  UncontrolledDropdown,
+} from "reactstrap";
+import { Link } from "react-router-dom";
 
 import CountUp from "react-countup";
 
@@ -69,13 +72,7 @@ import FeatherIcon from "feather-icons-react";
 import { tileBoxes5 } from "../../../common/data/index";
 
 const PartWidgets = () => {
-    return (
-        <React.Fragment>
-
-
-
-        </React.Fragment>
-    );
+  return <React.Fragment></React.Fragment>;
 };
 
 export default PartWidgets;

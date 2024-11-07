@@ -66,44 +66,45 @@ const SinglePart = () => {
     return <div>No details found for this part.</div>;
   }
 
-//  calculating the manufacturing the total hours count 
- const manufacturingTotalCountHours = partDetails?.manufacturingVariables?.reduce(
-    (total, item) => total + Number(item.hours || 0),
+  //  calculating the manufacturing the total hours count
+  const manufacturingTotalCountHours =
+    partDetails?.manufacturingVariables?.reduce(
+      (total, item) => total + Number(item.hours || 0),
+      0
+    );
+
+  // Calculating totals using updated partDetails field names
+  const rmTotalCount = partDetails?.rmVariables?.reduce(
+    (total, item) => total + Number(item.totalRate || 0),
+    0
+  );
+  const manufacturingTotalCount = partDetails?.manufacturingVariables?.reduce(
+    (total, item) => total + Number(item.totalRate || 0),
+    0
+  );
+  const shipmentTotalCount = partDetails?.shipmentVariables?.reduce(
+    (total, item) => total + Number(item.hourlyRate || 0),
     0
   );
 
-// Calculating totals using updated partDetails field names
-const rmTotalCount = partDetails?.rmVariables?.reduce(
-  (total, item) => total + Number(item.totalRate || 0),
-  0
-);
-const manufacturingTotalCount = partDetails?.manufacturingVariables?.reduce(
-  (total, item) => total + Number(item.totalRate || 0),
-  0
-);
-const shipmentTotalCount = partDetails?.shipmentVariables?.reduce(
-  (total, item) => total + Number(item.hourlyRate || 0),
-  0
-);
+  // Calculate total cost without profit
+  const totalCost = rmTotalCount + manufacturingTotalCount + shipmentTotalCount;
 
-// Calculate total cost without profit
-const totalCost = rmTotalCount + manufacturingTotalCount + shipmentTotalCount;
+  // Calculate overheads percentage
+  const overheadPercentage = partDetails?.overheadsAndProfits?.reduce(
+    (total, item) => total + Number(item.percentage || 0),
+    0
+  );
 
-// Calculate overheads percentage
-const overheadPercentage = partDetails?.overheadsAndProfits?.reduce(
-  (total, item) => total + Number(item.percentage || 0),
-  0
-);
+  const overheadsTotalCount = partDetails?.overheadsAndProfits?.reduce(
+    (total, item) => total + Number(item.totalRate || 0),
+    0
+  );
+  // Calculate profit using overhead percentage
+  const profit = (totalCost * overheadPercentage) / 100;
 
-const overheadsTotalCount = partDetails?.overheadsAndProfits?.reduce(
-  (total, item) => total + Number(item.totalRate || 0),
-  0
-);
-// Calculate profit using overhead percentage
-const profit = (totalCost * overheadPercentage) / 100;
-
-// Final cost per unit including profit
-const costPerUnitAvg = totalCost + profit;
+  // Final cost per unit including profit
+  const costPerUnitAvg = totalCost + profit;
 
   return (
     <React.Fragment>
@@ -113,9 +114,8 @@ const costPerUnitAvg = totalCost + profit;
             title={`Part (${partDetails.partName})`}
             pageTitle={`Part (${partDetails.partName})`}
           />
-          
-          <Row>
 
+          <Row>
             <Col xl={3} ms={6}>
               <Card className={"card-height-100 "}>
                 <CardBody>
@@ -181,7 +181,16 @@ const costPerUnitAvg = totalCost + profit;
                     </DropdownMenu>
                   </UncontrolledDropdown>
                   <div className="mb-4 pb-2">
-                    <div    style={{width: "30px",height: "30px",borderRadius: "50%",display: "flex",justifyContent: "center",alignItems: "center",}}  >
+                    <div
+                      style={{
+                        width: "30px",
+                        height: "30px",
+                        borderRadius: "50%",
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                      }}
+                    >
                       <i
                         className="mdi mdi-alpha-c-box-outline"
                         style={{ fontSize: "33px" }}
@@ -190,9 +199,7 @@ const costPerUnitAvg = totalCost + profit;
                   </div>
                   <div className="d-flex justify-content-between align-items-center">
                     <h6 className="fs-15 fw-bold mb-0">Cost Per Unit:</h6>
-                    <span className="text-muted fs-13">
-                      {costPerUnitAvg}
-                    </span>
+                    <span className="text-muted fs-13">{costPerUnitAvg}</span>
                   </div>
                 </CardBody>
               </Card>
@@ -292,7 +299,12 @@ const costPerUnitAvg = totalCost + profit;
           </Row>
 
           <div className="mb-4 pb-2 flex">
-            <Button  style={{ backgroundColor: "#9C27B0" }}  onClick={toggleModalCategory}  className="add-btn me-1"  id="create-btn">
+            <Button
+              style={{ backgroundColor: "#9C27B0" }}
+              onClick={toggleModalCategory}
+              className="add-btn me-1"
+              id="create-btn"
+            >
               <i className="ri-add-line align-bottom me-1"></i> Choose Category
             </Button>
             <Button className="add-btn me-1 bg-success" id="create-btn">
@@ -308,7 +320,14 @@ const costPerUnitAvg = totalCost + profit;
                 <Card>
                   <CardBody>
                     <h4 className="card-title mb-0">RM Variables</h4>
-                    <hr style={{height: "2px", border: "0px", backgroundImage: "linear-gradient(to right, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0))",}}/>
+                    <hr
+                      style={{
+                        height: "2px",
+                        border: "0px",
+                        backgroundImage:
+                          "linear-gradient(to right, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0))",
+                      }}
+                    />
                     <div className="d-flex align-items-center mt-3 mb-3">
                       <p className="fw-bold mb-0 me-2">Total Cost:</p>
                       <span className="text-muted fs-13">{rmTotalCount}</span>
@@ -327,10 +346,19 @@ const costPerUnitAvg = totalCost + profit;
                 <Card>
                   <CardBody>
                     <h4 className="card-title mb-0">Manufacturing Variables</h4>
-                    <hr style={{height: "2px", border: "0px", backgroundImage: "linear-gradient(to right, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0))",}}/>
+                    <hr
+                      style={{
+                        height: "2px",
+                        border: "0px",
+                        backgroundImage:
+                          "linear-gradient(to right, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0))",
+                      }}
+                    />
                     <div className="d-flex align-items-center mt-3 mb-3">
                       <p className="fw-bold mb-0 me-2">Total Cost:</p>
-                      <span className="text-muted fs-13">{manufacturingTotalCount}</span>
+                      <span className="text-muted fs-13">
+                        {manufacturingTotalCount}
+                      </span>
                     </div>
                     <ManufacturingVariable partDetails={partDetails} />
                   </CardBody>
@@ -346,10 +374,19 @@ const costPerUnitAvg = totalCost + profit;
                 <Card>
                   <CardBody>
                     <h4 className="card-title mb-0">Shipment</h4>
-                    <hr style={{height: "2px", border: "0px", backgroundImage: "linear-gradient(to right, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0))",}}/>
+                    <hr
+                      style={{
+                        height: "2px",
+                        border: "0px",
+                        backgroundImage:
+                          "linear-gradient(to right, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0))",
+                      }}
+                    />
                     <div className="d-flex align-items-center mt-3 mb-3">
                       <p className="fw-bold mb-0 me-2">Total Cost:</p>
-                      <span className="text-muted fs-13">{shipmentTotalCount}</span>
+                      <span className="text-muted fs-13">
+                        {shipmentTotalCount}
+                      </span>
                     </div>
                     <ShipmentVariable partDetails={partDetails} />
                   </CardBody>
@@ -365,10 +402,19 @@ const costPerUnitAvg = totalCost + profit;
                 <Card>
                   <CardBody>
                     <h4 className="card-title mb-0">Overheads and Profit</h4>
-                    <hr style={{height: "2px", border: "0px", backgroundImage: "linear-gradient(to right, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0))",}}/>
+                    <hr
+                      style={{
+                        height: "2px",
+                        border: "0px",
+                        backgroundImage:
+                          "linear-gradient(to right, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0))",
+                      }}
+                    />
                     <div className="d-flex align-items-center mt-3 mb-3">
                       <p className="fw-bold mb-0 me-2">Total Cost:</p>
-                      <span className="text-muted fs-13">{overheadsTotalCount}</span>
+                      <span className="text-muted fs-13">
+                        {overheadsTotalCount}
+                      </span>
                     </div>
                     <OverheadsVariable partDetails={partDetails} />
                   </CardBody>

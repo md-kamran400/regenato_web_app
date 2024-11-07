@@ -11,7 +11,7 @@ import { AuthProtected } from './AuthProtected';
 
 const Index = () => {
     return (
-        <React.Fragment>
+        <React.Fragment> 
             <Routes>
                 <Route>
                     {publicRoutes.map((route, idx) => (
