@@ -352,6 +352,100 @@ PartRoutes.delete("/:_id/manufacturingVariables/:variableId", async (req, res) =
 
 
 
+
+// start Manufacturing variable backend from here 
+PartRoutes.get("/:_id/manufacturingVariablesstactics", async (req, res) => {
+  try {
+    const part = await PartsModel.findById(req.params._id, 'manufacturingVariablesstactics');
+    if (!part) {
+      return res.status(404).json({ message: "Part not found" });
+    }
+    res.status(200).json(part.manufacturingVariablesstactics);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+
+// POST - Add a new Manufacturing Variable to a specific part
+PartRoutes.post("/:_id/manufacturingVariablesstactics", async (req, res) => {
+  try {
+    const newManufacturingVariablestactics = {
+      categoryId: req.body.categoryId,  
+      name: req.body.name,
+      hourlyRate: req.body.hourlyRate,
+      totalRate: req.body.totalRate,
+    };
+
+    const updatedPart = await PartsModel.findByIdAndUpdate(
+      req.params._id,
+      { $push: { manufacturingVariablesstactics: newManufacturingVariablestactics } },
+      { new: true }
+    );
+
+    if (!updatedPart) {
+      return res.status(404).json({ message: "Part not found" });
+    }
+
+    res.status(201).json(updatedPart);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+
+
+
+// PUT - Update an Manufacturing Variable within a part
+PartRoutes.put("/:_id/manufacturingVariablesstactics/:variableId", async (req, res) => {
+  try {
+    const updatedPart = await PartsModel.findOneAndUpdate(
+      { _id: req.params._id, "manufacturingVariablesstactics._id": req.params.variableId },
+      { $set: { "manufacturingVariablesstactics.$": req.body } },
+      { new: true }
+    );
+    if (!updatedPart) {
+      return res.status(404).json({ message: "Part or manufacturing variable not found" });
+    }
+    res.status(200).json(updatedPart);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+
+
+// DELETE - Delete an Manufacturing Variable within a part
+PartRoutes.delete("/:_id/manufacturingVariablesstactics/:variableId", async (req, res) => {
+  try {
+    const updatedPart = await PartsModel.findByIdAndUpdate(
+      req.params._id,
+      { $pull: { manufacturingVariablesstactics: { _id: req.params.variableId } } },
+      { new: true }
+    );
+    if (!updatedPart) {
+      return res.status(404).json({ message: "Part or manufacturing variable not found" });
+    }
+    res.status(200).json(updatedPart);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // start Shipment variable backend from here 
 // GET for shipment 
 PartRoutes.get("/:_id/shipmentVariables", async (req, res) => {

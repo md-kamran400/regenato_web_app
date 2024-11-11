@@ -15,6 +15,7 @@ const { OverheadsRouter } = require("./routes/variableRoutes/overheads.route");
 const { GeneralRouter } = require("./routes/variableRoutes/general.route");
 const { PartRoutes } = require("./routes/partsRoutes/parts.route"); // Part Routes
 const { ProjectRouter } = require("./routes/projectRoutes/project.route"); // Project Routes
+const {manufacturingStaticRouter} = require("./routes/variableRoutes/manufacturingStatic.route");
 
 // MongoDB connection
 const connect = async () => {
@@ -34,6 +35,7 @@ app.use("/api/manufacturing", manufacturRouter);
 app.use("/api/shipment", ShipmentRouter);
 app.use("/api/overheadsAndProfit", OverheadsRouter);
 app.use("/api/general", GeneralRouter);
+app.use("/api/manufacturingStatics", manufacturingStaticRouter);
 
 // Use PartRoutes for handling part-related routes
 app.use("/api/parts", PartRoutes);  // Corrected the route

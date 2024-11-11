@@ -32,6 +32,13 @@ const shipmentVariableSchema = new mongoose.Schema({
   hourlyRate: Number,
 });
 
+const manufacturingStacticSchema = new mongoose.Schema({
+  categoryId: String,
+  name: String,
+  hourlyRate: Number,
+  totalRate: Number,
+});
+
 // Schema for Overheads and Profits
 const overheadsAndProfitsSchema = new mongoose.Schema({
   categoryId: String,
@@ -52,6 +59,7 @@ const partSchema = new mongoose.Schema({
   manufacturingVariables: [manufacturingVariableSchema],
   shipmentVariables: [shipmentVariableSchema],
   overheadsAndProfits: [overheadsAndProfitsSchema],
+  manufacturingStatics: [manufacturingStacticSchema]
 });
 
 
