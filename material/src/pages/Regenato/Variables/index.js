@@ -326,6 +326,7 @@ import RmVariable from './RmVariable';
 import ManufacturingVariable from './ManufacturingVariable';
 import ShipmentVariable from './ShipmentVariable';
 import OverheadsVariable from './OverheadsVariable';
+import ManufacuringStatic from './ManufacuringStatic';
 
 const Variables = () => {
     const [modal_list, setmodal_list] = useState(false);
@@ -370,6 +371,8 @@ const Variables = () => {
                     <RmVariable />
 
                     <ManufacturingVariable />
+
+                    <ManufacuringStatic/>
 
                     <ShipmentVariable />
 

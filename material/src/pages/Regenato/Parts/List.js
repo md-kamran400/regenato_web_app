@@ -170,7 +170,7 @@ const handleAddPart = async () => {
             stockPOQty: "",
           });
           
-          tog_edit();
+          toggleEditModal();
         } catch (error) {
           setError(error.message);
         } finally {

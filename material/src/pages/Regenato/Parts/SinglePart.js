@@ -22,6 +22,7 @@ import ShipmentVariable from "./ShipmentVariable";
 import OverheadsVariable from "./OverheadsVariable";
 import { useParams } from "react-router-dom";
 import GeneralVariable from "./GeneralVariable";
+import ManufacuringStatic from "./ManufacuringStatic";
 
 const SinglePart = () => {
   const [modal_category, setModal_category] = useState(false);
@@ -367,6 +368,32 @@ const SinglePart = () => {
             </Row>
           </Card>
 
+          {/* manufacturing Data stactic */}
+          <Card>
+            <Row>
+              <Col lg={12}>
+                <Card>
+                  <CardBody>
+                    <h4 className="card-title mb-0">Manufacturing Static Variables</h4>
+                    <hr
+                      style={{
+                        height: "2px",
+                        border: "0px",
+                        backgroundImage:
+                          "linear-gradient(to right, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0))",
+                      }}
+                    />
+                    <div className="d-flex align-items-center mt-3 mb-3">
+                      <p className="fw-bold mb-0 me-2">Total Cost:</p>
+                      <span className="text-muted fs-13">{rmTotalCount}</span>
+                    </div>
+                    <ManufacuringStatic partDetails={partDetails} />
+                  </CardBody>
+                </Card>
+              </Col>
+            </Row>
+          </Card>
+
           {/* Shipment */}
           <Card>
             <Row>
@@ -394,6 +421,8 @@ const SinglePart = () => {
               </Col>
             </Row>
           </Card>
+
+
 
           {/* Overheads and Profit */}
           <Card>

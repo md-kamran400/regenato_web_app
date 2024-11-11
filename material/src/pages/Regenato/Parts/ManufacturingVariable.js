@@ -420,12 +420,16 @@ const ManufacturingVariable = ({ partDetails }) => {
   const [modal_add, setModalList] = useState(false);
   const [modal_edit, setModalEdit] = useState(false);
   const [modal_delete, setModalDelete] = useState(false);
+  const [modal_static_add, setModalstatic_add] = useState(false);
   const [manufacturingData, setManufacturingData] = useState([]);
   const [posting, setPosting] = useState(false);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [manufacturingVariables, setmanufacturingVariables] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
+  const [shipmentvars, setshipmentvars] = useState([]);
+  const [selectedIdst, setSelectedIdst] = useState(null);
+  const [selectedShipment, setselectedShipment] = useState(null);
   const [SelectedManufacuturingVariable, setSelectedManufacuturingVariable] =
     useState(null);
   const [editId, setEditId] = useState(null);
@@ -440,16 +444,33 @@ const ManufacturingVariable = ({ partDetails }) => {
   });
 
   // Toggles for modals
-  const tog_add = () => {
-    // Generate the next ID based on the existing data
-    let nextId = "C1"; // Default if there's no previous data
-    if (manufacturingData.length > 0) {
-      const lastId = manufacturingData[manufacturingData.length - 1].categoryId;
-      const lastNumber = parseInt(lastId.substring(1)); // Extract numeric part of the ID
-      nextId = `C${lastNumber + 1}`; // Increment the numeric part
+
+  const getNextCategoryId = (existingIds) => {
+    let nextId = "C1";
+
+    if (existingIds && existingIds.length > 0) {
+      const sortedIds = existingIds.sort();
+      const lastId = sortedIds[sortedIds.length - 1];
+
+      if (/^C\d+$/.test(lastId)) {
+        const numberMatch = lastId.match(/\d+/);
+        if (numberMatch) {
+          const lastNumber = parseInt(numberMatch[0], 10);
+          nextId = `C${lastNumber + 1}`;
+        }
+      }
     }
 
-    // Set the formData with the new ID
+    return nextId;
+  };
+
+  const tog_add = () => {
+    const allIds = [
+      ...manufacturingData.map((item) => item.categoryId),
+      ...shipmentvars.map((item) => item.categoryId),
+    ];
+    const nextId = getNextCategoryId(allIds);
+
     setFormData({
       categoryId: nextId,
       name: "",
@@ -459,6 +480,23 @@ const ManufacturingVariable = ({ partDetails }) => {
     });
 
     setModalList(!modal_add); // Open the modal
+  };
+
+  // function for add static modal add
+  const tog_static_vairbale = () => {
+    const allIds = [
+      ...manufacturingData.map((item) => item.categoryId),
+      ...shipmentvars.map((item) => item.categoryId),
+    ];
+    const nextId = getNextCategoryId(allIds);
+
+    setFormData({
+      categoryId: nextId,
+      name: "",
+      totalRate: "",
+    });
+
+    setModalstatic_add(!modal_static_add); // Toggle the static modal
   };
 
   // Function to toggle 'Delete' modal
@@ -500,14 +538,15 @@ const ManufacturingVariable = ({ partDetails }) => {
         throw new Error(`Error: ${response.statusText}`);
       }
       const data = await response.json();
+      console.log("Received manufacturing data:", data); // Add this line
       setManufacturingData(data);
-      console.log(data);
+      console.log("Set manufacturing data:", manufacturingData); // Add this line
     } catch (error) {
       console.error("Error fetching manufacturingVariables data:", error);
     } finally {
       setLoading(false);
     }
-  }, [partDetails?._id]); // Add partDetails._id as a dependency
+  }, [partDetails?._id]);
 
   // Fetch data when partDetails changes
   useEffect(() => {
@@ -547,6 +586,48 @@ const ManufacturingVariable = ({ partDetails }) => {
     fetchRmVariables();
   }, []);
 
+  //   fetch snipment variable
+  useEffect(() => {
+    const fetchShipment = async () => {
+      try {
+        const response = await fetch(
+          `http://localhost:4040/api/manufacturingStatics`
+        );
+        if (!response.ok) {
+          throw new Error(`Error: ${response.statusText}`);
+        }
+        const data = await response.json();
+        setshipmentvars(data);
+      } catch (error) {
+        console.error("Error fetching RM variables:", error);
+      }
+    };
+
+    fetchShipment();
+  }, []);
+
+  const handleAutocompleteChangestatic = (event, newValue) => {
+    setselectedShipment(newValue);
+    if (newValue) {
+      const selectedItem = shipmentvars.find(
+        (item) => item.name === newValue.name
+      );
+
+      if (selectedItem) {
+        setFormData({
+          name: newValue.name,
+          totalRate: selectedItem.totalRate,
+        });
+      }
+    } else {
+      setFormData({
+        categoryId: "",
+        name: "",
+        totalRate: "",
+      });
+    }
+  };
+
   // Handle form input changes
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -577,24 +658,20 @@ const ManufacturingVariable = ({ partDetails }) => {
         }
       );
 
-      // Check if the request was successful
       if (response.ok) {
-        // Refresh the page after successful POST request
         await fetchManufacturingData();
+        setFormData({
+          categoryId: "",
+          name: "",
+          hours: 1,
+          hourlyRate: "",
+          totalRate: "",
+        });
+        setModalList(false); // Close the normal add modal
+        setModalstatic_add(false); // Close the static add modal
       } else {
-        // Handle errors here
         throw new Error("Network response was not ok");
       }
-
-      await fetchManufacturingData();
-      setFormData({
-        categoryId: "",
-        name: "",
-        hours: 1,
-        pricePerKg: "",
-        totalRate: "",
-      });
-      tog_add();
     } catch (error) {
       setError(error.message);
     } finally {
@@ -619,34 +696,25 @@ const ManufacturingVariable = ({ partDetails }) => {
         }
       );
 
-      //   if (!response.ok) {
-      //     throw new Error("Network response was not ok");
-      //   }
-
-      // Check if the request was successful
       if (response.ok) {
-        // Refresh the page after successful POST request
         await fetchManufacturingData();
+        setFormData({
+          categoryId: "",
+          name: "",
+          hours: "",
+          hourlyRate: "",
+          totalRate: "",
+        });
+        setModalEdit(false); // Close the edit modal
       } else {
-        // Handle errors here
         throw new Error("Network response was not ok");
       }
-
-      setFormData({
-        categoryId: "",
-        name: "",
-        hours: "",
-        hourlyRate: "",
-        totalRate: "",
-      });
-      tog_edit();
     } catch (error) {
       setError(error.message);
     } finally {
       setPosting(false);
     }
   };
-
   // Handle delete action
   const handleDelete = async (_id) => {
     setPosting(true);
@@ -692,6 +760,14 @@ const ManufacturingVariable = ({ partDetails }) => {
           <div>
             <Button color="success" className="add-btn me-1" onClick={tog_add}>
               <i className="ri-add-line align-bottom me-1"></i> Add
+            </Button>
+            <Button
+              color="success"
+              className="add-btn me-1"
+              onClick={tog_static_vairbale}
+            >
+              <i className="ri-add-line align-bottom me-1"></i> Add Static
+              Manufacturing
             </Button>
             <Button className="btn btn-soft-danger">
               <i className="ri-delete-bin-2-line"></i>
@@ -869,6 +945,73 @@ const ManufacturingVariable = ({ partDetails }) => {
               </Button>
               <Button type="button" color="secondary" onClick={tog_add}>
                 Cancel
+              </Button>
+            </ModalFooter>
+          </form>
+        </ModalBody>
+      </Modal>
+
+      {/* static modal add */}
+      <Modal isOpen={modal_static_add} toggle={tog_static_vairbale} centered>
+        <ModalHeader className="bg-light p-3" toggle={tog_static_vairbale}>
+          {formData.id
+            ? "Edit Manufacturing Static Variables"
+            : "Add Manufacturing Static Variables"}
+        </ModalHeader>
+        <ModalBody>
+          <form className="tablelist-form" onSubmit={handleSubmit}>
+            <div className="mb-3">
+              <label htmlFor="categoryId" className="form-label">
+                Category ID
+              </label>
+              <input
+                type="text"
+                className="form-control"
+                name="categoryId"
+                value={formData.categoryId}
+                onChange={handleChange}
+                required
+              />
+            </div>
+            <div className="mb-3">
+              <label htmlFor="name" className="form-label">
+                Name
+              </label>
+              <Autocomplete
+                options={shipmentvars}
+                getOptionLabel={(option) => option.name}
+                onChange={handleAutocompleteChangestatic}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Select Manufacturing Variable"
+                    variant="outlined"
+                  />
+                )}
+              />
+            </div>
+
+            <div className="mb-3">
+              <label htmlFor="totalRate-field" className="form-label">
+                Total Rate
+              </label>
+              <input
+                type="number"
+                id="totalRate-field"
+                className="form-control"
+                name="totalRate"
+                placeholder="Enter Total Rate"
+                value={formData.totalRate}
+                onChange={handleChange}
+                required
+              />
+            </div>
+            <ModalFooter>
+              <Button color="secondary" onClick={tog_add} disabled={posting}>
+                Cancel
+              </Button>
+              <Button color="success" type="submit" disabled={posting}>
+                {posting ? "Adding..." : "Add Variable"}
               </Button>
             </ModalFooter>
           </form>
