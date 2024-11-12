@@ -187,6 +187,8 @@ const handleSubmit = async (event) => {
 
       // Update the table display with the newly added part data
       updateTableDisplay(newPart);
+      await fetchData()
+      await fetchProjectDetails()
     } catch (error) {
       console.error('Error submitting part:', error);
       setError(error.message);

@@ -38,16 +38,16 @@ const GeneralVariable = ({ partDetails }) => {
   // Toggles for modals
   const tog_add = () => {
     // Generate the next ID based on the existing data
-    let nextId = "C1"; // Default if there's no previous data
-    if (generlvariabledata.length > 0) {
-      const lastId = generlvariabledata[generlvariabledata.length - 1].categoryId;
-      const lastNumber = parseInt(lastId.substring(1)); // Extract numeric part of the ID
-      nextId = `C${lastNumber + 1}`; // Increment the numeric part
-    }
+    // let nextId = "C1"; // Default if there's no previous data
+    // if (generlvariabledata.length > 0) {
+    //   const lastId = generlvariabledata[generlvariabledata.length - 1].categoryId;
+    //   const lastNumber = parseInt(lastId.substring(1)); // Extract numeric part of the ID
+    //   nextId = `C${lastNumber + 1}`; // Increment the numeric part
+    // }
 
     // Set the formData with the new ID
     setFormData({
-      categoryId: nextId,
+      categoryId: "",
       name: "",
     });
 
@@ -109,6 +109,7 @@ const GeneralVariable = ({ partDetails }) => {
     if (newValue) {
       setFormData((prevFormData) => ({
         ...prevFormData,
+        categoryId: newValue.categoryId,
         name: newValue.name,
       }));
     }

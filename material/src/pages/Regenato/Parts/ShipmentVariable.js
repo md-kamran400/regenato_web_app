@@ -37,17 +37,11 @@ const ShipmentVariable = ({ partDetails }) => {
 
   // Toggles for modals
   const tog_add = () => {
-    // Generate the next ID based on the existing data
-    let nextId = "E1"; // Default if there's no previous data
-    if (shipmentData.length > 0) {
-      const lastId = shipmentData[shipmentData.length - 1].categoryId;
-      const lastNumber = parseInt(lastId.substring(1)); // Extract numeric part of the ID
-      nextId = `E${lastNumber + 1}`; // Increment the numeric part
-    }
+    // Generate the next ID based on the existing dat
 
     // Set the formData with the new ID
     setFormData({
-      categoryId: nextId,
+      categoryId: "",
       name: "",
       hourlyRate: "",
     });
@@ -129,6 +123,7 @@ const ShipmentVariable = ({ partDetails }) => {
     if (newValue) {
       setFormData((prevFormData) => ({
         ...prevFormData,
+        categoryId: newValue.categoryId,
         name: newValue.name,
       }));
     }

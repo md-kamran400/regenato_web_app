@@ -102,10 +102,10 @@ const SinglePart = () => {
     0
   );
   // Calculate profit using overhead percentage
-  const profit = (totalCost * overheadPercentage) / 100;
+  // const profit = (totalCost * overheadPercentage) / 100;
 
   // Final cost per unit including profit
-  const costPerUnitAvg = totalCost + profit;
+  const costPerUnitAvg = totalCost + overheadsTotalCount;
 
   return (
     <React.Fragment>
@@ -368,32 +368,6 @@ const SinglePart = () => {
             </Row>
           </Card>
 
-          {/* manufacturing Data stactic */}
-          <Card>
-            <Row>
-              <Col lg={12}>
-                <Card>
-                  <CardBody>
-                    <h4 className="card-title mb-0">Manufacturing Static Variables</h4>
-                    <hr
-                      style={{
-                        height: "2px",
-                        border: "0px",
-                        backgroundImage:
-                          "linear-gradient(to right, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0))",
-                      }}
-                    />
-                    <div className="d-flex align-items-center mt-3 mb-3">
-                      <p className="fw-bold mb-0 me-2">Total Cost:</p>
-                      <span className="text-muted fs-13">{rmTotalCount}</span>
-                    </div>
-                    <ManufacuringStatic partDetails={partDetails} />
-                  </CardBody>
-                </Card>
-              </Col>
-            </Row>
-          </Card>
-
           {/* Shipment */}
           <Card>
             <Row>
@@ -445,7 +419,7 @@ const SinglePart = () => {
                         {overheadsTotalCount}
                       </span>
                     </div>
-                    <OverheadsVariable partDetails={partDetails} />
+                    <OverheadsVariable partDetails={partDetails} totalCost={totalCost}/>
                   </CardBody>
                 </Card>
               </Col>

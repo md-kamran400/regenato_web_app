@@ -11,7 +11,7 @@ import {
   ModalFooter,
   ModalHeader,
 } from "reactstrap";
-import { toast } from 'react-toastify';
+import { toast } from "react-toastify";
 import Autocomplete from "@mui/material/Autocomplete";
 import TextField from "@mui/material/TextField";
 
@@ -27,6 +27,8 @@ const RmVariable = ({ partDetails, setRmTotalCount }) => {
   const [selectedId, setSelectedId] = useState(null); // To track the selected RM variable for deletion
   const [selectedRmVariable, setSelectedRmVariable] = useState(null);
   const [editId, setEditId] = useState(null);
+  const [modal_static_add, setModalstatic_add] = useState(false);
+  const [modal_static_edit, setModalstatic_edit] = useState(false);
 
   const [formData, setFormData] = useState({
     categoryId: "",
@@ -35,25 +37,69 @@ const RmVariable = ({ partDetails, setRmTotalCount }) => {
     pricePerKg: "",
     totalRate: "",
   });
+  const [staticFormData, setStaticFormData] = useState({
+    categoryId: "",
+    name: "",
+    totalRate: "",
+  });
+
+  const getNextCategoryId = (existingIds) => {
+    let nextId = "B1";
+
+    if (existingIds && existingIds.length > 0) {
+      const sortedIds = existingIds.sort();
+      const lastId = sortedIds[sortedIds.length - 1];
+
+      if (/^B\d+$/.test(lastId)) {
+        const numberMatch = lastId.match(/\d+/);
+        if (numberMatch) {
+          const lastNumber = parseInt(numberMatch[0], 10);
+          nextId = `B${lastNumber + 1}`;
+        }
+      }
+    }
+
+    return nextId;
+  };
+
+  const tog_static_edit = (item = null) => {
+    if (item) {
+      setStaticFormData({
+        categoryId: item.categoryId,
+        name: item.name,
+        totalRate: item.totalRate,
+      });
+    } else {
+      setStaticFormData({
+        categoryId: "",
+        name: "",
+        totalRate: "",
+      });
+    }
+    setModalstatic_edit(!modal_static_edit);
+  };
 
   const tog_add = () => {
-    // Find the highest existing ID number
-    const maxExistingId = Math.max(...RmtableData.map(item => parseInt(item.categoryId.slice(1))), 0);
-    
-    // Generate the next ID
-    const nextId = `B${maxExistingId + 1}`;
-    
-    // Set the formData with the new ID
+
     setFormData({
-      categoryId: nextId,
+      categoryId: "",
       name: "",
       netWeight: "",
       pricePerKg: "",
       totalRate: "",
     });
-    
-    // Open the modal
+
     setModalList(!modal_add);
+  };
+
+  const tog_static_add = () => {
+    setFormData({
+      categoryId: "",
+      name: "",
+      totalRate: "",
+    });
+
+    setModalstatic_add(!modal_static_add);
   };
 
   // Function to toggle 'Delete' modal
@@ -70,7 +116,7 @@ const RmVariable = ({ partDetails, setRmTotalCount }) => {
         pricePerKg: item.pricePerKg,
         totalRate: item.totalRate,
       });
-      setEditId(item._id);
+      setEditId(item._id); // Make sure this line is present
     } else {
       setFormData({
         categoryId: "",
@@ -90,9 +136,9 @@ const RmVariable = ({ partDetails, setRmTotalCount }) => {
       ...prevFormData,
       [name]: value,
       totalRate:
-        name === "netWeight"
-          ? value * formData.pricePerKg
-          : formData.netWeight * formData.pricePerKg,
+    name === "netWeight"
+      ? Math.round(parseFloat(value) * parseFloat(prevFormData.pricePerKg))
+      : Math.round(parseFloat(prevFormData.netWeight) * parseFloat(prevFormData.pricePerKg)),
     }));
   };
 
@@ -141,36 +187,119 @@ const RmVariable = ({ partDetails, setRmTotalCount }) => {
 
   const totalRate = formData.pricePerKg * formData.netWeight;
 
+  const handleAutocompleteChangestatic = (event, newValue) => {
+    setSelectedRmVariable(newValue);
+    if (newValue) {
+      const selectedItem = rmVariables.find(
+        (item) => item.name === newValue.name
+      );
+
+      if (selectedItem) {
+        setFormData({
+          categoryId: newValue.categoryId, // Use the categoryId from the formData
+          name: newValue.name,
+          totalRate: selectedItem.totalRate,
+        });
+      } else {
+        // If no matching item is found, still set the categoryId to the one in formData
+        setFormData({
+          categoryId: formData.categoryId,
+          name: newValue.name,
+          totalRate: "",
+        });
+      }
+    } else {
+      setFormData({
+        categoryId: "",
+        name: "",
+        totalRate: "",
+      });
+    }
+  };
+
   const handleAutocompleteChange = (event, newValue) => {
     setSelectedRmVariable(newValue);
     if (newValue) {
       setFormData((prevFormData) => ({
         ...prevFormData,
+        categoryId: newValue.categoryId,
         name: newValue.name,
         pricePerKg: newValue.price,
-        totalRate: newValue.price * formData.netWeight,
+        totalRate: Math.round(parseFloat(prevFormData.netWeight) * parseFloat(newValue.price)),
       }));
     }
   };
 
+  // const handleSubmit = async (e) => {
+  //   e.preventDefault();
+  //   setPosting(true);
+  //   setError(null);
+
+  //   try {
+  //     const url = `http://localhost:4040/api/parts/${partDetails._id}/rmVariables`;
+
+  //     // Check if the category ID already exists
+  //     if (RmtableData.some(item => item.categoryId === staticFormData.categoryId)) {
+  //       toast.error('ID already exists', {
+  //         position: "top-right",
+  //         autoClose: 3000,
+  //         hideProgressBar: false,
+  //         closeOnClick: true,
+  //         pauseOnHover: true,
+  //         draggable: true,
+  //         progress: undefined,
+  //       });
+  //       setPosting(false); // Reset posting state
+  //       return;
+  //     }
+
+  //     const method = modal_static_add ? "POST" : "PUT";
+  //     const formDataToUse = modal_static_add ? staticFormData : formData;
+
+  //     const response = await fetch(url, {
+  //       method: method,
+  //       headers: {
+  //         "Content-Type": "application/json",
+  //       },
+  //       body: JSON.stringify(formDataToUse),
+  //     });
+
+  //     if (!response.ok) {
+  //       throw new Error("Network response was not ok");
+  //     }
+
+  //     await fetchRmData(); // Refetch the data to update the table
+
+  //     if (modal_static_add) {
+  //       setStaticFormData({
+  //         categoryId: "",
+  //         name: "",
+  //         totalRate: "",
+  //       });
+  //       setModalstatic_add(!modal_static_add);
+  //     } else {
+  //       setFormData({
+  //         categoryId: "",
+  //         name: "",
+  //         netWeight: "",
+  //         pricePerKg: "",
+  //         totalRate: "",
+  //       });
+  //       setModalList(!modal_add);
+  //     }
+  //   } catch (error) {
+  //     setError(error.message);
+  //   } finally {
+  //     setPosting(false);
+  //   }
+  // };
+
+  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     setPosting(true);
     setError(null);
     try {
-      if (RmtableData.some(item => item.categoryId === formData.categoryId)) {
-        toast.error('ID already exists', {
-          position: "top-right",
-          autoClose: 3000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          progress: undefined,
-        });
-        return; // Exit the function early if ID already exists
-      }
-
       const response = await fetch(
         `http://localhost:4040/api/parts/${partDetails._id}/rmVariables`,
         {
@@ -181,18 +310,21 @@ const RmVariable = ({ partDetails, setRmTotalCount }) => {
           body: JSON.stringify(formData),
         }
       );
-      if (!response.ok) {
+
+      if (response.ok) {
+        await fetchRmData();
+        setFormData({
+          categoryId: "",
+          name: "",
+          netWeight: "",
+          pricePerKg: "",
+          totalRate: "",
+        });
+        setModalList(false); // Close the normal add modal
+        setModalstatic_add(false); // Close the static add modal
+      } else {
         throw new Error("Network response was not ok");
       }
-      await fetchRmData();
-      setFormData({
-        categoryId: "",
-        name: "",
-        netWeight: "",
-        pricePerKg: "",
-        totalRate: "",
-      });
-      tog_add();
     } catch (error) {
       setError(error.message);
     } finally {
@@ -200,62 +332,68 @@ const RmVariable = ({ partDetails, setRmTotalCount }) => {
     }
   };
 
-  const handleEditSubmit = async (e) => {
-    e.preventDefault();
-    setPosting(true);
-    setError(null);
-    try {
-      const response = await fetch(
-        `http://localhost:4040/api/parts/${partDetails._id}/rmVariables/${editId}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(formData),
+    // Handle form submission for editing a variable (PUT request)
+    const handleEditSubmit = async (e) => {
+      e.preventDefault();
+      setPosting(true);
+      setError(null);
+    
+      try {
+        const response = await fetch(
+          `http://localhost:4040/api/parts/${partDetails._id}/rmVariables/${editId}`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              ...formData,
+              totalRate: Math.round(parseFloat(formData.netWeight) * parseFloat(formData.pricePerKg)),
+            }),
+          }
+        );
+    
+        if (response.ok) {
+          await fetchRmData(); // Refetch the data to update the table
+          setFormData({
+            categoryId: "",
+            name: "",
+            netWeight: "",
+            pricePerKg: "",
+            totalRate: "",
+          });
+          setModalEdit(false); // Close the edit modal
+        } else {
+          throw new Error("Network response was not ok");
         }
-      );
-      if (!response.ok) {
-        throw new Error("Network response was not ok");
+      } catch (error) {
+        setError(error.message);
+      } finally {
+        setPosting(false);
       }
-      await fetchRmData();
-      setFormData({
-        categoryId: "",
-        name: "",
-        netWeight: "",
-        pricePerKg: "",
-        totalRate: "",
-      });
-      tog_edit();
-    } catch (error) {
-      setError(error.message);
-    } finally {
-      setPosting(false);
-    }
-  };
-
-  const handleDelete = async (_id) => {
-    setPosting(true);
-    setError(null);
-    try {
-      const response = await fetch(
-        `http://localhost:4040/api/parts/${partDetails._id}/rmVariables/${_id}`,
-        {
-          method: "DELETE",
+    };
+// handle for deleting
+    const handleDelete = async (_id) => {
+      setPosting(true);
+      setError(null);
+      try {
+        const response = await fetch(
+          `http://localhost:4040/api/parts/${partDetails._id}/rmVariables/${_id}`,
+          {
+            method: "DELETE",
+          }
+        );
+        if (!response.ok) {
+          throw new Error("Network response was not ok");
         }
-      );
-      if (!response.ok) {
-        throw new Error("Network response was not ok");
+        await fetchRmData(); // Refetch the data to update the table
+        tog_delete(); // Close the modal
+      } catch (error) {
+        setError(error.message);
+      } finally {
+        setPosting(false);
       }
-      await fetchRmData(); // Refetch the data to update the table
-      tog_delete(); // Close the modal
-    } catch (error) {
-      setError(error.message);
-    } finally {
-      setPosting(false);
-    }
-  };
-
+    };
   return (
     <React.Fragment>
       <Col className="col-sm-auto">
@@ -267,6 +405,16 @@ const RmVariable = ({ partDetails, setRmTotalCount }) => {
             id="create-btn"
           >
             <i className="ri-add-line align-bottom me-1"></i> Add
+          </Button>
+
+          <Button
+            onClick={tog_static_add}
+            color="success"
+            className="add-btn me-1"
+            id="create-btn"
+          >
+            <i className="ri-add-line align-bottom me-1"></i> Add Static Rm
+            Variable
           </Button>
         </div>
       </Col>
@@ -292,7 +440,12 @@ const RmVariable = ({ partDetails, setRmTotalCount }) => {
                 <td>{item.totalRate}</td>
                 <td>
                   <div className="d-flex gap-2">
-                    <Button className="btn btn-sm btn-success" onClick={() => tog_edit(item)}>Edit</Button>
+                    <Button
+                      className="btn btn-sm btn-success"
+                      onClick={() => tog_edit(item)}
+                    >
+                      Edit
+                    </Button>
                     <button
                       className="btn btn-sm btn-danger remove-item-btn"
                       data-bs-toggle="modal"
@@ -318,34 +471,140 @@ const RmVariable = ({ partDetails, setRmTotalCount }) => {
         <ModalBody>
           <form onSubmit={handleSubmit}>
             <div className="mb-3">
-              <label htmlFor="categoryId" className="form-label">Category ID</label>
-              <input type="text" className="form-control" name="categoryId" value={formData.categoryId} onChange={handleChange} required />
+              <label htmlFor="categoryId" className="form-label">
+                Category ID
+              </label>
+              <input
+                type="text"
+                className="form-control"
+                name="categoryId"
+                value={formData.categoryId}
+                onChange={handleChange}
+                required
+              />
             </div>
             <div className="mb-3">
               <label htmlFor="name" className="form-label">
                 Name
               </label>
-              <Autocomplete options={rmVariables} getOptionLabel={(option) => option.name} onChange={handleAutocompleteChange} renderInput={(params) => (
-                <TextField {...params} label="Select Material" variant="outlined" />
-              )}/>
+              <Autocomplete
+                options={rmVariables}
+                getOptionLabel={(option) => option.name}
+                onChange={handleAutocompleteChange}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Select Material"
+                    variant="outlined"
+                  />
+                )}
+              />
             </div>
             <div className="mb-3">
               <label htmlFor="netWeight" className="form-label">
                 Net Weight
               </label>
-              <input type="number" className="form-control" name="netWeight" value={formData.netWeight} onChange={handleChange} required />
+              <input
+                type="number"
+                className="form-control"
+                name="netWeight"
+                value={formData.netWeight}
+                onChange={handleChange}
+                required
+              />
             </div>
             <div className="mb-3">
               <label htmlFor="pricePerKg" className="form-label">
                 Price
               </label>
-              <input type="number" className="form-control" name="pricePerKg" value={formData.pricePerKg} required />
+              <input
+                type="number"
+                className="form-control"
+                name="pricePerKg"
+                value={formData.pricePerKg}
+                required
+              />
             </div>
             <div className="mb-3">
               <label htmlFor="totalRate" className="form-label">
                 Total Rate
               </label>
-              <input type="number" className="form-control" name="totalRate" value={totalRate} readOnly required />
+              <input
+                type="number"
+                className="form-control"
+                name="totalRate"
+                value={totalRate}
+                readOnly
+                required
+              />
+            </div>
+            <ModalFooter>
+              <Button type="submit" color="primary" disabled={posting}>
+                Add
+              </Button>
+              <Button type="button" color="secondary" onClick={tog_add}>
+                Cancel
+              </Button>
+            </ModalFooter>
+          </form>
+        </ModalBody>
+      </Modal>
+
+      <Modal isOpen={modal_static_add} toggle={tog_static_add}>
+        <ModalHeader toggle={tog_static_add}>
+          Add Stactic RM Variable
+        </ModalHeader>
+        <ModalBody>
+          <form onSubmit={handleSubmit}>
+          <div className="mb-3">
+              <label htmlFor="categoryId" className="form-label">
+                Category ID
+              </label>
+              <input
+                type="text"
+                className="form-control"
+                name="categoryId"
+                value={formData.categoryId}
+                onChange={handleChange}
+                required
+              />
+            </div>
+            <div className="mb-3">
+              <label htmlFor="name" className="form-label">
+                Name
+              </label>
+              <Autocomplete
+                options={rmVariables}
+                getOptionLabel={(option) => option.name}
+                onChange={handleAutocompleteChangestatic}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Select Material"
+                    variant="outlined"
+                  />
+                )}
+              />
+            </div>
+            <div className="mb-3">
+              <div className="mb-3">
+                <label htmlFor="totalRate" className="form-label">
+                  Total Rate
+                </label>
+                <input
+                  type="number"
+                  className="form-control"
+                  name="totalRate"
+                  value={formData.totalRate || 0}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      totalRate: e.target.value,
+                    })
+                  }
+                  required
+                />
+              </div>
             </div>
             <ModalFooter>
               <Button type="submit" color="primary" disabled={posting}>
@@ -368,34 +627,74 @@ const RmVariable = ({ partDetails, setRmTotalCount }) => {
               <label htmlFor="categoryId" className="form-label">
                 Category ID
               </label>
-              <input type="text" className="form-control" name="categoryId" value={formData.categoryId} onChange={handleChange} required/>
+              <input
+                type="text"
+                className="form-control"
+                name="categoryId"
+                value={formData.categoryId}
+                onChange={handleChange}
+                required
+              />
             </div>
             <div className="mb-3">
               <label htmlFor="name" className="form-label">
                 Name
               </label>
-              <input type="number " className="form-control" id="name" name="name" value={formData.name} onChange={handleChange}/>
+              <input
+                type="number "
+                className="form-control"
+                id="name"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+              />
             </div>
             <div className="mb-3">
-              <label htmlFor="netWeight" className="form-label">Net Weight</label>
-              <input type="number" className="form-control" name="netWeight" value={formData.netWeight} onChange={handleChange}required/>
+              <label htmlFor="netWeight" className="form-label">
+                Net Weight
+              </label>
+              <input
+                type="number"
+                className="form-control"
+                name="netWeight"
+                value={formData.netWeight}
+                onChange={handleChange}
+                required
+              />
             </div>
             <div className="mb-3">
               <label htmlFor="pricePerKg" className="form-label">
                 Price
               </label>
               <input
-                type="number" className="form-control" name="pricePerKg" value={formData.pricePerKg} readOnly required />
+                type="number"
+                className="form-control"
+                name="pricePerKg"
+                value={formData.pricePerKg}
+                readOnly
+                required
+              />
             </div>
             <div className="mb-3">
               <label htmlFor="totalRate" className="form-label">
                 Total Rate
               </label>
-              <input type="number" className="form-control" name="totalRate" value={totalRate} readOnly required />
+              <input
+                type="number"
+                className="form-control"
+                name="totalRate"
+                value={formData.totalRate}
+                onChange={handleChange}
+                required
+              />
             </div>
             <ModalFooter>
-              <Button type="submit" color="primary" disabled={posting}>Update</Button>
-              <Button type="button" color="secondary" onClick={tog_edit}>Cancel</Button>
+              <Button type="submit" color="primary" disabled={posting}>
+                Update
+              </Button>
+              <Button type="button" color="secondary" onClick={tog_edit}>
+                Cancel
+              </Button>
             </ModalFooter>
           </form>
         </ModalBody>
@@ -440,3 +739,5 @@ const RmVariable = ({ partDetails, setRmTotalCount }) => {
 };
 
 export default RmVariable;
+
+
