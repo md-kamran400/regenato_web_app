@@ -80,7 +80,6 @@ const RmVariable = ({ partDetails, setRmTotalCount }) => {
   };
 
   const tog_add = () => {
-
     setFormData({
       categoryId: "",
       name: "",
@@ -136,9 +135,12 @@ const RmVariable = ({ partDetails, setRmTotalCount }) => {
       ...prevFormData,
       [name]: value,
       totalRate:
-    name === "netWeight"
-      ? Math.round(parseFloat(value) * parseFloat(prevFormData.pricePerKg))
-      : Math.round(parseFloat(prevFormData.netWeight) * parseFloat(prevFormData.pricePerKg)),
+        name === "netWeight"
+          ? Math.round(parseFloat(value) * parseFloat(prevFormData.pricePerKg))
+          : Math.round(
+              parseFloat(prevFormData.netWeight) *
+                parseFloat(prevFormData.pricePerKg)
+            ),
     }));
   };
 
@@ -224,8 +226,11 @@ const RmVariable = ({ partDetails, setRmTotalCount }) => {
         ...prevFormData,
         categoryId: newValue.categoryId,
         name: newValue.name,
-        pricePerKg: newValue.price,
-        totalRate: Math.round(parseFloat(prevFormData.netWeight) * parseFloat(newValue.price)),
+        pricePerKg: newValue.price, // Autofill price, but allow editing
+        totalRate: Math.round(
+          parseFloat(prevFormData.netWeight || 0) *
+            parseFloat(newValue.price || 0)
+        ),
       }));
     }
   };
@@ -332,68 +337,70 @@ const RmVariable = ({ partDetails, setRmTotalCount }) => {
     }
   };
 
-    // Handle form submission for editing a variable (PUT request)
-    const handleEditSubmit = async (e) => {
-      e.preventDefault();
-      setPosting(true);
-      setError(null);
-    
-      try {
-        const response = await fetch(
-          `http://localhost:4040/api/parts/${partDetails._id}/rmVariables/${editId}`,
-          {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              ...formData,
-              totalRate: Math.round(parseFloat(formData.netWeight) * parseFloat(formData.pricePerKg)),
-            }),
-          }
-        );
-    
-        if (response.ok) {
-          await fetchRmData(); // Refetch the data to update the table
-          setFormData({
-            categoryId: "",
-            name: "",
-            netWeight: "",
-            pricePerKg: "",
-            totalRate: "",
-          });
-          setModalEdit(false); // Close the edit modal
-        } else {
-          throw new Error("Network response was not ok");
+  // Handle form submission for editing a variable (PUT request)
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    setPosting(true);
+    setError(null);
+
+    try {
+      const response = await fetch(
+        `http://localhost:4040/api/parts/${partDetails._id}/rmVariables/${editId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            ...formData,
+            totalRate: Math.round(
+              parseFloat(formData.netWeight) * parseFloat(formData.pricePerKg)
+            ),
+          }),
         }
-      } catch (error) {
-        setError(error.message);
-      } finally {
-        setPosting(false);
-      }
-    };
-// handle for deleting
-    const handleDelete = async (_id) => {
-      setPosting(true);
-      setError(null);
-      try {
-        const response = await fetch(
-          `http://localhost:4040/api/parts/${partDetails._id}/rmVariables/${_id}`,
-          {
-            method: "DELETE",
-          }
-        );
-        if (!response.ok) {
-          throw new Error("Network response was not ok");
-        }
+      );
+
+      if (response.ok) {
         await fetchRmData(); // Refetch the data to update the table
-        tog_delete(); // Close the modal
-      } catch (error) {
-        setError(error.message);
-      } finally {
-        setPosting(false);
+        setFormData({
+          categoryId: "",
+          name: "",
+          netWeight: "",
+          pricePerKg: "",
+          totalRate: "",
+        });
+        setModalEdit(false); // Close the edit modal
+      } else {
+        throw new Error("Network response was not ok");
       }
-    };
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      setPosting(false);
+    }
+  };
+  // handle for deleting
+  const handleDelete = async (_id) => {
+    setPosting(true);
+    setError(null);
+    try {
+      const response = await fetch(
+        `http://localhost:4040/api/parts/${partDetails._id}/rmVariables/${_id}`,
+        {
+          method: "DELETE",
+        }
+      );
+      if (!response.ok) {
+        throw new Error("Network response was not ok");
+      }
+      await fetchRmData(); // Refetch the data to update the table
+      tog_delete(); // Close the modal
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      setPosting(false);
+    }
+  };
   return (
     <React.Fragment>
       <Col className="col-sm-auto">
@@ -521,7 +528,8 @@ const RmVariable = ({ partDetails, setRmTotalCount }) => {
                 type="number"
                 className="form-control"
                 name="pricePerKg"
-                value={formData.pricePerKg}
+                value={formData.pricePerKg || ""}
+                onChange={handleChange} // Allow manual edits
                 required
               />
             </div>
@@ -556,7 +564,7 @@ const RmVariable = ({ partDetails, setRmTotalCount }) => {
         </ModalHeader>
         <ModalBody>
           <form onSubmit={handleSubmit}>
-          <div className="mb-3">
+            <div className="mb-3">
               <label htmlFor="categoryId" className="form-label">
                 Category ID
               </label>
@@ -739,5 +747,3 @@ const RmVariable = ({ partDetails, setRmTotalCount }) => {
 };
 
 export default RmVariable;
-
-

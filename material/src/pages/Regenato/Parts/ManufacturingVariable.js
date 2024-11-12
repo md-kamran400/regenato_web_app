@@ -159,13 +159,17 @@ const ManufacturingVariable = ({ partDetails }) => {
   const handleAutocompleteChange = (event, newValue) => {
     setSelectedManufacuturingVariable(newValue);
     if (newValue) {
-      setFormData((prevFormData) => ({
-        ...prevFormData,
-        categoryId: newValue.categoryId,
-        name: newValue.name,
-        hourlyRate: newValue.hourlyrate, // Auto-fill hourlyRate
-        totalRate: newValue.hourlyrate * prevFormData.hours, // Calculate totalRate
-      }));
+      setFormData((prevFormData) => {
+        const updatedFormData = {
+          ...prevFormData,
+          categoryId: newValue.categoryId,
+          name: newValue.name,
+          hourlyRate: newValue.hourlyrate,
+          // Calculate totalRate based on hours and selected hourlyRate
+          totalRate: (newValue.hourlyrate || 0) * (parseFloat(prevFormData.hours) || 0),
+        };
+        return updatedFormData;
+      });
     }
   };
   
@@ -235,23 +239,27 @@ const ManufacturingVariable = ({ partDetails }) => {
   };
 
   // Handle form input changes
-const handleChange = (e) => {
-  const { name, value } = e.target;
-  setFormData((prevFormData) => ({
-    ...prevFormData,
-    [name]: value,
-    totalRate: 
-      (name === "hours" || name === "hourlyRate") 
-      ? parseFloat(value) * formData.hourlyRate 
-      : prevFormData.totalRate,
-  }));
-};
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prevFormData) => {
+      const updatedFormData = {
+        ...prevFormData,
+        [name]: value,
+      };
+      // Calculate totalRate using the updated hourlyRate and hours
+      updatedFormData.totalRate =
+        (parseFloat(updatedFormData.hourlyRate) || 0) *
+        (parseFloat(updatedFormData.hours) || 0);
+
+      return updatedFormData;
+    });
+  };
 
   const handleChangeStatic = (e) => {
     const { name, value } = e.target;
-    console.log('Changing', name, 'to', value);
-    
-    setFormData(prevFormData => ({
+    console.log("Changing", name, "to", value);
+
+    setFormData((prevFormData) => ({
       ...prevFormData,
       [name]: value,
     }));
@@ -539,7 +547,7 @@ const handleChange = (e) => {
                 type="number"
                 className="form-control"
                 name="hourlyRate"
-                value={formData.hourlyRate}
+                value={formData.hourlyRate || ""}
                 onChange={handleChange}
                 required
               />
@@ -552,7 +560,7 @@ const handleChange = (e) => {
                 type="number"
                 className="form-control"
                 name="totalRate"
-                value={totalRate}
+                value={formData.totalRate || ""} // Ensure it reflects updated calculation
                 readOnly
                 required
               />
