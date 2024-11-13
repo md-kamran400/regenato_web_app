@@ -181,7 +181,7 @@ PartRoutes.get("/:_id/rmVariables", async (req, res) => {
   });
 
   // POST - Add a new RM Variable to a specific part
-PartRoutes.post("/:_id/rmVariables", async (req, res) => {
+  PartRoutes.post("/:_id/rmVariables", async (req, res) => {
     try {
       const newRMVariable = {
         categoryId: req.body.categoryId,
