@@ -451,7 +451,7 @@ const OverheadsVariable = ({ partDetails, totalCost }) => {
                 renderInput={(params) => (
                   <TextField
                     {...params}
-                    label="Select Material"
+                    label="Select Overheads And Profits"
                     variant="outlined"
                   />
                 )}

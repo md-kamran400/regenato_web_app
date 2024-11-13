@@ -496,7 +496,7 @@ const ManufacturingVariable = ({ partDetails }) => {
         <ModalHeader toggle={tog_add}>Add Manufacturing Variables</ModalHeader>
         <ModalBody>
           <form onSubmit={handleSubmit}>
-            <div className="mb-3">
+            {/* <div className="mb-3">
               <label htmlFor="categoryId" className="form-label">
                 Category ID
               </label>
@@ -508,7 +508,7 @@ const ManufacturingVariable = ({ partDetails }) => {
                 onChange={handleChange}
                 required
               />
-            </div>
+            </div> */}
             <div className="mb-3">
               <label htmlFor="name" className="form-label">
                 Name
@@ -520,7 +520,7 @@ const ManufacturingVariable = ({ partDetails }) => {
                 renderInput={(params) => (
                   <TextField
                     {...params}
-                    label="Select Material"
+                    label="Select Manufacturing Variables"
                     variant="outlined"
                   />
                 )}
@@ -586,7 +586,7 @@ const ManufacturingVariable = ({ partDetails }) => {
         </ModalHeader>
         <ModalBody>
           <form className="tablelist-form" onSubmit={handleSubmit}>
-            <div className="mb-3">
+            {/* <div className="mb-3">
               <label htmlFor="categoryId" className="form-label">
                 Category ID
               </label>
@@ -598,7 +598,7 @@ const ManufacturingVariable = ({ partDetails }) => {
                 onChange={handleChangeStatic}
                 required
               />
-            </div>
+            </div> */}
             <div className="mb-3">
               <label htmlFor="name" className="form-label">
                 Name

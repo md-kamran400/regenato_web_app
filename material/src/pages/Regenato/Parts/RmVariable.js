@@ -235,75 +235,14 @@ const RmVariable = ({ partDetails, setRmTotalCount }) => {
     }
   };
 
-  // const handleSubmit = async (e) => {
-  //   e.preventDefault();
-  //   setPosting(true);
-  //   setError(null);
-
-  //   try {
-  //     const url = `http://localhost:4040/api/parts/${partDetails._id}/rmVariables`;
-
-  //     // Check if the category ID already exists
-  //     if (RmtableData.some(item => item.categoryId === staticFormData.categoryId)) {
-  //       toast.error('ID already exists', {
-  //         position: "top-right",
-  //         autoClose: 3000,
-  //         hideProgressBar: false,
-  //         closeOnClick: true,
-  //         pauseOnHover: true,
-  //         draggable: true,
-  //         progress: undefined,
-  //       });
-  //       setPosting(false); // Reset posting state
-  //       return;
-  //     }
-
-  //     const method = modal_static_add ? "POST" : "PUT";
-  //     const formDataToUse = modal_static_add ? staticFormData : formData;
-
-  //     const response = await fetch(url, {
-  //       method: method,
-  //       headers: {
-  //         "Content-Type": "application/json",
-  //       },
-  //       body: JSON.stringify(formDataToUse),
-  //     });
-
-  //     if (!response.ok) {
-  //       throw new Error("Network response was not ok");
-  //     }
-
-  //     await fetchRmData(); // Refetch the data to update the table
-
-  //     if (modal_static_add) {
-  //       setStaticFormData({
-  //         categoryId: "",
-  //         name: "",
-  //         totalRate: "",
-  //       });
-  //       setModalstatic_add(!modal_static_add);
-  //     } else {
-  //       setFormData({
-  //         categoryId: "",
-  //         name: "",
-  //         netWeight: "",
-  //         pricePerKg: "",
-  //         totalRate: "",
-  //       });
-  //       setModalList(!modal_add);
-  //     }
-  //   } catch (error) {
-  //     setError(error.message);
-  //   } finally {
-  //     setPosting(false);
-  //   }
-  // };
-
-  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     setPosting(true);
     setError(null);
+    
+    // Calculate totalRate and round it to 2 decimal places
+    const roundedTotalRate = Math.round(formData.netWeight * formData.pricePerKg * 100) / 100;
+  
     try {
       const response = await fetch(
         `http://localhost:4040/api/parts/${partDetails._id}/rmVariables`,
@@ -312,12 +251,25 @@ const RmVariable = ({ partDetails, setRmTotalCount }) => {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify(formData),
+          body: JSON.stringify({
+            categoryId: formData.categoryId,
+            name: formData.name,
+            netWeight: parseFloat(formData.netWeight), // Ensure it's a number
+            pricePerKg: parseFloat(formData.pricePerKg), // Ensure it's a number
+            totalRate: roundedTotalRate // Use the rounded value
+          }),
         }
       );
-
+  
       if (response.ok) {
-        await fetchRmData();
+        const result = await response.json();
+        
+        // Check if the server returned the correct totalRate
+        if (result.totalRate !== roundedTotalRate) {
+          console.warn("Server returned different totalRate", result.totalRate, "vs", roundedTotalRate);
+        }
+  
+        await fetchRmData(); // Refetch the data to update the table
         setFormData({
           categoryId: "",
           name: "",
@@ -477,7 +429,7 @@ const RmVariable = ({ partDetails, setRmTotalCount }) => {
         <ModalHeader toggle={tog_add}>Add RM Variable</ModalHeader>
         <ModalBody>
           <form onSubmit={handleSubmit}>
-            <div className="mb-3">
+            {/* <div className="mb-3">
               <label htmlFor="categoryId" className="form-label">
                 Category ID
               </label>
@@ -489,7 +441,7 @@ const RmVariable = ({ partDetails, setRmTotalCount }) => {
                 onChange={handleChange}
                 required
               />
-            </div>
+            </div> */}
             <div className="mb-3">
               <label htmlFor="name" className="form-label">
                 Name
@@ -501,7 +453,7 @@ const RmVariable = ({ partDetails, setRmTotalCount }) => {
                 renderInput={(params) => (
                   <TextField
                     {...params}
-                    label="Select Material"
+                    label="Select RM Variable"
                     variant="outlined"
                   />
                 )}

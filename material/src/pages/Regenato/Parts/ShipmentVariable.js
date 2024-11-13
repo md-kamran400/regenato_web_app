@@ -412,7 +412,7 @@ const ShipmentVariable = ({ partDetails }) => {
                 renderInput={(params) => (
                   <TextField
                     {...params}
-                    label="Select Material"
+                    label="Select Shipment Variable"
                     variant="outlined"
                   />
                 )}
