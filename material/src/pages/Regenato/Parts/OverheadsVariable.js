@@ -82,7 +82,7 @@ const OverheadsVariable = ({ partDetails, totalCost }) => {
     setLoading(true);
     try {
       const response = await fetch(
-        `http://localhost:4040/api/parts/${partDetails._id}/overheadsAndProfits`
+        `https://regenato-web-app-1.onrender.com/api/parts/${partDetails._id}/overheadsAndProfits`
       );
       if (!response.ok) {
         throw new Error(`Error: ${response.statusText}`);
@@ -135,7 +135,7 @@ const OverheadsVariable = ({ partDetails, totalCost }) => {
     const fetchOverheadsAndProfits = async () => {
       try {
         const response = await fetch(
-          `http://localhost:4040/api/overheadsAndProfit`
+          `https://regenato-web-app-1.onrender.com/api/overheadsAndProfit`
         );
         if (!response.ok) {
           throw new Error(`Error: ${response.statusText}`);
@@ -165,7 +165,7 @@ const OverheadsVariable = ({ partDetails, totalCost }) => {
   
     try {
       const response = await fetch(
-        `http://localhost:4040/api/parts/${partDetails._id}/overheadsAndProfits`,
+        `https://regenato-web-app-1.onrender.com/api/parts/${partDetails._id}/overheadsAndProfits`,
         {
           method: "POST",
           headers: {
@@ -208,7 +208,7 @@ const OverheadsVariable = ({ partDetails, totalCost }) => {
   
     try {
       const response = await fetch(
-        `http://localhost:4040/api/parts/${partDetails._id}/overheadsAndProfits/${editId}`,
+        `https://regenato-web-app-1.onrender.com/api/parts/${partDetails._id}/overheadsAndProfits/${editId}`,
         {
           method: "PUT",
           headers: {
@@ -250,7 +250,7 @@ const OverheadsVariable = ({ partDetails, totalCost }) => {
     setError(null);
     try {
       const response = await fetch(
-        `http://localhost:4040/api/parts/${partDetails._id}/overheadsAndProfits/${_id}`,
+        `https://regenato-web-app-1.onrender.com/api/parts/${partDetails._id}/overheadsAndProfits/${_id}`,
         {
           method: "DELETE",
         }

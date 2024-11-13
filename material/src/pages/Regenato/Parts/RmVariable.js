@@ -147,7 +147,7 @@ const RmVariable = ({ partDetails, setRmTotalCount }) => {
   const fetchRmData = useCallback(async () => {
     try {
       const response = await fetch(
-        `http://localhost:4040/api/parts/${partDetails._id}/rmVariables`
+        `https://regenato-web-app-1.onrender.com/api/parts/${partDetails._id}/rmVariables`
       );
       if (!response.ok) {
         throw new Error(`Error: ${response.statusText}`);
@@ -173,7 +173,7 @@ const RmVariable = ({ partDetails, setRmTotalCount }) => {
   useEffect(() => {
     const fetchRmVariables = async () => {
       try {
-        const response = await fetch(`http://localhost:4040/api/rmvariable`);
+        const response = await fetch(`https://regenato-web-app-1.onrender.com/api/rmvariable`);
         if (!response.ok) {
           throw new Error(`Error: ${response.statusText}`);
         }
@@ -245,7 +245,7 @@ const RmVariable = ({ partDetails, setRmTotalCount }) => {
   
     try {
       const response = await fetch(
-        `http://localhost:4040/api/parts/${partDetails._id}/rmVariables`,
+        `https://regenato-web-app-1.onrender.com/api/parts/${partDetails._id}/rmVariables`,
         {
           method: "POST",
           headers: {
@@ -297,7 +297,7 @@ const RmVariable = ({ partDetails, setRmTotalCount }) => {
 
     try {
       const response = await fetch(
-        `http://localhost:4040/api/parts/${partDetails._id}/rmVariables/${editId}`,
+        `https://regenato-web-app-1.onrender.com/api/parts/${partDetails._id}/rmVariables/${editId}`,
         {
           method: "PUT",
           headers: {
@@ -337,7 +337,7 @@ const RmVariable = ({ partDetails, setRmTotalCount }) => {
     setError(null);
     try {
       const response = await fetch(
-        `http://localhost:4040/api/parts/${partDetails._id}/rmVariables/${_id}`,
+        `https://regenato-web-app-1.onrender.com/api/parts/${partDetails._id}/rmVariables/${_id}`,
         {
           method: "DELETE",
         }

@@ -46,13 +46,13 @@ const SingeProject = () => {
 
   useEffect(() => {
     const fetchParts = async () => {
-      const response = await fetch("http://localhost:4040/api/parts");
+      const response = await fetch("https://regenato-web-app-1.onrender.com/api/parts");
       const data = await response.json();
       setParts(data);
     };
 
     const fetchManufacturingVariables = async () => {
-      const response = await fetch("http://localhost:4040/api/manufacturing");
+      const response = await fetch("https://regenato-web-app-1.onrender.com/api/manufacturing");
       const data = await response.json();
       setManufacturingVariables(data);
 
@@ -68,7 +68,7 @@ const SingeProject = () => {
 
   const fetchProjectDetails = useCallback(async () => {
     try {
-      const response = await fetch(`http://localhost:4040/api/projects/${_id}`);
+      const response = await fetch(`https://regenato-web-app-1.onrender.com/api/projects/${_id}`);
       const data = await response.json();
       setPartDetails(data);
       console.log(data);
@@ -87,7 +87,7 @@ const SingeProject = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch("http://localhost:4040/api/parts");
+      const response = await fetch("https://regenato-web-app-1.onrender.com/api/parts");
       if (!response.ok) throw new Error("Network response was not ok");
       const data = await response.json();
       setListData(data);
@@ -120,7 +120,7 @@ const SingeProject = () => {
 
   //     try {
   //       const response = await fetch(
-  //         `http://localhost:4040/api/projects/${_id}/allProjects`,
+  //         `https://regenato-web-app-1.onrender.com/api/projects/${_id}/allProjects`,
   //         {
   //           method: "POST",
   //           headers: { "Content-Type": "application/json" },
@@ -169,7 +169,7 @@ const handleSubmit = async (event) => {
 
     try {
       const response = await fetch(
-        `http://localhost:4040/api/projects/${_id}/allProjects`,
+        `https://regenato-web-app-1.onrender.com/api/projects/${_id}/allProjects`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

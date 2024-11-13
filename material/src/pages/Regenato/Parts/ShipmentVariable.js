@@ -78,7 +78,7 @@ const ShipmentVariable = ({ partDetails }) => {
     setLoading(true);
     try {
       const response = await fetch(
-        `http://localhost:4040/api/parts/${partDetails._id}/shipmentVariables`
+        `https://regenato-web-app-1.onrender.com/api/parts/${partDetails._id}/shipmentVariables`
       );
       if (!response.ok) {
         throw new Error(`Error: ${response.statusText}`);
@@ -104,7 +104,7 @@ const ShipmentVariable = ({ partDetails }) => {
   useEffect(() => {
     const fetchShipment = async () => {
       try {
-        const response = await fetch(`http://localhost:4040/api/shipment`);
+        const response = await fetch(`https://regenato-web-app-1.onrender.com/api/shipment`);
         if (!response.ok) {
           throw new Error(`Error: ${response.statusText}`);
         }
@@ -145,7 +145,7 @@ const ShipmentVariable = ({ partDetails }) => {
     setError(null);
     try {
       const response = await fetch(
-        `http://localhost:4040/api/parts/${partDetails._id}/shipmentVariables`,
+        `https://regenato-web-app-1.onrender.com/api/parts/${partDetails._id}/shipmentVariables`,
         {
           method: "POST",
           headers: {
@@ -185,7 +185,7 @@ const ShipmentVariable = ({ partDetails }) => {
     setError(null);
     try {
       const response = await fetch(
-        `http://localhost:4040/api/parts/${partDetails._id}/shipmentVariables/${editId}`,
+        `https://regenato-web-app-1.onrender.com/api/parts/${partDetails._id}/shipmentVariables/${editId}`,
         {
           method: "PUT",
           headers: {
@@ -227,7 +227,7 @@ const ShipmentVariable = ({ partDetails }) => {
     setError(null);
     try {
       const response = await fetch(
-        `http://localhost:4040/api/parts/${partDetails._id}/shipmentVariables/${_id}`,
+        `https://regenato-web-app-1.onrender.com/api/parts/${partDetails._id}/shipmentVariables/${_id}`,
         {
           method: "DELETE",
         }

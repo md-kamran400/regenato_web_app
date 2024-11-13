@@ -27,7 +27,7 @@ const GeneralVariable = () => {
         setLoading(true);
         setError(null);
         try {
-            const response = await fetch('http://localhost:4040/api/general');
+            const response = await fetch('https://regenato-web-app-1.onrender.com/api/general');
             if (!response.ok) {
                 throw new Error('Network response was not ok');
             }
@@ -57,7 +57,7 @@ const GeneralVariable = () => {
             setPosting(true);
             setError(null);
             try {
-                const response = await fetch('http://localhost:4040/api/general', {
+                const response = await fetch('https://regenato-web-app-1.onrender.com/api/general', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -87,7 +87,7 @@ const GeneralVariable = () => {
         setPosting(true);
         setError(null);
         try {
-            const response = await fetch(`http://localhost:4040/api/general/${_id}`, {
+            const response = await fetch(`https://regenato-web-app-1.onrender.com/api/general/${_id}`, {
                 method: 'DELETE',
             });
             if (!response.ok) {

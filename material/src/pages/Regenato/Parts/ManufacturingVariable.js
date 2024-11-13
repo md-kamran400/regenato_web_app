@@ -131,7 +131,7 @@ const ManufacturingVariable = ({ partDetails }) => {
     setLoading(true);
     try {
       const response = await fetch(
-        `http://localhost:4040/api/parts/${partDetails._id}/manufacturingVariables`
+        `https://regenato-web-app-1.onrender.com/api/parts/${partDetails._id}/manufacturingVariables`
       );
       if (!response.ok) {
         throw new Error(`Error: ${response.statusText}`);
@@ -177,7 +177,7 @@ const ManufacturingVariable = ({ partDetails }) => {
   useEffect(() => {
     const fetchRmVariables = async () => {
       try {
-        const response = await fetch(`http://localhost:4040/api/manufacturing`);
+        const response = await fetch(`https://regenato-web-app-1.onrender.com/api/manufacturing`);
         if (!response.ok) {
           throw new Error(`Error: ${response.statusText}`);
         }
@@ -195,7 +195,7 @@ const ManufacturingVariable = ({ partDetails }) => {
   useEffect(() => {
     const fetchShipment = async () => {
       try {
-        const response = await fetch(`http://localhost:4040/api/manufacturing`);
+        const response = await fetch(`https://regenato-web-app-1.onrender.com/api/manufacturing`);
         if (!response.ok) {
           throw new Error(`Error: ${response.statusText}`);
         }
@@ -272,7 +272,7 @@ const ManufacturingVariable = ({ partDetails }) => {
     setError(null);
     try {
       const response = await fetch(
-        `http://localhost:4040/api/parts/${partDetails._id}/manufacturingVariables`,
+        `https://regenato-web-app-1.onrender.com/api/parts/${partDetails._id}/manufacturingVariables`,
         {
           method: "POST",
           headers: {
@@ -310,7 +310,7 @@ const ManufacturingVariable = ({ partDetails }) => {
     setError(null);
     try {
       const response = await fetch(
-        `http://localhost:4040/api/parts/${partDetails._id}/manufacturingVariables/${editId}`,
+        `https://regenato-web-app-1.onrender.com/api/parts/${partDetails._id}/manufacturingVariables/${editId}`,
         {
           method: "PUT",
           headers: {
@@ -347,7 +347,7 @@ const ManufacturingVariable = ({ partDetails }) => {
     setError(null);
     try {
       const response = await fetch(
-        `http://localhost:4040/api/parts/${partDetails._id}/manufacturingVariables/${_id}`,
+        `https://regenato-web-app-1.onrender.com/api/parts/${partDetails._id}/manufacturingVariables/${_id}`,
         {
           method: "DELETE",
         }
