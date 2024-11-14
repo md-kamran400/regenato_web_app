@@ -79,7 +79,7 @@ const OverheadsVariable = ({ partDetails, totalCost }) => {
     setLoading(true);
     try {
       const response = await fetch(
-        `http://localhost:4040/api/parts/${partDetails._id}/overheadsAndProfits`
+        `${process.env.REACT_APP_BASE_URL}/api/parts/${partDetails._id}/overheadsAndProfits`
       );
       if (!response.ok) {
         throw new Error(`Error: ${response.statusText}`);
@@ -117,7 +117,7 @@ const OverheadsVariable = ({ partDetails, totalCost }) => {
     const fetchOverheadsAndProfits = async () => {
       try {
         const response = await fetch(
-          `http://localhost:4040/api/overheadsAndProfit`
+          `${process.env.REACT_APP_BASE_URL}/api/overheadsAndProfit`
         );
         if (!response.ok) {
           throw new Error(`Error: ${response.statusText}`);
@@ -200,7 +200,7 @@ const OverheadsVariable = ({ partDetails, totalCost }) => {
   
     try {
       const response = await fetch(
-        `http://localhost:4040/api/parts/${partDetails._id}/overheadsAndProfits`,
+        `${process.env.REACT_APP_BASE_URL}/api/parts/${partDetails._id}/overheadsAndProfits`,
         {
           method: "POST",
           headers: {
@@ -244,7 +244,7 @@ const OverheadsVariable = ({ partDetails, totalCost }) => {
 
     try {
       const response = await fetch(
-        `http://localhost:4040/api/parts/${partDetails._id}/overheadsAndProfits/${editId}`,
+        `${process.env.REACT_APP_BASE_URL}/api/parts/${partDetails._id}/overheadsAndProfits/${editId}`,
         {
           method: "PUT",
           headers: {
@@ -286,7 +286,7 @@ const OverheadsVariable = ({ partDetails, totalCost }) => {
     setError(null);
     try {
       const response = await fetch(
-        `http://localhost:4040/api/parts/${partDetails._id}/overheadsAndProfits/${_id}`,
+        `${process.env.REACT_APP_BASE_URL}/api/parts/${partDetails._id}/overheadsAndProfits/${_id}`,
         {
           method: "DELETE",
         }

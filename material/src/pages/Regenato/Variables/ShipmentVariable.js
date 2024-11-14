@@ -68,7 +68,7 @@ const ShipmentVariable = () => {
   //   useEffect(() => {
   //     const fetchShipmentData = async () => {
   //       try {
-  //         const response = await fetch("http://localhost:4040/api/shipment");
+  //         const response = await fetch("${process.env.REACT_APP_BASE_URL}/api/shipment");
   //         const data = await response.json();
   //         setShipmentData(data); // Update state with fetched data
   //       } catch (error) {
@@ -83,7 +83,7 @@ const ShipmentVariable = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch("http://localhost:4040/api/shipment");
+      const response = await fetch("${process.env.REACT_APP_BASE_URL}/api/shipment");
       if (!response.ok) {
         throw new Error("Network response was not ok");
       }
@@ -114,7 +114,7 @@ const ShipmentVariable = () => {
     setPosting(true);
     setError(null);
     try {
-      const response = await fetch(`http://localhost:4040/api/shipment`, {
+      const response = await fetch(`${process.env.REACT_APP_BASE_URL}/api/shipment`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -152,7 +152,7 @@ const ShipmentVariable = () => {
     setError(null);
     try {
       const response = await fetch(
-        `http://localhost:4040/api/shipment/${editId}`,
+        `${process.env.REACT_APP_BASE_URL}/api/shipment/${editId}`,
         {
           method: "PUT",
           headers: {
@@ -194,7 +194,7 @@ const ShipmentVariable = () => {
     setError(null);
     try {
       const response = await fetch(
-        `http://localhost:4040/api/shipment/${_id}`,
+        `${process.env.REACT_APP_BASE_URL}/api/shipment/${_id}`,
         {
           method: "DELETE",
         }

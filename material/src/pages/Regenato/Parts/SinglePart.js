@@ -39,7 +39,7 @@ const SinglePart = () => {
   useEffect(() => {
     const fetchPartDetails = async () => {
       try {
-        const response = await fetch(`http://localhost:4040/api/parts/${_id}`);
+        const response = await fetch(`${process.env.REACT_APP_BASE_URL}/api/parts/${_id}`);
         if (!response.ok) {
           throw new Error(`Error: ${response.statusText}`);
         }

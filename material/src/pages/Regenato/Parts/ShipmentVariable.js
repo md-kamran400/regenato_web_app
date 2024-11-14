@@ -78,7 +78,7 @@ const ShipmentVariable = ({ partDetails }) => {
     setLoading(true);
     try {
       const response = await fetch(
-        `http://localhost:4040/api/parts/${partDetails._id}/shipmentVariables`
+        `${process.env.REACT_APP_BASE_URL}/api/parts/${partDetails._id}/shipmentVariables`
       );
       if (!response.ok) {
         throw new Error(`Error: ${response.statusText}`);
@@ -104,7 +104,7 @@ const ShipmentVariable = ({ partDetails }) => {
   useEffect(() => {
     const fetchShipment = async () => {
       try {
-        const response = await fetch(`http://localhost:4040/api/shipment`);
+        const response = await fetch(`${process.env.REACT_APP_BASE_URL}/api/shipment`);
         if (!response.ok) {
           throw new Error(`Error: ${response.statusText}`);
         }
@@ -150,7 +150,7 @@ const ShipmentVariable = ({ partDetails }) => {
     setError(null);
     try {
       const response = await fetch(
-        `http://localhost:4040/api/parts/${partDetails._id}/shipmentVariables`,
+        `${process.env.REACT_APP_BASE_URL}/api/parts/${partDetails._id}/shipmentVariables`,
         {
           method: "POST",
           headers: {
@@ -187,7 +187,7 @@ const ShipmentVariable = ({ partDetails }) => {
     setError(null);
     try {
       const response = await fetch(
-        `http://localhost:4040/api/parts/${partDetails._id}/shipmentVariables/${editId}`,
+        `${process.env.REACT_APP_BASE_URL}/api/parts/${partDetails._id}/shipmentVariables/${editId}`,
         {
           method: "PUT",
           headers: {
@@ -229,7 +229,7 @@ const ShipmentVariable = ({ partDetails }) => {
     setError(null);
     try {
       const response = await fetch(
-        `http://localhost:4040/api/parts/${partDetails._id}/shipmentVariables/${_id}`,
+        `${process.env.REACT_APP_BASE_URL}/api/parts/${partDetails._id}/shipmentVariables/${_id}`,
         {
           method: "DELETE",
         }

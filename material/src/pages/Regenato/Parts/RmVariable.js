@@ -147,7 +147,7 @@ const RmVariable = ({ partDetails, setRmTotalCount }) => {
   const fetchRmData = useCallback(async () => {
     try {
       const response = await fetch(
-        `http://localhost:4040/api/parts/${partDetails._id}/rmVariables`
+        `${process.env.REACT_APP_BASE_URL}/api/parts/${partDetails._id}/rmVariables`
       );
       if (!response.ok) {
         throw new Error(`Error: ${response.statusText}`);
@@ -173,7 +173,7 @@ const RmVariable = ({ partDetails, setRmTotalCount }) => {
   useEffect(() => {
     const fetchRmVariables = async () => {
       try {
-        const response = await fetch(`http://localhost:4040/api/rmvariable`);
+        const response = await fetch(`${process.env.REACT_APP_BASE_URL}/api/rmvariable`);
         if (!response.ok) {
           throw new Error(`Error: ${response.statusText}`);
         }
@@ -245,7 +245,7 @@ const RmVariable = ({ partDetails, setRmTotalCount }) => {
   
     try {
       const response = await fetch(
-        `http://localhost:4040/api/parts/${partDetails._id}/rmVariables`,
+        `${process.env.REACT_APP_BASE_URL}/api/parts/${partDetails._id}/rmVariables`,
         {
           method: "POST",
           headers: {
@@ -297,7 +297,7 @@ const RmVariable = ({ partDetails, setRmTotalCount }) => {
 
     try {
       const response = await fetch(
-        `http://localhost:4040/api/parts/${partDetails._id}/rmVariables/${editId}`,
+        `${process.env.REACT_APP_BASE_URL}/api/parts/${partDetails._id}/rmVariables/${editId}`,
         {
           method: "PUT",
           headers: {
@@ -337,7 +337,7 @@ const RmVariable = ({ partDetails, setRmTotalCount }) => {
     setError(null);
     try {
       const response = await fetch(
-        `http://localhost:4040/api/parts/${partDetails._id}/rmVariables/${_id}`,
+        `${process.env.REACT_APP_BASE_URL}/api/parts/${partDetails._id}/rmVariables/${_id}`,
         {
           method: "DELETE",
         }

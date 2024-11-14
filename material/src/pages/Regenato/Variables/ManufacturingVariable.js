@@ -66,7 +66,7 @@ const ManufacturingVariable = () => {
   // useEffect(() => {
   //     const fetchManufacturingData = async () => {
   //         try {
-  //             const response = await fetch('http://localhost:4040/api/manufacturing');
+  //             const response = await fetch('${process.env.REACT_APP_BASE_URL}/api/manufacturing');
   //             const data = await response.json();
   //             setManufacturingData(data);
   //             setLoading(false);
@@ -83,7 +83,7 @@ const ManufacturingVariable = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch("http://localhost:4040/api/manufacturing");
+      const response = await fetch("${process.env.REACT_APP_BASE_URL}/api/manufacturing");
       if (!response.ok) {
         throw new Error("Network response was not ok");
       }
@@ -114,7 +114,7 @@ const ManufacturingVariable = () => {
     setPosting(true);
     setError(null);
     try {
-      const response = await fetch(`http://localhost:4040/api/manufacturing`, {
+      const response = await fetch(`${process.env.REACT_APP_BASE_URL}/api/manufacturing`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -152,7 +152,7 @@ const ManufacturingVariable = () => {
     setError(null);
     try {
       const response = await fetch(
-        `http://localhost:4040/api/manufacturing/${editId}`,
+        `${process.env.REACT_APP_BASE_URL}/api/manufacturing/${editId}`,
         {
           method: "PUT",
           headers: {
@@ -194,7 +194,7 @@ const ManufacturingVariable = () => {
     setError(null);
     try {
       const response = await fetch(
-        `http://localhost:4040/api/manufacturing/${_id}`,
+        `${process.env.REACT_APP_BASE_URL}/api/manufacturing/${_id}`,
         {
           method: "DELETE",
         }
