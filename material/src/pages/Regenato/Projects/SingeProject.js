@@ -46,13 +46,13 @@ const SingeProject = () => {
 
   useEffect(() => {
     const fetchParts = async () => {
-      const response = await fetch("${process.env.REACT_APP_BASE_URL}/api/parts");
+      const response = await fetch(`${process.env.REACT_APP_BASE_URL}/api/parts`);
       const data = await response.json();
       setParts(data);
     };
 
     const fetchManufacturingVariables = async () => {
-      const response = await fetch("${process.env.REACT_APP_BASE_URL}/api/manufacturing");
+      const response = await fetch(`${process.env.REACT_APP_BASE_URL}/api/manufacturing`);
       const data = await response.json();
       setManufacturingVariables(data);
 
@@ -87,7 +87,7 @@ const SingeProject = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch("${process.env.REACT_APP_BASE_URL}/api/parts");
+      const response = await fetch(`${process.env.REACT_APP_BASE_URL}/api/parts`);
       if (!response.ok) throw new Error("Network response was not ok");
       const data = await response.json();
       setListData(data);

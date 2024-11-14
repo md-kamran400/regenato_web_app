@@ -83,7 +83,7 @@ const ShipmentVariable = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch("${process.env.REACT_APP_BASE_URL}/api/shipment");
+      const response = await fetch(`${process.env.REACT_APP_BASE_URL}/api/shipment`);
       if (!response.ok) {
         throw new Error("Network response was not ok");
       }

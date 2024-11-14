@@ -88,7 +88,7 @@ const OverheadsVariable = () => {
     setError(null);
     try {
       const response = await fetch(
-        "${process.env.REACT_APP_BASE_URL}/api/overheadsAndProfit"
+        `${process.env.REACT_APP_BASE_URL}/api/overheadsAndProfit`
       );
       if (!response.ok) {
         throw new Error("Network response was not ok");

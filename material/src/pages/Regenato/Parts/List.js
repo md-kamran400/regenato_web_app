@@ -76,7 +76,7 @@ const List = () => {
         setLoading(true);
         setError(null);
         try {
-            const response = await fetch('${process.env.REACT_APP_BASE_URL}/api/parts');
+            const response = await fetch(`${process.env.REACT_APP_BASE_URL}/api/parts`);
             if (!response.ok) {
                 throw new Error('Network response was not ok');
             }
@@ -107,7 +107,7 @@ const handleAddPart = async () => {
       };
   
       try {
-        const response = await fetch('${process.env.REACT_APP_BASE_URL}/api/parts', {
+        const response = await fetch(`${process.env.REACT_APP_BASE_URL}/api/parts`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

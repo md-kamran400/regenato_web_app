@@ -83,7 +83,7 @@ const ManufacuringStatic = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch("${process.env.REACT_APP_BASE_URL}/api/manufacturingStatics");
+      const response = await fetch(`${process.env.REACT_APP_BASE_URL}/api/manufacturingStatics`);
       if (!response.ok) {
         throw new Error("Network response was not ok");
       }

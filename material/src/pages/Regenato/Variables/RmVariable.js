@@ -91,7 +91,7 @@ const RmVariable = () => {
         setLoading(true);
         setError(null);
         try {
-            const response = await fetch('${process.env.REACT_APP_BASE_URL}/api/rmvariable');
+            const response = await fetch(`${process.env.REACT_APP_BASE_URL}/api/rmvariable`);
             if (!response.ok) {
                 throw new Error('Network response was not ok');
             }
@@ -121,7 +121,7 @@ const RmVariable = () => {
         setPosting(true);
         setError(null);
         try {
-            const response = await fetch('${process.env.REACT_APP_BASE_URL}/api/rmvariable', {
+            const response = await fetch(`${process.env.REACT_APP_BASE_URL}/api/rmvariable`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

@@ -303,7 +303,7 @@ const List = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch("${process.env.REACT_APP_BASE_URL}/api/projects");
+      const response = await fetch(`${process.env.REACT_APP_BASE_URL}/api/projects`);
       if (!response.ok) {
         throw new Error("Network response was not ok");
       }
@@ -330,7 +330,7 @@ const List = () => {
         stockPoQty: 0,
       };
       try {
-        const response = await fetch("${process.env.REACT_APP_BASE_URL}/api/projects", {
+        const response = await fetch(`${process.env.REACT_APP_BASE_URL}/api/projects`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

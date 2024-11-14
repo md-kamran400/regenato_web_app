@@ -27,6 +27,8 @@ const GeneralVariable = ({ partDetails }) => {
   const [selectedId, setSelectedId] = useState(null);
   const [selectedGeneral, setselectedGeneral] = useState(null);
   const [editId, setEditId] = useState(null);
+  console.log('Base URL:', process.env.REACT_APP_BASE_URL);
+
 
   const [formData, setFormData] = useState({
     categoryId: "",
