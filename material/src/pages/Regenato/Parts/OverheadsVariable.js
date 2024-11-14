@@ -28,8 +28,6 @@ const OverheadsVariable = ({ partDetails, totalCost }) => {
   const [selectedId, setSelectedId] = useState(null);
   const [selectOverheads, setselectOverheads] = useState(null);
   const [editId, setEditId] = useState(null);
-  
-
 
   // Form state
   const [formData, setFormData] = useState({
@@ -40,7 +38,6 @@ const OverheadsVariable = ({ partDetails, totalCost }) => {
   });
 
   const tog_add = () => {
-  
     // Set the formData with the new ID
     setFormData({
       categoryId: "",
@@ -82,7 +79,7 @@ const OverheadsVariable = ({ partDetails, totalCost }) => {
     setLoading(true);
     try {
       const response = await fetch(
-        `https://regenato-web-app-1.onrender.com/api/parts/${partDetails._id}/overheadsAndProfits`
+        `http://localhost:4040/api/parts/${partDetails._id}/overheadsAndProfits`
       );
       if (!response.ok) {
         throw new Error(`Error: ${response.statusText}`);
@@ -104,30 +101,15 @@ const OverheadsVariable = ({ partDetails, totalCost }) => {
     }
   }, [partDetails, fetchOverheads]);
 
-  //   const totalRate = formData.hourlyRate * formData.hours;
-  const handleAutocompleteChange = (event, newValue) => {
-    setselectOverheads(newValue);
-    
-    // Only update formData if newValue exists
-    if (newValue) {
-      setFormData((prevFormData) => ({
-        ...prevFormData,
-        categoryId: newValue.categoryId,
-        name: newValue.name,
-        percentage: newValue.percentage,
-      }));
-      
-      // Calculate totalRate based on selected value
-      const multiplier = newValue.percentage / 100;
-      const calculatedTotalRate = (multiplier * totalCost).toFixed(2);
-      
-      setFormData((prevFormData) => ({
-        ...prevFormData,
-        totalRate: calculatedTotalRate,
-      }));
-    }
-  };
-
+  // useEffect(() => {
+  //   if (formData.totalRate) {
+  //     setoverheadsAndProfit(prevState => 
+  //       prevState.map(item => 
+  //         item._id === selectOverheads._id ? { ...item, totalRate: formData.totalRate } : item
+  //       )
+  //     );
+  //   }
+  // }, [formData.totalRate]);
 
 
   // fetch over heads and profits data
@@ -135,7 +117,7 @@ const OverheadsVariable = ({ partDetails, totalCost }) => {
     const fetchOverheadsAndProfits = async () => {
       try {
         const response = await fetch(
-          `https://regenato-web-app-1.onrender.com/api/overheadsAndProfit`
+          `http://localhost:4040/api/overheadsAndProfit`
         );
         if (!response.ok) {
           throw new Error(`Error: ${response.statusText}`);
@@ -152,30 +134,83 @@ const OverheadsVariable = ({ partDetails, totalCost }) => {
   // Handle form input changes
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+    
+    if (name === 'percentage') {
+      const newPercentage = parseFloat(value);
+      const calculatedTotalRate = (newPercentage / 100 * totalCost).toFixed(2);
+      
+      setFormData(prevFormData => ({
+        ...prevFormData,
+        [name]: value,
+        totalRate: calculatedTotalRate
+      }));
+  
+      // Also update the state variable
+      setoverheadsAndProfit(prevState => 
+        prevState.map(item => 
+          item._id === selectOverheads._id ? { ...item, totalRate: calculatedTotalRate } : item
+        )
+      );
+    } else {
+      setFormData(prevFormData => ({
+        ...prevFormData,
+        [name]: value
+      }));
+    }
   };
 
   // Handle form submission
   // In the handleSubmit function, replace lines 152-153 with:
+
+
+  const handleAutocompleteChange = (event, newValue) => {
+    setselectOverheads(newValue);
+    
+    // Update formData with new percentage and calculate totalRate
+    if (newValue) {
+      const multiplier = newValue.percentage / 100;
+      const calculatedTotalRate = (multiplier * totalCost).toFixed(2);
+      
+      setFormData((prevFormData) => ({
+        ...prevFormData,
+        categoryId: newValue.categoryId,
+        name: newValue.name,
+        percentage: newValue.percentage,
+        totalRate: calculatedTotalRate,
+      }));
+      
+      // Also update the state variable
+      setoverheadsAndProfit(prevState => {
+        return prevState.map(item => 
+          item._id === newValue._id ? { ...item, totalRate: calculatedTotalRate } : item
+        );
+      });
+    }
+  };
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setPosting(true);
     setError(null);
   
+    // Update formData with new percentage value
+    const updatedFormData = { ...formData };
+    updatedFormData.percentage = formData.percentage;
+  
     try {
       const response = await fetch(
-        `https://regenato-web-app-1.onrender.com/api/parts/${partDetails._id}/overheadsAndProfits`,
+        `http://localhost:4040/api/parts/${partDetails._id}/overheadsAndProfits`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            categoryId: formData.categoryId,
+            categoryId: updatedFormData.categoryId,
             name: selectOverheads?.name,
-            percentage: formData.percentage,
-            totalRate: formData.totalRate,
+            percentage: updatedFormData.percentage,
+            totalRate: updatedFormData.totalRate,
           }),
         }
       );
@@ -200,15 +235,16 @@ const OverheadsVariable = ({ partDetails, totalCost }) => {
     }
   };
 
-  // Handle form submission for editing a variable (PUT request)
-  const handleEditSubmit = async (e) => {
+
+
+   const handleEditSubmit = async (e) => {
     e.preventDefault();
     setPosting(true);
     setError(null);
-  
+
     try {
       const response = await fetch(
-        `https://regenato-web-app-1.onrender.com/api/parts/${partDetails._id}/overheadsAndProfits/${editId}`,
+        `http://localhost:4040/api/parts/${partDetails._id}/overheadsAndProfits/${editId}`,
         {
           method: "PUT",
           headers: {
@@ -222,13 +258,13 @@ const OverheadsVariable = ({ partDetails, totalCost }) => {
           }),
         }
       );
-  
+
       if (response.ok) {
         await fetchOverheads();
       } else {
         throw new Error("Network response was not ok");
       }
-  
+
       setFormData({
         categoryId: "",
         name: "",
@@ -250,7 +286,7 @@ const OverheadsVariable = ({ partDetails, totalCost }) => {
     setError(null);
     try {
       const response = await fetch(
-        `https://regenato-web-app-1.onrender.com/api/parts/${partDetails._id}/overheadsAndProfits/${_id}`,
+        `http://localhost:4040/api/parts/${partDetails._id}/overheadsAndProfits/${_id}`,
         {
           method: "DELETE",
         }
@@ -428,19 +464,6 @@ const OverheadsVariable = ({ partDetails, totalCost }) => {
         <ModalBody>
           <form onSubmit={handleSubmit}>
             <div className="mb-3">
-              <label htmlFor="categoryId" className="form-label">
-                Category ID
-              </label>
-              <input
-                type="text"
-                className="form-control"
-                name="categoryId"
-                value={formData.id}
-                onChange={handleChange}
-                required
-              />
-            </div>
-            <div className="mb-3">
               <label htmlFor="name" className="form-label">
                 Name
               </label>
@@ -458,33 +481,36 @@ const OverheadsVariable = ({ partDetails, totalCost }) => {
               />
             </div>
             <div className="mb-3">
-              <label htmlFor="percentage" className="form-label">
-                Percentage
-              </label>
-              <input
-                type="number"
-                className="form-control"
-                name="perce"
-                value={formData.percentage}
-                // readOnly
-                onChange={handleChange}
-                required
-              />
-            </div>
-            <div className="mb-3">
-              <label htmlFor="totalRate" className="form-label">
-                Total Rate
-              </label>
-              <input
-                type="number"
-                className="form-control"
-                name="totalRate"
-                value={formData.totalRate}
-                onChange={handleChange}
-                // readOnly
-                required
-              />
-            </div>
+  <label htmlFor="percentage" className="form-label">
+    Percentage
+  </label>
+  <input
+    type="number"
+    step="any"
+    min="0"
+    max="100"
+    className="form-control"
+    name="percentage"
+    value={formData.percentage || ""}
+    onChange={handleChange}
+    required
+  />
+</div>
+
+<div className="mb-3">
+  <label htmlFor="totalRate" className="form-label">
+    Total Rate
+  </label>
+  <input
+    type="number"
+    className="form-control"
+    name="totalRate"
+    value={formData.totalRate}
+    readOnly
+    required
+  />
+</div>
+
             <ModalFooter>
               <Button type="submit" color="primary" disabled={posting}>
                 Add

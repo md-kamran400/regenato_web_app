@@ -23,6 +23,7 @@ import OverheadsVariable from "./OverheadsVariable";
 import { useParams } from "react-router-dom";
 import GeneralVariable from "./GeneralVariable";
 import ManufacuringStatic from "./ManufacuringStatic";
+import List from "./List";
 
 const SinglePart = () => {
   const [modal_category, setModal_category] = useState(false);
@@ -38,7 +39,7 @@ const SinglePart = () => {
   useEffect(() => {
     const fetchPartDetails = async () => {
       try {
-        const response = await fetch(`https://regenato-web-app-1.onrender.com/api/parts/${_id}`);
+        const response = await fetch(`http://localhost:4040/api/parts/${_id}`);
         if (!response.ok) {
           throw new Error(`Error: ${response.statusText}`);
         }
@@ -107,6 +108,22 @@ const SinglePart = () => {
   // Final cost per unit including profit
   const costPerUnitAvg = totalCost + overheadsTotalCount;
 
+  const calculateValues = () => {
+    // Your existing calculations...
+    const costPerUnitAvg = totalCost + overheadsTotalCount;
+    const manufacturingTotalCountHours = partDetails?.manufacturingVariables?.reduce(
+      (total, item) => total + Number(item.hours || 0),
+      0
+    );
+
+    // Pass the calculated values back to the parent component
+    props.onCalculateValues(costPerUnitAvg, manufacturingTotalCountHours);
+  };
+
+  console.log(costPerUnitAvg)
+  console.log(manufacturingTotalCountHours)
+  console.log(partDetails.stockPOQty)
+
   return (
     <React.Fragment>
       <div className="page-content">
@@ -115,7 +132,6 @@ const SinglePart = () => {
             title={`Part (${partDetails.partName})`}
             pageTitle={`Part (${partDetails.partName})`}
           />
-
           <Row>
             <Col xl={3} ms={6}>
               <Card className={"card-height-100 "}>

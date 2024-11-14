@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useContext } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardBody, Col, DropdownItem, Button, DropdownMenu, DropdownToggle, Input, Row, UncontrolledDropdown, Modal, ModalBody, ModalHeader, ModalFooter } from 'reactstrap';
 import DeleteModal from "../../../Components/Common/DeleteModal";
@@ -14,6 +14,7 @@ const categories = [
     { name: "Category 4" },
     { name: "Category 5" },
   ];
+  
 
 
 const List = () => {
@@ -32,6 +33,7 @@ const List = () => {
     const [stockPOQty, setStockPOQty] = useState(0);
     const [posting, setPosting] = useState(false);
 
+    
     const [formData, setFormData] = useState({
         partName: "",
         costPerUnit: "",
@@ -74,7 +76,7 @@ const List = () => {
         setLoading(true);
         setError(null);
         try {
-            const response = await fetch('https://regenato-web-app-1.onrender.com/api/parts');
+            const response = await fetch('http://localhost:4040/api/parts');
             if (!response.ok) {
                 throw new Error('Network response was not ok');
             }
@@ -96,48 +98,45 @@ const List = () => {
 
 const handleAddPart = async () => {
     if (newPartName.trim() !== '' && newPartId.trim() !== '') {
-        const newPart = {
-            id: newPartId, // Convert string to integer
-            partName: newPartName,
-            costPerUnit: costPerUnit || 0,
-            timePerUnit: timePerUnit || 0,
-            stockPOQty: stockPOQty || 0
-        };
-
-        try {
-            const response = await fetch('https://regenato-web-app-1.onrender.com/api/parts', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(newPart)
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to add the part');
-            }
-
-            await fetchData();
-
-            const addedPart = await response.json();
-            setListData(prevData => [...prevData, addedPart]);
-
-            toast.success('Part added successfully!');
-
-            // Reset input fields
-            setNewPartName('');
-            setNewPartId('');
-            setCostPerUnit(0);
-            setTimePerUnit(0);
-            setStockPOQty(0);
-
-        } catch (error) {
-            toast.error(`Error: ${error.message}`);
-        } finally {
-            toggleModal();
+      const newPart = {
+        id: parseInt(newPartId),
+        partName: newPartName,
+        costPerUnit: costPerUnit || 0,
+        timePerUnit: timePerUnit || 0,
+        stockPOQty: stockPOQty || 0
+      };
+  
+      try {
+        const response = await fetch('http://localhost:4040/api/parts', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(newPart)
+        });
+  
+        if (!response.ok) {
+          throw new Error('Failed to add the part');
         }
+  
+        const data = await response.json();
+        setListData(prevData => [...prevData, data]);
+        toast.success('Part added successfully!');
+  
+        // Reset input fields
+        setNewPartName('');
+        setNewPartId('');
+        setCostPerUnit(0);
+        setTimePerUnit(0);
+        setStockPOQty(0);
+  
+      } catch (error) {
+        toast.error(`Error: ${error.message}`);
+      }
+    } else {
+      toast.error('Please fill all fields');
     }
-};
+  };
 
     const handleEditSubmit = async (e) => {
         e.preventDefault();
@@ -145,7 +144,7 @@ const handleAddPart = async () => {
         setError(null);
         try {
           const response = await fetch(
-            `https://regenato-web-app-1.onrender.com/api/parts/${editId}`,
+            `http://localhost:4040/api/parts/${editId}`,
             {
               method: "PUT",
               headers: {
@@ -177,6 +176,9 @@ const handleAddPart = async () => {
           setPosting(false);
         }
       };
+
+
+
     
 
     // Handle removing a part
@@ -192,6 +194,59 @@ const handleAddPart = async () => {
             ele.closest("button").classList.add("active");
         }
     };
+
+
+// Debugging logs
+console.log('Debugging logs:');
+console.log('listData:', listData);
+console.log('listData.rmVariables:', listData?.rmVariables);
+console.log('listData.manufacturingVariables:', listData?.manufacturingVariables);
+console.log('listData.shipmentVariables:', listData?.shipmentVariables);
+console.log('listData.overheadsAndProfits:', listData?.overheadsAndProfits);
+
+// Calculate totals for each part
+const partTotals = listData.reduce((acc, part) => {
+    acc[part.id] = {
+        rmTotal: part.rmVariables.reduce((sum, item) => sum + Number(item.totalRate || 0), 0),
+        manufacturingTotal: part.manufacturingVariables.reduce((sum, item) => sum + Number(item.totalRate || 0), 0),
+        shipmentTotal: part.shipmentVariables.reduce((sum, item) => sum + Number(item.hourlyRate || 0), 0),
+        overheadsTotal: part.overheadsAndProfits.reduce((sum, item) => sum + Number(item.totalRate || 0), 0),
+        totalCost: acc[part.id]?.totalCost + part.costPerUnit,
+        costPerUnitAvg: part.costPerUnit,
+        manufacturingHours: part.manufacturingVariables.reduce((sum, item) => sum + Number(item.hours || 0), 0)
+    };
+    return acc;
+}, {});
+
+// Calculate overall totals
+const rmTotalCount = Object.values(partTotals).reduce((sum, part) => sum + part.rmTotal, 0);
+const manufacturingTotalCount = Object.values(partTotals).reduce((sum, part) => sum + part.manufacturingTotal, 0);
+const shipmentTotalCount = Object.values(partTotals).reduce((sum, part) => sum + part.shipmentTotal, 0);
+const overheadsTotalCount = Object.values(partTotals).reduce((sum, part) => sum + part.overheadsTotal, 0);
+const totalCost = Object.values(partTotals).reduce((sum, part) => sum + part.totalCost, 0);
+const costPerUnitAvg = Object.values(partTotals).reduce((sum, part) => sum + part.costPerUnitAvg, 0) / Object.keys(partTotals).length;
+const manufacturingTotalCountHours = Object.values(partTotals).reduce((sum, part) => sum + part.manufacturingHours, 0);
+
+console.log('Final values:');
+console.log('rmTotalCount:', rmTotalCount);
+console.log('manufacturingTotalCount:', manufacturingTotalCount);
+console.log('shipmentTotalCount:', shipmentTotalCount);
+console.log('overheadsTotalCount:', overheadsTotalCount);
+console.log('totalCost:', totalCost);
+console.log('costPerUnitAvg:', costPerUnitAvg);
+console.log('manufacturingTotalCountHours:', manufacturingTotalCountHours);
+
+// Logging intermediate results for debugging
+Object.entries(partTotals).forEach(([partId, totals]) => {
+    console.log(`Part ${partId}:`);
+    console.log('RM Variables:', totals.rmTotal);
+    console.log('Manufacturing Variables:', totals.manufacturingTotal);
+    console.log('Shipment Variables:', totals.shipmentTotal);
+    console.log('Overheads and Profits:', totals.overheadsTotal);
+    console.log('Cost Per Unit:', totals.costPerUnitAvg);
+    console.log('Manufacturing Hours:', totals.manufacturingHours);
+});
+      
 
     return (
         <React.Fragment>
@@ -227,67 +282,41 @@ const handleAddPart = async () => {
             {loading && <p>Loading...</p>}
             {error && <p>Error: {error}</p>}
 
-            <div className="row">
-                {listData.map((item, index) => (
-                    <Col xxl={3} sm={6} key={index} className="project-card">
-                        <Card>
-                            <CardBody>
-                                <div className={`p-3 mt-n3 mx-n3 bg-danger-subtle rounded-top`}>
-                                    <div className="d-flex align-items-center">
-                                        <div className="flex-grow-1">
-                                            <h5 className="mb-0 fs-14">
-                                                <Link to={`/singlepart/${item._id}`} className="text-body">{item.partName} ({item.id})</Link>
-                                            </h5>
-                                        </div>
-                                        <div className="flex-shrink-0">
-                                            <div className="d-flex gap-1 align-items-center my-n2">
-                                                <button type="button" className={`btn avatar-xs mt-n1 p-0 favourite-btn shadow-none `} onClick={(e) => activebtn(e.target)}>
-                                                    <span className="avatar-title bg-transparent fs-15">
-                                                        <i className="ri-star-fill"></i>
-                                                    </span>
-                                                </button>
-                                                <UncontrolledDropdown direction='start'>
-                                                    <DropdownToggle tag="button" className="btn btn-link text-muted p-1 mt-n2 py-0 text-decoration-none fs-15 shadow-none">
-                                                        <FeatherIcon icon="more-horizontal" className="icon-sm" />
-                                                    </DropdownToggle>
+            <table className="table table-striped">
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Cost per Unit</th>
+      <th>Total Hours</th>
+      <th>On Hand</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    {listData.map((item, index) => (
+      <tr key={index}>
+        <td><Link to={`/singlepart/${item._id}`} className="text-body">{item.partName} ({item.id})</Link></td>
+        <td>{costPerUnitAvg}</td>
+        <td>{manufacturingTotalCountHours}</td>
+        <td></td>
+        <td>
+          
+          <UncontrolledDropdown direction='start'>
+            <DropdownToggle tag="button" className="btn btn-link text-muted p-1 mt-n2 py-0 text-decoration-none fs-15 shadow-none">
+              <FeatherIcon icon="more-horizontal" className="icon-sm" />
+            </DropdownToggle>
 
-                                                    <DropdownMenu className="dropdown-menu-end">
-                                                        <DropdownItem  onClick={() => toggleEditModal(item)} ><i className="ri-pencil-fill align-bottom me-2 text-muted"></i> Edit</DropdownItem>
-                                                        <div className="dropdown-divider"></div>
-                                                        <DropdownItem href="#" onClick={() => handleRemovePart(index)}><i className="ri-delete-bin-fill align-bottom me-2 text-muted"></i> Remove</DropdownItem>
-                                                    </DropdownMenu>
-                                                </UncontrolledDropdown>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="py-3">
-                                    <Row className="gy-3">
-                                        <Col xs={6}>
-                                            <div>
-                                                <p className="text-muted mb-1">Cost per unit</p>
-                                                <div>{item.costPerUnit}</div>
-                                            </div>
-                                        </Col>
-                                        <Col xs={6}>
-                                            <div>
-                                                <p className="text-muted mb-1">Total Hours</p>
-                                                <h5 className="fs-14">{item.timePerUnit}</h5>
-                                            </div>
-                                        </Col>
-                                    </Row>
-
-                                    <div className="d-flex align-items-center mt-3">
-                                        <p className="text-muted mb-0 me-2">On Hand :</p>
-                                        <p className="mb-0 me-2">{item.stockPOQty}</p>
-                                    </div>
-                                </div>
-                            </CardBody>
-                        </Card>
-                    </Col>
-                ))}
-            </div>
+            <DropdownMenu className="dropdown-menu-end">
+              <DropdownItem onClick={() => toggleEditModal(item)}><i className="ri-pencil-fill align-bottom me-2 text-muted"></i> Edit</DropdownItem>
+              <div className="dropdown-divider"></div>
+              <DropdownItem href="#" onClick={() => handleRemovePart(index)}><i className="ri-delete-bin-fill align-bottom me-2 text-muted"></i> Remove</DropdownItem>
+            </DropdownMenu>
+          </UncontrolledDropdown>
+        </td>
+      </tr>
+    ))}
+  </tbody>
+</table>
 
             {/* Modal for adding a new item */}
             <Modal isOpen={modal_list} toggle={toggleModal} centered>

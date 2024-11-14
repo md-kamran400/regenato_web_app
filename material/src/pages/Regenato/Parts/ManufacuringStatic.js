@@ -88,7 +88,7 @@ const ManufacuringStatic = ({ partDetails }) => {
     setLoading(true);
     try {
       const response = await fetch(
-        `https://regenato-web-app-1.onrender.com/api/parts/${partDetails._id}/manufacturingVariablesstactics`
+        `https://regenato-web-app-backend.onrender.com/api/parts/${partDetails._id}/manufacturingVariablesstactics`
       );
       if (!response.ok) {
         throw new Error(`Error: ${response.statusText}`);
@@ -115,7 +115,7 @@ const ManufacuringStatic = ({ partDetails }) => {
     const fetchShipment = async () => {
       try {
         const response = await fetch(
-          `https://regenato-web-app-1.onrender.com/api/manufacturingStatics`
+          `https://regenato-web-app-backend.onrender.com/api/manufacturingStatics`
         );
         if (!response.ok) {
           throw new Error(`Error: ${response.statusText}`);
@@ -173,7 +173,7 @@ const ManufacuringStatic = ({ partDetails }) => {
     setError(null);
     try {
       const response = await fetch(
-        `https://regenato-web-app-1.onrender.com/api/parts/${partDetails._id}/manufacturingVariablesstactics`,
+        `https://regenato-web-app-backend.onrender.com/api/parts/${partDetails._id}/manufacturingVariablesstactics`,
         {
           method: "POST",
           headers: {
@@ -214,7 +214,7 @@ const ManufacuringStatic = ({ partDetails }) => {
     setError(null);
     try {
       const response = await fetch(
-        `https://regenato-web-app-1.onrender.com/api/parts/${partDetails._id}/manufacturingVariablesstactics/${editId}`,
+        `https://regenato-web-app-backend.onrender.com/api/parts/${partDetails._id}/manufacturingVariablesstactics/${editId}`,
         {
           method: "PUT",
           headers: {
@@ -255,7 +255,7 @@ const ManufacuringStatic = ({ partDetails }) => {
     setError(null);
     try {
       const response = await fetch(
-        `https://regenato-web-app-1.onrender.com/api/parts/${partDetails._id}/manufacturingVariablesstactics/${_id}`,
+        `https://regenato-web-app-backend.onrender.com/api/parts/${partDetails._id}/manufacturingVariablesstactics/${_id}`,
         {
           method: "DELETE",
         }

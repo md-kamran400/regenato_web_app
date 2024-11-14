@@ -82,7 +82,7 @@ const GeneralVariable = ({ partDetails }) => {
     setLoading(true);
     try {
       const response = await fetch(
-        `https://regenato-web-app-1.onrender.com/api/parts/${partDetails._id}/generalVariables`
+        `http://localhost:4040/api/parts/${partDetails._id}/generalVariables`
       );
       if (!response.ok) {
         throw new Error(`Error: ${response.statusText}`);
@@ -118,7 +118,7 @@ const GeneralVariable = ({ partDetails }) => {
   useEffect(() => {
     const fetchGeneral = async () => {
       try {
-        const response = await fetch(`https://regenato-web-app-1.onrender.com/api/general`);
+        const response = await fetch(`http://localhost:4040/api/general`);
         if (!response.ok) {
           throw new Error(`Error: ${response.statusText}`);
         }
@@ -144,7 +144,7 @@ const GeneralVariable = ({ partDetails }) => {
     setError(null);
     try {
       const response = await fetch(
-        `https://regenato-web-app-1.onrender.com/api/parts/${partDetails._id}/generalVariables`,
+        `http://localhost:4040/api/parts/${partDetails._id}/generalVariables`,
         {
           method: "POST",
           headers: {
@@ -179,7 +179,7 @@ const GeneralVariable = ({ partDetails }) => {
     setError(null);
     try {
       const response = await fetch(
-        `https://regenato-web-app-1.onrender.com/api/parts/${partDetails._id}/generalVariables/${editId}`,
+        `http://localhost:4040/api/parts/${partDetails._id}/generalVariables/${editId}`,
         {
           method: "PUT",
           headers: {
@@ -214,7 +214,7 @@ const GeneralVariable = ({ partDetails }) => {
     setError(null);
     try {
       const response = await fetch(
-        `https://regenato-web-app-1.onrender.com/api/parts/${partDetails._id}/generalVariables/${_id}`,
+        `http://localhost:4040/api/parts/${partDetails._id}/generalVariables/${_id}`,
         {
           method: "DELETE",
         }

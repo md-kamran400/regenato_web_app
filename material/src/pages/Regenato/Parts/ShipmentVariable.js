@@ -78,7 +78,7 @@ const ShipmentVariable = ({ partDetails }) => {
     setLoading(true);
     try {
       const response = await fetch(
-        `https://regenato-web-app-1.onrender.com/api/parts/${partDetails._id}/shipmentVariables`
+        `http://localhost:4040/api/parts/${partDetails._id}/shipmentVariables`
       );
       if (!response.ok) {
         throw new Error(`Error: ${response.statusText}`);
@@ -91,7 +91,7 @@ const ShipmentVariable = ({ partDetails }) => {
     } finally {
       setLoading(false);
     }
-  }, [partDetails?._id]); // Add partDetails._id as a dependency
+  }, [partDetails?._id]);
 
   // Fetch data when partDetails changes
   useEffect(() => {
@@ -104,30 +104,35 @@ const ShipmentVariable = ({ partDetails }) => {
   useEffect(() => {
     const fetchShipment = async () => {
       try {
-        const response = await fetch(`https://regenato-web-app-1.onrender.com/api/shipment`);
+        const response = await fetch(`http://localhost:4040/api/shipment`);
         if (!response.ok) {
           throw new Error(`Error: ${response.statusText}`);
         }
         const data = await response.json();
+        console.log("Shipment Data:", data); // Check structure here
         setshipmentvars(data);
       } catch (error) {
-        console.error("Error fetching RM variables:", error);
+        console.error("Error fetching shipment variables:", error);
       }
     };
 
     fetchShipment();
   }, []);
 
+
   const handleAutocompleteChange = (event, newValue) => {
+    console.log("Selected Value:", newValue); // Check if newValue contains hourlyRate
     setselectedShipment(newValue);
     if (newValue) {
       setFormData((prevFormData) => ({
         ...prevFormData,
         categoryId: newValue.categoryId,
         name: newValue.name,
+        hourlyRate: newValue.hourlyRate, // Ensure hourlyRate is set here
       }));
     }
   };
+  
 
   // Handle form input changes
   const handleChange = (e) => {
@@ -145,7 +150,7 @@ const ShipmentVariable = ({ partDetails }) => {
     setError(null);
     try {
       const response = await fetch(
-        `https://regenato-web-app-1.onrender.com/api/parts/${partDetails._id}/shipmentVariables`,
+        `http://localhost:4040/api/parts/${partDetails._id}/shipmentVariables`,
         {
           method: "POST",
           headers: {
@@ -155,12 +160,9 @@ const ShipmentVariable = ({ partDetails }) => {
         }
       );
 
-      // Check if the request was successful
       if (response.ok) {
-        // Refresh the page after successful POST request
         await fetchShipmentData();
       } else {
-        // Handle errors here
         throw new Error("Network response was not ok");
       }
 
@@ -185,7 +187,7 @@ const ShipmentVariable = ({ partDetails }) => {
     setError(null);
     try {
       const response = await fetch(
-        `https://regenato-web-app-1.onrender.com/api/parts/${partDetails._id}/shipmentVariables/${editId}`,
+        `http://localhost:4040/api/parts/${partDetails._id}/shipmentVariables/${editId}`,
         {
           method: "PUT",
           headers: {
@@ -227,7 +229,7 @@ const ShipmentVariable = ({ partDetails }) => {
     setError(null);
     try {
       const response = await fetch(
-        `https://regenato-web-app-1.onrender.com/api/parts/${partDetails._id}/shipmentVariables/${_id}`,
+        `http://localhost:4040/api/parts/${partDetails._id}/shipmentVariables/${_id}`,
         {
           method: "DELETE",
         }
@@ -316,7 +318,7 @@ const ShipmentVariable = ({ partDetails }) => {
               </th>
               <th>ID</th>
               <th>Name</th>
-              <th>Hourly Rate (INR)</th>
+              <th>Rate (INR)</th>
               <th>Action</th>
             </tr>
           </thead>
@@ -421,17 +423,16 @@ const ShipmentVariable = ({ partDetails }) => {
 
             <div className="mb-3">
               <label htmlFor="hourlyRate-field" className="form-label">
-                Hourly Rate (INR)
+                Rate (INR)
               </label>
               <input
                 type="number"
-                id="hourlyRate-field"
                 className="form-control"
                 name="hourlyRate"
                 placeholder="Enter Hourly Rate"
                 value={formData.hourlyRate}
                 onChange={handleChange}
-                require
+                required
               />
             </div>
 

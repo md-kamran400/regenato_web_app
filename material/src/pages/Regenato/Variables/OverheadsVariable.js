@@ -69,7 +69,7 @@ const OverheadsVariable = () => {
   // useEffect(() => {
   //     const fetchOverheads = async () => {
   //         try {
-  //             const response = await fetch('https://regenato-web-app-1.onrender.com/api/overheadsAndProfit');
+  //             const response = await fetch('http://localhost:4040/api/overheadsAndProfit');
   //             if (!response.ok) throw new Error('Network response was not ok');
   //             const data = await response.json();
   //             setOverheadsData(data);
@@ -88,7 +88,7 @@ const OverheadsVariable = () => {
     setError(null);
     try {
       const response = await fetch(
-        "https://regenato-web-app-1.onrender.com/api/overheadsAndProfit"
+        "http://localhost:4040/api/overheadsAndProfit"
       );
       if (!response.ok) {
         throw new Error("Network response was not ok");
@@ -121,7 +121,7 @@ const OverheadsVariable = () => {
     setError(null);
     try {
       const response = await fetch(
-        `https://regenato-web-app-1.onrender.com/api/overheadsAndProfit`,
+        `http://localhost:4040/api/overheadsAndProfit`,
         {
           method: "POST",
           headers: {
@@ -161,7 +161,7 @@ const OverheadsVariable = () => {
     setError(null);
     try {
       const response = await fetch(
-        `https://regenato-web-app-1.onrender.com/api/overheadsAndProfit/${editId}`,
+        `http://localhost:4040/api/overheadsAndProfit/${editId}`,
         {
           method: "PUT",
           headers: {
@@ -203,7 +203,7 @@ const OverheadsVariable = () => {
     setError(null);
     try {
       const response = await fetch(
-        `https://regenato-web-app-1.onrender.com/api/overheadsAndProfit/${_id}`,
+        `http://localhost:4040/api/overheadsAndProfit/${_id}`,
         {
           method: "DELETE",
         }

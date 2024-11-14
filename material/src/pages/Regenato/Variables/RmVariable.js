@@ -32,7 +32,7 @@ const RmVariable = () => {
         setPosting(true);
         setError(null);
         try {
-            const response = await fetch(`https://regenato-web-app-1.onrender.com/api/rmvariable/${_id}`, {
+            const response = await fetch(`http://localhost:4040/api/rmvariable/${_id}`, {
                 method: 'DELETE',
             });
             if (!response.ok) {
@@ -91,7 +91,7 @@ const RmVariable = () => {
         setLoading(true);
         setError(null);
         try {
-            const response = await fetch('https://regenato-web-app-1.onrender.com/api/rmvariable');
+            const response = await fetch('http://localhost:4040/api/rmvariable');
             if (!response.ok) {
                 throw new Error('Network response was not ok');
             }
@@ -121,7 +121,7 @@ const RmVariable = () => {
         setPosting(true);
         setError(null);
         try {
-            const response = await fetch('https://regenato-web-app-1.onrender.com/api/rmvariable', {
+            const response = await fetch('http://localhost:4040/api/rmvariable', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -148,7 +148,7 @@ const RmVariable = () => {
         setPosting(true);
         setError(null);
         try {
-            const response = await fetch(`https://regenato-web-app-1.onrender.com/api/rmvariable/${editId}`, {
+            const response = await fetch(`http://localhost:4040/api/rmvariable/${editId}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',

@@ -38,3 +38,20 @@ function App() {
 }
 
 export default App;
+
+// import React from 'react';
+// import { BrowserRouter } from 'react-router-dom';
+// import { PartDataProvider } from './Components/context/PartDataProvider';
+
+// function App() {
+//   return (
+//       <PartDataProvider>
+//         <React.Fragment>
+//          <Route />
+//          </React.Fragment>
+//       </PartDataProvider>
+
+//   );
+// }
+
+// export default App;
