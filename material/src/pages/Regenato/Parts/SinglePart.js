@@ -111,18 +111,19 @@ const SinglePart = () => {
   const calculateValues = () => {
     // Your existing calculations...
     const costPerUnitAvg = totalCost + overheadsTotalCount;
-    const manufacturingTotalCountHours = partDetails?.manufacturingVariables?.reduce(
-      (total, item) => total + Number(item.hours || 0),
-      0
-    );
+    const manufacturingTotalCountHours =
+      partDetails?.manufacturingVariables?.reduce(
+        (total, item) => total + Number(item.hours || 0),
+        0
+      );
 
     // Pass the calculated values back to the parent component
     props.onCalculateValues(costPerUnitAvg, manufacturingTotalCountHours);
   };
 
-  console.log(costPerUnitAvg)
-  console.log(manufacturingTotalCountHours)
-  console.log(partDetails.stockPOQty)
+  console.log(costPerUnitAvg);
+  console.log(manufacturingTotalCountHours);
+  console.log(partDetails.stockPOQty);
 
   return (
     <React.Fragment>
@@ -412,8 +413,6 @@ const SinglePart = () => {
             </Row>
           </Card>
 
-
-
           {/* Overheads and Profit */}
           <Card>
             <Row>
@@ -435,7 +434,10 @@ const SinglePart = () => {
                         {overheadsTotalCount}
                       </span>
                     </div>
-                    <OverheadsVariable partDetails={partDetails} totalCost={totalCost}/>
+                    <OverheadsVariable
+                      partDetails={partDetails}
+                      totalCost={totalCost}
+                    />
                   </CardBody>
                 </Card>
               </Col>
