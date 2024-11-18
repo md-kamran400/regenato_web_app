@@ -40,13 +40,13 @@ export const loginUser = (user, history) => async (dispatch) => {
         data = finallogin.data;
         if (finallogin.status === "success") {
           dispatch(loginSuccess(data));
-          history('/dashboard')
+          history('/regenato-home')
         } else {
           dispatch(apiError(finallogin));
         }
       } else {
         dispatch(loginSuccess(data));
-        history('/dashboard')
+        history('/regenato-home')
       }
     }
   } catch (error) {
@@ -86,7 +86,7 @@ export const socialLogin = (type, history) => async (dispatch) => {
     if (socialdata) {
       sessionStorage.setItem("authUser", JSON.stringify(response));
       dispatch(loginSuccess(response));
-      history('/dashboard')
+      history('/regenato-home')
     }
 
   } catch (error) {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useCallback, useState } from 'react'
 import {
     Card,
     CardBody,
@@ -10,10 +10,27 @@ import {
 
 const PartsList = () => {
   const [modal_add, setModalList] = useState(false);
-  const [listData, setListData] = useState([]); // Local state to store project list
+  const [singProjectData, setsingProjectData] = useState([]); // Local state to store project list
   const tog_add = ()=>{
     setModalList(!modal_add)
   }
+
+  const fetchProjectDetails = useCallback(async () => {
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}`
+      );
+      const data = await response.json();
+      setPartDetails(data);
+      console.log(data);
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  });
+
+
   return (
     <div>
         <Col>
