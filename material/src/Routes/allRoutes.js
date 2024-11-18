@@ -252,10 +252,11 @@ import APIKey from "../pages/APIKey";
 import PrivacyPolicy from "../pages/Pages/PrivacyPolicy";
 import TermsCondition from "../pages/Pages/TermsCondition";
 import JobLanding from "../pages/Landing/Job";
+import ProjectSection from "../pages/Regenato/Projects/ProjectSection";
 
 
 
-
+// Section
 const authProtectedRoutes = [
 
     // regenato start here
@@ -267,7 +268,9 @@ const authProtectedRoutes = [
     { path: "/regenato-variables", component: <Variables /> },
     { path: "/singlepart/:_id", component: <SinglePart /> },
     { path: "/singleproject/:_id", component: <SingeProject /> },
+    { path: "/projectSection/:_id", component: <ProjectSection /> },
     { path: "/projectinvoice", component: <ProjectInvoice /> },
+
     // regenato ends here
 
   { path: "/dashboard-analytics", component: <DashboardAnalytics /> },

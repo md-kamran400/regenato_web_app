@@ -8,6 +8,7 @@ import OverviewTab from './OverviewTab';
 import DocumentsTab from './DocumentsTab';
 import ActivitiesTab from './ActivitiesTab';
 import TeamTab from './TeamTab';
+import SingeProject from '../Projects/SingeProject';
 
 const Section = () => {
     //Tab 
@@ -39,26 +40,36 @@ const Section = () => {
                                 </Row>
 
                                 <Nav className="nav-tabs-custom border-bottom-0" role="tablist">
-                                    <NavItem>
+                                    
+                                     <NavItem>
                                         <NavLink
                                             className={classnames({ active: activeTab === '1' }, "fw-semibold")}
                                             onClick={() => { toggleTab('1'); }}
+                                            href="#">
+                                            Project Details
+                                        </NavLink>
+                                    </NavItem>
+
+                                    <NavItem>
+                                        <NavLink
+                                            className={classnames({ active: activeTab === '2' }, "fw-semibold")}
+                                            onClick={() => { toggleTab('2'); }}
                                             href="#">
                                             Overview
                                         </NavLink>
                                     </NavItem>
                                     <NavItem>
                                         <NavLink
-                                            className={classnames({ active: activeTab === '2' }, "fw-semibold")}
-                                            onClick={() => { toggleTab('2'); }}
+                                            className={classnames({ active: activeTab === '3' }, "fw-semibold")}
+                                            onClick={() => { toggleTab('3'); }}
                                             href="#">
                                             Allocation
                                         </NavLink>
                                     </NavItem>
                                     <NavItem>
                                         <NavLink
-                                            className={classnames({ active: activeTab === '3' }, "fw-semibold")}
-                                            onClick={() => { toggleTab('3'); }}
+                                            className={classnames({ active: activeTab === '4' }, "fw-semibold")}
+                                            onClick={() => { toggleTab('4'); }}
                                             href="#">
                                             BOM
                                         </NavLink>
@@ -73,12 +84,15 @@ const Section = () => {
                 <Col lg={12}>
                     <TabContent activeTab={activeTab} className="text-muted">
                     <TabPane tabId="1">
-                        <OverviewTab />
+                        <SingeProject/>
                     </TabPane>
                     <TabPane tabId="2">
+                        <OverviewTab />
+                    </TabPane>
+                    <TabPane tabId="3">
                         <DocumentsTab />
                     </TabPane>
-                     <TabPane tabId="3">
+                     <TabPane tabId="4">
                         <ActivitiesTab />
                     </TabPane>
                     {/*<TabPane tabId="4">

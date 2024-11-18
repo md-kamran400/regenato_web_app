@@ -339,8 +339,8 @@ const SingeProject = () => {
 
   return (
     <React.Fragment>
-      <div className="page-content">
-        <Container fluid>
+      <div className="page-content" style={{marginTop: "-60px"}}>
+        <Container fluid >
           <BreadCrumb title="Project Details" pageTitle="Project Details" />
 
           <div className="mb-4 pb-2 d-flex">

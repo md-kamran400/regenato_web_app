@@ -458,7 +458,7 @@ const List = () => {
                     <div className="d-flex align-items-center">
                       <div className="flex-grow-1">
                         <h5 className="mb-0 fs-14">
-                          <Link to={`/singleproject/${item._id}`} className="text-body" >
+                          <Link to={`/projectSection/${item._id}`} className="text-body" >
                             {item.projectName}
                           </Link>
                         </h5>
