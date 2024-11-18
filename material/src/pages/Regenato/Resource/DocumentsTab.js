@@ -21,6 +21,7 @@ import {
   Button,
 } from "reactstrap";
 import AdvanceTimeLine from "../Home/AdvanceTimeLine";
+import PartsList from "./PartsList";
 
 const DocumentsTab = () => {
   const [modal_add, setModalList] = useState(false);
@@ -127,7 +128,7 @@ const DocumentsTab = () => {
       </Row>
 
       <Row lg={12}>
-        <Col lg={4}>
+        {/* <Col lg={4}>
           <Card>
             <CardHeader>
               <h4 className="card-title mb-0">Parts List</h4>
@@ -179,7 +180,11 @@ const DocumentsTab = () => {
             </div>
             </CardBody>
           </Card>
+        </Col> */}
+        <Col lg={4}>
+           <PartsList/>
         </Col>
+
 
         <Col lg={4}>
           <Card>

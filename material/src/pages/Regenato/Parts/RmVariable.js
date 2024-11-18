@@ -173,7 +173,9 @@ const RmVariable = ({ partDetails, setRmTotalCount }) => {
   useEffect(() => {
     const fetchRmVariables = async () => {
       try {
-        const response = await fetch(`${process.env.REACT_APP_BASE_URL}/api/rmvariable`);
+        const response = await fetch(
+          `${process.env.REACT_APP_BASE_URL}/api/rmvariable`
+        );
         if (!response.ok) {
           throw new Error(`Error: ${response.statusText}`);
         }
@@ -197,21 +199,21 @@ const RmVariable = ({ partDetails, setRmTotalCount }) => {
       );
 
       if (selectedItem) {
-        setFormData({
+        setStaticFormData({
           categoryId: newValue.categoryId, // Use the categoryId from the formData
           name: newValue.name,
           totalRate: selectedItem.totalRate,
         });
       } else {
         // If no matching item is found, still set the categoryId to the one in formData
-        setFormData({
-          categoryId: formData.categoryId,
+        setStaticFormData({
+          categoryId: staticFormData.categoryId,
           name: newValue.name,
-          totalRate: "",
+          totalRate: newValue.totalRate,
         });
       }
     } else {
-      setFormData({
+      setStaticFormData({
         categoryId: "",
         name: "",
         totalRate: "",
@@ -239,10 +241,11 @@ const RmVariable = ({ partDetails, setRmTotalCount }) => {
     e.preventDefault();
     setPosting(true);
     setError(null);
-    
+
     // Calculate totalRate and round it to 2 decimal places
-    const roundedTotalRate = Math.round(formData.netWeight * formData.pricePerKg * 100) / 100;
-  
+    const roundedTotalRate =
+      Math.round(formData.netWeight * formData.pricePerKg * 100) / 100;
+
     try {
       const response = await fetch(
         `${process.env.REACT_APP_BASE_URL}/api/parts/${partDetails._id}/rmVariables`,
@@ -256,25 +259,71 @@ const RmVariable = ({ partDetails, setRmTotalCount }) => {
             name: formData.name,
             netWeight: parseFloat(formData.netWeight), // Ensure it's a number
             pricePerKg: parseFloat(formData.pricePerKg), // Ensure it's a number
-            totalRate: roundedTotalRate // Use the rounded value
+            totalRate: roundedTotalRate, // Use the rounded value
           }),
         }
       );
-  
+
       if (response.ok) {
         const result = await response.json();
-        
+
         // Check if the server returned the correct totalRate
         if (result.totalRate !== roundedTotalRate) {
-          console.warn("Server returned different totalRate", result.totalRate, "vs", roundedTotalRate);
+          console.warn(
+            "Server returned different totalRate",
+            result.totalRate,
+            "vs",
+            roundedTotalRate
+          );
         }
-  
+
         await fetchRmData(); // Refetch the data to update the table
         setFormData({
           categoryId: "",
           name: "",
           netWeight: "",
           pricePerKg: "",
+          totalRate: "",
+        });
+        setModalList(false); // Close the normal add modal
+        setModalstatic_add(false); // Close the static add modal
+      } else {
+        throw new Error("Network response was not ok");
+      }
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      setPosting(false);
+    }
+  };
+  const handleSubmitStatic = async (e) => {
+    e.preventDefault();
+    setPosting(true);
+    setError(null);
+
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_BASE_URL}/api/parts/${partDetails._id}/rmVariables`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            categoryId: staticFormData.categoryId,
+            name: staticFormData.name,
+            totalRate: staticFormData.totalRate, // Use the rounded value
+          }),
+        }
+      );
+
+      if (response.ok) {
+        const result = await response.json();
+
+        await fetchRmData(); // Refetch the data to update the table
+        setStaticFormData({
+          categoryId: "",
+          name: "",
           totalRate: "",
         });
         setModalList(false); // Close the normal add modal
@@ -331,6 +380,7 @@ const RmVariable = ({ partDetails, setRmTotalCount }) => {
       setPosting(false);
     }
   };
+  
   // handle for deleting
   const handleDelete = async (_id) => {
     setPosting(true);
@@ -515,7 +565,7 @@ const RmVariable = ({ partDetails, setRmTotalCount }) => {
           Add Stactic RM Variable
         </ModalHeader>
         <ModalBody>
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmitStatic}>
             <div className="mb-3">
               <label htmlFor="categoryId" className="form-label">
                 Category ID
@@ -524,7 +574,7 @@ const RmVariable = ({ partDetails, setRmTotalCount }) => {
                 type="text"
                 className="form-control"
                 name="categoryId"
-                value={formData.categoryId}
+                value={staticFormData.categoryId}
                 onChange={handleChange}
                 required
               />
@@ -555,10 +605,10 @@ const RmVariable = ({ partDetails, setRmTotalCount }) => {
                   type="number"
                   className="form-control"
                   name="totalRate"
-                  value={formData.totalRate || 0}
+                  value={staticFormData.totalRate || 0}
                   onChange={(e) =>
-                    setFormData({
-                      ...formData,
+                    setStaticFormData({
+                      ...staticFormData,
                       totalRate: e.target.value,
                     })
                   }

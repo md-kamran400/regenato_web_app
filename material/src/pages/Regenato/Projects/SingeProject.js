@@ -33,6 +33,8 @@ const SingeProject = () => {
   const [manufacturingVariables, setManufacturingVariables] = useState([]);
   const [expandedRows, setExpandedRows] = useState({});
   const [expandedRowId, setExpandedRowId] = useState(null);
+  const [costPerUnit, setCostPerUnit] = useState("");
+  const [timePerUnit, setTimePerUnit] = useState("");
   const [inputs, setInputs] = useState({
     machineHours: {},
     machineTbu: {},
@@ -46,13 +48,17 @@ const SingeProject = () => {
 
   useEffect(() => {
     const fetchParts = async () => {
-      const response = await fetch(`${process.env.REACT_APP_BASE_URL}/api/parts`);
+      const response = await fetch(
+        `${process.env.REACT_APP_BASE_URL}/api/parts`
+      );
       const data = await response.json();
       setParts(data);
     };
 
     const fetchManufacturingVariables = async () => {
-      const response = await fetch(`${process.env.REACT_APP_BASE_URL}/api/manufacturing`);
+      const response = await fetch(
+        `${process.env.REACT_APP_BASE_URL}/api/manufacturing`
+      );
       const data = await response.json();
       setManufacturingVariables(data);
 
@@ -68,7 +74,9 @@ const SingeProject = () => {
 
   const fetchProjectDetails = useCallback(async () => {
     try {
-      const response = await fetch(`${process.env.REACT_APP_BASE_URL}/api/projects/${_id}`);
+      const response = await fetch(
+        `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}`
+      );
       const data = await response.json();
       setPartDetails(data);
       console.log(data);
@@ -87,7 +95,9 @@ const SingeProject = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${process.env.REACT_APP_BASE_URL}/api/parts`);
+      const response = await fetch(
+        `${process.env.REACT_APP_BASE_URL}/api/parts`
+      );
       if (!response.ok) throw new Error("Network response was not ok");
       const data = await response.json();
       setListData(data);
@@ -105,8 +115,63 @@ const SingeProject = () => {
   }, [fetchData]);
 
   const handleAutocompleteChange = (event, newValue) => {
-    setSelectedPartData(newValue);
+    if (newValue) {
+      const selectedPart = parts.find(
+        (part) => part.partName === newValue.partName
+      );
+      if (selectedPart) {
+        const calculations = selectedPart.partsCalculations[0] || {};
+        setSelectedPartData({
+          partName: selectedPart.partName,
+          AvgragecostPerUnit: calculations.AvgragecostPerUnit || 0,
+          AvgragetimePerUnit: calculations.AvgragetimePerUnit || 0,
+        });
+
+        // Autofill input fields
+        setCostPerUnit(calculations.AvgragecostPerUnit || "");
+        setTimePerUnit(calculations.AvgragetimePerUnit || "");
+      }
+    } else {
+      setSelectedPartData(null);
+      setCostPerUnit("");
+      setTimePerUnit("");
+    }
   };
+
+  const partTotals = listData.reduce((acc, part) => {
+    if (!part.id) return acc; // Skip if no ID
+
+    const rmVariables = part.rmVariables || [];
+    const manufacturingVariables = part.manufacturingVariables || [];
+    const shipmentVariables = part.shipmentVariables || [];
+    const overheadsAndProfits = part.overheadsAndProfits || [];
+
+    const rmTotal = rmVariables.reduce(
+      (sum, item) => sum + Number(item.totalRate || 0),
+      0
+    );
+    const manufacturingTotal = manufacturingVariables.reduce(
+      (sum, item) => sum + Number(item.totalRate || 0),
+      0
+    );
+    const shipmentTotal = shipmentVariables.reduce(
+      (sum, item) => sum + Number(item.hourlyRate || 0),
+      0
+    );
+    const overheadsTotal = overheadsAndProfits.reduce(
+      (sum, item) => sum + Number(item.totalRate || 0),
+      0
+    );
+
+    acc[part.id] = {
+      costPerUnitAvg:
+        rmTotal + manufacturingTotal + shipmentTotal + overheadsTotal,
+    };
+
+    return acc;
+  }, {});
+
+  console.log("Part Totals:", partTotals);
 
   // const handleSubmit = async (event) => {
   //   event.preventDefault();
@@ -142,59 +207,53 @@ const SingeProject = () => {
   // };
   // new function
 
-const updateTableDisplay = (newPart) => {
-  setPartsData(prevData => {
-    const updatedData = prevData.map(item =>
-      item._id === newPart._id ? { ...item, processes: newPart.processes } : item
-    );
-    return updatedData;
-  });
-};
-
-const handleSubmit = async (event) => {
-  event.preventDefault();
-  if (selectedPartData) {
-    const payload = {
-      partName: selectedPartData.partName,
-      costPerUnit: selectedPartData.costPerUnit,
-      timePerUnit: selectedPartData.timePerUnit,
-      quantity: quantity,
-      processes: [{
-        rmVariables: selectedPartData.rmVariables || [],
-        manufacturingVariables: selectedPartData.manufacturingVariables || [],
-        shipmentVariables: selectedPartData.shipmentVariables || [],
-        overheadsAndProfits: selectedPartData.overheadsAndProfits || []
-      }]
-    };
-
-    try {
-      const response = await fetch(
-        `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/allProjects`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        }
+  const updateTableDisplay = (newPart) => {
+    setPartsData((prevData) => {
+      const updatedData = prevData.map((item) =>
+        item._id === newPart._id
+          ? { ...item, processes: newPart.processes }
+          : item
       );
+      return updatedData;
+    });
+  };
 
-      if (!response.ok) throw new Error("Failed to submit part data");
-
-      const newPart = await response.json();
-      console.log('New part:', newPart); // Log the new part to check its structure
-
-      setListData(prevData => [...prevData, newPart]);
-      setModalAdd(false);
-
-      // Update the table display with the newly added part data
-      updateTableDisplay(newPart);
-      await fetchData()
-      await fetchProjectDetails()
-    } catch (error) {
-      console.error('Error submitting part:', error);
-      setError(error.message);
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+  
+    if (selectedPartData) {
+      const payload = {
+        partName: selectedPartData.partName,
+        AvgragecostPerUnit: selectedPartData.AvgragecostPerUnit,
+        AvgragetimePerUnit: selectedPartData.AvgragetimePerUnit,
+        quantity: quantity || 1, // Default to 1 if not specified
+      };
+  
+      try {
+        const response = await fetch(
+          `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/allProjects`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          }
+        );
+  
+        if (!response.ok) throw new Error("Failed to submit part data");
+  
+        const newPart = await response.json();
+        console.log("New part:", newPart);
+  
+        setListData((prevData) => [...prevData, newPart]); // Update list data
+        setModalAdd(false);
+        await fetchProjectDetails(); // Refresh project details
+      } catch (error) {
+        console.error("Error submitting part:", error);
+        setError(error.message);
+      }
     }
-  }
-};
+  };
+  
 
   const totalCost =
     partDetails.allProjects?.reduce(
@@ -642,12 +701,45 @@ const handleSubmit = async (event) => {
             <form onSubmit={handleSubmit}>
               <Autocomplete
                 options={parts}
-                getOptionLabel={(option) => option.partName}
+                getOptionLabel={(option) => option.partName || ""}
                 onChange={handleAutocompleteChange}
                 renderInput={(params) => (
-                  <TextField {...params} label="Select Part" />
+                  <TextField
+                    {...params}
+                    label="Select Part"
+                    variant="outlined"
+                  />
                 )}
               />
+
+              <div className="mb-3">
+                <Label for="costPerUnit" className="form-label">
+                  Cost Per Unit
+                </Label>
+                <Input
+                  className="form-control"
+                  type="number"
+                  id="costPerUnit"
+                  value={costPerUnit}
+                  onChange={(e) => setCostPerUnit(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="mb-3">
+                <Label for="timePerUnit" className="form-label">
+                  Time Per Unit
+                </Label>
+                <Input
+                  className="form-control"
+                  type="number"
+                  id="timePerUnit"
+                  value={timePerUnit}
+                  onChange={(e) => setTimePerUnit(e.target.value)}
+                  required
+                />
+              </div>
+
               <div className="mb-3">
                 <Label for="quantity" className="form-label">
                   Quantity
@@ -661,6 +753,7 @@ const handleSubmit = async (event) => {
                   required
                 />
               </div>
+
               <Button type="submit" color="primary">
                 Add
               </Button>

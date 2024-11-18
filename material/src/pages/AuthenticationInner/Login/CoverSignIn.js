@@ -5,7 +5,7 @@ import AuthSlider from '../authCarousel';
 
 
 const CoverSignIn = () => {
-document.title="Cover SignIn | Velzon - React Admin & Dashboard Template";
+document.title="CCMPL";
     return (
         <React.Fragment>
             <div className="auth-page-wrapper auth-bg-cover py-5 d-flex justify-content-center align-items-center min-vh-100">
@@ -22,7 +22,7 @@ document.title="Cover SignIn | Velzon - React Admin & Dashboard Template";
                                             <div className="p-lg-5 p-4">
                                                 <div>
                                                     <h5 className="text-primary">Welcome Back !</h5>
-                                                    <p className="text-muted">Sign in to continue to Velzon.</p>
+                                                    {/* <p className="text-muted">Sign in to continue to Velzon.</p> */}
                                                 </div>
 
                                                 <div className="mt-4">
@@ -85,9 +85,9 @@ document.title="Cover SignIn | Velzon - React Admin & Dashboard Template";
                     <Container>
                         <Row>
                             <Col lg={12}>
-                                <div className="text-center">
+                                {/* <div className="text-center">
                                     <p className="mb-0">&copy; {new Date().getFullYear()} Velzon. Crafted with <i className="mdi mdi-heart text-danger"></i> by Themesbrand</p>
-                                </div>
+                                </div> */}
                             </Col>
                         </Row>
                     </Container>

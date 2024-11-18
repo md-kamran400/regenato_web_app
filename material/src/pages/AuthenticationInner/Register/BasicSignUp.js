@@ -11,7 +11,7 @@ import { useFormik } from 'formik';
 import * as Yup from 'yup';
 
 const BasicSignUp = () => {
-    document.title = "Basic SignUp | Velzon - React Admin & Dashboard Template";
+    // document.title = "Basic SignUp | Velzon - React Admin & Dashboard Template";
 
     const [passwordShow, setPasswordShow] = useState(false);
 
@@ -42,14 +42,14 @@ const BasicSignUp = () => {
                     <Container>
                         <Row>
                             <Col lg={12}>
-                                <div className="text-center mt-sm-5 mb-4 text-white-50">
+                                {/* <div className="text-center mt-sm-5 mb-4 text-white-50">
                                     <div>
                                         <Link to="/" className="d-inline-block auth-logo">
                                             <img src={logoLight} alt="" height="20" />
                                         </Link>
                                     </div>
                                     <p className="mt-3 fs-15 fw-medium">Premium Admin & Dashboard Templateee</p>
-                                </div>
+                                </div> */}
                             </Col>
                         </Row>
 
@@ -60,7 +60,7 @@ const BasicSignUp = () => {
                                     <CardBody className="p-4">
                                         <div className="text-center mt-2">
                                             <h5 className="text-primary">Create New Accountttt</h5>
-                                            <p className="text-muted">Get your free velzon account now</p>
+                                            {/* <p className="text-muted">Get your free CCMPL account now</p> */}
                                         </div>
                                         <div className="p-2 mt-4">
                                             <form className="needs-validation" action="#">

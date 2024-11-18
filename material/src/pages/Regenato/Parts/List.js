@@ -84,22 +84,22 @@ const List = () => {
     setModalEdit(!modal_edit);
   };
 
-    const fetchData = useCallback(async () => {
-        setLoading(true);
-        setError(null);
-        try {
-            const response = await fetch('http://localhost:4040/api/parts');
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-            const data = await response.json();
-            setListData(data); // Set the fetched data to state
-        } catch (error) {
-            setError(error.message); // Set error message
-        } finally {
-            setLoading(false); // Set loading to false once fetch is complete
-        }
-    }, []);
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch("http://localhost:4040/api/parts");
+      if (!response.ok) {
+        throw new Error("Network response was not ok");
+      }
+      const data = await response.json();
+      setListData(data); // Set the fetched data to state
+    } catch (error) {
+      setError(error.message); // Set error message
+    } finally {
+      setLoading(false); // Set loading to false once fetch is complete
+    }
+  }, []);
 
   useEffect(() => {
     fetchData();
@@ -119,8 +119,8 @@ const List = () => {
       };
 
       try {
-        const response = await fetch('http://localhost:4040/api/parts', {
-          method: 'POST',
+        const response = await fetch("http://localhost:4040/api/parts", {
+          method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
@@ -146,45 +146,6 @@ const List = () => {
       }
     } else {
       toast.error("Please fill all fields");
-    }
-  };
-
-    const handleEditSubmit = async (e) => {
-        e.preventDefault();
-        setPosting(true);
-        setError(null);
-        try {
-          const response = await fetch(
-            `http://localhost:4040/api/parts/${editId}`,
-            {
-              method: "PUT",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify(formData),
-            }
-          );
-          if (response.ok) {
-            // Refresh the page after successful POST request
-            await fetchData();
-          } else {
-            // Handle errors here
-            throw new Error("Network response was not ok");
-          }
-
-      await fetchData();
-      setFormData({
-        partName: "",
-        costPerUnit: "",
-        timePerUnit: "",
-        stockPOQty: "",
-      });
-
-      toggleEditModal();
-    } catch (error) {
-      setError(error.message);
-    } finally {
-      setPosting(false);
     }
   };
 
@@ -365,15 +326,16 @@ const List = () => {
                   {item.partName} ({item.id})
                 </Link>
               </td>
-              {partTotals && partTotals[item.id] ? (
-                <>
-                  {/* <td>{partTotals[item.id].costPerUnitAvg ?? 0}</td> */}
-                  <td>{partTotals[item.id]?.costPerUnitAvg ?? "N/A"}</td>
-                  <td>{partTotals[item.id]?.manufacturingHours ?? "N/A"}</td>
-                </>
-              ) : (
-                <td colSpan="2">No data available</td>
-              )}
+              <td>
+                {item.partsCalculations && item.partsCalculations.length > 0
+                  ? item.partsCalculations[0].AvgragecostPerUnit
+                  : "N/A"}
+              </td>
+              <td>
+                {item.partsCalculations && item.partsCalculations.length > 0
+                  ? item.partsCalculations[0].AvgragetimePerUnit
+                  : "N/A"}
+              </td>
               <td></td> {/* On Hand column */}
               <td>
                 <UncontrolledDropdown direction="start">
@@ -384,11 +346,7 @@ const List = () => {
                     <FeatherIcon icon="more-horizontal" className="icon-sm" />
                   </DropdownToggle>
                   <DropdownMenu className="dropdown-menu-end">
-                    <DropdownItem onClick={() => toggleEditModal(item)}>
-                      <i className="ri-pencil-fill align-bottom me-2 text-muted"></i>{" "}
-                      Edit
-                    </DropdownItem>
-                    <div className="dropdown-divider"></div>
+                    {/* <div className="dropdown-divider"></div> */}
                     <DropdownItem
                       href="#"
                       onClick={() => handleRemovePart(index)}
@@ -464,9 +422,23 @@ const List = () => {
           </ModalBody>
         </form>
       </Modal>
+    </React.Fragment>
+  );
+};
 
-      {/* Edit Modal */}
-      <Modal isOpen={modal_edit} toggle={toggleEditModal}>
+export default List;
+
+{
+  /* <DropdownItem onClick={() => toggleEditModal(item)}>
+<i className="ri-pencil-fill align-bottom me-2 text-muted"></i>{" "}
+Edit
+</DropdownItem> */
+}
+{
+  /* Edit Modal */
+}
+{
+  /* <Modal isOpen={modal_edit} toggle={toggleEditModal}>
         <ModalHeader toggle={toggleEditModal}>Edit Part</ModalHeader>
         <ModalBody>
           <form onSubmit={handleEditSubmit}>
@@ -543,9 +515,44 @@ const List = () => {
             </ModalFooter>
           </form>
         </ModalBody>
-      </Modal>
-    </React.Fragment>
-  );
-};
+      </Modal> */
+}
 
-export default List;
+//     const handleEditSubmit = async (e) => {
+//       e.preventDefault();
+//       setPosting(true);
+//       setError(null);
+//       try {
+//         const response = await fetch(
+//           `http://localhost:4040/api/parts/${editId}`,
+//           {
+//             method: "PUT",
+//             headers: {
+//               "Content-Type": "application/json",
+//             },
+//             body: JSON.stringify(formData),
+//           }
+//         );
+//         if (response.ok) {
+//           // Refresh the page after successful POST request
+//           await fetchData();
+//         } else {
+//           // Handle errors here
+//           throw new Error("Network response was not ok");
+//         }
+
+//     await fetchData();
+//     setFormData({
+//       partName: "",
+//       costPerUnit: "",
+//       timePerUnit: "",
+//       stockPOQty: "",
+//     });
+
+//     toggleEditModal();
+//   } catch (error) {
+//     setError(error.message);
+//   } finally {
+//     setPosting(false);
+//   }
+// };

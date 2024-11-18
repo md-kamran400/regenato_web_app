@@ -12,6 +12,7 @@ import {
   UncontrolledDropdown,
   DropdownToggle,
   DropdownMenu,
+  ModalFooter,
   DropdownItem,
 } from "reactstrap";
 
@@ -31,6 +32,15 @@ const SinglePart = () => {
   const [partDetails, setPartDetails] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [modal_add, setModal_add] = useState(false);
+  const [editId, setEditId] = useState(null);
+  const [AvgragecostPerUnit, setAvgragecostPerUnit] = useState(null);
+  const [AvgragetimePerUnit, setAvgragetimePerUnit] = useState(null);
+  const [partsCalculations, setPartsCalculations] = useState(null);
+
+  const tog_add_calculation = () => {
+    setModal_add(!modal_add);
+  };
 
   const toggleModalCategory = () => {
     setModal_category(!modal_category);
@@ -39,12 +49,21 @@ const SinglePart = () => {
   useEffect(() => {
     const fetchPartDetails = async () => {
       try {
-        const response = await fetch(`${process.env.REACT_APP_BASE_URL}/api/parts/${_id}`);
+        const response = await fetch(
+          `${process.env.REACT_APP_BASE_URL}/api/parts/${_id}`
+        );
         if (!response.ok) {
           throw new Error(`Error: ${response.statusText}`);
         }
         const data = await response.json();
         setPartDetails(data);
+
+        // Set editId if this is an existing part
+        if (data._id !== _id) {
+          setEditId(data._id);
+        } else {
+          setEditId(null);
+        }
       } catch (error) {
         console.error("Error fetching part details:", error);
         setError(error.message);
@@ -55,6 +74,12 @@ const SinglePart = () => {
 
     fetchPartDetails();
   }, [_id]);
+
+  useEffect(() => {
+    if (partDetails?.partsCalculations?.length) {
+      setPartsCalculations(partDetails.partsCalculations[0]);
+    }
+  }, [partDetails]);
 
   if (loading) {
     return <div>Loading...</div>;
@@ -125,6 +150,52 @@ const SinglePart = () => {
   console.log(manufacturingTotalCountHours);
   console.log(partDetails.stockPOQty);
 
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError(null);
+
+    try {
+      // Dynamically determine whether to POST or PUT
+      const url =
+        partsCalculations && partsCalculations._id
+          ? `${process.env.REACT_APP_BASE_URL}/api/parts/${partDetails._id}/partsCalculations/${partsCalculations._id}`
+          : `${process.env.REACT_APP_BASE_URL}/api/parts/${partDetails._id}/partsCalculations`;
+
+      const method =
+        partsCalculations && partsCalculations._id ? "PUT" : "POST";
+
+      const response = await fetch(url, {
+        method: method,
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          AvgragecostPerUnit: costPerUnitAvg,
+          AvgragetimePerUnit: manufacturingTotalCountHours,
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log("Success:", result);
+
+        // Update state with new or updated calculation
+        setPartDetails(result);
+
+        // Reset editId after successful update
+        setEditId(null);
+        alert("Calculation saved successfully!");
+      } else {
+        const errorResponse = await response.json();
+        throw new Error(errorResponse.message || "Failed to save calculation.");
+      }
+    } catch (error) {
+      setError(error.message);
+      console.error("Error submitting calculation:", error);
+      alert("Error: " + error.message);
+    }
+  };
+
   return (
     <React.Fragment>
       <div className="page-content">
@@ -133,6 +204,14 @@ const SinglePart = () => {
             title={`Part (${partDetails.partName})`}
             pageTitle={`Part (${partDetails.partName})`}
           />
+          <div className="page-title-box d-sm-flex align-items-center justify-content-between">
+            <Button
+              className="add-btn me-1 bg-success"
+              onClick={tog_add_calculation}
+            >
+              Finalize Calculation
+            </Button>
+          </div>
           <Row>
             <Col xl={3} ms={6}>
               <Card className={"card-height-100 "}>
@@ -454,6 +533,61 @@ const SinglePart = () => {
           <Button color="success" className="add-btn mt-3">
             <i className="ri-add-line align-bottom me-1"></i> Add
           </Button>
+        </ModalBody>
+      </Modal>
+
+      <Modal isOpen={modal_add} toggle={tog_add_calculation} centered>
+        <ModalHeader toggle={tog_add_calculation}>
+          {partsCalculations ? "Finalize Calculation" : "Add Calculation"}
+        </ModalHeader>
+        <ModalBody>
+          <p>
+            {partsCalculations
+              ? "Finalize existing calculation"
+              : "Finalize a new calculation"}{" "}
+            for {partDetails.partName}
+          </p>
+          <form onSubmit={handleSubmit}>
+            <div className="mb-3">
+              <label htmlFor="costPerUnitAvg" className="form-label">
+                Cost Per Unit
+              </label>
+              <input
+                type="number"
+                className="form-control"
+                id="costPerUnitAvg"
+                value={costPerUnitAvg}
+                onChange={(e) => setAvgragecostPerUnit(Number(e.target.value))}
+                readOnly={!!partsCalculations}
+              />
+            </div>
+            <div className="mb-3">
+              <label
+                htmlFor="manufacturingTotalCountHours"
+                className="form-label"
+              >
+                Total Hours
+              </label>
+              <input
+                type="number"
+                className="form-control"
+                id="manufacturingTotalCountHours"
+                value={manufacturingTotalCountHours}
+                onChange={(e) => setAvgragetimePerUnit(Number(e.target.value))}
+                readOnly={!!partsCalculations}
+              />
+            </div>
+            <Button type="submit" color="success" className="add-btn me-1">
+              {partsCalculations ? "Update" : "Add"}
+            </Button>
+            <Button
+              type="button"
+              color="secondary"
+              onClick={tog_add_calculation}
+            >
+              Cancel
+            </Button>
+          </form>
         </ModalBody>
       </Modal>
     </React.Fragment>
