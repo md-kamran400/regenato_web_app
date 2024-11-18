@@ -32,19 +32,17 @@ const shipmentVariableSchema = new mongoose.Schema({
   hourlyRate: Number,
 });
 
-const manufacturingStacticSchema = new mongoose.Schema({
-  categoryId: String,
-  name: String,
-  hourlyRate: Number,
-  totalRate: Number,
-});
-
 // Schema for Overheads and Profits
 const overheadsAndProfitsSchema = new mongoose.Schema({
   categoryId: String,
   name: String,
   percentage: Number,
   totalRate: Number,
+});
+const partsCalculationsSchema = new mongoose.Schema({
+  AvgragecostPerUnit: Number,
+  AvgragetimePerUnit: Number,
+  // AveragestockPOQty: Number,
 });
 
 // Main Part schema
@@ -59,7 +57,7 @@ const partSchema = new mongoose.Schema({
   manufacturingVariables: [manufacturingVariableSchema],
   shipmentVariables: [shipmentVariableSchema],
   overheadsAndProfits: [overheadsAndProfitsSchema],
-  manufacturingStatics: [manufacturingStacticSchema]
+  partsCalculations: [partsCalculationsSchema]
 });
 
 
@@ -67,3 +65,22 @@ const partSchema = new mongoose.Schema({
 const PartsModel = mongoose.model("Part", partSchema);
 
 module.exports = PartsModel;
+
+
+/**
+ * const partSchema = new mongoose.Schema({
+  id: { type: String, unique: true },
+  partName: { type: String },
+  costPerUnit: { type: Number },
+  timePerUnit: { type: Number },
+  stockPOQty: { type: Number },
+  totalCost: { type: Number, default: 0 }, // Aggregated total cost
+  totalTime: { type: Number, default: 0 }, // Aggregated total time
+  generalVariables: [generalVariableSchema],
+  rmVariables: [rmVariableSchema],
+  manufacturingVariables: [manufacturingVariableSchema],
+  shipmentVariables: [shipmentVariableSchema],
+  overheadsAndProfits: [overheadsAndProfitsSchema],
+});
+
+ */

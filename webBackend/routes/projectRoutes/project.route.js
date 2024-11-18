@@ -69,35 +69,42 @@ ProjectRouter.get("/:_id", async (req, res) => {
 
   
 // POST Route: Add a part to an existing project's allProjects array
+// POST Route: Add a part to an existing project's allProjects array
 ProjectRouter.post('/:_id/allProjects', async (req, res) => {
-  const { partName, costPerUnit, timePerUnit,quantity, processes } = req.body;
+  const { partName, AvgragecostPerUnit, AvgragetimePerUnit, quantity } = req.body;
 
   try {
-      // Find the project by ID
-      const project = await ProjectModal.findById(req.params._id);
-      if (!project) {
-          return res.status(404).json({ message: "Project not found" });
-      }
+    // Find the project by ID
+    const project = await ProjectModal.findById(req.params._id);
+    if (!project) {
+      return res.status(404).json({ message: "Project not found" });
+    }
 
-      // Create a new part object
-      const newPart = {
-          partName,
-          costPerUnit,
-          timePerUnit,
-          quantity,
-          processes
-      };
+    // Validate required fields
+    if (!partName || AvgragecostPerUnit == null || AvgragetimePerUnit == null) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
 
-      // Push the new part into the project's allProjects array
-      project.allProjects.push(newPart);
+    // Create a new part object
+    const newPart = {
+      partName,
+      costPerUnit: AvgragecostPerUnit,
+      timePerUnit: AvgragetimePerUnit,
+      quantity,
+    };
 
-      // Save the updated project
-      const updatedProject = await project.save();
-      res.status(200).json(updatedProject); // Return the updated project with the new part
+    // Push the new part into the project's allProjects array
+    project.allProjects.push(newPart);
+
+    // Save the updated project
+    const updatedProject = await project.save();
+    res.status(200).json(updatedProject); // Return the updated project with the new part
   } catch (error) {
-      res.status(500).json({ message: error.message });
+    res.status(500).json({ message: error.message });
   }
 });
+
+
 
 // Update or Put Request Route: Update a part to an existing project's allProjects array
 // PUT Route: Update a part in the existing project's allProjects array

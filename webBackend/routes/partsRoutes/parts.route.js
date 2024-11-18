@@ -611,4 +611,79 @@ PartRoutes.delete("/:_id/overheadsAndProfits/:variableId", async (req, res) => {
 
 
 
+
+
+
+
+
+PartRoutes.get("/:_id/partsCalculations", async (req, res) => {
+  try {
+    const calculationAvg = await PartsModel.findById(req.params._id, 'partsCalculations'); // Fetch RM Variables only
+    if (!calculationAvg) {
+      return res.status(404).json({ message: "calculationAvg not found" });
+    }
+    res.status(200).json(calculationAvg.partsCalculations); // Return RM Variables
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+PartRoutes.post("/:_id/partsCalculations", async (req, res) => {
+  try {
+    const part = await PartsModel.findById(req.params._id);
+    if (!part) {
+      return res.status(404).json({ message: "Part not found" });
+    }
+
+    if (part.partsCalculations && part.partsCalculations.length > 0) {
+      return res.status(400).json({ message: "partsCalculations already exists for this part. Use PUT to update." });
+    }
+
+    const newCalculationValue = {
+      AvgragecostPerUnit: req.body.AvgragecostPerUnit,
+      AvgragetimePerUnit: req.body.AvgragetimePerUnit,
+    };
+
+    const updatedPart = await PartsModel.findByIdAndUpdate(
+      req.params._id,
+      { $push: { partsCalculations: newCalculationValue } },
+      { new: true }
+    );
+
+    if (!updatedPart) {
+      return res.status(404).json({ message: "Part not found" });
+    }
+
+    res.status(201).json(updatedPart);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+
+// Update partsCalculations by Part ID and Variable ID
+PartRoutes.put("/:_id/partsCalculations/:variableId", async (req, res) => {
+  try {
+    const updatedPart = await PartsModel.findOneAndUpdate(
+      { _id: req.params._id, "partsCalculations._id": req.params.variableId },
+      {
+        $set: {
+          "partsCalculations.$.AvgragecostPerUnit": req.body.AvgragecostPerUnit,
+          "partsCalculations.$.AvgragetimePerUnit": req.body.AvgragetimePerUnit,
+        },
+      },
+      { new: true }
+    );
+
+    if (!updatedPart) {
+      return res.status(404).json({ message: "Part or partsCalculations not found" });
+    }
+
+    res.status(200).json(updatedPart);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+
 module.exports = {PartRoutes};
