@@ -523,6 +523,7 @@ import {
   Label,
   Input,
 } from "reactstrap";
+import { FiSettings } from "react-icons/fi";
 
 const PartsList = () => {
   const { _id } = useParams();
@@ -612,6 +613,7 @@ const PartsList = () => {
           hours: variable.hours,
           quantity: matchingPart.quantity,
           totalHours: totalHours,
+          hourlyRate: variable.hourlyRate, // Include hourlyRate here
         });
       });
     }
@@ -627,13 +629,13 @@ const PartsList = () => {
   };
 
   return (
-    <div className="bg-white">
-      <Row lg={12} className="mt-2 p-2">
+    <div className="bg-light" style={{ padding: "20px", borderRadius: "10px" }}>
+      <Row lg={12} className="mt-3">
         <Col>
           <CardBody>
-            <div className="table-responsive table-card mb-1 p-2">
-              <table className="table align-middle table-nowrap">
-                <thead className="table-light">
+            <div className="table-responsive table-card mb-4">
+              <table className="table table-hover align-middle">
+                <thead style={{ backgroundColor: "#f1f5f9", color: "#334155" }}>
                   <tr>
                     <th>Name</th>
                     <th>Drawing Number</th>
@@ -650,32 +652,64 @@ const PartsList = () => {
                     partDetails.allProjects.map((item) => (
                       <React.Fragment key={item._id}>
                         {/* Main Row */}
-                        <tr>
-                          <td>
-                            <Button
-                              color="link"
-                              onClick={() => toggleRow(item.partName)}
-                              className="text-decoration-none"
-                            >
-                              {item.partName || "N/A"}
-                            </Button>
+                        <tr
+                          style={{
+                            fontWeight: "bold",
+                            color: "#333",
+                            backgroundColor: "#eaf4ff",
+                          }}
+                        >
+                          <td
+                            style={{ cursor: "pointer", color: "#2563eb" }}
+                            onClick={() => toggleRow(item.partName)}
+                          >
+                            {item.partName || "N/A"}
                           </td>
                           <td>0</td>
                           <td>{item.quantity || 0}</td>
-                          <td>0</td>
-                          <td>0</td>
-                          <td>0</td>
-                          <td>0</td>
+                          <td>{item.costPerUnit}</td>
+                          <td>{item.quantity * item.costPerUnit}</td>
+                          <td>{item.timePerUnit}</td>
+                          <td>{item.quantity * item.timePerUnit}</td>
                           <td>
-                            <Button>Update</Button>
+                            <Button
+                              style={{
+                                backgroundColor: "#10b981",
+                                border: "none",
+                                color: "#fff",
+                              }}
+                            >
+                              Update
+                            </Button>
                           </td>
                         </tr>
                         {/* Expandable Row */}
                         <tr>
                           <td colSpan="8" className="p-0">
                             <Collapse isOpen={!!expandedRows[item.partName]}>
-                              <div className="p-3 border-top">
-                                <h5 className="mb-3">
+                              <div
+                                className="p-4 border-top"
+                                style={{
+                                  backgroundColor: "#f8f9fa",
+                                  borderRadius: "5px",
+                                  boxShadow: "0px 6px 10px rgba(0, 0, 0, 0.1)",
+                                }}
+                              >
+                                <h5
+                                  className="mb-3 d-flex align-items-center"
+                                  style={{
+                                    fontWeight: "bold",
+                                    color: "#333",
+                                  }}
+                                >
+                                  <FiSettings
+                                    style={{
+                                      fontSize: "1.2rem",
+                                      marginRight: "10px",
+                                      color: "#2563eb",
+                                      fontWeight: "bold",
+                                    }}
+                                  />
                                   Manufacturing Processes
                                 </h5>
                                 {manufacturingVariables
@@ -685,24 +719,56 @@ const PartsList = () => {
                                   )
                                   .map((variable) => (
                                     <React.Fragment key={variable._id}>
-                                      <div className="bg-light p-3 rounded">
+                                      <div
+                                        className="p-4 rounded mb-4"
+                                        style={{
+                                          backgroundColor: "#ffffff",
+                                          boxShadow:
+                                            "0px 4px 8px rgba(0, 0, 0, 0.1)",
+                                        }}
+                                      >
                                         <div className="mb-3">
                                           <div className="d-flex align-items-center justify-content-between">
-                                            <h6 className="mb-0">
+                                            <h6
+                                              style={{
+                                                fontWeight: "bold",
+                                                color: "#475569",
+                                              }}
+                                            >
                                               {variable.name}
                                             </h6>
-                                            <Button color="primary">
+                                            <p
+                                              className="mb-0"
+                                              style={{
+                                                fontWeight: "600",
+                                                color: "#10b981",
+                                              }}
+                                            >
                                               2400 ₹
-                                            </Button>
+                                            </p>
                                           </div>
-
                                           <p>
-                                            Estimated time: 2 hours <br />
-                                            Rate: ₹1200/hour
+                                            Estimated time:{" "}
+                                            {processPartsMap[variable.name]
+                                              .map((part) => part.hours)
+                                              .join(", ")}{" "}
+                                            hours
+                                          </p>
+                                          <p>
+                                            Rate: ₹{" "}
+                                            {processPartsMap[variable.name]
+                                              .map((part) => part.hourlyRate)
+                                              .join(", ")}
                                           </p>
 
                                           <FormGroup>
-                                            <Label for="assignMachine">
+                                            <Label
+                                              for="assignMachine"
+                                              style={{
+                                                fontWeight: "bold",
+                                                color: "#475569",
+                                              }}
+                                            >
                                               Assign Machine
                                             </Label>
                                             <select
@@ -718,6 +784,9 @@ const PartsList = () => {
                                                   variable.name
                                                 ] || ""
                                               }
+                                              style={{
+                                                borderColor: "#d1d5db",
+                                              }}
                                             >
                                               <option value="">
                                                 Select a Machine
@@ -733,9 +802,17 @@ const PartsList = () => {
                                               </option>
                                             </select>
 
-                                            {selectedMachines[variable.name] && (
+                                            {selectedMachines[
+                                              variable.name
+                                            ] && (
                                               <div className="d-flex align-items-center justify-content-between mt-3">
-                                                <h6 className="mb-0">
+                                                <h6
+                                                  className="mb-0"
+                                                  style={{
+                                                    fontWeight: "bold",
+                                                    color: "#475569",
+                                                  }}
+                                                >
                                                   {
                                                     selectedMachines[
                                                       variable.name
@@ -743,13 +820,13 @@ const PartsList = () => {
                                                   }
                                                 </h6>
                                                 <Button
-                                                  className={
+                                                  className={`${
                                                     allocationStatus[
                                                       variable.name
                                                     ]
-                                                      ? "bg-success border-0"
-                                                      : ""
-                                                  }
+                                                      ? "bg-success text-white border-0"
+                                                      : "btn-outline-success"
+                                                  }`}
                                                   onClick={() =>
                                                     handleAllocateClick(
                                                       variable.name
