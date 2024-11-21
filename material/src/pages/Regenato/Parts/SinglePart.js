@@ -37,6 +37,29 @@ const SinglePart = () => {
   const [AvgragecostPerUnit, setAvgragecostPerUnit] = useState(null);
   const [AvgragetimePerUnit, setAvgragetimePerUnit] = useState(null);
   const [partsCalculations, setPartsCalculations] = useState(null);
+  const [rmtotalCount, setrmtotalCount] = useState(0);
+  const [manufacturingCount, setmanufacturingCount] = useState(0);
+  const [shipmentCount, setshipmentCount] = useState(0);
+  const [overheadCount, setoverheadCount] = useState(0);
+  const [manufacturingHours, setmanufacturingHours] = useState(0);
+
+
+  const handlermTotalCountUpdate = (newTotal) => {
+    setrmtotalCount(newTotal);
+  };
+  const handlemanufacturingCountTotalCountUpdate = (newTotal) => {
+    setmanufacturingCount(newTotal);
+  };
+  const handleshipmentCountTotalCountUpdate = (newTotal) => {
+    setshipmentCount(newTotal);
+  };
+  const handleoverheadCountTotalCountUpdate = (newTotal) => {
+    setoverheadCount(newTotal);
+  };
+  const handlemanufacturingCountHoursCountUpdate = (newTotal) => {
+    setmanufacturingHours(newTotal);
+  };
+
 
   const tog_add_calculation = () => {
     setModal_add(!modal_add);
@@ -101,10 +124,10 @@ const SinglePart = () => {
     );
 
   // Calculating totals using updated partDetails field names
-  const rmTotalCount = partDetails?.rmVariables?.reduce(
-    (total, item) => total + Number(item.totalRate || 0),
-    0
-  );
+  // const rmTotalCount = partDetails?.rmVariables?.reduce(
+  //   (total, item) => total + Number(item.totalRate || 0),
+  //   0
+  // );
   const manufacturingTotalCount = partDetails?.manufacturingVariables?.reduce(
     (total, item) => total + Number(item.totalRate || 0),
     0
@@ -114,8 +137,18 @@ const SinglePart = () => {
     0
   );
 
+  // useEffect(() => {
+  //   const total = rmtotalCount + manufacturingCount + shipmentCount;
+  //   setavg_cost_per_unit(total);
+  //   console.log(total);
+  //   // Call the callback function to update the parent component
+  //   onTotalCountUpdate(total);
+  // }, [shipmentData]);
+
+
+
   // Calculate total cost without profit
-  const totalCost = rmTotalCount + manufacturingTotalCount + shipmentTotalCount;
+  const totalCost = rmtotalCount + manufacturingCount + shipmentCount;
 
   // Calculate overheads percentage
   const overheadPercentage = partDetails?.overheadsAndProfits?.reduce(
@@ -131,7 +164,7 @@ const SinglePart = () => {
   // const profit = (totalCost * overheadPercentage) / 100;
 
   // Final cost per unit including profit
-  const costPerUnitAvg = totalCost + overheadsTotalCount;
+  const costPerUnitAvg = totalCost + overheadCount;
 
   const calculateValues = () => {
     // Your existing calculations...
@@ -171,7 +204,7 @@ const SinglePart = () => {
         },
         body: JSON.stringify({
           AvgragecostPerUnit: costPerUnitAvg,
-          AvgragetimePerUnit: manufacturingTotalCountHours,
+          AvgragetimePerUnit: manufacturingHours,
         }),
       });
 
@@ -340,7 +373,7 @@ const SinglePart = () => {
                   <div className="d-flex justify-content-between align-items-center">
                     <h6 className="fs-15 fw-bold mb-0">Time Per Unit:</h6>
                     <span className="text-muted fs-13">
-                      {manufacturingTotalCountHours}
+                      {manufacturingHours}
                     </span>{" "}
                     {/* Display time per unit */}
                   </div>
@@ -427,9 +460,12 @@ const SinglePart = () => {
                     />
                     <div className="d-flex align-items-center mt-3 mb-3">
                       <p className="fw-bold mb-0 me-2">Total Cost:</p>
-                      <span className="text-muted fs-13">{rmTotalCount}</span>
+                      <span className="text-muted fs-13">{rmtotalCount}</span>
                     </div>
-                    <RmVariable partDetails={partDetails} />
+                    <RmVariable
+                      partDetails={partDetails}
+                      onTotalCountUpdate={handlermTotalCountUpdate}
+                    />
                   </CardBody>
                 </Card>
               </Col>
@@ -454,10 +490,12 @@ const SinglePart = () => {
                     <div className="d-flex align-items-center mt-3 mb-3">
                       <p className="fw-bold mb-0 me-2">Total Cost:</p>
                       <span className="text-muted fs-13">
-                        {manufacturingTotalCount}
+                        {manufacturingCount}
                       </span>
                     </div>
-                    <ManufacturingVariable partDetails={partDetails} />
+                    <ManufacturingVariable partDetails={partDetails} 
+                    onTotalCountUpdate={handlemanufacturingCountTotalCountUpdate}
+                    onTotalCountUpdateHours={handlemanufacturingCountHoursCountUpdate}/>
                   </CardBody>
                 </Card>
               </Col>
@@ -482,10 +520,10 @@ const SinglePart = () => {
                     <div className="d-flex align-items-center mt-3 mb-3">
                       <p className="fw-bold mb-0 me-2">Total Cost:</p>
                       <span className="text-muted fs-13">
-                        {shipmentTotalCount}
+                        {shipmentCount}
                       </span>
                     </div>
-                    <ShipmentVariable partDetails={partDetails} />
+                    <ShipmentVariable partDetails={partDetails} onTotalCountUpdate={handleshipmentCountTotalCountUpdate}/>
                   </CardBody>
                 </Card>
               </Col>
@@ -510,12 +548,13 @@ const SinglePart = () => {
                     <div className="d-flex align-items-center mt-3 mb-3">
                       <p className="fw-bold mb-0 me-2">Total Cost:</p>
                       <span className="text-muted fs-13">
-                        {overheadsTotalCount}
+                        {overheadCount}
                       </span>
                     </div>
                     <OverheadsVariable
                       partDetails={partDetails}
                       totalCost={totalCost}
+                      onTotalCountUpdate={handleoverheadCountTotalCountUpdate}
                     />
                   </CardBody>
                 </Card>
@@ -563,7 +602,7 @@ const SinglePart = () => {
             </div>
             <div className="mb-3">
               <label
-                htmlFor="manufacturingTotalCountHours"
+                htmlFor="manufacturingHours"
                 className="form-label"
               >
                 Total Hours
@@ -571,8 +610,8 @@ const SinglePart = () => {
               <input
                 type="number"
                 className="form-control"
-                id="manufacturingTotalCountHours"
-                value={manufacturingTotalCountHours}
+                id="manufacturingHours"
+                value={manufacturingHours}
                 onChange={(e) => setAvgragetimePerUnit(Number(e.target.value))}
                 readOnly={!!partsCalculations}
               />

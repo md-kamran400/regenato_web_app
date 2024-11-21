@@ -173,6 +173,8 @@ const SingeProject = () => {
 
   console.log("Part Totals:", partTotals);
 
+  
+
   // const handleSubmit = async (event) => {
   //   event.preventDefault();
   //   if (selectedPartData) {
@@ -753,7 +755,6 @@ const SingeProject = () => {
                   required
                 />
               </div>
-
               <Button type="submit" color="primary">
                 Add
               </Button>

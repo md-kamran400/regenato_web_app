@@ -88,7 +88,9 @@ const List = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${process.env.REACT_APP_BASE_URL}/api/parts`);
+      const response = await fetch(
+        `${process.env.REACT_APP_BASE_URL}/api/parts`
+      );
       if (!response.ok) {
         throw new Error("Network response was not ok");
       }
@@ -109,7 +111,7 @@ const List = () => {
   // Inside the handleAddPart function
 
   const handleAddPart = async () => {
-    if (newPartName.trim() !== "" && newPartId.trim() !== "") {
+    if (newPartName !== "") {
       const newPart = {
         id: parseInt(newPartId),
         partName: newPartName,
@@ -117,7 +119,10 @@ const List = () => {
         timePerUnit: timePerUnit || 0,
         stockPOQty: stockPOQty || 0,
       };
-
+  
+      setPosting(true);
+      setError(null);
+  
       try {
         const response = await fetch(`${process.env.REACT_APP_BASE_URL}/api/parts`, {
           method: "POST",
@@ -126,23 +131,35 @@ const List = () => {
           },
           body: JSON.stringify(newPart),
         });
-
-        if (!response.ok) {
-          throw new Error("Failed to add the part");
+  
+        if (response.ok) {
+          const data = await response.json();
+          console.log("New part added:", data);
+  
+          // Update the local state
+          const updatedListData = [...listData];
+          const index = updatedListData.findIndex(item => item.id === data.id);
+          
+          if (index !== -1) {
+            updatedListData[index] = data;
+            toast.info("Part updated successfully!");
+          } else {
+            updatedListData.push(data);
+            toast.success("New part added successfully!");
+          }
+  
+          setListData(updatedListData);
+          // Close the modal
+          setModalList(false);
+        } else {
+          throw new Error("Network response was not ok");
         }
-
-        const data = await response.json();
-        setListData((prevData) => [...prevData, data]);
-        toast.success("Part added successfully!");
-
-        // Reset input fields
-        setNewPartName("");
-        setNewPartId("");
-        setCostPerUnit(0);
-        setTimePerUnit(0);
-        setStockPOQty(0);
       } catch (error) {
+        setError(error.message);
+        console.error("Error adding/updating part:", error);
         toast.error(`Error: ${error.message}`);
+      } finally {
+        setPosting(false);
       }
     } else {
       toast.error("Please fill all fields");

@@ -15,7 +15,7 @@ import Flatpickr from "react-flatpickr";
 import Autocomplete from "@mui/material/Autocomplete";
 import TextField from "@mui/material/TextField";
 
-const ManufacturingVariable = ({ partDetails }) => {
+const ManufacturingVariable = ({ partDetails, onTotalCountUpdate, onTotalCountUpdateHours }) => {
   const [modal_add, setModalList] = useState(false);
   const [modal_edit, setModalEdit] = useState(false);
   const [modal_delete, setModalDelete] = useState(false);
@@ -27,7 +27,8 @@ const ManufacturingVariable = ({ partDetails }) => {
   const [manufacturingVariables, setmanufacturingVariables] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [shipmentvars, setshipmentvars] = useState([]);
-  const [selectedIdst, setSelectedIdst] = useState(null);
+  const [ manufacturingCounthour, setmanufacturingCounthours] = useState(0)
+  const [manufacturingCount, setmanufacturingCount] = useState(null);
   const [selectedShipment, setselectedShipment] = useState(null);
   const [SelectedManufacuturingVariable, setSelectedManufacuturingVariable] =
     useState(null);
@@ -153,6 +154,32 @@ const ManufacturingVariable = ({ partDetails }) => {
       fetchManufacturingData();
     }
   }, [partDetails, fetchManufacturingData]);
+
+
+  useEffect(() => {
+    const total = manufacturingData.reduce(
+      (sum, item) => sum + Number(item.totalRate || 0),
+      0
+    );
+    setmanufacturingCount(total);
+    console.log(total);
+
+    // Call the callback function to update the parent component
+    onTotalCountUpdate(total);
+  }, [manufacturingData]);
+
+  useEffect(() => {
+    const total = manufacturingData.reduce(
+      (sum, item) => sum + Number(item.hours || 0),
+      0
+    );
+    setmanufacturingCounthours(total);
+    console.log(total);
+
+    // Call the callback function to update the parent component
+    onTotalCountUpdateHours(total);
+  }, [manufacturingData]);
+
 
   const totalRate = formData.hourlyRate * formData.hours;
 

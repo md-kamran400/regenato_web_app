@@ -16,7 +16,7 @@ import Flatpickr from "react-flatpickr";
 import Autocomplete from "@mui/material/Autocomplete";
 import TextField from "@mui/material/TextField";
 
-const OverheadsVariable = ({ partDetails, totalCost }) => {
+const OverheadsVariable = ({ partDetails, totalCost, onTotalCountUpdate }) => {
   const [modal_add, setModalList] = useState(false);
   const [modal_edit, setModalEdit] = useState(false);
   const [modal_delete, setModalDelete] = useState(false);
@@ -28,6 +28,7 @@ const OverheadsVariable = ({ partDetails, totalCost }) => {
   const [selectedId, setSelectedId] = useState(null);
   const [selectOverheads, setselectOverheads] = useState(null);
   const [editId, setEditId] = useState(null);
+  const [overheadCount, setOverheadscount] = useState(0)
 
   // Form state
   const [formData, setFormData] = useState({
@@ -100,6 +101,18 @@ const OverheadsVariable = ({ partDetails, totalCost }) => {
       fetchOverheads();
     }
   }, [partDetails, fetchOverheads]);
+
+
+  useEffect(() => {
+    const total = overheadsData.reduce(
+      (sum, item) => sum + Number(item.totalRate || 0),
+      0
+    );
+    setOverheadscount(total);
+    console.log(total);
+    // Call the callback function to update the parent component
+    onTotalCountUpdate(total);
+  }, [overheadsData]);
 
   // useEffect(() => {
   //   if (formData.totalRate) {

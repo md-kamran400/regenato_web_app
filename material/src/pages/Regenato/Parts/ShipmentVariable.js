@@ -15,7 +15,7 @@ import { Link } from "react-router-dom";
 import Autocomplete from "@mui/material/Autocomplete";
 import TextField from "@mui/material/TextField";
 
-const ShipmentVariable = ({ partDetails }) => {
+const ShipmentVariable = ({ partDetails, onTotalCountUpdate }) => {
   const [modal_add, setModalList] = useState(false);
   const [modal_edit, setModalEdit] = useState(false);
   const [modal_delete, setModalDelete] = useState(false);
@@ -27,6 +27,7 @@ const ShipmentVariable = ({ partDetails }) => {
   const [selectedId, setSelectedId] = useState(null);
   const [selectedShipment, setselectedShipment] = useState(null);
   const [editId, setEditId] = useState(null);
+  const [shipmentCount, setShipmentCount] = useState(0)
 
   // Form state
   const [formData, setFormData] = useState({
@@ -99,6 +100,18 @@ const ShipmentVariable = ({ partDetails }) => {
       fetchShipmentData();
     }
   }, [partDetails, fetchShipmentData]);
+
+
+  useEffect(() => {
+    const total = shipmentData.reduce(
+      (sum, item) => sum + Number(item.hourlyRate || 0),
+      0
+    );
+    setShipmentCount(total);
+    console.log(total);
+    // Call the callback function to update the parent component
+    onTotalCountUpdate(total);
+  }, [shipmentData]);
 
   //   fetch snipment variable
   useEffect(() => {

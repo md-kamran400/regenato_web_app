@@ -15,7 +15,7 @@ import { toast } from "react-toastify";
 import Autocomplete from "@mui/material/Autocomplete";
 import TextField from "@mui/material/TextField";
 
-const RmVariable = ({ partDetails, setRmTotalCount }) => {
+const RmVariable = ({ partDetails, onTotalCountUpdate }) => {
   const [modal_add, setModalList] = useState(false);
   const [modal_edit, setModalEdit] = useState(false);
   const [modal_delete, setModalDelete] = useState(false);
@@ -29,6 +29,7 @@ const RmVariable = ({ partDetails, setRmTotalCount }) => {
   const [editId, setEditId] = useState(null);
   const [modal_static_add, setModalstatic_add] = useState(false);
   const [modal_static_edit, setModalstatic_edit] = useState(false);
+  const [rmTotalCount, setRmTotalCount] = useState(0)
 
   const [formData, setFormData] = useState({
     categoryId: "",
@@ -159,10 +160,19 @@ const RmVariable = ({ partDetails, setRmTotalCount }) => {
     }
   }, [partDetails?._id]);
 
-  const rmTotaCost = RmtableData.reduce(
-    (total, item) => total + Number(item.totalRate),
-    0
-  );
+  useEffect(() => {
+    const total = RmtableData.reduce(
+      (sum, item) => sum + Number(item.totalRate || 0),
+      0
+    );
+    setRmTotalCount(total);
+    console.log(total);
+
+    // Call the callback function to update the parent component
+    onTotalCountUpdate(total);
+  }, [RmtableData]);
+  // console.log("rm data totalCost", rmTotaCost);
+  
 
   useEffect(() => {
     if (partDetails && partDetails._id) {
