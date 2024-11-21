@@ -11,7 +11,7 @@ import {
   TabPane,
 } from "reactstrap";
 import classnames from "classnames";
-
+import { BsStopwatch } from "react-icons/bs";
 // Import child components
 import SingeProject from "./SingeProject";
 import ActivitiesTab from "./ActivitiesTab";
@@ -78,7 +78,7 @@ const ProjectSection = () => {
                       }}
                       href="#"
                     >
-                      Overview
+                      Hours Planning
                     </NavLink>
                   </NavItem>
                   <NavItem>

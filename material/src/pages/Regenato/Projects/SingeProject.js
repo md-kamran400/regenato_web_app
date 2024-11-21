@@ -175,39 +175,7 @@ const SingeProject = () => {
 
   
 
-  // const handleSubmit = async (event) => {
-  //   event.preventDefault();
-  //   if (selectedPartData) {
-  //     const payload = {
-  //       partName: selectedPartData.partName,
-  //       costPerUnit: selectedPartData.costPerUnit,
-  //       timePerUnit: selectedPartData.timePerUnit,
-  //       quantity: quantity,
-  //     };
 
-  //     try {
-  //       const response = await fetch(
-  //         `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/allProjects`,
-  //         {
-  //           method: "POST",
-  //           headers: { "Content-Type": "application/json" },
-  //           body: JSON.stringify(payload),
-  //         }
-  //       );
-
-  //       if (!response.ok) throw new Error("Failed to submit part data");
-
-  //       await fetchProjectDetails();
-  //       await fetchData();
-  //       const newPart = await response.json();
-  //       setListData((prevData) => [...prevData, newPart]);
-  //       setModalAdd(false);
-  //     } catch (error) {
-  //       setError(error.message);
-  //     }
-  //   }
-  // };
-  // new function
 
   const updateTableDisplay = (newPart) => {
     setPartsData((prevData) => {
@@ -345,7 +313,98 @@ const SingeProject = () => {
         <Container fluid >
           <BreadCrumb title="Project Details" pageTitle="Project Details" />
 
-          <div className="mb-4 pb-2 d-flex">
+         
+
+          <div
+  style={{
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "20px",
+    border: "1px solid #ddd",
+    borderRadius: "8px",
+    backgroundColor: "#fff",
+    boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
+    marginBottom: "20px",
+  }}
+>
+  {/* Left Section */}
+  <div>
+    <h2
+      style={{
+        margin: "0 0 8px",
+        fontWeight: "bold",
+        fontSize: "20px",
+        color: "#000",
+      }}
+    >
+      Production Order 001
+    </h2>
+    <p style={{ margin: 0, fontSize: "14px", color: "#6c757d" }}>PO ID: PO001</p>
+  </div>
+
+  {/* Center Section */}
+  <div style={{ display: "flex", gap: "40px" }}>
+    {/* Date Created */}
+    {/* Total Parts */}
+    <div style={{ textAlign: "center" }}>
+      <p style={{ margin: "0", fontSize: "12px", color: "#6c757d" }}>
+      Total Cost:
+      </p>
+      <p
+        style={{
+          margin: "4px 0 0",
+          fontSize: "16px",
+          fontWeight: "bold",
+          color: "#000",
+        }}
+      >
+      {totalCost.toFixed(2)}
+      </p>
+    </div>
+    {/* Total Hours */}
+    <div style={{ textAlign: "center" }}>
+      <p style={{ margin: "0", fontSize: "12px", color: "#6c757d" }}>
+        <span style={{ marginRight: "4px" }}>&#128339;</span> Total Machining Hours:
+      </p>
+      <p
+        style={{
+          margin: "4px 0 0",
+          fontSize: "16px",
+          fontWeight: "bold",
+          color: "#000",
+        }}
+      >
+        {totalMachiningHours}
+      </p>
+    </div>
+  </div>
+
+  {/* Right Section */}
+  <div>
+    <span
+      style={{
+        display: "inline-block",
+        padding: "6px 12px",
+        fontSize: "14px",
+        fontWeight: "bold",
+        color: "#0d6efd",
+        backgroundColor: "#e7f1ff",
+        borderRadius: "20px",
+      }}
+    >
+      In Progress
+    </span>
+  </div>
+          </div>
+
+
+          <Row>
+            <Col lg={12}>
+              <Card>
+                <CardBody>
+
+                <div className="mb-4 pb-2 d-flex">
             <Button
               color="success"
               className="add-btn me-1"
@@ -361,184 +420,96 @@ const SingeProject = () => {
                 <i className="ri-add-line align-bottom me-1"></i> Add BOM
               </Button>
             </Link>
-          </div>
+                </div>
+                  
+                  <div
+  className="table-responsive table-card mt-3 mb-1"
+  style={{
+    boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
+    overflow: "hidden",
+  }}
+>
+  <table
+    className="table align-middle table-nowrap"
+    style={{ width: "100%", borderCollapse: "collapse" }}
+  >
+    <thead
+      className="table-light"
+      style={{
+        backgroundColor: "#f8f9fa",
+        fontWeight: "bold",
+        textTransform: "uppercase",
+        fontSize: "12px",
+        color: "#333",
+      }}
+    >
+      <tr>
+        <th
+          onClick={() => handleRowClickParts("name")}
+          style={{
+            padding: "12px",
+            cursor: "pointer",
+            borderBottom: "2px solid #ddd",
+          }}
+        >
+          Name
+        </th>
+        <th style={{ padding: "12px", borderBottom: "2px solid #ddd" }}>
+          Cost Per Unit
+        </th>
+        <th style={{ padding: "12px", borderBottom: "2px solid #ddd" }}>
+          Machining Hours
+        </th>
+        <th style={{ padding: "12px", borderBottom: "2px solid #ddd" }}>
+          Quantity
+        </th>
+        <th style={{ padding: "12px", borderBottom: "2px solid #ddd" }}>
+          Total Cost
+        </th>
+        <th style={{ padding: "12px", borderBottom: "2px solid #ddd" }}>
+          Total Machining Hours
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      {partDetails.allProjects?.map((item) => (
+        <React.Fragment key={item._id}>
+          <tr
+            style={{
+              cursor: "pointer",
+              backgroundColor: "#fff",
+              transition: "background-color 0.3s ease",
+            }}
+            onClick={() => handleRowClickParts(item._id)}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f1f1f1")}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#fff")}
+          >
+            <td style={{ padding: "10px", borderBottom: "1px solid #ddd" }}>
+              {item.partName}
+            </td>
+            <td style={{ padding: "10px", borderBottom: "1px solid #ddd" }}>
+              {item.costPerUnit}
+            </td>
+            <td style={{ padding: "10px", borderBottom: "1px solid #ddd" }}>
+              {item.timePerUnit}
+            </td>
+            <td style={{ padding: "10px", borderBottom: "1px solid #ddd" }}>
+              {item.quantity}
+            </td>
+            <td style={{ padding: "10px", borderBottom: "1px solid #ddd" }}>
+              {(item.costPerUnit * item.quantity).toFixed(2)}
+            </td>
+            <td style={{ padding: "10px", borderBottom: "1px solid #ddd" }}>
+              {(item.timePerUnit * item.quantity).toFixed(2)}
+            </td>
+          </tr>
+        </React.Fragment>
+      ))}
+    </tbody>
+  </table>
+                   </div>
 
-          <Row>
-            <Col lg={12}>
-              <Card>
-                <CardBody>
-                  <div className="d-flex align-items-center mt-3">
-                    <p className="fw-bold mb-0 me-2">Total Cost:</p>
-                    <p className="fw-bold mb-0 me-2">{totalCost.toFixed(2)}</p>
-                  </div>
-                  <div className="d-flex align-items-center mt-3">
-                    <p className="fw-bold mb-0 me-2">Total Machining Hours:</p>
-                    <p className="fw-bold mb-0 me-2">{totalMachiningHours}</p>
-                  </div>
-                  <div className="table-responsive table-card mt-3 mb-1">
-                    <table className="table align-middle table-nowrap">
-                      <thead className="table-light">
-                        <tr>
-                          <th onClick={() => handleRowClickParts("name")}>
-                            Name
-                          </th>
-                          <th>Cost Per Unit</th>
-                          <th>Machining Hours</th>
-                          <th>Quantity</th>
-                          <th>Total Cost</th>
-                          <th>Total Machining Hours</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {partDetails.allProjects?.map((item) => (
-                          <React.Fragment key={item._id}>
-                            <tr
-                              style={{ cursor: "pointer" }}
-                              onClick={() => handleRowClickParts(item._id)}
-                            >
-                              <td>{item.partName}</td>
-                              <td>{item.costPerUnit}</td>
-                              <td>{item.timePerUnit}</td>
-                              <td>{item.quantity}</td>
-                              <td>
-                                {(item.costPerUnit * item.quantity).toFixed(2)}
-                              </td>
-                              <td>
-                                {(item.timePerUnit * item.quantity).toFixed(2)}
-                              </td>
-                            </tr>
 
-                            {expandedRowId === item._id && (
-                              <React.Fragment>
-                                {/* RM Variables */}
-                                <tr>
-                                  <td colSpan={8}>
-                                    <div className="table-responsive table-card mt-3 mb-1">
-                                      <h5>Raw Materials</h5>
-                                      <table className="table align-middle table-nowrap">
-                                        <thead className="table-light">
-                                          <tr>
-                                            <th>Name</th>
-                                            <th>Net Weight</th>
-                                            <th>Price Per Kg</th>
-                                            <th>Total Rate</th>
-                                          </tr>
-                                        </thead>
-                                        <tbody>
-                                          {(
-                                            item.processes[0]?.rmVariables || []
-                                          ).map((rm) => (
-                                            <tr key={rm.name}>
-                                              <td>{rm.name}</td>
-                                              <td>{rm.netWeight}</td>
-                                              <td>{rm.pricePerKg}</td>
-                                              <td>{rm.totalRate}</td>
-                                            </tr>
-                                          ))}
-                                        </tbody>
-                                      </table>
-                                    </div>
-                                  </td>
-                                </tr>
-
-                                {/* Manufacturing Variables */}
-                                <tr>
-                                  <td colSpan={8}>
-                                    <div className="table-responsive table-card mt-3 mb-1">
-                                      <h5>Manufacturing Variables</h5>
-                                      <table className="table align-middle table-nowrap">
-                                        <thead className="table-light">
-                                          <tr>
-                                            <th>Name</th>
-                                            <th>Hours</th>
-                                            <th>Hourly Rate</th>
-                                            <th>Total Rate</th>
-                                          </tr>
-                                        </thead>
-                                        <tbody>
-                                          {(
-                                            item.processes[0]
-                                              ?.manufacturingVariables || []
-                                          ).map((manufacturing) => (
-                                            <tr key={manufacturing.name}>
-                                              <td>{manufacturing.name}</td>
-                                              <td>{manufacturing.hours}</td>
-                                              <td>
-                                                {manufacturing.hourlyRate}
-                                              </td>
-                                              <td>{manufacturing.totalRate}</td>
-                                            </tr>
-                                          ))}
-                                        </tbody>
-                                      </table>
-                                    </div>
-                                  </td>
-                                </tr>
-
-                                {/* Shipment Variables */}
-                                <tr>
-                                  <td colSpan={8}>
-                                    <div className="table-responsive table-card mt-3 mb-1">
-                                      <h5>Shipment Variables</h5>
-                                      <table className="table align-middle table-nowrap">
-                                        <thead className="table-light">
-                                          <tr>
-                                            <th>Name</th>
-                                            <th>Cost</th>
-                                          </tr>
-                                        </thead>
-                                        <tbody>
-                                          {(
-                                            item.processes[0]
-                                              ?.shipmentVariables || []
-                                          ).map((shipment) => (
-                                            <tr key={shipment.name}>
-                                              <td>{shipment.name}</td>
-                                              <td>{shipment.cost}</td>
-                                            </tr>
-                                          ))}
-                                        </tbody>
-                                      </table>
-                                    </div>
-                                  </td>
-                                </tr>
-
-                                {/* Overheads And Profits */}
-                                <tr>
-                                  <td colSpan={8}>
-                                    <div className="table-responsive table-card mt-3 mb-1">
-                                      <h5>Overheads And Profits</h5>
-                                      <table className="table align-middle table-nowrap">
-                                        <thead className="table-light">
-                                          <tr>
-                                            <th>Name</th>
-                                            <th>Percentage</th>
-                                            <th>Total Rate</th>
-                                          </tr>
-                                        </thead>
-                                        <tbody>
-                                          {(
-                                            item.processes[0]
-                                              ?.overheadsAndProfits || []
-                                          ).map((overhead) => (
-                                            <tr key={overhead.name}>
-                                              <td>{overhead.name}</td>
-                                              <td>{overhead.percentage}%</td>
-                                              <td>{overhead.totalRate}</td>
-                                            </tr>
-                                          ))}
-                                        </tbody>
-                                      </table>
-                                    </div>
-                                  </td>
-                                </tr>
-                              </React.Fragment>
-                            )}
-                          </React.Fragment>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
 
                   <div className="table-responsive table-card mt-3 mb-1">
                     <table className="table align-middle table-nowrap">

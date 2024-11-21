@@ -710,7 +710,7 @@ const PartsList = () => {
                                       fontWeight: "bold",
                                     }}
                                   />
-                                  Manufacturing Processes
+                                  {item.partName} Processes
                                 </h5>
                                 {manufacturingVariables
                                   .filter(
@@ -750,30 +750,61 @@ const PartsList = () => {
                                           <p>
                                             Estimated time:{" "}
                                             {processPartsMap[variable.name]
-                                              .map((part) => part.hours)
+                                              .map(
+                                                (part) =>
+                                                  part.hours * item.quantity
+                                              )
                                               .join(", ")}{" "}
                                             hours
                                           </p>
                                           <p>
                                             Rate: ₹{" "}
                                             {processPartsMap[variable.name]
-                                              .map((part) => part.hourlyRate)
+                                              .map(
+                                                (part) =>
+                                                  part.hourlyRate *
+                                                  item.quantity
+                                              )
                                               .join(", ")}
                                           </p>
 
                                           <FormGroup>
-                                            <Label for="assignMachine"
-                                              style={{fontWeight: "bold",color: "#475569",}}>Assign Machine
+                                            <Label
+                                              for="assignMachine"
+                                              style={{
+                                                fontWeight: "bold",
+                                                color: "#475569",
+                                              }}
+                                            >
+                                              Assign Machine
                                             </Label>
                                             <select
                                               className="form-select"
-                                              onChange={(e) =>handleSelectChange(e,variable.name)}
-                                              value={selectedMachines[variable.name] || ""}
-                                              style={{borderColor: "#d1d5db",}}>
-                                              <option value="">Select a Machine</option>
-                                              <option value="Machine A">Machine A</option>
-                                              <option value="Machine B">Machine B</option>
-                                              <option value="Machine C">Machine C</option>
+                                              onChange={(e) =>
+                                                handleSelectChange(
+                                                  e,
+                                                  variable.name
+                                                )
+                                              }
+                                              value={
+                                                selectedMachines[
+                                                  variable.name
+                                                ] || ""
+                                              }
+                                              style={{ borderColor: "#d1d5db" }}
+                                            >
+                                              <option value="">
+                                                Select a Machine
+                                              </option>
+                                              <option value="Machine A">
+                                                Machine A
+                                              </option>
+                                              <option value="Machine B">
+                                                Machine B
+                                              </option>
+                                              <option value="Machine C">
+                                                Machine C
+                                              </option>
                                             </select>
                                             {selectedMachines[
                                               variable.name
@@ -821,28 +852,55 @@ const PartsList = () => {
                                             )}
                                           </FormGroup>
 
-                                           
                                           <FormGroup>
-                                            <Label for="assignMachine"
-                                              style={{fontWeight: "bold",color: "#475569",}}>Assign Operator
+                                            <Label
+                                              for="assignMachine"
+                                              style={{
+                                                fontWeight: "bold",
+                                                color: "#475569",
+                                              }}
+                                            >
+                                              Assign Operator
                                             </Label>
                                             <select
-                                               id="assignOperator"
-                                               className="form-select"
-                                               style={{ borderColor: "#d1d5db" }}
-                                             >
-                                               <option value="">Select an Operator</option>
-                                               <option value="Operator 1">Operator 1</option>
-                                               <option value="Operator 2">Operator 2</option>
-                                               <option value="Operator 3">Operator 3</option>
-                                               <option value="Operator 4">Operator 4</option>
-                                               <option value="Operator 5">Operator 5</option>
-                                               <option value="Operator 6">Operator 6</option>
-                                               <option value="Operator 7">Operator 7</option>
-                                               <option value="Operator 8">Operator 8</option>
-                                               <option value="Operator 9">Operator 9</option>
-                                               <option value="Operator 10">Operator 10</option>
-                                             </select>
+                                              id="assignOperator"
+                                              className="form-select"
+                                              style={{ borderColor: "#d1d5db" }}
+                                            >
+                                              <option value="">
+                                                Select an Operator
+                                              </option>
+                                              <option value="Operator 1">
+                                                Operator 1
+                                              </option>
+                                              <option value="Operator 2">
+                                                Operator 2
+                                              </option>
+                                              <option value="Operator 3">
+                                                Operator 3
+                                              </option>
+                                              <option value="Operator 4">
+                                                Operator 4
+                                              </option>
+                                              <option value="Operator 5">
+                                                Operator 5
+                                              </option>
+                                              <option value="Operator 6">
+                                                Operator 6
+                                              </option>
+                                              <option value="Operator 7">
+                                                Operator 7
+                                              </option>
+                                              <option value="Operator 8">
+                                                Operator 8
+                                              </option>
+                                              <option value="Operator 9">
+                                                Operator 9
+                                              </option>
+                                              <option value="Operator 10">
+                                                Operator 10
+                                              </option>
+                                            </select>
                                           </FormGroup>
                                         </div>
                                       </div>
