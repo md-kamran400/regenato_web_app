@@ -16,7 +16,7 @@ import { BsStopwatch } from "react-icons/bs";
 import SingeProject from "./SingeProject";
 import ActivitiesTab from "./ActivitiesTab";
 import DocumentsTab from "./DocumentsTab";
-import OverviewTab from "./OverviewTab";
+import HoursPlanningTab from "./HoursPlanningTab";
 
 const ProjectSection = () => {
   // State to track the active tab
@@ -34,16 +34,15 @@ const ProjectSection = () => {
       {/* Top Section with Tabs */}
       <Row style={{ marginTop: "60px" }}>
         <Col lg={12}>
-          <Card className="mt-n4 ">
+          <Card >
             <div className="bg-warning-subtle">
-              <CardBody className="pb-0 ">
+              <CardBody >
                 <Row>
                   <div className="col-md">
                     <Row className="align-items-center">
                       <div className="col-md-auto">
                         <div className="avatar-md">
                           <div className="avatar-title bg-white rounded-circle">
-                            {/* Add content here if needed */}
                           </div>
                         </div>
                       </div>
@@ -124,7 +123,7 @@ const ProjectSection = () => {
                 <SingeProject />
             </TabPane>
             <TabPane tabId="2">
-              <OverviewTab />
+              <HoursPlanningTab />
             </TabPane>
             <TabPane tabId="3">
               <DocumentsTab />
@@ -140,3 +139,14 @@ const ProjectSection = () => {
 };
 
 export default ProjectSection;
+
+
+// import React from 'react'
+
+// const ProjectSection = () => {
+//   return (
+//     <div>ProjectSection</div>
+//   )
+// }
+
+// export default ProjectSection;

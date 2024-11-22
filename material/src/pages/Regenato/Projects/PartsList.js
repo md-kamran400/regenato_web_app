@@ -667,9 +667,9 @@ const PartsList = () => {
                           </td>
                           <td>0</td>
                           <td>{item.quantity || 0}</td>
-                          <td>{item.costPerUnit}</td>
+                          <td>{item.costPerUnit.toFixed(2)}</td>
                           <td>{item.quantity * item.costPerUnit}</td>
-                          <td>{item.timePerUnit}</td>
+                          <td>{item.timePerUnit.toFixed(2)}</td>
                           <td>{item.quantity * item.timePerUnit}</td>
                           <td>
                             <Button

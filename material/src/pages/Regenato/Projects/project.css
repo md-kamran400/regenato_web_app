@@ -1,0 +1,181 @@
+/* General Container Styling */
+.table-container {
+    background-color: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    margin: 10px auto;
+    max-width: 1250px;
+    height: 100%;
+  }
+  
+  /* Table Header Styling */
+  .table-header {
+    background-color: #f5f5f5;
+    color: #334155;
+    text-align: left;
+    font-size: 14px;
+    font-weight: bold;
+  }
+  
+  .table-wrapper tbody + tbody {
+  margin-top: 20px;
+}
+
+.input-field {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 16px;
+    outline: none;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: border-color 0.3s;
+  }
+
+  /* Fixed Part Name Column */
+  .part-name-header,
+  .part-name {
+    position: sticky;
+    left: 0;
+    z-index: 6;
+    background-color: #e0e0e0; /* Background for fixed column */
+    /* border-right: 2px solid #211f1f; */
+    min-width: 250px;
+    max-width: 350px;
+    white-space: nowrap;
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+    padding: 10px;
+  }
+  
+  /* Child Parts Columns */
+  .child_parts {
+    min-width: 170px;
+    max-width: 230px;
+    white-space: nowrap;
+    padding: 10px;
+  }
+  
+  /* Zebra Striping for Rows */
+  .table tbody tr:nth-child(odd) {
+    background-color: #f9fafb;
+  }
+  .table tbody tr:nth-child(even) {
+    background-color: #ffffff;
+  }
+  
+  /* Hover Effect for Rows */
+  .table tbody tr:hover {
+    background-color: #e2e8f0;
+    cursor: pointer;
+  }
+  
+  /* Table Row Summary Styling */
+  .table-row-summary {
+    font-weight: bold;
+    background-color: #f5f5f5;
+  }
+  
+  /* Sticky Table Header */
+  .table-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Table Wrapper for Horizontal Scrolling */
+  .table-wrapper {
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
+    max-width: 100%;
+  }
+  
+  /* Button Styling */
+  .update-button {
+    background-color: #10b981;
+    border-radius: 5px;
+    padding: 5px 10px;
+    font-size: 14px;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+  }
+  .update-button:hover {
+    background-color: #059669;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  }
+  .update-button:active {
+    transform: scale(0.95);
+  }
+  
+  .delete-button {
+    background-color: #ef4444;
+    border-radius: 5px;
+    padding: 5px 10px;
+    font-size: 14px;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    margin-left: 10px;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+  }
+  .delete-button:hover {
+    background-color: #dc2626;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  }
+  .delete-button:active {
+    transform: scale(0.95);
+  }
+  
+  /* Loading Skeleton Loader */
+  .skeleton-loader {
+    height: 20px;
+    width: 100%;
+    background-color: #e5e7eb;
+    animation: shimmer 1.5s infinite linear;
+    background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+    background-size: 200% 100%;
+  }
+  @keyframes shimmer {
+    0% {
+      background-position: -100px;
+    }
+    100% {
+      background-position: 100px;
+    }
+  }
+  
+  /* Filter Input Styling */
+  .filter-input-wrapper {
+    margin-bottom: 15px;
+    display: flex;
+    justify-content: flex-start;
+  }
+  .filter-input {
+    padding: 8px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 5px;
+    font-size: 14px;
+    width: 300px;
+  }
+  .filter-input:focus {
+    outline: none;
+    border-color: #10b981;
+    box-shadow: 0 0 4px rgba(16, 185, 129, 0.5);
+  }
+  
+  /* Responsive Design */
+  @media (max-width: 768px) {
+    .table-container {
+      padding: 15px;
+    }
+    .filter-input {
+      width: 100%;
+    }
+    .child_parts {
+      min-width: 100px;
+    }
+  }
+  

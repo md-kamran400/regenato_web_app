@@ -173,10 +173,6 @@ const SingeProject = () => {
 
   console.log("Part Totals:", partTotals);
 
-  
-
-
-
   const updateTableDisplay = (newPart) => {
     setPartsData((prevData) => {
       const updatedData = prevData.map((item) =>
@@ -190,7 +186,7 @@ const SingeProject = () => {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-  
+
     if (selectedPartData) {
       const payload = {
         partName: selectedPartData.partName,
@@ -198,7 +194,7 @@ const SingeProject = () => {
         AvgragetimePerUnit: selectedPartData.AvgragetimePerUnit,
         quantity: quantity || 1, // Default to 1 if not specified
       };
-  
+
       try {
         const response = await fetch(
           `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/allProjects`,
@@ -208,12 +204,12 @@ const SingeProject = () => {
             body: JSON.stringify(payload),
           }
         );
-  
+
         if (!response.ok) throw new Error("Failed to submit part data");
-  
+
         const newPart = await response.json();
         console.log("New part:", newPart);
-  
+
         setListData((prevData) => [...prevData, newPart]); // Update list data
         setModalAdd(false);
         await fetchProjectDetails(); // Refresh project details
@@ -223,7 +219,6 @@ const SingeProject = () => {
       }
     }
   };
-  
 
   const totalCost =
     partDetails.allProjects?.reduce(
@@ -309,207 +304,265 @@ const SingeProject = () => {
 
   return (
     <React.Fragment>
-      <div className="page-content" style={{marginTop: "-60px"}}>
-        <Container fluid >
+      <div className="page-content" style={{ marginTop: "-60px" }}>
+        <Container fluid>
           <BreadCrumb title="Project Details" pageTitle="Project Details" />
 
-         
-
           <div
-  style={{
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: "20px",
-    border: "1px solid #ddd",
-    borderRadius: "8px",
-    backgroundColor: "#fff",
-    boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
-    marginBottom: "20px",
-  }}
->
-  {/* Left Section */}
-  <div>
-    <h2
-      style={{
-        margin: "0 0 8px",
-        fontWeight: "bold",
-        fontSize: "20px",
-        color: "#000",
-      }}
-    >
-      Production Order 001
-    </h2>
-    <p style={{ margin: 0, fontSize: "14px", color: "#6c757d" }}>PO ID: PO001</p>
-  </div>
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              padding: "20px",
+              border: "1px solid #ddd",
+              borderRadius: "8px",
+              backgroundColor: "#fff",
+              boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
+              marginBottom: "20px",
+            }}
+          >
+            {/* Left Section */}
+            <div>
+              <h2
+                style={{
+                  margin: "0 0 8px",
+                  fontWeight: "bold",
+                  fontSize: "20px",
+                  color: "#000",
+                }}
+              >
+                Production Order 001
+              </h2>
+              <p style={{ margin: 0, fontSize: "14px", color: "#6c757d" }}>
+                PO ID: PO001
+              </p>
+            </div>
 
-  {/* Center Section */}
-  <div style={{ display: "flex", gap: "40px" }}>
-    {/* Date Created */}
-    {/* Total Parts */}
-    <div style={{ textAlign: "center" }}>
-      <p style={{ margin: "0", fontSize: "12px", color: "#6c757d" }}>
-      Total Cost:
-      </p>
-      <p
-        style={{
-          margin: "4px 0 0",
-          fontSize: "16px",
-          fontWeight: "bold",
-          color: "#000",
-        }}
-      >
-      {totalCost.toFixed(2)}
-      </p>
-    </div>
-    {/* Total Hours */}
-    <div style={{ textAlign: "center" }}>
-      <p style={{ margin: "0", fontSize: "12px", color: "#6c757d" }}>
-        <span style={{ marginRight: "4px" }}>&#128339;</span> Total Machining Hours:
-      </p>
-      <p
-        style={{
-          margin: "4px 0 0",
-          fontSize: "16px",
-          fontWeight: "bold",
-          color: "#000",
-        }}
-      >
-        {totalMachiningHours}
-      </p>
-    </div>
-  </div>
+            {/* Center Section */}
+            <div style={{ display: "flex", gap: "40px" }}>
+              {/* Date Created */}
+              {/* Total Parts */}
+              <div style={{ textAlign: "center" }}>
+                <p style={{ margin: "0", fontSize: "12px", color: "#6c757d" }}>
+                  Total Cost:
+                </p>
+                <p
+                  style={{
+                    margin: "4px 0 0",
+                    fontSize: "16px",
+                    fontWeight: "bold",
+                    color: "#000",
+                  }}
+                >
+                  {totalCost.toFixed(2)}
+                </p>
+              </div>
+              {/* Total Hours */}
+              <div style={{ textAlign: "center" }}>
+                <p style={{ margin: "0", fontSize: "12px", color: "#6c757d" }}>
+                  <span style={{ marginRight: "4px" }}>&#128339;</span> Total
+                  Machining Hours:
+                </p>
+                <p
+                  style={{
+                    margin: "4px 0 0",
+                    fontSize: "16px",
+                    fontWeight: "bold",
+                    color: "#000",
+                  }}
+                >
+                  {totalMachiningHours}
+                </p>
+              </div>
+            </div>
 
-  {/* Right Section */}
-  <div>
-    <span
-      style={{
-        display: "inline-block",
-        padding: "6px 12px",
-        fontSize: "14px",
-        fontWeight: "bold",
-        color: "#0d6efd",
-        backgroundColor: "#e7f1ff",
-        borderRadius: "20px",
-      }}
-    >
-      In Progress
-    </span>
-  </div>
+            {/* Right Section */}
+            <div>
+              <span
+                style={{
+                  display: "inline-block",
+                  padding: "6px 12px",
+                  fontSize: "14px",
+                  fontWeight: "bold",
+                  color: "#0d6efd",
+                  backgroundColor: "#e7f1ff",
+                  borderRadius: "20px",
+                }}
+              >
+                In Progress
+              </span>
+            </div>
           </div>
-
 
           <Row>
             <Col lg={12}>
               <Card>
                 <CardBody>
+                  <div className="mb-4 pb-2 d-flex">
+                    <Button
+                      color="success"
+                      className="add-btn me-1"
+                      onClick={toggleAddModal}
+                    >
+                      <i className="ri-add-line align-bottom me-1"></i> Add Part
+                    </Button>
+                    <Link to="/projectinvoice">
+                      <Button
+                        style={{ backgroundColor: "#9C27B0" }}
+                        className="add-btn me-1"
+                      >
+                        <i className="ri-add-line align-bottom me-1"></i> Add
+                        BOM
+                      </Button>
+                    </Link>
+                  </div>
 
-                <div className="mb-4 pb-2 d-flex">
-            <Button
-              color="success"
-              className="add-btn me-1"
-              onClick={toggleAddModal}
-            >
-              <i className="ri-add-line align-bottom me-1"></i> Add Part
-            </Button>
-            <Link to="/projectinvoice">
-              <Button
-                style={{ backgroundColor: "#9C27B0" }}
-                className="add-btn me-1"
-              >
-                <i className="ri-add-line align-bottom me-1"></i> Add BOM
-              </Button>
-            </Link>
-                </div>
-                  
                   <div
-  className="table-responsive table-card mt-3 mb-1"
-  style={{
-    boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
-    overflow: "hidden",
-  }}
->
-  <table
-    className="table align-middle table-nowrap"
-    style={{ width: "100%", borderCollapse: "collapse" }}
-  >
-    <thead
-      className="table-light"
-      style={{
-        backgroundColor: "#f8f9fa",
-        fontWeight: "bold",
-        textTransform: "uppercase",
-        fontSize: "12px",
-        color: "#333",
-      }}
-    >
-      <tr>
-        <th
-          onClick={() => handleRowClickParts("name")}
-          style={{
-            padding: "12px",
-            cursor: "pointer",
-            borderBottom: "2px solid #ddd",
-          }}
-        >
-          Name
-        </th>
-        <th style={{ padding: "12px", borderBottom: "2px solid #ddd" }}>
-          Cost Per Unit
-        </th>
-        <th style={{ padding: "12px", borderBottom: "2px solid #ddd" }}>
-          Machining Hours
-        </th>
-        <th style={{ padding: "12px", borderBottom: "2px solid #ddd" }}>
-          Quantity
-        </th>
-        <th style={{ padding: "12px", borderBottom: "2px solid #ddd" }}>
-          Total Cost
-        </th>
-        <th style={{ padding: "12px", borderBottom: "2px solid #ddd" }}>
-          Total Machining Hours
-        </th>
-      </tr>
-    </thead>
-    <tbody>
-      {partDetails.allProjects?.map((item) => (
-        <React.Fragment key={item._id}>
-          <tr
-            style={{
-              cursor: "pointer",
-              backgroundColor: "#fff",
-              transition: "background-color 0.3s ease",
-            }}
-            onClick={() => handleRowClickParts(item._id)}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f1f1f1")}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#fff")}
-          >
-            <td style={{ padding: "10px", borderBottom: "1px solid #ddd" }}>
-              {item.partName}
-            </td>
-            <td style={{ padding: "10px", borderBottom: "1px solid #ddd" }}>
-              {item.costPerUnit}
-            </td>
-            <td style={{ padding: "10px", borderBottom: "1px solid #ddd" }}>
-              {item.timePerUnit}
-            </td>
-            <td style={{ padding: "10px", borderBottom: "1px solid #ddd" }}>
-              {item.quantity}
-            </td>
-            <td style={{ padding: "10px", borderBottom: "1px solid #ddd" }}>
-              {(item.costPerUnit * item.quantity).toFixed(2)}
-            </td>
-            <td style={{ padding: "10px", borderBottom: "1px solid #ddd" }}>
-              {(item.timePerUnit * item.quantity).toFixed(2)}
-            </td>
-          </tr>
-        </React.Fragment>
-      ))}
-    </tbody>
-  </table>
-                   </div>
-
-
+                    className="table-responsive table-card mt-3 mb-1"
+                    style={{
+                      boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
+                      overflow: "hidden",
+                    }}
+                  >
+                    <table
+                      className="table align-middle table-nowrap"
+                      style={{ width: "100%", borderCollapse: "collapse" }}
+                    >
+                      <thead
+                        className="table-light"
+                        style={{
+                          backgroundColor: "#f8f9fa",
+                          fontWeight: "bold",
+                          textTransform: "uppercase",
+                          fontSize: "12px",
+                          color: "#333",
+                        }}
+                      >
+                        <tr>
+                          <th
+                            onClick={() => handleRowClickParts("name")}
+                            style={{
+                              padding: "12px",
+                              cursor: "pointer",
+                              borderBottom: "2px solid #ddd",
+                            }}
+                          >
+                            Name
+                          </th>
+                          <th
+                            style={{
+                              padding: "12px",
+                              borderBottom: "2px solid #ddd",
+                            }}
+                          >
+                            Cost Per Unit
+                          </th>
+                          <th
+                            style={{
+                              padding: "12px",
+                              borderBottom: "2px solid #ddd",
+                            }}
+                          >
+                            Machining Hours
+                          </th>
+                          <th
+                            style={{
+                              padding: "12px",
+                              borderBottom: "2px solid #ddd",
+                            }}
+                          >
+                            Quantity
+                          </th>
+                          <th
+                            style={{
+                              padding: "12px",
+                              borderBottom: "2px solid #ddd",
+                            }}
+                          >
+                            Total Cost
+                          </th>
+                          <th
+                            style={{
+                              padding: "12px",
+                              borderBottom: "2px solid #ddd",
+                            }}
+                          >
+                            Total Machining Hours
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {partDetails.allProjects?.map((item) => (
+                          <React.Fragment key={item._id}>
+                            <tr
+                              style={{
+                                cursor: "pointer",
+                                backgroundColor: "#fff",
+                                transition: "background-color 0.3s ease",
+                              }}
+                              onClick={() => handleRowClickParts(item._id)}
+                              onMouseEnter={(e) =>
+                                (e.currentTarget.style.backgroundColor =
+                                  "#f1f1f1")
+                              }
+                              onMouseLeave={(e) =>
+                                (e.currentTarget.style.backgroundColor = "#fff")
+                              }
+                            >
+                              <td
+                                style={{
+                                  padding: "10px",
+                                  borderBottom: "1px solid #ddd",
+                                }}
+                              >
+                                {item.partName}
+                              </td>
+                              <td
+                                style={{
+                                  padding: "10px",
+                                  borderBottom: "1px solid #ddd",
+                                }}
+                              >
+                                {item.costPerUnit.toFixed(2)}
+                              </td>
+                              <td
+                                style={{
+                                  padding: "10px",
+                                  borderBottom: "1px solid #ddd",
+                                }}
+                              >
+                                {item.timePerUnit.toFixed(2)}
+                              </td>
+                              <td
+                                style={{
+                                  padding: "10px",
+                                  borderBottom: "1px solid #ddd",
+                                }}
+                              >
+                                {item.quantity}
+                              </td>
+                              <td
+                                style={{
+                                  padding: "10px",
+                                  borderBottom: "1px solid #ddd",
+                                }}
+                              >
+                                {(item.costPerUnit * item.quantity).toFixed(2)}
+                              </td>
+                              <td
+                                style={{
+                                  padding: "10px",
+                                  borderBottom: "1px solid #ddd",
+                                }}
+                              >
+                                {(item.timePerUnit * item.quantity).toFixed(2)}
+                              </td>
+                            </tr>
+                          </React.Fragment>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
 
                   <div className="table-responsive table-card mt-3 mb-1">
                     <table className="table align-middle table-nowrap">
@@ -693,8 +746,8 @@ const SingeProject = () => {
                   className="form-control"
                   type="number"
                   id="costPerUnit"
-                  value={costPerUnit}
-                  onChange={(e) => setCostPerUnit(e.target.value)}
+                  value={Number(costPerUnit).toFixed(2) || "0.00"}
+                  onChange={(e) => setCostPerUnit(Number(e.target.value))}
                   required
                 />
               </div>
@@ -707,7 +760,8 @@ const SingeProject = () => {
                   className="form-control"
                   type="number"
                   id="timePerUnit"
-                  value={timePerUnit}
+                  // value={timePerUnit.toFixed(2)}
+                  value={Number(timePerUnit).toFixed(2) || "0.00"}
                   onChange={(e) => setTimePerUnit(e.target.value)}
                   required
                 />

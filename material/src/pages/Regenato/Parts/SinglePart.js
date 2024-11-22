@@ -229,6 +229,8 @@ const SinglePart = () => {
     }
   };
 
+
+  console.log(typeof costPerUnitAvg)
   return (
     <React.Fragment>
       <div className="page-content">
@@ -329,7 +331,7 @@ const SinglePart = () => {
                   </div>
                   <div className="d-flex justify-content-between align-items-center">
                     <h6 className="fs-15 fw-bold mb-0">Cost Per Unit:</h6>
-                    <span className="text-muted fs-13">{costPerUnitAvg}</span>
+                    <span className="text-muted fs-13">{costPerUnitAvg.toFixed(2)}</span>
                   </div>
                 </CardBody>
               </Card>
@@ -373,7 +375,7 @@ const SinglePart = () => {
                   <div className="d-flex justify-content-between align-items-center">
                     <h6 className="fs-15 fw-bold mb-0">Time Per Unit:</h6>
                     <span className="text-muted fs-13">
-                      {manufacturingHours}
+                      {manufacturingHours.toFixed(2)}
                     </span>{" "}
                     {/* Display time per unit */}
                   </div>
@@ -460,7 +462,7 @@ const SinglePart = () => {
                     />
                     <div className="d-flex align-items-center mt-3 mb-3">
                       <p className="fw-bold mb-0 me-2">Total Cost:</p>
-                      <span className="text-muted fs-13">{rmtotalCount}</span>
+                      <span className="text-muted fs-13">{rmtotalCount.toFixed(2)}</span>
                     </div>
                     <RmVariable
                       partDetails={partDetails}
@@ -595,7 +597,7 @@ const SinglePart = () => {
                 type="number"
                 className="form-control"
                 id="costPerUnitAvg"
-                value={costPerUnitAvg}
+                value={costPerUnitAvg.toFixed(2)}
                 onChange={(e) => setAvgragecostPerUnit(Number(e.target.value))}
                 readOnly={!!partsCalculations}
               />
@@ -611,7 +613,7 @@ const SinglePart = () => {
                 type="number"
                 className="form-control"
                 id="manufacturingHours"
-                value={manufacturingHours}
+                value={manufacturingHours.toFixed(2)}
                 onChange={(e) => setAvgragetimePerUnit(Number(e.target.value))}
                 readOnly={!!partsCalculations}
               />

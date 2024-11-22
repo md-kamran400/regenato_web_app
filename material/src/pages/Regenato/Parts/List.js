@@ -345,12 +345,12 @@ const List = () => {
               </td>
               <td>
                 {item.partsCalculations && item.partsCalculations.length > 0
-                  ? item.partsCalculations[0].AvgragecostPerUnit
+                  ? item.partsCalculations[0].AvgragecostPerUnit.toFixed(2)
                   : "N/A"}
               </td>
               <td>
                 {item.partsCalculations && item.partsCalculations.length > 0
-                  ? item.partsCalculations[0].AvgragetimePerUnit
+                  ? item.partsCalculations[0].AvgragetimePerUnit.toFixed(2)
                   : "N/A"}
               </td>
               <td></td> {/* On Hand column */}
