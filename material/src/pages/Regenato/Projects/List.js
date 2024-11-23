@@ -241,9 +241,13 @@ import {
   ModalBody,
   ModalHeader,
   Button,
+  ListGroup,
+  ListGroupItem,
+  Dropdown,
 } from "reactstrap";
 import FeatherIcon from "feather-icons-react";
 import { ToastContainer, toast } from "react-toastify";
+import "./project.css";
 
 // component import
 import DeleteModal from "../../../Components/Common/DeleteModal";
@@ -408,9 +412,6 @@ const List = () => {
       <Row className="g-4 mb-3">
         <div className="col-sm-auto">
           <div>
-            {/* <Link className="btn btn-success">
-              <i className="ri-add-line align-bottom me-1"></i> Add New
-            </Link> */}
             <Button className="btn btn-success" onClick={toggleModal}>
               <i className="ri-add-line align-bottom me-1"></i> Add New
             </Button>
