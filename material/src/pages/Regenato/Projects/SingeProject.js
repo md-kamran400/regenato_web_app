@@ -12,6 +12,11 @@ import {
   Input,
   CardHeader,
   Label,
+  FormGroup,
+  UncontrolledAccordion,
+  AccordionBody,
+  AccordionHeader,
+  AccordionItem,
 } from "reactstrap";
 import BreadCrumb from "../../../Components/Common/BreadCrumb";
 import Autocomplete from "@mui/material/Autocomplete";
@@ -20,6 +25,10 @@ import { Link, useParams } from "react-router-dom";
 import AdvanceTimeLine from "../Home/AdvanceTimeLine";
 import "./project.css";
 import { FiSettings } from "react-icons/fi";
+import RawMaterial from "./ExpandFolders/RawMaterial";
+import Manufacturing from "./ExpandFolders/Manufacturing";
+import Shipment from "./ExpandFolders/Shipment";
+import Overheads from "./ExpandFolders/Overheads";
 
 const SingeProject = () => {
   const { _id } = useParams();
@@ -29,15 +38,23 @@ const SingeProject = () => {
   const [partsData, setPartsData] = useState([]);
   const [partDetails, setPartDetails] = useState([]);
   const [listData, setListData] = useState([]);
-  const [selectedPartData, setSelectedPartData] = useState(null);
+  // Assuming parts array is populated
   const [quantity, setQuantity] = useState(0);
   const [parts, setParts] = useState([]);
+  const [selectedPartData, setSelectedPartData] = useState(parts[0]);
   const [manufacturingVariables, setManufacturingVariables] = useState([]);
   const [expandedRows, setExpandedRows] = useState({});
   const [expandedRowId, setExpandedRowId] = useState(null);
   const [costPerUnit, setCostPerUnit] = useState("");
   const [timePerUnit, setTimePerUnit] = useState("");
   const [detailedPartData, setDetailedPartData] = useState({});
+
+  const [rawMaterialInput, setRawMaterialInput] = useState("");
+  const [manufacturingInput, setManufacturingInput] = useState("");
+  const [shipmentInput, setShipmentInput] = useState("");
+  const [overheadsProfitInput, setOverheadsProfitInput] = useState("");
+  const [partId, setPartId] = useState("");
+
   const [inputs, setInputs] = useState({
     machineHours: {},
     machineTbu: {},
@@ -143,45 +160,13 @@ const SingeProject = () => {
     }
   }, [selectedPartData, fetchDetailedPartData]);
 
-  const handleRMInputChange = (e, name) => {
-    const value = parseFloat(e.target.value) || 0;
-    setDetailedPartData((prev) => ({
-      ...prev,
-      rmVariables: prev.rmVariables.map((rm) =>
-        rm.name === name ? { ...rm, netWeight: value } : rm
-      ),
-    }));
-  };
-
-  const handleManufacturingInputChange = (e, name) => {
-    const value = parseFloat(e.target.value) || 0;
-    setDetailedPartData((prev) => ({
-      ...prev,
-      manufacturingVariables: prev.manufacturingVariables.map((man) =>
-        man.name === name ? { ...man, hours: value } : man
-      ),
-    }));
-  };
-
-  const handleShipmentInputChange = (e, name) => {
-    const value = parseFloat(e.target.value) || 0;
-    setDetailedPartData((prev) => ({
-      ...prev,
-      shipmentVariables: prev.shipmentVariables.map((ship) =>
-        ship.name === name ? { ...ship, hourlyRate: value } : ship
-      ),
-    }));
-  };
-
-  const handleOverheadInputChange = (e, name) => {
-    const value = parseFloat(e.target.value) || 0;
-    setDetailedPartData((prev) => ({
-      ...prev,
-      overheadsAndProfits: prev.overheadsAndProfits.map((overhead) =>
-        overhead.name === name ? { ...overhead, percentage: value } : overhead
-      ),
-    }));
-  };
+  useEffect(() => {
+    if (selectedPartData && selectedPartData.partName) {
+      setDetailedPartData(selectedPartData);
+    } else {
+      setDetailedPartData({});
+    }
+  }, [selectedPartData]);
 
   const handleAutocompleteChange = (event, newValue) => {
     if (newValue) {
@@ -189,56 +174,79 @@ const SingeProject = () => {
         (part) => part.partName === newValue.partName
       );
       if (selectedPart) {
-        const calculations = selectedPart.partsCalculations[0] || {};
-        setSelectedPartData({
-          partName: selectedPart.partName,
-          AvgragecostPerUnit: calculations.AvgragecostPerUnit || 0,
-          AvgragetimePerUnit: calculations.AvgragetimePerUnit || 0,
-        });
-        setCostPerUnit(calculations.AvgragecostPerUnit || "");
-        setTimePerUnit(calculations.AvgragetimePerUnit || "");
-        fetchDetailedPartData(selectedPart.partName);
+        setSelectedPartData(selectedPart);
+        setDetailedPartData({ ...selectedPart });
+        setCostPerUnit(
+          selectedPart.partsCalculations?.[0]?.AvgragecostPerUnit || ""
+        );
+        setTimePerUnit(
+          selectedPart.partsCalculations?.[0]?.AvgragetimePerUnit || ""
+        );
+        setQuantity(1); // Reset quantity
+        setPartId(selectedPart.id || ""); // Set the 'id' field
+      } else {
+        setSelectedPartData(null);
+        setDetailedPartData({});
+        setCostPerUnit("");
+        setTimePerUnit("");
+        setQuantity(0);
+        setPartId("");
       }
     } else {
       setSelectedPartData(null);
+      setDetailedPartData({});
       setCostPerUnit("");
       setTimePerUnit("");
-      setDetailedPartData({});
+      setQuantity(0);
+      setPartId("");
     }
   };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    if (selectedPartData) {
-      const payload = {
-        partName: selectedPartData.partName,
-        AvgragecostPerUnit: selectedPartData.AvgragecostPerUnit,
-        AvgragetimePerUnit: selectedPartData.AvgragetimePerUnit,
-        quantity: quantity || 1, // Default to 1 if not specified
-      };
-      try {
-        const response = await fetch(
-          `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/allProjects`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-          }
-        );
+    console.log("Handle Submit Triggered");
 
-        if (!response.ok) throw new Error("Failed to submit part data");
+    const payload = {
+      partName: selectedPartData.partName,
+      partId,
+      costPerUnit: Number(costPerUnit),
+      timePerUnit: Number(timePerUnit),
+      quantity: Number(quantity) || 1,
+      rmVariables: detailedPartData.rmVariables || [],
+      manufacturingVariables: detailedPartData.manufacturingVariables || [],
+      shipmentVariables: detailedPartData.shipmentVariables || [],
+      overheadsAndProfits: detailedPartData.overheadsAndProfits || [],
+    };
 
-        const newPart = await response.json();
-        console.log("New part:", newPart);
+    console.log("Payload to be sent:", payload);
 
-        setListData((prevData) => [...prevData, newPart]); // Update list data
-        setModalAdd(false);
-        await fetchProjectDetails(); // Refresh project details
-      } catch (error) {
-        console.error("Error submitting part:", error);
-        setError(error.message);
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/allProjects`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        console.error("Error from backend:", error);
+        setError("Failed to add part. Please try again.");
+        return;
       }
+
+      const newPart = await response.json();
+      console.log("New part added:", newPart);
+
+      setListData((prevData) => [...prevData, newPart]);
+      setModalAdd(false);
+      await fetchProjectDetails(); // Refresh project details
+    } catch (error) {
+      console.error("Error submitting part:", error);
+      setError("Failed to add part. Please try again.");
     }
   };
 
@@ -399,159 +407,26 @@ const SingeProject = () => {
                                       {item.partName}
                                     </h5>
                                     {/* Raw Materials Section */}
-                                    <div className="section raw-materials">
-                                      <h5>📦 Raw Materials</h5>
-                                      {detailedPartData.rmVariables?.map(
-                                        (rm, index) => (
-                                          <div
-                                            key={index}
-                                            className="input-row"
-                                          >
-                                            <p>{rm.name}</p>
-                                            <span className="input-price">
-                                              Net Weight:{" "}
-                                              <input
-                                                type="number"
-                                                value={rm.netWeight}
-                                                onChange={(e) =>
-                                                  handleRMInputChange(
-                                                    e,
-                                                    "rawMaterials",
-                                                    index,
-                                                    "netWeight"
-                                                  )
-                                                }
-                                              />
-                                            </span>
-                                            <span className="input-price">
-                                              ₹
-                                              <input
-                                                type="number"
-                                                value={rm.pricePerKg || 0}
-                                                onChange={(e) =>
-                                                  handleRMInputChange(
-                                                    e,
-                                                    "rawMaterials",
-                                                    index,
-                                                    "pricePerKg"
-                                                  )
-                                                }
-                                              />
-                                              /kg
-                                            </span>
-                                            <span className="input-price">
-                                              Total: ₹ {rm.totalRate}
-                                            </span>
-                                          </div>
-                                        )
-                                      )}
-                                    </div>
-
-                                    {/* Manufacturing Section */}
-                                    <div className="section manufacturing">
-                                      <h5>
-                                        <i className="icon">🔧</i> Manufacturing
-                                      </h5>
-                                      {detailedPartData.manufacturingVariables?.map(
-                                        (man, index) => (
-                                          <div
-                                            key={index}
-                                            className="input-row"
-                                          >
-                                            <p>{man.name}</p>
-                                            <span className="input-price">
-                                              Hours:{" "}
-                                              <input
-                                                type="number"
-                                                value={man.hours || 0}
-                                                onChange={(e) =>
-                                                  handleManufacturingInputChange(
-                                                    e,
-                                                    "manufacturing",
-                                                    index,
-                                                    "hours"
-                                                  )
-                                                }
-                                              />
-                                            </span>
-                                            <span className="input-price">
-                                              Rate: ₹
-                                              <input
-                                                type="number"
-                                                value={man.hourlyRate || 0}
-                                                onChange={(e) =>
-                                                  handleManufacturingInputChange(
-                                                    e,
-                                                    "manufacturing",
-                                                    index,
-                                                    "hourlyRate"
-                                                  )
-                                                }
-                                              />
-                                              /hr
-                                            </span>
-                                            <span className="input-price">
-                                              Total: ₹{man.totalRate}
-                                            </span>
-                                          </div>
-                                        )
-                                      )}
-                                    </div>
-                                    {/* Shipment Section */}
-                                    <div className="section shipping">
-                                      <h5>
-                                        <i className="icon">🚚</i> Shipment
-                                      </h5>
-                                      {detailedPartData.shipmentVariables?.map(
-                                        (ship, index) => (
-                                          <div
-                                            key={index}
-                                            className="input-row"
-                                          >
-                                            <p>{ship.name}</p>
-                                            <span className="input-price">
-                                              ₹{ship.hourlyRate}
-                                            </span>
-                                          </div>
-                                        )
-                                      )}
-                                    </div>
-
-                                    {/* Overheads and Profit Section */}
-                                    <div className="section overheads">
-                                      <h5>
-                                        <i className="icon">💰</i> Overheads &
-                                        Profit
-                                      </h5>
-                                      {detailedPartData.overheadsAndProfits?.map(
-                                        (overhead, index) => (
-                                          <div
-                                            key={index}
-                                            className="input-row"
-                                          >
-                                            <p>{overhead.name}</p>
-                                            <span className="input-price">
-                                              %
-                                              <input
-                                                type="number"
-                                                value={overhead.percentage || 0}
-                                                onChange={(e) =>
-                                                  handleOverheadInputChange(
-                                                    e,
-                                                    "overheads",
-                                                    index,
-                                                    "totalRate"
-                                                  )
-                                                }
-                                              />
-                                            </span>
-                                            <span className="input-price">
-                                              Total: ₹{overhead.totalRate}
-                                            </span>
-                                          </div>
-                                        )
-                                      )}
-                                    </div>
+                                    <RawMaterial
+                                      partName={item.partName}
+                                      rmVariables={item.rmVariables}
+                                    />
+                                    <Manufacturing
+                                      partName={item.partName}
+                                      manufacturingVariables={item.manufacturingVariables}
+                                      projectId={_id}
+                                      partId={item.id}
+                                    />
+                                    <Shipment
+                                      partName={item.partName}
+                                      shipmentVariables={item.shipmentVariables}
+                                    />
+                                    <Overheads
+                                      partName={item.partName}
+                                      overheadsAndProfits={
+                                        item.overheadsAndProfits
+                                      }
+                                    />
                                   </div>
                                 </td>
                               </tr>
@@ -580,9 +455,24 @@ const SingeProject = () => {
                     {...params}
                     label="Select Part"
                     variant="outlined"
+                    required
                   />
                 )}
               />
+
+              <div className="form-group">
+                <Label for="partId" className="form-label">
+                  Part ID
+                </Label>
+                <Input
+                  className="form-control"
+                  type="text"
+                  id="partId"
+                  value={partId}
+                  onChange={(e) => setPartId(e.target.value)}
+                  required
+                />
+              </div>
 
               <div className="form-group">
                 <Label for="costPerUnit" className="form-label">
@@ -625,7 +515,199 @@ const SingeProject = () => {
                   required
                 />
               </div>
-              <Button type="submit" color="primary">
+              <UncontrolledAccordion defaultOpen="1">
+                {/* Raw Materials Accordion */}
+                <AccordionItem>
+                  <AccordionHeader targetId="1">Raw Materials</AccordionHeader>
+                  <AccordionBody
+                    accordionId="1"
+                    className="accordion-body-custom"
+                  >
+                    {detailedPartData.rmVariables?.map((rm, index) => (
+                      <FormGroup key={rm._id} className="accordion-item-custom">
+                        <Label className="accordion-label">{rm.name}</Label>
+                        <Input
+                          type="number"
+                          className="accordion-input"
+                          value={rm.netWeight || ""}
+                          onChange={(e) =>
+                            setDetailedPartData((prev) => ({
+                              ...prev,
+                              rmVariables: prev.rmVariables.map((item, idx) =>
+                                idx === index
+                                  ? { ...item, netWeight: e.target.value }
+                                  : item
+                              ),
+                            }))
+                          }
+                          placeholder="Enter net weight"
+                        />
+                        <Input
+                          type="number"
+                          className="accordion-input"
+                          value={rm.pricePerKg || ""}
+                          onChange={(e) =>
+                            setDetailedPartData((prev) => ({
+                              ...prev,
+                              rmVariables: prev.rmVariables.map((item, idx) =>
+                                idx === index
+                                  ? { ...item, pricePerKg: e.target.value }
+                                  : item
+                              ),
+                            }))
+                          }
+                          placeholder="Enter price per kg"
+                        />
+                        <p className="accordion-total-rate">
+                          Total Rate: {rm.totalRate}
+                        </p>
+                      </FormGroup>
+                    ))}
+                  </AccordionBody>
+                </AccordionItem>
+
+                {/* Manufacturing Variable Accordion */}
+                <AccordionItem>
+                  <AccordionHeader targetId="2">
+                    Manufacturing Variable
+                  </AccordionHeader>
+                  <AccordionBody accordionId="2">
+                    {detailedPartData.manufacturingVariables?.map(
+                      (man, index) => (
+                        <FormGroup
+                          key={man._id}
+                          className="accordion-item-custom"
+                        >
+                          <Label className="accordion-label">{man.name}</Label>
+                          <Input
+                            type="number"
+                            className="accordion-input"
+                            value={man.hours || ""}
+                            onChange={(e) =>
+                              setDetailedPartData((prev) => ({
+                                ...prev,
+                                manufacturingVariables:
+                                  prev.manufacturingVariables.map((item, idx) =>
+                                    idx === index
+                                      ? { ...item, hours: e.target.value }
+                                      : item
+                                  ),
+                              }))
+                            }
+                            placeholder="Enter hours"
+                          />
+                          <Input
+                            type="number"
+                            className="accordion-input"
+                            value={man.hourlyRate || ""}
+                            onChange={(e) =>
+                              setDetailedPartData((prev) => ({
+                                ...prev,
+                                manufacturingVariables:
+                                  prev.manufacturingVariables.map((item, idx) =>
+                                    idx === index
+                                      ? { ...item, hourlyRate: e.target.value }
+                                      : item
+                                  ),
+                              }))
+                            }
+                            placeholder="Enter hourly rate"
+                          />
+                          <p className="accordion-total-rate">
+                            Total Rate: {man.totalRate}
+                          </p>
+                        </FormGroup>
+                      )
+                    )}
+                  </AccordionBody>
+                </AccordionItem>
+
+                {/* Shipment Variable Accordion */}
+                <AccordionItem>
+                  <AccordionHeader targetId="3">
+                    Shipment Variable
+                  </AccordionHeader>
+                  <AccordionBody accordionId="3">
+                    {detailedPartData.shipmentVariables?.map((ship, index) => (
+                      <FormGroup
+                        key={ship._id}
+                        className="accordion-item-custom"
+                      >
+                        <Label className="accordion-label">{ship.name}</Label>
+                        <Input
+                          type="number"
+                          className="accordion-input"
+                          value={ship.hourlyRate || ""}
+                          onChange={(e) =>
+                            setDetailedPartData((prev) => ({
+                              ...prev,
+                              shipmentVariables: prev.shipmentVariables.map(
+                                (item, idx) =>
+                                  idx === index
+                                    ? { ...item, hourlyRate: e.target.value }
+                                    : item
+                              ),
+                            }))
+                          }
+                          placeholder="Enter hourly rate"
+                        />
+                        <p className="accordion-total-rate">
+                          Total Rate: {ship.hourlyRate}
+                        </p>
+                      </FormGroup>
+                    ))}
+                  </AccordionBody>
+                </AccordionItem>
+
+                {/* Overheads and Profit Accordion */}
+                <AccordionItem>
+                  <AccordionHeader targetId="4">
+                    Overheads and Profit
+                  </AccordionHeader>
+                  <AccordionBody accordionId="4">
+                    {detailedPartData.overheadsAndProfits?.map(
+                      (overhead, index) => (
+                        <FormGroup
+                          key={overhead._id}
+                          className="accordion-item-custom"
+                        >
+                          <Label className="accordion-label">
+                            {overhead.name}
+                          </Label>
+                          <Input
+                            type="number"
+                            className="accordion-input"
+                            value={overhead.percentage || ""}
+                            onChange={(e) =>
+                              setDetailedPartData((prev) => ({
+                                ...prev,
+                                overheadsAndProfits:
+                                  prev.overheadsAndProfits.map((item, idx) =>
+                                    idx === index
+                                      ? { ...item, percentage: e.target.value }
+                                      : item
+                                  ),
+                              }))
+                            }
+                            placeholder="Enter percentage"
+                          />
+                          <p className="accordion-total-rate">
+                            Total Rate: {overhead.totalRate}
+                          </p>
+                        </FormGroup>
+                      )
+                    )}
+                  </AccordionBody>
+                </AccordionItem>
+              </UncontrolledAccordion>
+
+              <Button
+                type="submit"
+                color="primary"
+                disabled={
+                  !selectedPartData || !costPerUnit || !timePerUnit || !quantity
+                }
+              >
                 Add
               </Button>
             </form>

@@ -565,3 +565,41 @@ h5 i.icon {
     font-size: 13px;
   }
 }
+
+
+
+.accordion-body-custom {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem; /* Space between items */
+  padding: 1rem;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+}
+
+.accordion-item-custom {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background-color: #ffffff;
+}
+
+.accordion-label {
+  font-weight: bold;
+  color: #333;
+}
+
+.accordion-input {
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.accordion-total-rate {
+  font-size: 0.9rem;
+  color: #555;
+  margin-top: 0.5rem;
+}

@@ -1,0 +1,139 @@
+/* General Styles */
+.shipment-container,
+.manufacturing-container,
+.overheads-container,
+.raw-material-container {
+  margin: 20px;
+  padding: 20px;
+  background-color: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+}
+
+.section-title {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 10px;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid #3498db;
+  padding-bottom: 8px;
+}
+
+/* Table Styles */
+.professional-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'Arial', sans-serif;
+}
+
+.professional-table th,
+.professional-table td {
+  text-align: left;
+  padding: 8px 12px; /* Reduced padding for a compact look */
+  font-size: 0.9rem; /* Smaller font size for a more professional feel */
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+}
+
+.professional-table th {
+  background-color: #3498db;
+  color: white;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 0.95rem;
+}
+
+.professional-table td {
+  background-color: #f9f9f9;
+  color: #555;
+}
+
+.professional-table tr:nth-child(even) td {
+  background-color: #f1f1f1;
+}
+
+.professional-table tr:hover {
+  background-color: #e3f2fd;
+}
+
+.professional-table td {
+  transition: background-color 0.3s ease;
+}
+
+.professional-table tr {
+  transition: transform 0.2s ease;
+}
+
+/* Hover Effect */
+.professional-table tr:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* Responsiveness */
+@media (max-width: 1024px) {
+  .professional-table th,
+  .professional-table td {
+    padding: 6px 10px;
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .professional-table th,
+  .professional-table td {
+    padding: 5px 8px;
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .professional-table th,
+  .professional-table td {
+    padding: 4px 6px;
+    font-size: 0.75rem;
+  }
+}
+
+/* Table Header and Cell Style */
+.professional-table th {
+  background-color: #2980b9;
+  color: white;
+  font-weight: 700;
+  text-align: left;
+}
+
+.professional-table td {
+  font-size: 0.85rem;
+  color: #34495e;
+  padding: 8px 10px;
+}
+
+/* Adding subtle shadows */
+.professional-table th {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+/* Borders for columns */
+.professional-table td:last-child,
+.professional-table th:last-child {
+  border-right: 1px solid #ddd;
+}
+
+/* Table row hover effects */
+.professional-table tr:hover td {
+  background-color: #dfe6e9; /* Slightly darker on hover */
+}
+
+/* Adding slight gradient to header for depth */
+.professional-table th {
+  background: linear-gradient(135deg, #2980b9, #3498db);
+}
+
+/* Scrollbar for overflow content */
+.professional-table-wrapper {
+  overflow-x: auto;
+  margin-top: 20px;
+}
