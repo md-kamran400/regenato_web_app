@@ -1,16 +1,41 @@
 // model/project/Projectmodel.js
 const mongoose = require('mongoose');
 
-// Part schema nested inside Project schema
-const poejectSchema = new mongoose.Schema({
+/// Part schema nested inside Project schema
+const partSchema = new mongoose.Schema({
+  Uid: String,
   partName: String,
   costPerUnit: Number,
   timePerUnit: Number,
   quantity: Number,
-  processes: [
+  rmVariables: [
     {
-      subpartName: String,
-      value: Number,
+      name: String,
+      netWeight: Number,
+      pricePerKg: Number,
+      totalRate: Number,
+    },
+  ],
+  manufacturingVariables: [
+    {
+      name: String,
+      hours: Number,
+      hourlyRate: Number,
+      totalRate: Number,
+    },
+  ],
+  shipmentVariables: [
+    {
+      name: String,
+      hourlyRate: Number,
+      totalRate: Number,
+    },
+  ],
+  overheadsAndProfits: [
+    {
+      name: String,
+      percentage: Number,
+      totalRate: Number,
     },
   ],
 });
@@ -21,8 +46,8 @@ const projectSchema = new mongoose.Schema({
   costPerUnit: Number,
   timePerUnit: Number,
   stockPoQty: Number,
-  allProjects: [poejectSchema], 
+  allProjects: [partSchema], 
 });
 
-const ProjectModal = mongoose.model('Project', projectSchema);
+const ProjectModal = mongoose.model("Project", projectSchema);
 module.exports = ProjectModal;
