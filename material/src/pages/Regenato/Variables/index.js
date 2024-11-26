@@ -372,7 +372,7 @@ const Variables = () => {
 
                     <ManufacturingVariable />
 
-                    <ManufacuringStatic/>
+                    {/* <ManufacuringStatic/> */}
 
                     <ShipmentVariable />
 

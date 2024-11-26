@@ -88,7 +88,7 @@ const HoursSummary = () => {
   const calculateTotalHoursForProcess = (processName) => {
     if (!processPartsMap[processName]) return 0;
     return processPartsMap[processName].reduce(
-      (sum, part) => sum + part.hours * (partDetails.allProjects.find(item => item.partName === part.partName)?.quantity || 1),
+      (sum, part) => sum + part.hours,
       0
     );
   };
@@ -221,80 +221,6 @@ const HoursSummary = () => {
     </td>
   ))}
 </tr>
-
-    
-<tr className="table-row-main">
-  <td className="part-name-header" style={{ backgroundColor: "#FFF59D", color: "black" }}>Available machine hours per day</td>
-  {["VMC Imported", "VMC Local", "Milling Manual", "Grinding Final", "CNC Lathe", "Drill/Tap", "Wire Cut Local", "Wire Cut Rough", "Wire Cut Imported", "EDM", "Black Oxide", "Laser Marking", "Lapping/Polishing", "Grinding Blank/Rough", "Gauges & Fixtures"].map((processName) => (
-    <td key={processName}>
-      <input
-        className="input-field"
-        type="number"
-        value={machineHoursPerDay[processName] || 0}
-        onChange={(e) => handleInputChange(e, "machineHoursPerDay", processName)}
-      />
-    </td>
-  ))}
-</tr>
-
-
-<tr className="table-row-main">
-  <td className="part-name-header" style={{ backgroundColor: "#FFF59D", color: "black" }}>Number of Machines TBU</td>
-  {["VMC Imported", "VMC Local", "Milling Manual", "Grinding Final", "CNC Lathe", "Drill/Tap", "Wire Cut Local", "Wire Cut Rough", "Wire Cut Imported", "EDM", "Black Oxide", "Laser Marking", "Lapping/Polishing", "Grinding Blank/Rough", "Gauges & Fixtures"].map((processName) => (
-    <td key={processName}>
-      <input
-        className="input-field"
-        type="number"
-        value={numberOfMachines[processName] || 0}
-        onChange={(e) => handleInputChange(e, "numberOfMachines", processName)}
-      />
-    </td>
-  ))}
-</tr>
-
-
-<tr className="table-row-main">
-  <td className="part-name-header" style={{ backgroundColor: "#FFF59D", color: "black" }}>Number of Days to be worked</td>
-  {["VMC Imported", "VMC Local", "Milling Manual", "Grinding Final", "CNC Lathe", "Drill/Tap", "Wire Cut Local", "Wire Cut Rough", "Wire Cut Imported", "EDM", "Black Oxide", "Laser Marking", "Lapping/Polishing", "Grinding Blank/Rough", "Gauges & Fixtures"].map((processName) => (
-    <td key={processName}>
-      <input
-        className="input-field"
-        type="number"
-        value={daysToWork[processName] || 0}
-        onChange={(e) => handleInputChange(e, "daysToWork", processName)}
-      />
-    </td>
-  ))}
-</tr>
-
-
-<tr className="table-row-main">
-  <td className="part-name-header" style={{ backgroundColor: "#C8E6C9", color: "black" }}>Available machine hours per month</td>
-  {["VMC Imported", "VMC Local", "Milling Manual", "Grinding Final", "CNC Lathe", "Drill/Tap", "Wire Cut Local", "Wire Cut Rough", "Wire Cut Imported", "EDM", "Black Oxide", "Laser Marking", "Lapping/Polishing", "Grinding Blank/Rough", "Gauges & Fixtures"].map((processName) => (
-    <td key={processName}>
-      {(
-        (machineHoursPerDay[processName] || 0) * 
-        (numberOfMachines[processName] || 0) * 
-        (daysToWork[processName] || 0)
-      ).toFixed(2)}
-    </td>
-  ))}
-</tr>
-
-
-
-<tr className="table-row-main">
-  <td className="part-name-header" style={{ backgroundColor: "#C8E6C9", color: "black" }}>Months Required to complete</td>
-  {["VMC Imported", "VMC Local", "Milling Manual", "Grinding Final", "CNC Lathe", "Drill/Tap", "Wire Cut Local", "Wire Cut Rough", "Wire Cut Imported", "EDM", "Black Oxide", "Laser Marking", "Lapping/Polishing", "Grinding Blank/Rough", "Gauges & Fixtures"].map((processName) => (
-    <td key={processName}>
-      {(
-        (calculateTotalHoursForProcess(processName) || 0) / 
-        Math.max(((machineHoursPerDay[processName] || 0) * (numberOfMachines[processName] || 0) * (daysToWork[processName] || 25)), 1)
-      ).toFixed(2)}
-    </td>
-  ))}
-</tr>
-
 
   </React.Fragment>
                 </tbody>

@@ -13,7 +13,7 @@ import {
   ModalHeader,
 } from "reactstrap";
 
-const Manufacturing = ({ partName, manufacturingVariables, projectId, partId }) => {
+const Manufacturing = ({ partName, manufacturingVariables, projectId, partId, onUpdateVariable }) => {
   const [editingIndex, setEditingIndex] = useState(null);
   const [modal_edit, setModalEdit] = useState(false);
   const [modal_delete, setModalDelete] = useState(false);
@@ -29,6 +29,13 @@ const Manufacturing = ({ partName, manufacturingVariables, projectId, partId }) 
       totalRate: item.totalRate || 0,
     }))
   );
+
+  useEffect(() => {
+    setUpdatedManufacturingVariables(manufacturingVariables.map(item => ({
+      ...item,
+      totalRate: item.totalRate || 0,
+    })));
+  }, [manufacturingVariables]);
 
   const tog_edit = (item = null) => {
     if (item) {
@@ -91,7 +98,7 @@ const Manufacturing = ({ partName, manufacturingVariables, projectId, partId }) 
       setLoading(true);
       try {
         const response = await fetch(
-          `${process.env.REACT_APP_BASE_URL}/api/projects/${projectId}/allProjects/${partId}/manufacturingVariables`,
+          `${process.env.REACT_APP_BASE_URL}/api/projects`,
         );
         if (!response.ok) {
           throw new Error(`Error: ${response.statusText}`);
@@ -107,10 +114,10 @@ const Manufacturing = ({ partName, manufacturingVariables, projectId, partId }) 
     }, [partId?._id]);
 
     useEffect(() => {
-      if (partId && partId._id) {
         fetchManufacturingData();
-      }
-    }, [partId, fetchManufacturingData]);
+    }, [fetchManufacturingData]);
+
+    console.log("hfvubrewvbreovrbivbrfbvo",manufacturingData)
 
   // Handle input change
   const handleChange = (e) => {
@@ -130,46 +137,56 @@ const Manufacturing = ({ partName, manufacturingVariables, projectId, partId }) 
   };
 
   // Save changes
-const handleEditSubmit = async (e) => {
-  e.preventDefault();
-  setPosting(true);
-  setError(null);
-  try {
-    const response = await fetch(
-      `${process.env.REACT_APP_BASE_URL}/api/projects/${projectId}/allProjects/${partId}/manufacturingVariables/${editId}`,
-      {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          ...formData,
-          totalRate: formData.hourlyRate * formData.hours,
-        }),
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    setPosting(true);
+    setError(null);
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_BASE_URL}/api/projects/${projectId}/allProjects/${partId}/manufacturingVariables/${editId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            ...formData,
+            totalRate: formData.hourlyRate * formData.hours,
+          }),
+        }
+      );
+  
+      if (response.ok) {
+        const updatedVariable = await response.json(); // Parse the updated data from response
+        if (typeof onUpdateVariable === "function") {
+          onUpdateVariable(updatedVariable); // Pass updated data to parent
+        }
+  
+        // Update local state immediately
+        setUpdatedManufacturingVariables(function(prevVars) {
+          return prevVars.map(function(manufacturingVar) {
+            return manufacturingVar._id === editId ? updatedVariable : manufacturingVar;
+          });
+        });
+  
+        setFormData({
+          name: "",
+          hours: "",
+          hourlyRate: "",
+          totalRate: "",
+        });
+        setModalEdit(false); // Close modal
+      } else {
+        throw new Error("Network response was not ok");
       }
-    );
-    
-    if (response.ok) {
-      // Fetch updated data after successful PUT request
-      await fetchManufacturingData();
-      // Reset form data
-      setFormData({
-        name: "",
-        hours: "",
-        hourlyRate: "",
-        totalRate: "",
-      });
-      setModalEdit(false); // Close the edit modal
-    } else {
-      throw new Error("Network response was not ok");
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      setPosting(false);
     }
-  } catch (error) {
-    setError(error.message);
-  } finally {
-    setPosting(false);
-  }
-};
+  };
 
+      
   // Render editable cells
 
   return (
@@ -186,13 +203,13 @@ const handleEditSubmit = async (e) => {
           </tr>
         </thead>
         <tbody>
-          {manufacturingVariables.map((item, index) => (
+        {updatedManufacturingVariables.map((item, index) => (
             <tr key={index}>
               <td>{item.name}</td>
               <td>{item.hours}</td>
               <td>{item.hourlyRate}</td>
               <td>{item.totalRate}</td>
-              <div className="d-flex gap-2">
+              <td className="d-flex gap-2">
                       <button
                         className="btn btn-sm btn-success edit-item-btn"
                         data-bs-toggle="modal"
@@ -201,18 +218,18 @@ const handleEditSubmit = async (e) => {
                       >
                         Edit
                       </button>
-                      {/* <button
+                      <button
                         className="btn btn-sm btn-danger remove-item-btn"
                         data-bs-toggle="modal"
                         data-bs-target="#deleteRecordModal"
-                        onClick={() => {
-                          setSelectedId(item._id);
-                          tog_delete();
-                        }}
+                        // onClick={() => {
+                        //   setSelectedId(item._id);
+                        //   tog_delete();
+                        // }}
                       >
                         Remove
-                      </button> */}
-                    </div>
+                      </button>
+                    </td>
             </tr>
           ))}
         </tbody>

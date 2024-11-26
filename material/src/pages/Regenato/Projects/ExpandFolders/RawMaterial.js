@@ -244,6 +244,7 @@ import {
   ModalFooter,
   ModalHeader,
 } from "reactstrap";
+import { CiSettings } from "react-icons/ci";
 
 const RawMaterial = ({ partName, rmVariables, projectId, partId }) => {
   const [editingIndex, setEditingIndex] = useState(null);
@@ -406,7 +407,7 @@ const handleEditSubmit = async (e) => {
 
   return (
     <div className="manufacturing-container">
-      <h5 className="section-title">🔧 Manufacturing Variables for {partName}</h5>
+      <h5 className="section-title"><CiSettings /> Raw Matarials Variables for {partName}</h5>
       <table className="table align-middle table-nowrap" striped bordered hover size="sm">
        <thead className="table-light">
           <tr>
@@ -424,7 +425,7 @@ const handleEditSubmit = async (e) => {
               <td>{item.netWeight}</td>
               <td>{item.pricePerKg}</td>
               <td>{item.totalRate}</td>
-              <div className="d-flex gap-2">
+              <td className="d-flex gap-2">
                       <button
                         className="btn btn-sm btn-success edit-item-btn"
                         data-bs-toggle="modal"
@@ -433,18 +434,18 @@ const handleEditSubmit = async (e) => {
                       >
                         Edit
                       </button>
-                      {/* <button
+                       <button
                         className="btn btn-sm btn-danger remove-item-btn"
                         data-bs-toggle="modal"
                         data-bs-target="#deleteRecordModal"
-                        onClick={() => {
-                          setSelectedId(item._id);
-                          tog_delete();
-                        }}
+                        // onClick={() => {
+                        //   setSelectedId(item._id);
+                        //   tog_delete();
+                        // }}
                       >
                         Remove
-                      </button> */}
-                    </div>
+                      </button> 
+              </td>
             </tr>
           ))}
         </tbody>

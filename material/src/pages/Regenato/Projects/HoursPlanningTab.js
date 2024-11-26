@@ -428,21 +428,33 @@ const HoursPlanningTab = () => {
       0
     );
   };
-
+  
   const handleInputChange = (event, type, processName) => {
     switch (type) {
       case "machineHoursPerDay":
-        setMachineHoursPerDay(prev => ({...prev, [processName]: Number(event.target.value)}));
+        setMachineHoursPerDay(prev => ({...prev, [processName]: event.target.value ? Number(event.target.value) : 0}));
         break;
       case "numberOfMachines":
-        setNumberOfMachines(prev => ({...prev, [processName]: Number(event.target.value)}));
+        setNumberOfMachines(prev => ({...prev, [processName]: event.target.value ? Number(event.target.value) : 0}));
         break;
       case "daysToWork":
-        setDaysToWork(prev => ({...prev, [processName]: Number(event.target.value)}));
+        setDaysToWork(prev => ({...prev, [processName]: event.target.value ? Number(event.target.value) : 25}));
         break;
       default:
         break;
     }
+  };
+
+  const calculateMonthsRequired = (processName) => {
+    const totalHours = calculateTotalHoursForProcess(processName);
+    const availableMachineHoursPerMonth = (machineHoursPerDay[processName] || 0) * (numberOfMachines[processName] || 0) * (daysToWork[processName] || 0);
+    
+    if (availableMachineHoursPerMonth === 0) {
+      return "--";
+    }
+    
+    const monthsRequired = totalHours / availableMachineHoursPerMonth;
+    return monthsRequired.toFixed(2);
   };
 
 
@@ -520,31 +532,6 @@ const HoursPlanningTab = () => {
                  {/* second table */}
                 <br/>
                 <br/>
-                <thead className="table-header">
-                  <tr>
-                    <th
-                      className="part-name-header"
-                      style={{ backgroundColor: "#F5F5F5" }}
-                    >
-                      Part Name
-                    </th>
-                    <th className="child_parts">VMC Imported (C1)</th>
-                    <th className="child_parts">VMC Local (C2)</th>
-                    <th className="child_parts">Milling Manual (C3)</th>
-                    <th className="child_parts">Grinding Final (C4)</th>
-                    <th className="child_parts">CNC Lathe (C5)</th>
-                    <th className="child_parts">Drill/Tap (C6)</th>
-                    <th className="child_parts">Wire Cut Local (C7)</th>
-                    <th className="child_parts">Wire Cut Rough (C8)</th>
-                    <th className="child_parts">Wire Cut Imported (C9)</th>
-                    <th className="child_parts">EDM (C10)</th>
-                    <th className="child_parts">Black Oxide (C11)</th>
-                    <th className="child_parts">Laser Marking (C12)</th>
-                    <th className="child_parts">Lapping/Polishing (C13)</th>
-                    <th className="child_parts">Grinding Blank/Rough (C14)</th>
-                    <th className="child_parts">Gauges & Fixtures (C15)</th>
-                  </tr>
-                </thead>
                 <tbody>
   <React.Fragment>
   <tr className="table-row-main">
@@ -623,10 +610,7 @@ const HoursPlanningTab = () => {
   <td className="part-name-header" style={{ backgroundColor: "#C8E6C9", color: "black" }}>Months Required to complete</td>
   {["VMC Imported", "VMC Local", "Milling Manual", "Grinding Final", "CNC Lathe", "Drill/Tap", "Wire Cut Local", "Wire Cut Rough", "Wire Cut Imported", "EDM", "Black Oxide", "Laser Marking", "Lapping/Polishing", "Grinding Blank/Rough", "Gauges & Fixtures"].map((processName) => (
     <td key={processName}>
-      {(
-        (calculateTotalHoursForProcess(processName) || 0) / 
-        Math.max(((machineHoursPerDay[processName] || 0) * (numberOfMachines[processName] || 0) * (daysToWork[processName] || 25)), 1)
-      ).toFixed(2)}
+      {calculateMonthsRequired(processName)}
     </td>
   ))}
 </tr>

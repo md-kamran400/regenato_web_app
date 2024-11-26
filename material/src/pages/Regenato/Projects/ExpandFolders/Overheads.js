@@ -21,10 +21,27 @@ const Overheads = ({ partName, overheadsAndProfits }) => {
               <td>{overhead.name}</td>
               <td>{overhead.percentage}%</td>
               <td>{overhead.totalRate}</td>
-              <div style={{ display: "flex", margin: "auto", fontSize: "20px", justifyContent: "center", alignItems: "center" }}>
-                <i><FaEdit /></i>
-                <i><MdDelete /></i>
-              </div>
+              <td className="d-flex gap-2">
+                      <button
+                        className="btn btn-sm btn-success edit-item-btn"
+                        data-bs-toggle="modal"
+                        data-bs-target="#showModal"
+                        // onClick={() => tog_edit(item)}
+                      >
+                        Edit
+                      </button>
+                       <button
+                        className="btn btn-sm btn-danger remove-item-btn"
+                        data-bs-toggle="modal"
+                        data-bs-target="#deleteRecordModal"
+                        // onClick={() => {
+                        //   setSelectedId(item._id);
+                        //   tog_delete();
+                        // }}
+                      >
+                        Remove
+                      </button> 
+              </td>
             </tr>
           ))}
         </tbody>

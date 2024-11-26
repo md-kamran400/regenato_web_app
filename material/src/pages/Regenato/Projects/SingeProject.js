@@ -48,7 +48,7 @@ const SingeProject = () => {
   const [costPerUnit, setCostPerUnit] = useState("");
   const [timePerUnit, setTimePerUnit] = useState("");
   const [detailedPartData, setDetailedPartData] = useState({});
-
+  const [refetchManufacturing, setRefetchManufacturing] = useState(false);
   const [rawMaterialInput, setRawMaterialInput] = useState("");
   const [manufacturingInput, setManufacturingInput] = useState("");
   const [shipmentInput, setShipmentInput] = useState("");
@@ -212,7 +212,7 @@ const SingeProject = () => {
       partId,
       costPerUnit: Number(costPerUnit),
       timePerUnit: Number(timePerUnit),
-      quantity: Number(quantity) || 1,
+      quantity: Number(quantity), // Use state value
       rmVariables: detailedPartData.rmVariables || [],
       manufacturingVariables: detailedPartData.manufacturingVariables || [],
       shipmentVariables: detailedPartData.shipmentVariables || [],
@@ -282,6 +282,29 @@ const SingeProject = () => {
     Array.isArray(partsData.rmVariables)
   );
 
+  const updateManufacturingVariable = (updatedVariable) => {
+    setPartDetails(prevData => {
+      const updatedAllProjects = prevData.allProjects.map(project => {
+        if (project._id === updatedVariable.projectId) {
+          return {
+            ...project,
+            manufacturingVariables: project.manufacturingVariables.map(variable => {
+              if (variable._id === updatedVariable._id) {
+                return updatedVariable;
+              }
+              return variable;
+            })
+          };
+        }
+        return project;
+      });
+      return {
+        ...prevData,
+        allProjects: updatedAllProjects
+      };
+    });
+  };
+
   const handleInputChange = (e, section, index, key) => {
     const updatedValue = e.target.value;
     setDetailedPartData((prevState) => {
@@ -339,12 +362,6 @@ const SingeProject = () => {
                     >
                       <i className="ri-add-line align-bottom me-1"></i> Add Part
                     </Button>
-                    <Link to="/projectinvoice">
-                      <Button className="add-btn bom-button">
-                        <i className="ri-add-line align-bottom me-1"></i> Add
-                        BOM
-                      </Button>
-                    </Link>
                   </div>
 
                   <div className="table-wrapper">
@@ -373,7 +390,7 @@ const SingeProject = () => {
                               }
                             >
                               <td className="parent_partName">
-                                {item.partName}
+                                {item.partName} ({item.Uid})
                               </td>
                               <td>{item.costPerUnit.toFixed(2)}</td>
                               <td>{item.timePerUnit.toFixed(2)}</td>
@@ -415,13 +432,21 @@ const SingeProject = () => {
                                     />
                                     <Manufacturing
                                       partName={item.partName}
-                                      manufacturingVariables={item.manufacturingVariables || []}
+                                      manufacturingVariables={
+                                        item.manufacturingVariables || []
+                                      }
                                       projectId={_id}
                                       partId={item._id}
+                                      onUpdateVariable={
+                                        updateManufacturingVariable
+                                      } // Pass updater function
                                     />
+
                                     <Shipment
                                       partName={item.partName}
-                                      shipmentVariables={item.shipmentVariables || []}
+                                      shipmentVariables={
+                                        item.shipmentVariables || []
+                                      }
                                       projectId={_id}
                                       partId={item._id}
                                     />
@@ -515,7 +540,7 @@ const SingeProject = () => {
                   type="number"
                   id="quantity"
                   value={quantity}
-                  onChange={(e) => setQuantity(e.target.value)}
+                  onChange={(e) => setQuantity(Number(e.target.value))}
                   required
                 />
               </div>
