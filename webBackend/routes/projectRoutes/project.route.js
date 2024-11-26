@@ -192,34 +192,34 @@ ProjectRouter.get("/:_id/allProjects/:id/variables", async (req, res) => {
 });
 
 // GET Route: Retrieve manufacturing variables for a specific part
-ProjectRouter.get(
-  "/:projectId/allProjects/:partId/manufacturingVariables",
-  async (req, res) => {
-    const { projectId, partId } = req.params;
+// ProjectRouter.get(
+//   "/:projectId/allProjects/:partId/manufacturingVariables",
+//   async (req, res) => {
+//     const { projectId, partId } = req.params;
 
-    try {
-      // Find the project by its ID
-      const project = await ProjectModal.findById(projectId);
-      if (!project) {
-        return res.status(404).json({ message: "Project not found" });
-      }
+//     try {
+//       // Find the project by its ID
+//       const project = await ProjectModal.findById(projectId);
+//       if (!project) {
+//         return res.status(404).json({ message: "Project not found" });
+//       }
 
-      // Find the specific part in the allProjects array
-      const part = project.allProjects.find(
-        (part) => part._id.toString() === partId
-      );
-      if (!part) {
-        return res.status(404).json({ message: "Part not found" });
-      }
+//       // Find the specific part in the allProjects array
+//       const part = project.allProjects.find(
+//         (part) => part._id.toString() === partId
+//       );
+//       if (!part) {
+//         return res.status(404).json({ message: "Part not found" });
+//       }
 
-      // Return the manufacturing variables of the found part
-      res.status(200).json(part.manufacturingVariables);
-    } catch (error) {
-      console.error("Error fetching manufacturing variables:", error);
-      res.status(500).json({ message: "Internal server error", error });
-    }
-  }
-);
+//       // Return the manufacturing variables of the found part
+//       res.status(200).json(part.manufacturingVariables);
+//     } catch (error) {
+//       console.error("Error fetching manufacturing variables:", error);
+//       res.status(500).json({ message: "Internal server error", error });
+//     }
+//   }
+// );
 
 // ProjectRouter.put("/:projectId/allProjects/:partId/manufacturingVariables/:variableId", async (req, res) => {
 //   try {
@@ -278,34 +278,79 @@ ProjectRouter.get(
 // });
 
 
-ProjectRouter.put("/:projectId/allProjects/:_id/manufacturingVariables/:variableId", async (req, res) => {
+ProjectRouter.put("/:projectId/allProjects/:partId/manufacturingVariables/:variableId", async (req, res) => {
+  const { projectId, partId, variableId } = req.params;
+  const { name, hours, hourlyRate, totalRate } = req.body;
+
   try {
-    const { projectId, _id, variableId } = req.params;
+      const updatedProject = await ProjectModal.findOneAndUpdate(
+          {
+              _id: projectId,
+              "allProjects._id": partId,
+              "allProjects.manufacturingVariables._id": variableId,
+          },
+          {
+              $set: {
+                  "allProjects.$[part].manufacturingVariables.$[variable]": {
+                      name,
+                      hours,
+                      hourlyRate,
+                      totalRate,
+                  },
+              },
+          },
+          {
+              arrayFilters: [
+                  { "part._id": partId },
+                  { "variable._id": variableId },
+              ],
+              new: true,
+          }
+      );
 
-    const updatedProject = await ProjectModal.findOneAndUpdate(
-      { _id: projectId, "allProjects._id": _id },
-      {
-        $set: {
-          "allProjects.$[part].manufacturingVariables.$[variable]": req.body,
-        },
-      },
-      {
-        arrayFilters: [
-          { "part._id": _id },
-          { "variable._id": variableId },
-        ],
-        new: true,
+      if (!updatedProject) {
+          return res.status(404).json({ message: "Manufacturing variable not found" });
       }
-    );
 
-    if (!updatedProject) {
-      return res.status(404).json({ message: "Project, part, or variable not found" });
-    }
-
-    res.status(200).json({ message: "Manufacturing variable updated successfully", updatedProject });
+      res.status(200).json(updatedProject);
   } catch (error) {
-    console.error("Error updating manufacturing variable:", error);
-    res.status(500).json({ message: error.message });
+      console.error("Error updating manufacturing variable:", error.message);
+      res.status(500).json({ message: "Internal server error", error: error.message });
+  }
+});
+
+ProjectRouter.get("/:projectId/allProjects/:partId/manufacturingVariables", async (req, res) => {
+  const { projectId, partId, variableId } = req.params;
+
+  try {
+      // Find the project with the specified IDs
+      const project = await ProjectModal.findOne(
+          {
+              _id: projectId,
+              "allProjects._id": partId,
+              "allProjects.manufacturingVariables._id": variableId,
+          },
+          {
+              "allProjects.$": 1 // Use projection to optimize the query
+          }
+      );
+
+      if (!project) {
+          return res.status(404).json({ message: "Manufacturing variable not found" });
+      }
+
+      // Extract the specific part and manufacturing variable
+      const part = project.allProjects.find(p => p._id.toString() === partId);
+      const variable = part?.manufacturingVariables.find(v => v._id.toString() === variableId);
+
+      if (!variable) {
+          return res.status(404).json({ message: "Manufacturing variable not found" });
+      }
+
+      res.status(200).json(variable);
+  } catch (error) {
+      console.error("Error retrieving manufacturing variable:", error.message);
+      res.status(500).json({ message: "Internal server error", error: error.message });
   }
 });
 
@@ -313,5 +358,124 @@ ProjectRouter.put("/:projectId/allProjects/:_id/manufacturingVariables/:variable
 
 
 
+
+ProjectRouter.put("/:projectId/allProjects/:partId/rmVariables/:variableId", async (req, res) => {
+  const { projectId, partId, variableId } = req.params;
+  const { name, netWeight, pricePerKg, totalRate } = req.body;
+
+  try {
+      const updatedProject = await ProjectModal.findOneAndUpdate(
+          {
+              _id: projectId,
+              "allProjects._id": partId,
+              "allProjects.rmVariables._id": variableId,
+          },
+          {
+              $set: {
+                  "allProjects.$[part].rmVariables.$[variable]": {
+                      name,
+                      netWeight,
+                      pricePerKg,
+                      totalRate,
+                  },
+              },
+          },
+          {
+              arrayFilters: [
+                  { "part._id": partId },
+                  { "variable._id": variableId },
+              ],
+              new: true,
+          }
+      );
+
+      if (!updatedProject) {
+          return res.status(404).json({ message: "Raw Matarials variable not found" });
+      }
+
+      res.status(200).json(updatedProject);
+  } catch (error) {
+      console.error("Error updating Raw Matarials variable:", error.message);
+      res.status(500).json({ message: "Internal server error", error: error.message });
+  }
+});
+
+
+ProjectRouter.put("/:projectId/allProjects/:partId/shipmentVariables/:variableId", async (req, res) => {
+  const { projectId, partId, variableId } = req.params;
+  const { name, hourlyRate, totalRate } = req.body;
+
+  try {
+      const updatedProject = await ProjectModal.findOneAndUpdate(
+          {
+              _id: projectId,
+              "allProjects._id": partId,
+              "allProjects.shipmentVariables._id": variableId,
+          },
+          {
+              $set: {
+                  "allProjects.$[part].shipmentVariables.$[variable]": {
+                      name,
+                      hourlyRate,
+                      totalRate,
+                  },
+              },
+          },
+          {
+              arrayFilters: [
+                  { "part._id": partId },
+                  { "variable._id": variableId },
+              ],
+              new: true,
+          }
+      );
+      if (!updatedProject) {
+          return res.status(404).json({ message: "Shipment variable not found" });
+      }
+      res.status(200).json(updatedProject);
+  } catch (error) {
+      console.error("Error updating Shipment variable:", error.message);
+      res.status(500).json({ message: "Internal server error", error: error.message });
+  }
+});
+
+
+ProjectRouter.put("/:projectId/allProjects/:partId/overheadsAndProfits/:variableId", async (req, res) => {
+  const { projectId, partId, variableId } = req.params;
+  const { name, percentage, totalRate } = req.body;
+
+  try {
+      const updatedProject = await ProjectModal.findOneAndUpdate(
+          {
+              _id: projectId,
+              "allProjects._id": partId,
+              "allProjects.overheadsAndProfits._id": variableId,
+          },
+          {
+              $set: {
+                  "allProjects.$[part].overheadsAndProfits.$[variable]": {
+                      name,
+                      percentage,
+                      totalRate,
+                  },
+              },
+          },
+          {
+              arrayFilters: [
+                  { "part._id": partId },
+                  { "variable._id": variableId },
+              ],
+              new: true,
+          }
+      );
+      if (!updatedProject) {
+          return res.status(404).json({ message: "Overheds and profits variable not found" });
+      }
+      res.status(200).json(updatedProject);
+  } catch (error) {
+      console.error("Error updating Overheds and profits variable:", error.message);
+      res.status(500).json({ message: "Internal server error", error: error.message });
+  }
+});
 
 module.exports = { ProjectRouter };
