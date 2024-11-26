@@ -547,87 +547,60 @@ const HoursPlanningTab = () => {
                 </thead>
                 <tbody>
   <React.Fragment>
-    <tr className="table-row-main">
-      <td
-        className="part-name-header"
-        style={{ backgroundColor: "#C8E6C9", color: "black" }}
-      >
-        Required Machinewise Total Hours
-      </td>
-      <td>{calculateTotalHoursForProcess("VMC Imported")}</td>
-      <td>{calculateTotalHoursForProcess("VMC Local")}</td>
-      <td>{calculateTotalHoursForProcess("Milling Manual")}</td>
-      <td>{calculateTotalHoursForProcess("Grinding Final")}</td>
-      <td>{calculateTotalHoursForProcess("CNC Lathe")}</td>
-      <td>{calculateTotalHoursForProcess("Drill/Tap")}</td>
-      <td>{calculateTotalHoursForProcess("Wire Cut Local")}</td>
-      <td>{calculateTotalHoursForProcess("Wire Cut Rough")}</td>
-      <td>{calculateTotalHoursForProcess("Wire Cut Imported")}</td>
-      <td>{calculateTotalHoursForProcess("EDM")}</td>
-      <td>{calculateTotalHoursForProcess("Black Oxide")}</td>
-      <td>{calculateTotalHoursForProcess("Laser Marking")}</td>
-      <td>{calculateTotalHoursForProcess("Lapping/Polishing")}</td>
-      <td>{calculateTotalHoursForProcess("Grinding Blank/Rough")}</td>
-      <td>{calculateTotalHoursForProcess("Gauges & Fixtures")}</td>
-    </tr>
+  <tr className="table-row-main">
+  <td className="part-name-header" style={{ backgroundColor: "#C8E6C9", color: "black" }}>
+    Required Machinewise Total Hours
+  </td>
+  {["VMC Imported", "VMC Local", "Milling Manual", "Grinding Final", "CNC Lathe", "Drill/Tap", "Wire Cut Local", "Wire Cut Rough", "Wire Cut Imported", "EDM", "Black Oxide", "Laser Marking", "Lapping/Polishing", "Grinding Blank/Rough", "Gauges & Fixtures"].map((processName) => (
+    <td key={processName}>
+      {calculateTotalHoursForProcess(processName)}
+    </td>
+  ))}
+</tr>
 
-    <tr className="table-row-main">
+    
+<tr className="table-row-main">
   <td className="part-name-header" style={{ backgroundColor: "#FFF59D", color: "black" }}>Available machine hours per day</td>
-  <td><input className="input-field" type="number" value={machineHoursPerDay["VMC Imported"] || 0} onChange={(e) => handleInputChange(e, "machineHoursPerDay", "VMC Imported")} /></td>
-  <td><input className="input-field" type="number" value={machineHoursPerDay["VMC Local"] || 0} onChange={(e) => handleInputChange(e, "machineHoursPerDay", "VMC Local")} /></td>
-  <td><input className="input-field" type="number" value={machineHoursPerDay["Milling Manual"] || 0} onChange={(e) => handleInputChange(e, "machineHoursPerDay", "Milling Manual")} /></td>
-  <td><input className="input-field" type="number" value={machineHoursPerDay["Grinding Final"] || 0} onChange={(e) => handleInputChange(e, "machineHoursPerDay", "Grinding Final")} /></td>
-  <td><input className="input-field" type="number" value={machineHoursPerDay["CNC Lathe"] || 0} onChange={(e) => handleInputChange(e, "machineHoursPerDay", "CNC Lathe")} /></td>
-  <td><input className="input-field" type="number" value={machineHoursPerDay["Drill/Tap"] || 0} onChange={(e) => handleInputChange(e, "machineHoursPerDay", "Drill/Tap")} /></td>
-  <td><input className="input-field" type="number" value={machineHoursPerDay["Wire Cut Local"] || 0} onChange={(e) => handleInputChange(e, "machineHoursPerDay", "Wire Cut Local")} /></td>
-  <td><input className="input-field" type="number" value={machineHoursPerDay["Wire Cut Rough"] || 0} onChange={(e) => handleInputChange(e, "machineHoursPerDay", "Wire Cut Rough")} /></td>
-  <td><input className="input-field" type="number" value={machineHoursPerDay["Wire Cut Imported"] || 0} onChange={(e) => handleInputChange(e, "machineHoursPerDay", "Wire Cut Imported")} /></td>
-  <td><input className="input-field" type="number" value={machineHoursPerDay["EDM"] || 0} onChange={(e) => handleInputChange(e, "machineHoursPerDay", "EDM")} /></td>
-  <td><input className="input-field" type="number" value={machineHoursPerDay["Black Oxide"] || 0} onChange={(e) => handleInputChange(e, "machineHoursPerDay", "Black Oxide")} /></td>
-  <td><input className="input-field" type="number" value={machineHoursPerDay["Laser Marking"] || 0} onChange={(e) => handleInputChange(e, "machineHoursPerDay", "Laser Marking")} /></td>
-  <td><input className="input-field" type="number" value={machineHoursPerDay["Lapping/Polishing"] || 0} onChange={(e) => handleInputChange(e, "machineHoursPerDay", "Lapping/Polishing")} /></td>
-  <td><input className="input-field" type="number" value={machineHoursPerDay["Grinding Blank/Rough"] || 0} onChange={(e) => handleInputChange(e, "machineHoursPerDay", "Grinding Blank/Rough")} /></td>
-  <td><input className="input-field" type="number" value={machineHoursPerDay["Gauges & Fixtures"] || 0} onChange={(e) => handleInputChange(e, "machineHoursPerDay", "Gauges & Fixtures")} /></td>
+  {["VMC Imported", "VMC Local", "Milling Manual", "Grinding Final", "CNC Lathe", "Drill/Tap", "Wire Cut Local", "Wire Cut Rough", "Wire Cut Imported", "EDM", "Black Oxide", "Laser Marking", "Lapping/Polishing", "Grinding Blank/Rough", "Gauges & Fixtures"].map((processName) => (
+    <td key={processName}>
+      <input
+        className="input-field"
+        type="number"
+        value={machineHoursPerDay[processName] || 0}
+        onChange={(e) => handleInputChange(e, "machineHoursPerDay", processName)}
+      />
+    </td>
+  ))}
 </tr>
 
 
 <tr className="table-row-main">
   <td className="part-name-header" style={{ backgroundColor: "#FFF59D", color: "black" }}>Number of Machines TBU</td>
-  <td><input className="input-field" type="number" value={numberOfMachines["VMC Imported"] || 0} onChange={(e) => handleInputChange(e, "numberOfMachines", "VMC Imported")} /></td>
-  <td><input className="input-field" type="number" value={numberOfMachines["VMC Local"] || 0} onChange={(e) => handleInputChange(e, "numberOfMachines", "VMC Local")} /></td>
-  <td><input className="input-field" type="number" value={numberOfMachines["Milling Manual"] || 0} onChange={(e) => handleInputChange(e, "numberOfMachines", "Milling Manual")} /></td>
-  <td><input className="input-field" type="number" value={numberOfMachines["Grinding Final"] || 0} onChange={(e) => handleInputChange(e, "numberOfMachines", "Grinding Final")} /></td>
-  <td><input className="input-field" type="number" value={numberOfMachines["CNC Lathe"] || 0} onChange={(e) => handleInputChange(e, "numberOfMachines", "CNC Lathe")} /></td>
-  <td><input className="input-field" type="number" value={numberOfMachines["Drill/Tap"] || 0} onChange={(e) => handleInputChange(e, "numberOfMachines", "Drill/Tap")} /></td>
-  <td><input className="input-field" type="number" value={numberOfMachines["Wire Cut Local"] || 0} onChange={(e) => handleInputChange(e, "numberOfMachines", "Wire Cut Local")} /></td>
-  <td><input className="input-field" type="number" value={numberOfMachines["Wire Cut Rough"] || 0} onChange={(e) => handleInputChange(e, "numberOfMachines", "Wire Cut Rough")} /></td>
-  <td><input className="input-field" type="number" value={numberOfMachines["Wire Cut Imported"] || 0} onChange={(e) => handleInputChange(e, "numberOfMachines", "Wire Cut Imported")} /></td>
-  <td><input className="input-field" type="number" value={numberOfMachines["EDM"] || 0} onChange={(e) => handleInputChange(e, "numberOfMachines", "EDM")} /></td>
-  <td><input className="input-field" type="number" value={numberOfMachines["Black Oxide"] || 0} onChange={(e) => handleInputChange(e, "numberOfMachines", "Black Oxide")} /></td>
-  <td><input className="input-field" type="number" value={numberOfMachines["Laser Marking"] || 0} onChange={(e) => handleInputChange(e, "numberOfMachines", "Laser Marking")} /></td>
-  <td><input className="input-field" type="number" value={numberOfMachines["Lapping/Polishing"] || 0} onChange={(e) => handleInputChange(e, "numberOfMachines", "Lapping/Polishing")} /></td>
-  <td><input className="input-field" type="number" value={numberOfMachines["Grinding Blank/Rough"] || 0} onChange={(e) => handleInputChange(e, "numberOfMachines", "Grinding Blank/Rough")} /></td>
-  <td><input className="input-field" type="number" value={numberOfMachines["Gauges & Fixtures"] || 0} onChange={(e) => handleInputChange(e, "numberOfMachines", "Gauges & Fixtures")} /></td>
+  {["VMC Imported", "VMC Local", "Milling Manual", "Grinding Final", "CNC Lathe", "Drill/Tap", "Wire Cut Local", "Wire Cut Rough", "Wire Cut Imported", "EDM", "Black Oxide", "Laser Marking", "Lapping/Polishing", "Grinding Blank/Rough", "Gauges & Fixtures"].map((processName) => (
+    <td key={processName}>
+      <input
+        className="input-field"
+        type="number"
+        value={numberOfMachines[processName] || 0}
+        onChange={(e) => handleInputChange(e, "numberOfMachines", processName)}
+      />
+    </td>
+  ))}
 </tr>
 
 
 <tr className="table-row-main">
   <td className="part-name-header" style={{ backgroundColor: "#FFF59D", color: "black" }}>Number of Days to be worked</td>
-  <td><input className="input-field" type="number" value={daysToWork["VMC Imported"] || 0} onChange={(e) => handleInputChange(e, "daysToWork", "VMC Imported")} /></td>
-  <td><input className="input-field" type="number" value={daysToWork["VMC Local"] || 0} onChange={(e) => handleInputChange(e, "daysToWork", "VMC Local")} /></td>
-  <td><input className="input-field" type="number" value={daysToWork["Milling Manual"] || 0} onChange={(e) => handleInputChange(e, "daysToWork", "Milling Manual")} /></td>
-  <td><input className="input-field" type="number" value={daysToWork["Grinding Final"] || 0} onChange={(e) => handleInputChange(e, "daysToWork", "Grinding Final")} /></td>
-  <td><input className="input-field" type="number" value={daysToWork["CNC Lathe"] || 0} onChange={(e) => handleInputChange(e, "daysToWork", "CNC Lathe")} /></td>
-  <td><input className="input-field" type="number" value={daysToWork["Drill/Tap"] || 0} onChange={(e) => handleInputChange(e, "daysToWork", "Drill/Tap")} /></td>
-  <td><input className="input-field" type="number" value={daysToWork["Wire Cut Local"] || 0} onChange={(e) => handleInputChange(e, "daysToWork", "Wire Cut Local")} /></td>
-  <td><input className="input-field" type="number" value={daysToWork["Wire Cut Rough"] || 0} onChange={(e) => handleInputChange(e, "daysToWork", "Wire Cut Rough")} /></td>
-  <td><input className="input-field" type="number" value={daysToWork["Wire Cut Imported"] || 0} onChange={(e) => handleInputChange(e, "daysToWork", "Wire Cut Imported")} /></td>
-  <td><input className="input-field" type="number" value={daysToWork["EDM"] || 0} onChange={(e) => handleInputChange(e, "daysToWork", "EDM")} /></td>
-  <td><input className="input-field" type="number" value={daysToWork["Black Oxide"] || 0} onChange={(e) => handleInputChange(e, "daysToWork", "Black Oxide")} /></td>
-  <td><input className="input-field" type="number" value={daysToWork["Laser Marking"] || 0} onChange={(e) => handleInputChange(e, "daysToWork", "Laser Marking")} /></td>
-  <td><input className="input-field" type="number" value={daysToWork["Lapping/Polishing"] || 0} onChange={(e) => handleInputChange(e, "daysToWork", "Lapping/Polishing")} /></td>
-  <td><input className="input-field" type="number" value={daysToWork["Grinding Blank/Rough"] || 0} onChange={(e) => handleInputChange(e, "daysToWork", "Grinding Blank/Rough")} /></td>
-  <td><input className="input-field" type="number" value={daysToWork["Gauges & Fixtures"] || 0} onChange={(e) => handleInputChange(e, "daysToWork", "Gauges & Fixtures")} /></td>
+  {["VMC Imported", "VMC Local", "Milling Manual", "Grinding Final", "CNC Lathe", "Drill/Tap", "Wire Cut Local", "Wire Cut Rough", "Wire Cut Imported", "EDM", "Black Oxide", "Laser Marking", "Lapping/Polishing", "Grinding Blank/Rough", "Gauges & Fixtures"].map((processName) => (
+    <td key={processName}>
+      <input
+        className="input-field"
+        type="number"
+        value={daysToWork[processName] || 0}
+        onChange={(e) => handleInputChange(e, "daysToWork", processName)}
+      />
+    </td>
+  ))}
 </tr>
 
 
@@ -652,7 +625,7 @@ const HoursPlanningTab = () => {
     <td key={processName}>
       {(
         (calculateTotalHoursForProcess(processName) || 0) / 
-        ((machineHoursPerDay[processName] || 0) * (numberOfMachines[processName] || 0) * 25) || 0
+        Math.max(((machineHoursPerDay[processName] || 0) * (numberOfMachines[processName] || 0) * (daysToWork[processName] || 25)), 1)
       ).toFixed(2)}
     </td>
   ))}

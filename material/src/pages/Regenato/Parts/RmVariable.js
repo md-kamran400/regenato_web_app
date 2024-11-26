@@ -432,8 +432,7 @@ const RmVariable = ({ partDetails, onTotalCountUpdate }) => {
             className="add-btn me-1"
             id="create-btn"
           >
-            <i className="ri-add-line align-bottom me-1"></i> Add Static Rm
-            Variable
+            <i className="ri-add-line align-bottom me-1"></i> Add Unit Cost
           </Button>
         </div>
       </Col>
@@ -572,7 +571,7 @@ const RmVariable = ({ partDetails, onTotalCountUpdate }) => {
 
       <Modal isOpen={modal_static_add} toggle={tog_static_add}>
         <ModalHeader toggle={tog_static_add}>
-          Add Stactic RM Variable
+          Add Unit Cost
         </ModalHeader>
         <ModalBody>
           <form onSubmit={handleSubmitStatic}>

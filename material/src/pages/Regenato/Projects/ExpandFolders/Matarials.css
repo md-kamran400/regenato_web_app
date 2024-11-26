@@ -30,7 +30,6 @@
 .professional-table th,
 .professional-table td {
   text-align: left;
-  padding: 8px 12px; /* Reduced padding for a compact look */
   font-size: 0.9rem; /* Smaller font size for a more professional feel */
   border: 1px solid #e0e0e0;
   border-radius: 6px;
@@ -108,7 +107,6 @@
 .professional-table td {
   font-size: 0.85rem;
   color: #34495e;
-  padding: 8px 10px;
 }
 
 /* Adding subtle shadows */

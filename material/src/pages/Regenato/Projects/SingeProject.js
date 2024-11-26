@@ -409,17 +409,21 @@ const SingeProject = () => {
                                     {/* Raw Materials Section */}
                                     <RawMaterial
                                       partName={item.partName}
-                                      rmVariables={item.rmVariables}
+                                      rmVariables={item.rmVariables || {}}
+                                      projectId={_id}
+                                      partId={item._id}
                                     />
                                     <Manufacturing
                                       partName={item.partName}
-                                      manufacturingVariables={item.manufacturingVariables}
+                                      manufacturingVariables={item.manufacturingVariables || []}
                                       projectId={_id}
-                                      partId={item.id}
+                                      partId={item._id}
                                     />
                                     <Shipment
                                       partName={item.partName}
-                                      shipmentVariables={item.shipmentVariables}
+                                      shipmentVariables={item.shipmentVariables || []}
+                                      projectId={_id}
+                                      partId={item._id}
                                     />
                                     <Overheads
                                       partName={item.partName}

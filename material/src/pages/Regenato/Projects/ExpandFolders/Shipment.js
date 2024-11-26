@@ -6,8 +6,8 @@ const Shipment = ({ partName, shipmentVariables }) => {
   return (
     <div className="shipment-container">
       <h5 className="section-title">🚚 Shipment Variables for {partName}</h5>
-      <table className="professional-table" striped bordered hover size="sm">
-        <thead>
+      <table className="table align-middle table-nowrap" striped bordered hover size="sm">
+       <thead className="table-light">
           <tr>
             <th>Name</th>
             <th>Hourly Rate</th>

@@ -419,8 +419,7 @@ const ManufacturingVariable = ({ partDetails, onTotalCountUpdate, onTotalCountUp
               className="add-btn me-1"
               onClick={tog_static_vairbale}
             >
-              <i className="ri-add-line align-bottom me-1"></i> Add Static
-              Manufacturing
+              <i className="ri-add-line align-bottom me-1"></i>Add Unit Cost
             </Button>
             <Button className="btn btn-soft-danger">
               <i className="ri-delete-bin-2-line"></i>

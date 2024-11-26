@@ -6,8 +6,8 @@ const Overheads = ({ partName, overheadsAndProfits }) => {
   return (
     <div className="overheads-container">
       <h5 className="section-title">💰 Overheads and Profits for {partName}</h5>
-      <table className="professional-table" striped bordered hover size="sm">
-        <thead>
+      <table className="table align-middle table-nowrap" striped bordered hover size="sm">
+      <thead className="table-light"> 
           <tr>
             <th>Name</th>
             <th>Percentage</th>

@@ -17,6 +17,7 @@ import SingeProject from "./SingeProject";
 import ActivitiesTab from "./ActivitiesTab";
 import DocumentsTab from "./DocumentsTab";
 import HoursPlanningTab from "./HoursPlanningTab";
+import HoursSummary from "./HoursSummary";
 
 const ProjectSection = () => {
   // State to track the active tab
@@ -91,7 +92,7 @@ const ProjectSection = () => {
                       }}
                       href="#"
                     >
-                      Allocation
+                      Hours Summary
                     </NavLink>
                   </NavItem>
                   <NavItem>
@@ -102,6 +103,20 @@ const ProjectSection = () => {
                       )}
                       onClick={() => {
                         toggleTab("4");
+                      }}
+                      href="#"
+                    >
+                      Allocation
+                    </NavLink>
+                  </NavItem>
+                  <NavItem>
+                    <NavLink
+                      className={classnames(
+                        { active: activeTab === "5" },
+                        "fw-semibold"
+                      )}
+                      onClick={() => {
+                        toggleTab("5");
                       }}
                       href="#"
                     >
@@ -126,9 +141,12 @@ const ProjectSection = () => {
               <HoursPlanningTab />
             </TabPane>
             <TabPane tabId="3">
-              <DocumentsTab />
+              <HoursSummary />
             </TabPane>
             <TabPane tabId="4">
+              <DocumentsTab />
+            </TabPane>
+            <TabPane tabId="5">
               <ActivitiesTab />
             </TabPane>
           </TabContent>
