@@ -530,9 +530,33 @@ const HoursPlanningTab = () => {
                   )}
                 </tbody>
 
+               
+
                  {/* second table */}
                 <br/>
                 <br/>
+                <thead className="table-header">
+                  <tr>
+                    <th className="part-name-header" style={{ backgroundColor: "#F5F5F5" }}>
+                      Part Name
+                    </th>
+                    <th className="child_parts">VMC Imported (C1)</th>
+                    <th className="child_parts">VMC Local (C2)</th>
+                    <th className="child_parts">Milling Manual (C3)</th>
+                    <th className="child_parts">Grinding Final (C4)</th>
+                    <th className="child_parts">CNC Lathe (C5)</th>
+                    <th className="child_parts">Drill/Tap (C6)</th>
+                    <th className="child_parts">Wire Cut Local (C7)</th>
+                    <th className="child_parts">Wire Cut Rough (C8)</th>
+                    <th className="child_parts">Wire Cut Imported (C9)</th>
+                    <th className="child_parts">EDM (C10)</th>
+                    <th className="child_parts">Black Oxide (C11)</th>
+                    <th className="child_parts">Laser Marking (C12)</th>
+                    <th className="child_parts">Lapping/Polishing (C13)</th>
+                    <th className="child_parts">Grinding Blank/Rough (C14)</th>
+                    <th className="child_parts">Gauges & Fixtures (C15)</th>
+                  </tr>
+                </thead>
                 <tbody>
   <React.Fragment>
   <tr className="table-row-main">
