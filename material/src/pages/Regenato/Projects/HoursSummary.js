@@ -152,7 +152,7 @@ const HoursSummary = () => {
                             className="part-name"
                             onClick={() => toggleRow(item.partName)}
                           >
-                            {item.partName || "N/A"}
+                            {`${item.partName || "N/A"}  (${item.Uid})`}
                           </td>
                           <td>{getHoursForProcess(item.partName, "VMC Imported")}</td>
                           <td>{getHoursForProcess(item.partName, "VMC Local")}</td>

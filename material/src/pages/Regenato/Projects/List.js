@@ -488,7 +488,7 @@ const List = () => {
                               <div className="dropdown-divider"></div>
                               <DropdownItem
                                 href="#"
-                                onClick={() => onClickData(item)}
+                                // onClick={() => onClickData(item)}
                                 data-bs-toggle="modal"
                                 data-bs-target="#removeProjectModal"
                               >
