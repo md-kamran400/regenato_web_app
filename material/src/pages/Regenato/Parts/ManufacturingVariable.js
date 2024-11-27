@@ -607,8 +607,8 @@ const ManufacturingVariable = ({ partDetails, onTotalCountUpdate, onTotalCountUp
       <Modal isOpen={modal_static_add} toggle={tog_static_vairbale} centered>
         <ModalHeader className="bg-light p-3" toggle={tog_static_vairbale}>
           {formData.id
-            ? "Edit Manufacturing Static Variables"
-            : "Add Manufacturing Static Variables"}
+            ? "Edit Unit Cost"
+            : "Add Unit Cost"}
         </ModalHeader>
         <ModalBody>
           <form className="tablelist-form" onSubmit={handleSubmit}>

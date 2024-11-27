@@ -109,60 +109,53 @@ const List = () => {
 
   // Handle adding a new part
   // Inside the handleAddPart function
+  // Inside the List component
 
   const handleAddPart = async () => {
-    if (newPartName !== "") {
-      const newPart = {
-        id: parseInt(newPartId),
-        partName: newPartName,
-        costPerUnit: costPerUnit || 0,
-        timePerUnit: timePerUnit || 0,
-        stockPOQty: stockPOQty || 0,
-      };
-  
-      setPosting(true);
-      setError(null);
-  
-      try {
-        const response = await fetch(`${process.env.REACT_APP_BASE_URL}/api/parts`, {
+    // Extract only the numeric part of the ID
+    const numericId = newPartId.replace(/[^\d]/g, "");
+
+    const newPart = {
+      id: parseInt(numericId),
+      partName: newPartName,
+      costPerUnit: costPerUnit || 0,
+      timePerUnit: timePerUnit || 0,
+      stockPOQty: stockPOQty || 0,
+    };
+
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_BASE_URL}/api/parts`,
+        {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify(newPart),
-        });
-  
-        if (response.ok) {
-          const data = await response.json();
-          console.log("New part added:", data);
-  
-          // Update the local state
-          const updatedListData = [...listData];
-          const index = updatedListData.findIndex(item => item.id === data.id);
-          
-          if (index !== -1) {
-            updatedListData[index] = data;
-            toast.info("Part updated successfully!");
-          } else {
-            updatedListData.push(data);
-            toast.success("New part added successfully!");
-          }
-  
-          setListData(updatedListData);
-          // Close the modal
-          setModalList(false);
-        } else {
-          throw new Error("Network response was not ok");
         }
-      } catch (error) {
-        setError(error.message);
-        console.error("Error adding/updating part:", error);
-        toast.error(`Error: ${error.message}`);
-      } finally {
-        setPosting(false);
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to add part");
       }
-    } else {
-      toast.error("Please fill all fields");
+
+      // If the request is successful, refresh the list data
+      await fetchData();
+
+      // Reset form fields
+      setNewPartId("");
+      setNewPartName("");
+      setCostPerUnit(0);
+      setTimePerUnit(0);
+      setStockPOQty(0);
+
+      // Close the modal
+      toggleModal();
+
+      toast.success("Part added successfully!");
+    } catch (error) {
+      console.error("Error adding part:", error);
+      toast.error("Failed to add part. Please try again.");
     }
   };
 
@@ -396,11 +389,10 @@ const List = () => {
               <label htmlFor="parts-id" className="form-label">
                 ID
               </label>
-              <input
+              <Input
                 type="text"
-                id="parts-id"
                 className="form-control"
-                placeholder="Enter ID"
+                placeholder="Enter ID (e.g., 48A47015099)"
                 value={newPartId}
                 onChange={(e) => setNewPartId(e.target.value)}
                 required
