@@ -62,28 +62,14 @@ const ManufacturingVariable = () => {
     setModalEdit(!modal_edit);
   };
 
-  // Fetch data from API on component mount
-  // useEffect(() => {
-  //     const fetchManufacturingData = async () => {
-  //         try {
-  //             const response = await fetch('${process.env.REACT_APP_BASE_URL}/api/manufacturing');
-  //             const data = await response.json();
-  //             setManufacturingData(data);
-  //             setLoading(false);
-  //         } catch (error) {
-  //             console.error('Error fetching manufacturing data:', error);
-  //             setLoading(false);
-  //         }
-  //     };
-
-  //     fetchManufacturingData();
-  // }, []);
 
   const fatchManufacturing = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${process.env.REACT_APP_BASE_URL}/api/manufacturing`);
+      const response = await fetch(
+        `${process.env.REACT_APP_BASE_URL}/api/manufacturing`
+      );
       if (!response.ok) {
         throw new Error("Network response was not ok");
       }
@@ -100,8 +86,6 @@ const ManufacturingVariable = () => {
     fatchManufacturing();
   }, [fatchManufacturing]);
 
-  // Calculate total cost
-  // const totalCost = shipmentData.reduce((total, item) => total + item.hourlyrate, 0);
 
   // Handle form input changes
   const handleChange = (e) => {
@@ -113,24 +97,31 @@ const ManufacturingVariable = () => {
     e.preventDefault();
     setPosting(true);
     setError(null);
+    // Check if all fields are filled
+    const hasEmptyFields = Object.values(formData).some(value => !value);
+  
+    if (hasEmptyFields) {
+      setError("Please fill all fields before submitting.");
+      setPosting(false);
+      return;
+    }
+  
     try {
-      const response = await fetch(`${process.env.REACT_APP_BASE_URL}/api/manufacturing`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      });
-
-      // Check if the request was successful
-      if (response.ok) {
-        // Refresh the page after successful POST request
-        await fatchManufacturing();
-      } else {
-        // Handle errors here
+      const response = await fetch(
+        `${process.env.REACT_APP_BASE_URL}/api/manufacturing`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(formData),
+        }
+      );
+  
+      if (!response.ok) {
         throw new Error("Network response was not ok");
       }
-
+  
       await fatchManufacturing();
       setFormData({
         categoryId: "",
@@ -161,10 +152,6 @@ const ManufacturingVariable = () => {
           body: JSON.stringify(formData),
         }
       );
-
-      //   if (!response.ok) {
-      //     throw new Error("Network response was not ok");
-      //   }
 
       // Check if the request was successful
       if (response.ok) {
@@ -211,8 +198,6 @@ const ManufacturingVariable = () => {
     }
   };
 
-  // Calculate total rate based on fetched data
-  // const totalRate = manufacturingData.reduce((total, item) => total + item.totalrate, 0);
 
   return (
     <React.Fragment>
@@ -234,9 +219,6 @@ const ManufacturingVariable = () => {
                     >
                       <i className="ri-add-line align-bottom me-1"></i> Add
                     </Button>
-                    <Button className="btn btn-soft-danger">
-                      <i className="ri-delete-bin-2-line"></i>
-                    </Button>
                   </div>
                 </Col>
                 <Col className="col-sm">
@@ -253,12 +235,6 @@ const ManufacturingVariable = () => {
                 </Col>
               </Row>
 
-              {/* Display total cost */}
-              {/* <div className="d-flex align-items-center mt-3">
-                                <p className="fw-bold mb-0 me-2">Total Cost:</p>
-                                <p className="fw-bold mb-0 me-2">{totalRate.toFixed(2)}</p> 
-                            </div> */}
-
               {/* Table */}
               <div className="table-responsive table-card mt-3 mb-1">
                 {loading ? (
@@ -267,14 +243,6 @@ const ManufacturingVariable = () => {
                   <table className="table align-middle table-nowrap">
                     <thead className="table-light">
                       <tr>
-                        <th style={{ width: "50px" }}>
-                          <div className="form-check">
-                            <input
-                              className="form-check-input"
-                              type="checkbox"
-                            />
-                          </div>
-                        </th>
                         <th>ID</th>
                         <th>Name</th>
                         {/* <th>Hours (h)</th> */}
@@ -286,41 +254,33 @@ const ManufacturingVariable = () => {
                     <tbody>
                       {manufacturingData.map((item) => (
                         <tr key={item.id}>
-                          <td>
-                            <div className="form-check">
-                              <input
-                                className="form-check-input"
-                                type="checkbox"
-                              />
-                            </div>
-                          </td>
                           <td>{item.categoryId}</td>
                           <td>{item.name}</td>
                           {/* <td>{item.hours}</td> */}
                           <td>{item.hourlyrate}</td>
                           {/* <td>{item.totalrate}</td> */}
                           <td>
-                          <div className="d-flex gap-2">
-                                <button
-                                  className="btn btn-sm btn-success edit-item-btn"
-                                  data-bs-toggle="modal"
-                                  data-bs-target="#showModal"
-                                  onClick={() => tog_edit(item)}
-                                >
-                                  Edit
-                                </button>
-                                <button
-                                  className="btn btn-sm btn-danger remove-item-btn"
-                                  data-bs-toggle="modal"
-                                  data-bs-target="#deleteRecordModal"
-                                  onClick={() => {
-                                    setSelectedId(item._id);
-                                    tog_delete();
-                                  }}
-                                >
-                                  Remove
-                                </button>
-                              </div>
+                            <div className="d-flex gap-2">
+                              <button
+                                className="btn btn-sm btn-success edit-item-btn"
+                                data-bs-toggle="modal"
+                                data-bs-target="#showModal"
+                                onClick={() => tog_edit(item)}
+                              >
+                                Edit
+                              </button>
+                              <button
+                                className="btn btn-sm btn-danger remove-item-btn"
+                                data-bs-toggle="modal"
+                                data-bs-target="#deleteRecordModal"
+                                onClick={() => {
+                                  setSelectedId(item._id);
+                                  tog_delete();
+                                }}
+                              >
+                                Remove
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -349,7 +309,7 @@ const ManufacturingVariable = () => {
       {/* Add Modal */}
       <Modal isOpen={modal_add} toggle={tog_add} centered>
         <ModalHeader className="bg-light p-3" toggle={tog_add}>
-              Add Manufacturing Variable
+          Add Manufacturing Variable
         </ModalHeader>
         <ModalBody>
           <form className="tablelist-form" onSubmit={handleSubmit}>
@@ -458,7 +418,7 @@ const ManufacturingVariable = () => {
               />
             </div>
             <ModalFooter>
-              <Button color="primary" type="submit" disabled={posting}>
+              <Button color="success" type="submit" disabled={posting}>
                 {posting ? "Saving..." : "Save"}
               </Button>
               <Button color="secondary" onClick={tog_edit} disabled={posting}>

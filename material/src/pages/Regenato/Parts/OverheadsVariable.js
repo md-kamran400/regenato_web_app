@@ -336,9 +336,6 @@ const OverheadsVariable = ({ partDetails, totalCost, onTotalCountUpdate }) => {
             >
               <i className="ri-add-line align-bottom me-1"></i> Add
             </Button>
-            <Button className="btn btn-soft-danger">
-              <i className="ri-delete-bin-2-line"></i>
-            </Button>
           </div>
         </Col>
         <Col className="col-sm">

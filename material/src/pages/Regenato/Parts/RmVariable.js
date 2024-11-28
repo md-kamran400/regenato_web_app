@@ -440,7 +440,7 @@ const RmVariable = ({ partDetails, onTotalCountUpdate }) => {
         <table className="table align-middle table-nowrap">
           <thead className="table-light">
             <tr>
-              <th>Id</th>
+              <th>ID</th>
               <th>Name</th>
               <th>Net Weight (Kg)</th>
               <th>Price (INR/Kg)</th>
@@ -520,12 +520,13 @@ const RmVariable = ({ partDetails, onTotalCountUpdate }) => {
             </div>
             <div className="mb-3">
               <label htmlFor="netWeight" className="form-label">
-                Net Weight
+                Net Weight (In KG)
               </label>
               <input
                 type="number"
                 className="form-control"
                 name="netWeight"
+                placeholder="Net Weight (In KG)"
                 value={formData.netWeight}
                 onChange={handleChange}
                 required
@@ -539,6 +540,7 @@ const RmVariable = ({ partDetails, onTotalCountUpdate }) => {
                 type="number"
                 className="form-control"
                 name="pricePerKg"
+                placeholder="Price"
                 value={formData.pricePerKg || ""}
                 onChange={handleChange} // Allow manual edits
                 required
@@ -575,20 +577,7 @@ const RmVariable = ({ partDetails, onTotalCountUpdate }) => {
         </ModalHeader>
         <ModalBody>
           <form onSubmit={handleSubmitStatic}>
-            <div className="mb-3">
-              <label htmlFor="categoryId" className="form-label">
-                Category ID
-              </label>
-              <input
-                type="text"
-                className="form-control"
-                name="categoryId"
-                value={staticFormData.categoryId}
-                onChange={handleChange}
-                required
-              />
-            </div>
-            <div className="mb-3">
+          <div className="mb-3">
               <label htmlFor="name" className="form-label">
                 Name
               </label>
@@ -599,12 +588,28 @@ const RmVariable = ({ partDetails, onTotalCountUpdate }) => {
                 renderInput={(params) => (
                   <TextField
                     {...params}
-                    label="Select Material"
+                    label="Select RM Variable"
                     variant="outlined"
                   />
                 )}
               />
             </div>
+
+            <div className="mb-3">
+              <label htmlFor="categoryId" className="form-label">
+                ID
+              </label>
+              <input
+                type="text"
+                className="form-control"
+                name="categoryId"
+                placeholder="Enter ID"
+                value={staticFormData.categoryId}
+                onChange={handleChange}
+                required
+              />
+            </div>
+            
             <div className="mb-3">
               <div className="mb-3">
                 <label htmlFor="totalRate" className="form-label">

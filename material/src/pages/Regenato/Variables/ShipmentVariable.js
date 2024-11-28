@@ -235,9 +235,6 @@ const ShipmentVariable = () => {
                       >
                         <i className="ri-add-line align-bottom me-1"></i> Add
                       </Button>
-                      <Button className="btn btn-soft-danger">
-                        <i className="ri-delete-bin-2-line"></i>
-                      </Button>
                     </div>
                   </Col>
                   <Col className="col-sm">
@@ -267,19 +264,9 @@ const ShipmentVariable = () => {
                   >
                     <thead className="table-light">
                       <tr>
-                        <th scope="col" style={{ width: "50px" }}>
-                          <div className="form-check">
-                            <input
-                              className="form-check-input"
-                              type="checkbox"
-                              id="checkAll"
-                              value="option"
-                            />
-                          </div>
-                        </th>
                         <th>ID</th>
                         <th>Name</th>
-                        <th>Hourly Rate (INR)</th>
+                        <th>Rate</th>
                         <th>Action</th>
                       </tr>
                     </thead>
@@ -287,16 +274,7 @@ const ShipmentVariable = () => {
                       {shipmentData.length > 0 ? (
                         shipmentData.map((item) => (
                           <tr key={item.id}>
-                            <th scope="row">
-                              <div className="form-check">
-                                <input
-                                  className="form-check-input"
-                                  type="checkbox"
-                                  name="chk_child"
-                                  value="option1"
-                                />
-                              </div>
-                            </th>
+                            
                             <td>{item.categoryId}</td>
                             <td>{item.name}</td>
                             <td>{item.hourlyrate}</td>
@@ -335,18 +313,6 @@ const ShipmentVariable = () => {
                     </tbody>
                   </table>
                 </div>
-
-                <div className="d-flex justify-content-end">
-                  <div className="pagination-wrap hstack gap-2">
-                    <Link className="page-item pagination-prev disabled" to="#">
-                      Previous
-                    </Link>
-                    <ul className="pagination listjs-pagination mb-0"></ul>
-                    <Link className="page-item pagination-next" to="#">
-                      Next
-                    </Link>
-                  </div>
-                </div>
               </div>
             </CardBody>
           </Card>
@@ -369,7 +335,7 @@ const ShipmentVariable = () => {
                 id="categoryId-field"
                 className="form-control"
                 name="categoryId"
-                placeholder="Enter Category ID"
+                placeholder="Enter ID"
                 value={formData.categoryId}
                 onChange={handleChange}
                 require
@@ -394,14 +360,14 @@ const ShipmentVariable = () => {
 
             <div className="mb-3">
               <label htmlFor="hourlyrate-field" className="form-label">
-                Hourly Rate (INR)
+                 Rate 
               </label>
               <input
                 type="number"
                 id="hourlyrate-field"
                 className="form-control"
                 name="hourlyrate"
-                placeholder="Enter Hourly Rate"
+                placeholder="Enter Rate"
                 value={formData.hourlyrate}
                 onChange={handleChange}
                 require
@@ -422,12 +388,12 @@ const ShipmentVariable = () => {
 
       {/* Edit modal */}
       <Modal isOpen={modal_edit} toggle={tog_edit}>
-        <ModalHeader toggle={tog_edit}>Edit Mwnufacturing</ModalHeader>
+        <ModalHeader toggle={tog_edit}>Edit Shipment Variable</ModalHeader>
         <ModalBody>
           <form onSubmit={handleEditSubmit}>
             <div className="mb-3">
               <label htmlFor="id" className="form-label">
-                Category ID
+                ID
               </label>
               <input
                 type="text"
@@ -453,7 +419,7 @@ const ShipmentVariable = () => {
             </div>
             <div className="mb-3">
               <label htmlFor="hourlyrate" className="form-label">
-                Hourly Rate
+                Rate
               </label>
               <input
                 type="number"
@@ -465,7 +431,7 @@ const ShipmentVariable = () => {
               />
             </div>
             <ModalFooter>
-              <Button color="primary" type="submit" disabled={posting}>
+              <Button color="success" type="submit" disabled={posting}>
                 {posting ? "Saving..." : "Save"}
               </Button>
               <Button color="secondary" onClick={tog_edit} disabled={posting}>

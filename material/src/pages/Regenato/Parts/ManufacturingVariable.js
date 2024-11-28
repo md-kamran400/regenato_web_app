@@ -421,9 +421,6 @@ const ManufacturingVariable = ({ partDetails, onTotalCountUpdate, onTotalCountUp
             >
               <i className="ri-add-line align-bottom me-1"></i>Add Unit Cost
             </Button>
-            <Button className="btn btn-soft-danger">
-              <i className="ri-delete-bin-2-line"></i>
-            </Button>
           </div>
         </Col>
         <Col className="col-sm">

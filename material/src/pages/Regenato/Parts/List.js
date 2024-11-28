@@ -45,6 +45,7 @@ const List = () => {
   const [timePerUnit, setTimePerUnit] = useState(0);
   const [stockPOQty, setStockPOQty] = useState(0);
   const [posting, setPosting] = useState(false);
+  const [selectedId, setSelectedId] = useState(null);
 
   const [formData, setFormData] = useState({
     partName: "",
@@ -275,6 +276,28 @@ const List = () => {
     console.log("Cost Per Unit Avg:", totals.costPerUnitAvg);
   });
 
+  const handleDelete = async (_id) => {
+    setPosting(true);
+    setError(null);
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_BASE_URL}/api/parts/${_id}`,
+        {
+          method: "DELETE",
+        }
+      );
+      if (!response.ok) {
+        throw new Error("Network response was not ok");
+      }
+      await fetchData(); // Refetch the data to update the table
+      tog_delete(); // Close the modal
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      setPosting(false);
+    }
+  };
+
   return (
     <React.Fragment>
       <ToastContainer closeButton={false} />
@@ -294,10 +317,6 @@ const List = () => {
               id="create-btn"
             >
               <i className="ri-add-line align-bottom me-1"></i> Add Part
-            </Button>
-
-            <Button className="btn btn-success">
-              <i className="ri-add-line align-bottom me-1"></i> Choose Category
             </Button>
           </div>
         </div>
@@ -359,7 +378,10 @@ const List = () => {
                     {/* <div className="dropdown-divider"></div> */}
                     <DropdownItem
                       href="#"
-                      onClick={() => handleRemovePart(index)}
+                      onClick={() => {
+                        setSelectedId(item._id);
+                        tog_delete();
+                      }}
                     >
                       <i className="ri-delete-bin-fill align-bottom me-2 text-muted"></i>{" "}
                       Remove
@@ -387,12 +409,12 @@ const List = () => {
           <ModalBody>
             <div className="mb-3">
               <label htmlFor="parts-id" className="form-label">
-                ID
+                Drawing Number
               </label>
               <Input
                 type="text"
                 className="form-control"
-                placeholder="Enter ID (e.g., 48A47015099)"
+                placeholder="Enter Drawing Number (e.g, 48A47015099)"
                 value={newPartId}
                 onChange={(e) => setNewPartId(e.target.value)}
                 required
@@ -413,6 +435,9 @@ const List = () => {
               />
             </div>
             <div className="mb-3 mt-3">
+               <label htmlFor="category" className="form-label">
+                 Category
+              </label>
               <Autocomplete
                 options={categories}
                 getOptionLabel={(option) => option.name}
@@ -430,6 +455,41 @@ const List = () => {
             </Button>
           </ModalBody>
         </form>
+      </Modal>
+
+      {/* Delete modal */}
+      <Modal isOpen={modal_delete} toggle={tog_delete} centered>
+        <ModalHeader className="bg-light p-3" toggle={tog_delete}>
+          Delete Record
+        </ModalHeader>
+        <ModalBody>
+          <div className="mt-2 text-center">
+            <lord-icon
+              src="https://cdn.lordicon.com/gsqxdxog.json"
+              trigger="loop"
+              colors="primary:#f7b84b,secondary:#f06548"
+              style={{ width: "100px", height: "100px" }}
+            ></lord-icon>
+            <div className="mt-4 pt-2 fs-15 mx-4 mx-sm-5">
+              <h4>Are you Sure?</h4>
+              <p className="text-muted mx-4 mb-0">
+                Are you sure you want to remove this record?
+              </p>
+            </div>
+          </div>
+        </ModalBody>
+        <ModalFooter>
+          <Button
+            color="danger"
+            onClick={() => handleDelete(selectedId)}
+            disabled={posting}
+          >
+            {posting ? "Deleting..." : "Yes! Delete It"}
+          </Button>
+          <Button color="secondary" onClick={tog_delete} disabled={posting}>
+            Cancel
+          </Button>
+        </ModalFooter>
       </Modal>
     </React.Fragment>
   );

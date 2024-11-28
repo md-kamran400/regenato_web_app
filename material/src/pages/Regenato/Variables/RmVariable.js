@@ -185,7 +185,7 @@ const RmVariable = () => {
                 <Col lg={12}>
                     <Card>
                         <CardHeader>
-                            <h4 className="card-title mb-0">RM Variables</h4>
+                            <h4 className="card-title mb-0">Raw Material Variables</h4>
                         </CardHeader>
                         <CardBody>
                             <div className="listjs-table" id="customerList">
@@ -195,9 +195,9 @@ const RmVariable = () => {
                                             <Button color="success" className="add-btn me-1" onClick={tog_list} id="create-btn">
                                                 <i className="ri-add-line align-bottom me-1"></i> Add
                                             </Button>
-                                            <Button className="btn btn-soft-danger">
+                                            {/* <Button className="btn btn-soft-danger">
                                                 <i className="ri-delete-bin-2-line"></i>
-                                            </Button>
+                                            </Button> */}
                                         </div>
                                     </Col>
                                     <Col className="col-sm">
@@ -214,11 +214,6 @@ const RmVariable = () => {
                                     <table className="table align-middle table-nowrap" id="customerTable">
                                         <thead className="table-light">
                                             <tr>
-                                                <th scope="col" style={{ width: '50px' }}>
-                                                    <div className="form-check">
-                                                        <input className="form-check-input" type="checkbox" id="checkAll" value="option" />
-                                                    </div>
-                                                </th>
                                                 <th className="sort" data-sort="id">ID</th>
                                                 <th className="sort" data-sort="name">Name</th>
                                                 <th className="sort" data-sort="price">Price (INR/Kg)</th>
@@ -228,11 +223,6 @@ const RmVariable = () => {
                                         <tbody className="list form-check-all">
                                             {RmtableData.map((item) => (
                                                 <tr key={item._id}>
-                                                    <th scope="row">
-                                                        <div className="form-check">
-                                                            <input className="form-check-input" type="checkbox" name="chk_child" value="option1" />
-                                                        </div>
-                                                    </th>
                                                     <td className="customer_name">{item.categoryId}</td>
                                                     <td className="customer_name">{item.name}</td>
                                                     <td className="customer_name">{item.price}</td>
@@ -260,12 +250,12 @@ const RmVariable = () => {
                                 {/* Edit modal */}
                                 <Modal isOpen={modal_edit} toggle={tog_edit} centered>
                                     <ModalHeader className="bg-light p-3" toggle={tog_edit}>
-                                        Edit RM Variable
+                                        Edit Raw Material Variable
                                     </ModalHeader>
                                     <form onSubmit={handleEditSubmit}>
                                         <ModalBody>
                                             <div className="mb-3">
-                                                <label htmlFor="categoryId" className="form-label">Category ID</label>
+                                                <label htmlFor="categoryId" className="form-label">ID</label>
                                                 <input type="text" className="form-control" id="categoryId" name="categoryId" value={formData.categoryId} onChange={handleChange} />
                                             </div>
                                             <div className="mb-3">
@@ -273,12 +263,12 @@ const RmVariable = () => {
                                                 <input type="text" className="form-control" id="name" name="name" value={formData.name} onChange={handleChange} />
                                             </div>
                                             <div className="mb-3">
-                                                <label htmlFor="price" className="form-label">Price</label>
+                                                <label htmlFor="price" className="form-label">Price (INR/Kg)</label>
                                                 <input type="text" className="form-control" id="price" name="price" value={formData.price} onChange={handleChange} />
                                             </div>
                                         </ModalBody>
                                         <ModalFooter>
-                                            <Button color="primary" type="submit" disabled={posting}>
+                                            <Button color="success" type="submit" disabled={posting}>
                                                 {posting ? 'Saving...' : 'Save'}
                                             </Button>
                                             <Button color="secondary" onClick={tog_edit} disabled={posting}>Cancel</Button>
@@ -293,26 +283,26 @@ const RmVariable = () => {
 
                         {/* Modal for adding new variables */}
              <Modal isOpen={modal_list} toggle={tog_list}>
-                <ModalHeader toggle={tog_list}>Add RM Variable</ModalHeader>
+                <ModalHeader toggle={tog_list}>Add Raw Material Variable</ModalHeader>
                 <ModalBody>
                     <form onSubmit={handleSubmit}>
                         <div className="mb-3">
-                            <label htmlFor="categoryId" className="form-label">Category ID</label>
-                            <input type="text" className="form-control" name="categoryId" value={formData.categoryId} onChange={handleChange} required />
+                            <label htmlFor="categoryId" className="form-label">ID</label>
+                            <input type="text" className="form-control" name="categoryId" placeholder="Enter ID" value={formData.categoryId} onChange={handleChange} required />
                         </div>
                         <div className="mb-3">
                             <label htmlFor="name" className="form-label">Name</label>
-                            <input type="text" className="form-control" name="name" value={formData.name} onChange={handleChange} required />
+                            <input type="text" className="form-control" name="name" value={formData.name} placeholder="Enter Name" onChange={handleChange} required />
                         </div>
                         <div className="mb-3">
-                            <label htmlFor="price" className="form-label">Price</label>
-                            <input type="number" className="form-control" name="price" value={formData.price} onChange={handleChange} required />
+                            <label htmlFor="price" className="form-label">Price (INR/Kg)</label>
+                            <input type="number" className="form-control" name="price" value={formData.price} placeholder='Enter Price' onChange={handleChange} required />
                         </div>
                         <ModalFooter>
+                            <Button color="secondary" onClick={tog_list} disabled={posting}>Cancel</Button>
                             <Button type="submit" color="success" disabled={posting}>
                                 {posting ? 'Adding...' : 'Add Variable'}
                             </Button>
-                            <Button color="secondary" onClick={tog_list} disabled={posting}>Cancel</Button>
                         </ModalFooter>
                     </form>
                 </ModalBody>

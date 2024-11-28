@@ -248,24 +248,10 @@ const SinglePart = () => {
             </Button>
           </div>
           <Row>
+
             <Col xl={3} ms={6}>
               <Card className={"card-height-100 "}>
                 <CardBody>
-                  <UncontrolledDropdown className="float-end">
-                    <DropdownToggle
-                      tag="a"
-                      className="text-reset dropdown-btn"
-                      href="#"
-                    >
-                      <span className="text-muted fs-18">
-                        <i className="mdi mdi-dots-vertical"></i>
-                      </span>
-                    </DropdownToggle>
-                    <DropdownMenu className="dropdown-menu-end">
-                      <DropdownItem>Favorite</DropdownItem>
-                      <DropdownItem>Apply Now</DropdownItem>
-                    </DropdownMenu>
-                  </UncontrolledDropdown>
                   <div className="mb-4 pb-2">
                     <div
                       style={{
@@ -297,21 +283,6 @@ const SinglePart = () => {
             <Col xl={3} ms={6}>
               <Card className="card-height-100">
                 <CardBody>
-                  <UncontrolledDropdown className="float-end">
-                    <DropdownToggle
-                      tag="a"
-                      className="text-reset dropdown-btn"
-                      href="#"
-                    >
-                      <span className="text-muted fs-18">
-                        <i className="mdi mdi-dots-vertical"></i>
-                      </span>
-                    </DropdownToggle>
-                    <DropdownMenu className="dropdown-menu-end">
-                      <DropdownItem>Favorite</DropdownItem>
-                      <DropdownItem>Apply Now</DropdownItem>
-                    </DropdownMenu>
-                  </UncontrolledDropdown>
                   <div className="mb-4 pb-2">
                     <div
                       style={{
@@ -340,21 +311,6 @@ const SinglePart = () => {
             <Col xl={3} ms={6}>
               <Card className={"card-height-100 "}>
                 <CardBody>
-                  <UncontrolledDropdown className="float-end">
-                    <DropdownToggle
-                      tag="a"
-                      className="text-reset dropdown-btn"
-                      href="#"
-                    >
-                      <span className="text-muted fs-18">
-                        <i className="mdi mdi-dots-vertical"></i>
-                      </span>
-                    </DropdownToggle>
-                    <DropdownMenu className="dropdown-menu-end">
-                      <DropdownItem>Favorite</DropdownItem>
-                      <DropdownItem>Apply Now</DropdownItem>
-                    </DropdownMenu>
-                  </UncontrolledDropdown>
                   <div className="mb-4 pb-2">
                     <div
                       style={{
@@ -397,8 +353,7 @@ const SinglePart = () => {
                       </span>
                     </DropdownToggle>
                     <DropdownMenu className="dropdown-menu-end">
-                      <DropdownItem>Favorite</DropdownItem>
-                      <DropdownItem>Apply Now</DropdownItem>
+                      <DropdownItem>Add Stock</DropdownItem>
                     </DropdownMenu>
                   </UncontrolledDropdown>
                   <div className="mb-4 pb-2">
@@ -428,21 +383,9 @@ const SinglePart = () => {
                 </CardBody>
               </Card>
             </Col>
-          </Row>
 
-          <div className="mb-4 pb-2 flex">
-            <Button
-              style={{ backgroundColor: "#9C27B0" }}
-              onClick={toggleModalCategory}
-              className="add-btn me-1"
-              id="create-btn"
-            >
-              <i className="ri-add-line align-bottom me-1"></i> Choose Category
-            </Button>
-            <Button className="add-btn me-1 bg-success" id="create-btn">
-              <i className="ri-add-line align-bottom me-1"></i> Add Template
-            </Button>
-          </div>
+          </Row>
+          
           <GeneralVariable partDetails={partDetails} />
 
           {/* RM Variables */}

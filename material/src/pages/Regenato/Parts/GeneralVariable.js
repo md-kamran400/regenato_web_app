@@ -262,9 +262,6 @@ const GeneralVariable = ({ partDetails }) => {
                     >
                       <i className="ri-add-line align-bottom me-1"></i> Add
                     </Button>
-                    <Button className="btn btn-soft-danger">
-                      <i className="ri-delete-bin-2-line"></i>
-                    </Button>
                   </div>
                 </Col>
                 <Col className="col-sm">
@@ -374,7 +371,25 @@ const GeneralVariable = ({ partDetails }) => {
         <ModalBody>
           <form className="tablelist-form" onSubmit={handleSubmit}>
             <ModalBody>
-              {/* Hours Field */}
+              
+              <div className="mb-3">
+                <label htmlFor="name" className="form-label">
+                  Name
+                </label>
+                <Autocomplete
+                  options={generalVariables}
+                  getOptionLabel={(option) => option.name}
+                  onChange={handleAutocompleteChange}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Select General Variable"
+                      variant="outlined"
+                    />
+                  )}
+                />
+              </div>
+
               <div className="mb-3">
                 <label htmlFor="id-field" className="form-label">
                   ID
@@ -390,27 +405,10 @@ const GeneralVariable = ({ partDetails }) => {
                   required
                 />
               </div>
-              <div className="mb-3">
-                <label htmlFor="name" className="form-label">
-                  Name
-                </label>
-                <Autocomplete
-                  options={generalVariables}
-                  getOptionLabel={(option) => option.name}
-                  onChange={handleAutocompleteChange}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      label="Select Material"
-                      variant="outlined"
-                    />
-                  )}
-                />
-              </div>
 
               <div className="mb-3">
                 <label htmlFor="value-field" className="form-label">
-                  value
+                  Value
                 </label>
                 <input
                   type="text"
@@ -445,20 +443,7 @@ const GeneralVariable = ({ partDetails }) => {
         <ModalHeader toggle={tog_edit}>Edit General Variable</ModalHeader>
         <ModalBody>
           <form onSubmit={handleEditSubmit}>
-            <div className="mb-3">
-              <label htmlFor="categoryId" className="form-label">
-                Category ID
-              </label>
-              <input
-                type="text"
-                className="form-control"
-                name="categoryId"
-                value={formData.categoryId}
-                onChange={handleChange}
-                required
-              />
-            </div>
-            <div className="mb-3">
+          <div className="mb-3">
               <label htmlFor="name" className="form-label">
                 Name
               </label>
@@ -471,9 +456,24 @@ const GeneralVariable = ({ partDetails }) => {
                 onChange={handleChange}
               />
             </div>
+            
+            <div className="mb-3">
+              <label htmlFor="categoryId" className="form-label">
+                ID
+              </label>
+              <input
+                type="text"
+                className="form-control"
+                name="categoryId"
+                value={formData.categoryId}
+                onChange={handleChange}
+                required
+              />
+            </div>
+            
             <div className="mb-3">
               <label htmlFor="value" className="form-label">
-                value
+                Value
               </label>
               <input
                 type="text"

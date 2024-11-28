@@ -229,7 +229,7 @@ const OverheadsVariable = () => {
         <Col lg={12}>
           <Card>
             <CardHeader>
-              <h4 className="card-title mb-0">Overheads and profits</h4>
+              <h4 className="card-title mb-0">Overheads And Profits</h4>
             </CardHeader>
             <CardBody>
               <div className="listjs-table" id="customerList">
@@ -242,9 +242,6 @@ const OverheadsVariable = () => {
                         onClick={tog_add}
                       >
                         <i className="ri-add-line align-bottom me-1"></i> Add
-                      </Button>
-                      <Button className="btn btn-soft-danger">
-                        <i className="ri-delete-bin-2-line"></i>
                       </Button>
                     </div>
                   </Col>
@@ -278,16 +275,7 @@ const OverheadsVariable = () => {
                     >
                       <thead className="table-light">
                         <tr>
-                          <th scope="col" style={{ width: "50px" }}>
-                            <div className="form-check">
-                              <input
-                                className="form-check-input"
-                                type="checkbox"
-                                id="checkAll"
-                                value="option"
-                              />
-                            </div>
-                          </th>
+                          
                           <th className="sort" data-sort="customer_name">
                             ID
                           </th>
@@ -306,16 +294,7 @@ const OverheadsVariable = () => {
                       <tbody className="list form-check-all">
                         {overheadsData.map((item) => (
                           <tr key={item._id}>
-                            <th scope="row">
-                              <div className="form-check">
-                                <input
-                                  className="form-check-input"
-                                  type="checkbox"
-                                  name="chk_child"
-                                  value="option1"
-                                />
-                              </div>
-                            </th>
+                            
                             <td className="customer_name">{item.categoryId}</td>
                             <td className="customer_name">{item.name}</td>
                             <td className="customer_name">{item.percentage}</td>
@@ -348,33 +327,6 @@ const OverheadsVariable = () => {
                       </tbody>
                     </table>
                   )}
-                  <div className="noresult" style={{ display: "none" }}>
-                    <div className="text-center">
-                      <lord-icon
-                        src="https://cdn.lordicon.com/msoeawqm.json"
-                        trigger="loop"
-                        colors="primary:#121331,secondary:#08a88a"
-                        style={{ width: "75px", height: "75px" }}
-                      ></lord-icon>
-                      <h5 className="mt-2">Sorry! No Result Found</h5>
-                      <p className="text-muted mb-0">
-                        We've searched more than 150+ Orders We did not find any
-                        orders for your search.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="d-flex justify-content-end">
-                  <div className="pagination-wrap hstack gap-2">
-                    <Link className="page-item pagination-prev disabled" to="#">
-                      Previous
-                    </Link>
-                    <ul className="pagination listjs-pagination mb-0"></ul>
-                    <Link className="page-item pagination-next" to="#">
-                      Next
-                    </Link>
-                  </div>
                 </div>
               </div>
             </CardBody>
@@ -421,14 +373,14 @@ const OverheadsVariable = () => {
 
             <div className="mb-3">
               <label htmlFor="percentage-field" className="form-label">
-                Hourly Rate (INR)
+               Percentage 
               </label>
               <input
                 type="number"
                 id="percentage-field"
                 className="form-control"
                 name="percentage"
-                placeholder="Enter Hourly Rate"
+                placeholder="Enter Percentage "
                 value={formData.percentage}
                 onChange={handleChange}
                 require
@@ -480,7 +432,7 @@ const OverheadsVariable = () => {
             </div>
             <div className="mb-3">
               <label htmlFor="percentage" className="form-label">
-                Hourly Rate
+                Percentage 
               </label>
               <input
                 type="number"
@@ -492,7 +444,7 @@ const OverheadsVariable = () => {
               />
             </div>
             <ModalFooter>
-              <Button color="primary" type="submit" disabled={posting}>
+              <Button color="success" type="submit" disabled={posting}>
                 {posting ? "Saving..." : "Save"}
               </Button>
               <Button color="secondary" onClick={tog_edit} disabled={posting}>
