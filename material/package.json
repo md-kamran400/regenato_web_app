@@ -48,6 +48,7 @@
     "i18next": "^23.7.11",
     "i18next-browser-languagedetector": "^7.2.0",
     "list.js": "^2.3.1",
+    "lodash": "^4.17.21",
     "lord-icon-element": "^4.1.2",
     "lottie-web": "^5.12.2",
     "moment": "^2.29.4",

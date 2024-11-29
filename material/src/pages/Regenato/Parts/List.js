@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useCallback, useContext } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { Link } from "react-router-dom";
+import { debounce } from "lodash";
 import {
   Card,
   CardBody,
@@ -46,6 +47,19 @@ const List = () => {
   const [stockPOQty, setStockPOQty] = useState(0);
   const [posting, setPosting] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [totalPages, setTotalPages] = useState(0);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filteredData, setFilteredData] = useState([]);
+  const [displayedData, setDisplayedData] = useState([]);
+  const [modal_duplicate, setModalDuplicate] = useState(false); // For duplicate modal
+  const [duplicatePartData, setDuplicatePartData] = useState({
+    partName: "",
+    id: "",
+  });
+  const [selectedPart, setSelectedPart] = useState(null); // Holds the part to duplicate
+  
 
   const [formData, setFormData] = useState({
     partName: "",
@@ -61,6 +75,27 @@ const List = () => {
   const tog_delete = () => {
     setModalDelete(!modal_delete);
   };
+
+  const toggleDuplicateModal = (item) => {
+    if (item) {
+      setSelectedPart(item); // Save the original part data for duplication
+      setDuplicatePartData({
+        partName: `${item.partName}2`, // Append '2' to the part name
+        id: "", // Leave the new ID empty for user input
+        costPerUnit: item.costPerUnit,
+        timePerUnit: item.timePerUnit,
+        stockPOQty: item.stockPOQty,
+        generalVariables: [...item.generalVariables],
+        rmVariables: [...item.rmVariables], // Deep clone nested arrays
+        manufacturingVariables: [...item.manufacturingVariables],
+        shipmentVariables: [...item.shipmentVariables],
+        overheadsAndProfits: [...item.overheadsAndProfits],
+      });
+    }
+    setModalDuplicate(!modal_duplicate);
+  };
+  
+  
 
   const toggleEditModal = (item = null) => {
     if (item) {
@@ -96,21 +131,85 @@ const List = () => {
         throw new Error("Network response was not ok");
       }
       const data = await response.json();
-      setListData(data); // Set the fetched data to state
+      setListData(data.sort((a, b) => a.index - b.index)); // Sort by index
+      setFilteredData(data.sort((a, b) => a.index - b.index)); // Sort by index
+      updatePagination();
     } catch (error) {
-      setError(error.message); // Set error message
+      setError(error.message);
     } finally {
-      setLoading(false); // Set loading to false once fetch is complete
+      setLoading(false);
     }
   }, []);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+  //paginations
 
-  // Handle adding a new part
-  // Inside the handleAddPart function
-  // Inside the List component
+  // ... existing code ...
+  const handleSearch = useCallback(() => {
+    const filteredItems = listData.filter(
+      (item) =>
+        item.partName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.id.toString().includes(searchTerm)
+    );
+    setFilteredData(filteredItems);
+    setCurrentPage(1); // Reset page number when search changes
+    paginate(1); // Show first page after filtering
+  }, [searchTerm, listData]);
+
+  useEffect(() => {
+    handleSearch();
+  }, [handleSearch]);
+
+  const debouncedHandleSearch = useMemo(
+    () => debounce(handleSearch, 300),
+    [handleSearch]
+  );
+
+  useEffect(() => {
+    debouncedHandleSearch();
+  }, [debouncedHandleSearch]);
+
+  // Function to update pagination when search is applied
+  const updatePagination = () => {
+    setCurrentPage(1);
+    setItemsPerPage(10);
+    paginate(1);
+  };
+
+  const paginate = useCallback(
+    (pageNumber) => {
+      setCurrentPage(pageNumber);
+      const startIndex = (pageNumber - 1) * itemsPerPage;
+      const endIndex = pageNumber * itemsPerPage;
+      setDisplayedData(filteredData.slice(startIndex, endIndex));
+    },
+    [itemsPerPage, filteredData]
+  );
+
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = listData.slice(indexOfFirstItem, indexOfLastItem);
+
+  const pageNumbers = [];
+  for (let i = 1; i <= Math.ceil(listData.length / itemsPerPage); i++) {
+    pageNumbers.push(i);
+  }
+
+  // const paginate = (pageNumber) => setCurrentPage(pageNumber);
+
+  const nextPage = () => {
+    if (currentPage < pageNumbers.length) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+
+  const prevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
 
   const handleAddPart = async () => {
     // Extract only the numeric part of the ID
@@ -160,32 +259,57 @@ const List = () => {
     }
   };
 
-  // Handle removing a part
-  const handleRemovePart = (indexToRemove) => {
-    const updatedParts = listData.filter((_, index) => index !== indexToRemove);
-    setListData(updatedParts); // Update the project list with the part removed
-  };
-
-  const activebtn = (ele) => {
-    if (ele.closest("button").classList.contains("active")) {
-      ele.closest("button").classList.remove("active");
-    } else {
-      ele.closest("button").classList.add("active");
+  // creating handleDuplicate
+  const handleCreateDuplicate = async () => {
+    try {
+      console.log("Duplicate Part Data:", duplicatePartData);
+  
+      const response = await fetch(
+        `${process.env.REACT_APP_BASE_URL}/api/parts`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            id: duplicatePartData.id,
+            partName: duplicatePartData.partName,
+            costPerUnit: duplicatePartData.costPerUnit,
+            timePerUnit: duplicatePartData.timePerUnit,
+            stockPOQty: duplicatePartData.stockPOQty,
+            generalVariables: duplicatePartData.generalVariables,
+            rmVariables: duplicatePartData.rmVariables,
+            manufacturingVariables: duplicatePartData.manufacturingVariables,
+            shipmentVariables: duplicatePartData.shipmentVariables,
+            overheadsAndProfits: duplicatePartData.overheadsAndProfits,
+          }),
+        }
+      );
+  
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Backend Error Response:", errorText);
+        throw new Error(`Failed to create duplicate part. Response: ${errorText}`);
+      }
+  
+      const result = await response.json();
+      console.log("Duplicate Part Created:", result);
+  
+      // Refresh the parts list and close the modal
+      await fetchData();
+      setModalDuplicate(false);
+  
+      toast.success("Duplicate part created successfully!");
+    } catch (error) {
+      console.error("Error creating duplicate:", error.message);
+      toast.error(error.message);
     }
   };
+  
+  
+  
+  
 
-  // Debugging logs
-  console.log("Debugging logs:");
-  console.log("listData:", listData);
-  console.log("listData.rmVariables:", listData?.rmVariables);
-  console.log(
-    "listData.manufacturingVariables:",
-    listData?.manufacturingVariables
-  );
-  console.log("listData.shipmentVariables:", listData?.shipmentVariables);
-  console.log("listData.overheadsAndProfits:", listData?.overheadsAndProfits);
-
-  // Calculate totals for each part
   // Calculate totals for each part
   const partTotals = listData.reduce((acc, part) => {
     console.log("Processing item:", part.id);
@@ -226,47 +350,6 @@ const List = () => {
 
   console.log("Final Part Totals:", partTotals);
 
-  // Calculate overall totals
-  const rmTotalCount = Object.values(partTotals).reduce(
-    (sum, part) => sum + part.rmTotal,
-    0
-  );
-  const manufacturingTotalCount = Object.values(partTotals).reduce(
-    (sum, part) => sum + part.manufacturingTotal,
-    0
-  );
-  const shipmentTotalCount = Object.values(partTotals).reduce(
-    (sum, part) => sum + part.shipmentTotal,
-    0
-  );
-  const overheadsTotalCount = Object.values(partTotals).reduce(
-    (sum, part) => sum + part.overheadsTotal,
-    0
-  );
-  const totalCost = Object.values(partTotals).reduce(
-    (sum, part) => sum + part.totalCost,
-    0
-  );
-  const costPerUnitAvg =
-    Object.values(partTotals).reduce(
-      (sum, part) => sum + part.costPerUnitAvg,
-      0
-    ) / Object.keys(partTotals).length;
-  const manufacturingTotalCountHours = Object.values(partTotals).reduce(
-    (sum, part) => sum + part.manufacturingHours,
-    0
-  );
-
-  // console.log('Final values:');
-  // console.log('rmTotalCount:', rmTotalCount);
-  // console.log('manufacturingTotalCount:', manufacturingTotalCount);
-  // console.log('shipmentTotalCount:', shipmentTotalCount);
-  // console.log('overheadsTotalCount:', overheadsTotalCount);
-  // console.log('totalCost which dont want:', totalCost);
-  // console.log('costPerUnitAvg:', costPerUnitAvg);
-  // console.log('manufacturingTotalCountHours:', manufacturingTotalCountHours);
-
-  // Logging intermediate results for debugging
   Object.entries(partTotals).forEach(([partId, totals]) => {
     console.log(`Part ${partId}:`);
     console.log("RM Total:", totals.rmTotal);
@@ -320,15 +403,16 @@ const List = () => {
             </Button>
           </div>
         </div>
-        <div className="col-sm-3 ms-auto">
+        <div className="col-sm-7 ms-auto">
           <div className="d-flex justify-content-sm-end gap-2">
-            <div className="search-box ms-2 col-sm-7">
+            <div className="d-flex search-box ms-2 col-sm-7">
               <Input
                 type="text"
                 className="form-control"
                 placeholder="Search..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
               />
-              <i className="ri-search-line search-icon"></i>
             </div>
           </div>
         </div>
@@ -348,7 +432,7 @@ const List = () => {
           </tr>
         </thead>
         <tbody>
-          {listData.map((item, index) => (
+          {displayedData.map((item, index) => (
             <tr key={index}>
               <td>
                 <Link to={`/singlepart/${item._id}`} className="text-body">
@@ -386,6 +470,11 @@ const List = () => {
                       <i className="ri-delete-bin-fill align-bottom me-2 text-muted"></i>{" "}
                       Remove
                     </DropdownItem>
+
+                    <DropdownItem href="#" onClick={() => toggleDuplicateModal(item)}>
+                      <i className="ri-file-copy-line align-bottom me-2 text-muted"></i> Duplicate
+                    </DropdownItem>
+
                   </DropdownMenu>
                 </UncontrolledDropdown>
               </td>
@@ -393,6 +482,47 @@ const List = () => {
           ))}
         </tbody>
       </table>
+
+      <div className="d-flex justify-content-end mt-2">
+        <div className="pagination-wrap hstack gap-2">
+          <Link
+            className={`page-item pagination-prev ${
+              currentPage === 1 ? "disabled" : ""
+            }`}
+            to="#"
+            onClick={() => paginate(currentPage - 1)}
+          >
+            Previous
+          </Link>
+          <ul className="pagination listjs-pagination mb-0">
+            {[...Array(Math.ceil(filteredData.length / itemsPerPage))].map(
+              (_, i) => (
+                <li
+                  key={i + 1}
+                  className={`page-item ${
+                    currentPage === i + 1 ? "active" : ""
+                  }`}
+                >
+                  <Link to="#" onClick={() => paginate(i + 1)}>
+                    {i + 1}
+                  </Link>
+                </li>
+              )
+            )}
+          </ul>
+          <Link
+            className={`page-item pagination-next ${
+              currentPage === Math.ceil(filteredData.length / itemsPerPage)
+                ? "disabled"
+                : ""
+            }`}
+            to="#"
+            onClick={() => paginate(currentPage + 1)}
+          >
+            Next
+          </Link>
+        </div>
+      </div>
 
       {/* Modal for adding a new item */}
       <Modal isOpen={modal_list} toggle={toggleModal} centered>
@@ -435,8 +565,8 @@ const List = () => {
               />
             </div>
             <div className="mb-3 mt-3">
-               <label htmlFor="category" className="form-label">
-                 Category
+              <label htmlFor="category" className="form-label">
+                Category
               </label>
               <Autocomplete
                 options={categories}
@@ -456,6 +586,52 @@ const List = () => {
           </ModalBody>
         </form>
       </Modal>
+
+      <Modal isOpen={modal_duplicate} toggle={() => setModalDuplicate(false)} centered>
+  <ModalHeader toggle={() => setModalDuplicate(false)}>Duplicate Part</ModalHeader>
+  <ModalBody>
+    <div className="mb-3">
+      <label htmlFor="duplicate-part-name" className="form-label">
+        Part Name
+      </label>
+      <Input
+        type="text"
+        id="duplicate-part-name"
+        className="form-control"
+        value={duplicatePartData.partName}
+        onChange={(e) =>
+          setDuplicatePartData({ ...duplicatePartData, partName: e.target.value })
+        }
+        required
+      />
+    </div>
+    <div className="mb-3">
+      <label htmlFor="duplicate-part-id" className="form-label">
+        Part ID
+      </label>
+      <Input
+        type="text"
+        id="duplicate-part-id"
+        className="form-control"
+        placeholder="Enter a unique ID"
+        value={duplicatePartData.id}
+        onChange={(e) =>
+          setDuplicatePartData({ ...duplicatePartData, id: e.target.value })
+        }
+        required
+      />
+    </div>
+  </ModalBody>
+  <ModalFooter>
+    <Button color="primary" onClick={handleCreateDuplicate}>
+      Create Duplicate
+    </Button>
+    <Button color="secondary" onClick={() => setModalDuplicate(false)}>
+      Cancel
+    </Button>
+  </ModalFooter>
+      </Modal>
+
 
       {/* Delete modal */}
       <Modal isOpen={modal_delete} toggle={tog_delete} centered>
