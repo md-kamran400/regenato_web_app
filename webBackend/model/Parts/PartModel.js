@@ -57,9 +57,9 @@ const partSchema = new mongoose.Schema({
   manufacturingVariables: [manufacturingVariableSchema],
   shipmentVariables: [shipmentVariableSchema],
   overheadsAndProfits: [overheadsAndProfitsSchema],
-  partsCalculations: [partsCalculationsSchema]
+  partsCalculations: [partsCalculationsSchema],
+  index: { type: Number } // Add this line
 });
-
 
 
 const PartsModel = mongoose.model("Part", partSchema);

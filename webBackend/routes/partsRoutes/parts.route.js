@@ -8,15 +8,92 @@ const PartRoutes = Router();
 // parts variable's backend
 
 // POST - Add a new part
+// POST - Add a new part or duplicate an existing part
+// POST - Add a new part or duplicate an existing part
 PartRoutes.post("/", async (req, res) => {
   try {
-    const newPart = new PartsModel(req.body);
-    await newPart.save();
-    res.status(201).json(newPart);
+    const { id, partName, costPerUnit, timePerUnit, stockPOQty, rmVariables, manufacturingVariables, shipmentVariables, overheadsAndProfits, originalIndex } = req.body;
+
+    // Check if this is a duplicate request
+    if (id && partName && costPerUnit && timePerUnit && stockPOQty) {
+      // This is a duplicate request, create a new part with the provided data
+      const newPart = new PartsModel({
+        id,
+        partName,
+        costPerUnit,
+        timePerUnit,
+        stockPOQty,
+        rmVariables,
+        manufacturingVariables,
+        shipmentVariables,
+        overheadsAndProfits,
+      });
+
+      // Find all parts
+      const allParts = await PartsModel.find().sort({ id: 1 });
+
+      // Insert the new part at the correct position
+      allParts.splice(originalIndex + 1, 0, newPart);
+
+      // Update the database with the new order
+      await Promise.all(allParts.map((part, index) => {
+        part.index = index;
+        return part.save();
+      }));
+
+      res.status(201).json(newPart);
+    } else {
+      // This is a new part creation request
+      const newPart = new PartsModel(req.body);
+      await newPart.save();
+      res.status(201).json(newPart);
+    }
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
 });
+
+// post for dupliate 
+// Route to duplicate a part
+// PartRoutes.post("/duplicate/:id", async (req, res) => {
+//   try {
+//     const { id } = req.params; // Original part ID
+//     const { newId, newPartName, ...duplicateData } = req.body;
+
+//     console.log("Duplicate request received:");
+//     console.log("Original Part ID:", id);
+//     console.log("New Part ID:", newId);
+//     console.log("New Part Name:", newPartName);
+
+//     // Fetch the original part
+//     const originalPart = await PartsModel.findById(id);
+//     if (!originalPart) {
+//       return res.status(404).json({ message: "Original part not found" });
+//     }
+
+//     // Check if newId is unique
+//     const existingPart = await PartsModel.findOne({ id: newId });
+//     if (existingPart) {
+//       return res.status(400).json({ message: "Duplicate ID already exists" });
+//     }
+
+//     // Create duplicate part
+//     const duplicatePart = new PartsModel({
+//       ...originalPart.toObject(), // Clone original part
+//       _id: undefined, // Generate a new MongoDB ID
+//       id: newId, // Assign new ID
+//       partName: newPartName, // Assign new Name
+//       ...duplicateData, // Overwrite other fields
+//     });
+
+//     await duplicatePart.save();
+//     res.status(201).json(duplicatePart);
+//   } catch (error) {
+//     console.error("Error duplicating part:", error);
+//     res.status(500).json({ message: error.message || "Internal server error" });
+//   }
+// });
+
 
 // GET - Retrieve all parts
 PartRoutes.get("/", async (req, res) => {
