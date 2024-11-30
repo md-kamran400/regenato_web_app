@@ -12,7 +12,7 @@ const PartRoutes = Router();
 // POST - Add a new part or duplicate an existing part
 PartRoutes.post("/", async (req, res) => {
   try {
-    const { id, partName, costPerUnit, timePerUnit, stockPOQty, rmVariables, manufacturingVariables, shipmentVariables, overheadsAndProfits, originalIndex } = req.body;
+    const { id, partName, costPerUnit, timePerUnit, stockPOQty, rmVariables, manufacturingVariables, shipmentVariables, overheadsAndProfits,partsCalculations, originalIndex } = req.body;
 
     // Check if this is a duplicate request
     if (id && partName && costPerUnit && timePerUnit && stockPOQty) {
@@ -27,6 +27,7 @@ PartRoutes.post("/", async (req, res) => {
         manufacturingVariables,
         shipmentVariables,
         overheadsAndProfits,
+        partsCalculations,
       });
 
       // Find all parts
