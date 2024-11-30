@@ -649,7 +649,7 @@ const RmVariable = ({ partDetails, onTotalCountUpdate }) => {
           <form onSubmit={handleEditSubmit}>
             <div className="mb-3">
               <label htmlFor="categoryId" className="form-label">
-                Category ID
+                ID
               </label>
               <input
                 type="text"

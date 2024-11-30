@@ -392,15 +392,11 @@ const SingeProject = () => {
                               <td className="parent_partName">
                                 {item.partName} ({item.Uid})
                               </td>
-                              <td>{item.costPerUnit.toFixed(2)}</td>
-                              <td>{item.timePerUnit.toFixed(2)}</td>
-                              <td>{item.quantity}</td>
-                              <td>
-                                {(item.costPerUnit * item.quantity).toFixed(2)}
-                              </td>
-                              <td>
-                                {(item.timePerUnit * item.quantity).toFixed(2)}
-                              </td>
+                              <td>{item.costPerUnit !== undefined ? item.costPerUnit.toFixed(2) : 'N/A'}</td>
+                              <td>{item.timePerUnit !== undefined ? item.timePerUnit.toFixed(2) : 'N/A'}</td>
+                              <td>{item.quantity !== undefined ? item.quantity : 'N/A'}</td>
+                              <td>{(item.costPerUnit * item.quantity).toFixed(2)}</td>
+                              <td>{(item.timePerUnit * item.quantity).toFixed(2)}</td>
                             </tr>
                             {expandedRowId === item._id && (
                               <tr className="details-row">

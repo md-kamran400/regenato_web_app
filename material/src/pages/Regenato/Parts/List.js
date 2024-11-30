@@ -16,12 +16,16 @@ import {
   ModalBody,
   ModalHeader,
   ModalFooter,
+  Pagination,
+  PaginationItem,
+  PaginationLink,
 } from "reactstrap";
 import DeleteModal from "../../../Components/Common/DeleteModal";
 import { ToastContainer, toast } from "react-toastify";
 import FeatherIcon from "feather-icons-react/build/FeatherIcon";
 import Autocomplete from "@mui/material/Autocomplete";
 import TextField from "@mui/material/TextField";
+import PaginatedList from "../Pagination/PaginatedList";
 
 const categories = [
   { name: "Category 1" },
@@ -47,19 +51,15 @@ const List = () => {
   const [stockPOQty, setStockPOQty] = useState(0);
   const [posting, setPosting] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
-  const [totalPages, setTotalPages] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filteredData, setFilteredData] = useState([]);
-  const [displayedData, setDisplayedData] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 25;
   const [modal_duplicate, setModalDuplicate] = useState(false); // For duplicate modal
   const [duplicatePartData, setDuplicatePartData] = useState({
     partName: "",
     id: "",
   });
   const [selectedPart, setSelectedPart] = useState(null); // Holds the part to duplicate
-  
 
   const [formData, setFormData] = useState({
     partName: "",
@@ -71,6 +71,7 @@ const List = () => {
   const toggleModal = () => {
     setModalList(!modal_list);
   };
+
   // Function to toggle 'Delete' modal
   const tog_delete = () => {
     setModalDelete(!modal_delete);
@@ -90,12 +91,11 @@ const List = () => {
         manufacturingVariables: [...item.manufacturingVariables],
         shipmentVariables: [...item.shipmentVariables],
         overheadsAndProfits: [...item.overheadsAndProfits],
+        partsCalculations: [...item.partsCalculations],
       });
     }
     setModalDuplicate(!modal_duplicate);
   };
-  
-  
 
   const toggleEditModal = (item = null) => {
     if (item) {
@@ -128,87 +128,39 @@ const List = () => {
         `${process.env.REACT_APP_BASE_URL}/api/parts`
       );
       if (!response.ok) {
-        throw new Error("Network response was not ok");
+        throw new Error("Failed to fetch parts");
       }
       const data = await response.json();
-      setListData(data.sort((a, b) => a.index - b.index)); // Sort by index
-      setFilteredData(data.sort((a, b) => a.index - b.index)); // Sort by index
-      updatePagination();
-    } catch (error) {
-      setError(error.message);
+      setListData(data);
+    } catch (err) {
+      setError(err.message);
     } finally {
       setLoading(false);
     }
   }, []);
-
   useEffect(() => {
     fetchData();
   }, [fetchData]);
   //paginations
 
-  // ... existing code ...
-  const handleSearch = useCallback(() => {
-    const filteredItems = listData.filter(
-      (item) =>
-        item.partName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.id.toString().includes(searchTerm)
-    );
-    setFilteredData(filteredItems);
-    setCurrentPage(1); // Reset page number when search changes
-    paginate(1); // Show first page after filtering
-  }, [searchTerm, listData]);
-
-  useEffect(() => {
-    handleSearch();
-  }, [handleSearch]);
-
-  const debouncedHandleSearch = useMemo(
-    () => debounce(handleSearch, 300),
-    [handleSearch]
+  // Filtered and Paginated Data
+  const filteredData = listData.filter((item) =>
+    item.partName.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  useEffect(() => {
-    debouncedHandleSearch();
-  }, [debouncedHandleSearch]);
-
-  // Function to update pagination when search is applied
-  const updatePagination = () => {
-    setCurrentPage(1);
-    setItemsPerPage(10);
-    paginate(1);
-  };
-
-  const paginate = useCallback(
-    (pageNumber) => {
-      setCurrentPage(pageNumber);
-      const startIndex = (pageNumber - 1) * itemsPerPage;
-      const endIndex = pageNumber * itemsPerPage;
-      setDisplayedData(filteredData.slice(startIndex, endIndex));
-    },
-    [itemsPerPage, filteredData]
+  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+  const paginatedData = filteredData.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
   );
 
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = listData.slice(indexOfFirstItem, indexOfLastItem);
-
-  const pageNumbers = [];
-  for (let i = 1; i <= Math.ceil(listData.length / itemsPerPage); i++) {
-    pageNumbers.push(i);
-  }
-
-  // const paginate = (pageNumber) => setCurrentPage(pageNumber);
-
-  const nextPage = () => {
-    if (currentPage < pageNumbers.length) {
-      setCurrentPage(currentPage + 1);
-    }
+  const handleSearch = (e) => {
+    setSearchTerm(e.target.value);
+    setCurrentPage(1); // Reset to the first page on search
   };
 
-  const prevPage = () => {
-    if (currentPage > 1) {
-      setCurrentPage(currentPage - 1);
-    }
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
   };
 
   const handleAddPart = async () => {
@@ -263,7 +215,7 @@ const List = () => {
   const handleCreateDuplicate = async () => {
     try {
       console.log("Duplicate Part Data:", duplicatePartData);
-  
+
       const response = await fetch(
         `${process.env.REACT_APP_BASE_URL}/api/parts`,
         {
@@ -282,33 +234,32 @@ const List = () => {
             manufacturingVariables: duplicatePartData.manufacturingVariables,
             shipmentVariables: duplicatePartData.shipmentVariables,
             overheadsAndProfits: duplicatePartData.overheadsAndProfits,
+            partsCalculations: duplicatePartData.partsCalculations,
           }),
         }
       );
-  
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error("Backend Error Response:", errorText);
-        throw new Error(`Failed to create duplicate part. Response: ${errorText}`);
+        throw new Error(
+          `Failed to create duplicate part. Response: ${errorText}`
+        );
       }
-  
+
       const result = await response.json();
       console.log("Duplicate Part Created:", result);
-  
+
       // Refresh the parts list and close the modal
       await fetchData();
       setModalDuplicate(false);
-  
+
       toast.success("Duplicate part created successfully!");
     } catch (error) {
       console.error("Error creating duplicate:", error.message);
       toast.error(error.message);
     }
   };
-  
-  
-  
-  
 
   // Calculate totals for each part
   const partTotals = listData.reduce((acc, part) => {
@@ -399,7 +350,7 @@ const List = () => {
               onClick={toggleModal}
               id="create-btn"
             >
-              <i className="ri-add-line align-bottom me-1"></i> Add Part
+              <i className="ri-add-line align-bottom me-1"></i> Add Part 
             </Button>
           </div>
         </div>
@@ -408,10 +359,9 @@ const List = () => {
             <div className="d-flex search-box ms-2 col-sm-7">
               <Input
                 type="text"
-                className="form-control"
                 placeholder="Search..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={handleSearch}
               />
             </div>
           </div>
@@ -432,7 +382,7 @@ const List = () => {
           </tr>
         </thead>
         <tbody>
-          {displayedData.map((item, index) => (
+           {paginatedData.map((item, index) => (
             <tr key={index}>
               <td>
                 <Link to={`/singlepart/${item._id}`} className="text-body">
@@ -471,10 +421,13 @@ const List = () => {
                       Remove
                     </DropdownItem>
 
-                    <DropdownItem href="#" onClick={() => toggleDuplicateModal(item)}>
-                      <i className="ri-file-copy-line align-bottom me-2 text-muted"></i> Duplicate
+                    <DropdownItem
+                      href="#"
+                      onClick={() => toggleDuplicateModal(item)}
+                    >
+                      <i className="ri-file-copy-line align-bottom me-2 text-muted"></i>{" "}
+                      Duplicate
                     </DropdownItem>
-
                   </DropdownMenu>
                 </UncontrolledDropdown>
               </td>
@@ -483,47 +436,13 @@ const List = () => {
         </tbody>
       </table>
 
-      <div className="d-flex justify-content-end mt-2">
-        <div className="pagination-wrap hstack gap-2">
-          <Link
-            className={`page-item pagination-prev ${
-              currentPage === 1 ? "disabled" : ""
-            }`}
-            to="#"
-            onClick={() => paginate(currentPage - 1)}
-          >
-            Previous
-          </Link>
-          <ul className="pagination listjs-pagination mb-0">
-            {[...Array(Math.ceil(filteredData.length / itemsPerPage))].map(
-              (_, i) => (
-                <li
-                  key={i + 1}
-                  className={`page-item ${
-                    currentPage === i + 1 ? "active" : ""
-                  }`}
-                >
-                  <Link to="#" onClick={() => paginate(i + 1)}>
-                    {i + 1}
-                  </Link>
-                </li>
-              )
-            )}
-          </ul>
-          <Link
-            className={`page-item pagination-next ${
-              currentPage === Math.ceil(filteredData.length / itemsPerPage)
-                ? "disabled"
-                : ""
-            }`}
-            to="#"
-            onClick={() => paginate(currentPage + 1)}
-          >
-            Next
-          </Link>
-        </div>
-      </div>
-
+      {/* Pagination */}
+      <PaginatedList
+        totalPages={totalPages}
+        currentPage={currentPage}
+        onPageChange={handlePageChange}
+      />      
+            
       {/* Modal for adding a new item */}
       <Modal isOpen={modal_list} toggle={toggleModal} centered>
         <ModalHeader className="bg-light p-3" toggle={toggleModal}>
@@ -587,51 +506,62 @@ const List = () => {
         </form>
       </Modal>
 
-      <Modal isOpen={modal_duplicate} toggle={() => setModalDuplicate(false)} centered>
-  <ModalHeader toggle={() => setModalDuplicate(false)}>Duplicate Part</ModalHeader>
-  <ModalBody>
-    <div className="mb-3">
-      <label htmlFor="duplicate-part-name" className="form-label">
-        Part Name
-      </label>
-      <Input
-        type="text"
-        id="duplicate-part-name"
-        className="form-control"
-        value={duplicatePartData.partName}
-        onChange={(e) =>
-          setDuplicatePartData({ ...duplicatePartData, partName: e.target.value })
-        }
-        required
-      />
-    </div>
-    <div className="mb-3">
-      <label htmlFor="duplicate-part-id" className="form-label">
-        Part ID
-      </label>
-      <Input
-        type="text"
-        id="duplicate-part-id"
-        className="form-control"
-        placeholder="Enter a unique ID"
-        value={duplicatePartData.id}
-        onChange={(e) =>
-          setDuplicatePartData({ ...duplicatePartData, id: e.target.value })
-        }
-        required
-      />
-    </div>
-  </ModalBody>
-  <ModalFooter>
-    <Button color="primary" onClick={handleCreateDuplicate}>
-      Create Duplicate
-    </Button>
-    <Button color="secondary" onClick={() => setModalDuplicate(false)}>
-      Cancel
-    </Button>
-  </ModalFooter>
+      <Modal
+        isOpen={modal_duplicate}
+        toggle={() => setModalDuplicate(false)}
+        centered
+      >
+        <ModalHeader toggle={() => setModalDuplicate(false)}>
+          Duplicate Part
+        </ModalHeader>
+        <ModalBody>
+          <div className="mb-3">
+            <label htmlFor="duplicate-part-name" className="form-label">
+              Part Name
+            </label>
+            <Input
+              type="text"
+              id="duplicate-part-name"
+              className="form-control"
+              value={duplicatePartData.partName}
+              onChange={(e) =>
+                setDuplicatePartData({
+                  ...duplicatePartData,
+                  partName: e.target.value,
+                })
+              }
+              required
+            />
+          </div>
+          <div className="mb-3">
+            <label htmlFor="duplicate-part-id" className="form-label">
+              Part ID
+            </label>
+            <Input
+              type="text"
+              id="duplicate-part-id"
+              className="form-control"
+              placeholder="Enter a unique ID"
+              value={duplicatePartData.id}
+              onChange={(e) =>
+                setDuplicatePartData({
+                  ...duplicatePartData,
+                  id: e.target.value,
+                })
+              }
+              required
+            />
+          </div>
+        </ModalBody>
+        <ModalFooter>
+          <Button color="primary" onClick={handleCreateDuplicate}>
+            Create Duplicate
+          </Button>
+          <Button color="secondary" onClick={() => setModalDuplicate(false)}>
+            Cancel
+          </Button>
+        </ModalFooter>
       </Modal>
-
 
       {/* Delete modal */}
       <Modal isOpen={modal_delete} toggle={tog_delete} centered>
