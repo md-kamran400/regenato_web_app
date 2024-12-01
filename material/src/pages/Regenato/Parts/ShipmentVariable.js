@@ -316,7 +316,7 @@ const ShipmentVariable = ({ partDetails, onTotalCountUpdate }) => {
         <table className="table align-middle table-nowrap" id="customerTable">
           <thead className="table-light">
             <tr>
-              <th scope="col" style={{ width: "50px" }}>
+              {/* <th scope="col" style={{ width: "50px" }}>
                 <div className="form-check">
                   <input
                     className="form-check-input"
@@ -325,7 +325,7 @@ const ShipmentVariable = ({ partDetails, onTotalCountUpdate }) => {
                     value="option"
                   />
                 </div>
-              </th>
+              </th> */}
               <th>ID</th>
               <th>Name</th>
               <th>Rate (INR)</th>
@@ -336,7 +336,7 @@ const ShipmentVariable = ({ partDetails, onTotalCountUpdate }) => {
             {shipmentData.length > 0 ? (
               shipmentData.map((item) => (
                 <tr key={item._id}>
-                  <th scope="row">
+                  {/* <th scope="row">
                     <div className="form-check">
                       <input
                         className="form-check-input"
@@ -345,7 +345,7 @@ const ShipmentVariable = ({ partDetails, onTotalCountUpdate }) => {
                         value="option1"
                       />
                     </div>
-                  </th>
+                  </th> */}
                   <td>{item.categoryId}</td>
                   <td>{item.name}</td>
                   <td>{item.hourlyRate}</td>

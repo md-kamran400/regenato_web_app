@@ -362,7 +362,7 @@ const OverheadsVariable = ({ partDetails, totalCost, onTotalCountUpdate }) => {
           <table className="table align-middle table-nowrap" id="customerTable">
             <thead className="table-light">
               <tr>
-                <th scope="col" style={{ width: "50px" }}>
+                {/* <th scope="col" style={{ width: "50px" }}>
                   <div className="form-check">
                     <input
                       className="form-check-input"
@@ -371,7 +371,7 @@ const OverheadsVariable = ({ partDetails, totalCost, onTotalCountUpdate }) => {
                       value="option"
                     />
                   </div>
-                </th>
+                </th> */}
                 <th className="sort" data-sort="customer_name">
                   ID
                 </th>
@@ -393,7 +393,7 @@ const OverheadsVariable = ({ partDetails, totalCost, onTotalCountUpdate }) => {
               {overheadsData.length > 0 ? (
                 overheadsData.map((item) => (
                   <tr key={item._id}>
-                    <th scope="row">
+                    {/* <th scope="row">
                       <div className="form-check">
                         <input
                           className="form-check-input"
@@ -402,7 +402,7 @@ const OverheadsVariable = ({ partDetails, totalCost, onTotalCountUpdate }) => {
                           value="option1"
                         />
                       </div>
-                    </th>
+                    </th> */}
                     <td className="customer_name">{item.categoryId}</td>
                     <td className="customer_name">{item.name}</td>
                     <td className="customer_name">{item.percentage}</td>

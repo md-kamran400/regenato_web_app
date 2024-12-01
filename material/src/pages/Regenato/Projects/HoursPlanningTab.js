@@ -418,16 +418,16 @@ const HoursPlanningTab = () => {
     const processData = processPartsMap[processName]?.find(
       (item) => item.partName === partName
     );
-    return (processData?.hours || 0) * (partDetails.allProjects.find(item => item.partName === partName)?.quantity || 1);
+    return (processData?.hours || 0) * (partDetails.allProjects.find(item => item.partName === partName)?.quantity || 1).toFixed(2);
   };
 
   const calculateTotalHoursForProcess = (processName) => {
     if (!processPartsMap[processName]) return 0;
     return processPartsMap[processName].reduce(
-      (sum, part) => sum + part.hours * (partDetails.allProjects.find(item => item.partName === part.partName)?.quantity || 1),
-      0
-    );
-  };
+        (sum, part) => sum + part.hours * (partDetails.allProjects.find(item => item.partName === part.partName)?.quantity || 1),
+        0
+    ).toFixed(2);
+};
   
   const handleInputChange = (event, type, processName) => {
     switch (type) {
@@ -503,21 +503,21 @@ const HoursPlanningTab = () => {
                             {`${item.partName || "N/A"}  (${item.Uid})`}
 
                           </td>
-                          <td>{getHoursForProcess(item.partName, "VMC Imported")}</td>
-                          <td>{getHoursForProcess(item.partName, "VMC Local")}</td>
-                          <td>{getHoursForProcess(item.partName, "Milling Manual")}</td>
-                          <td>{getHoursForProcess(item.partName, "Grinding Final")}</td>
-                          <td>{getHoursForProcess(item.partName, "CNC Lathe")}</td>
-                          <td>{getHoursForProcess(item.partName, "Drill/Tap")}</td>
-                          <td>{getHoursForProcess(item.partName, "Wire Cut Local")}</td>
-                          <td>{getHoursForProcess(item.partName, "Wire Cut Rough")}</td>
-                          <td>{getHoursForProcess(item.partName, "Wire Cut Imported")}</td>
-                          <td>{getHoursForProcess(item.partName, "EDM")}</td>
-                          <td>{getHoursForProcess(item.partName, "Black Oxide")}</td>
-                          <td>{getHoursForProcess(item.partName, "Laser Marking")}</td>
-                          <td>{getHoursForProcess(item.partName, "Lapping/Polishing")}</td>
-                          <td>{getHoursForProcess(item.partName, "Grinding Blank/Rough")}</td>
-                          <td>{getHoursForProcess(item.partName, "Gauges & Fixtures")}</td>
+                          <td>{parseFloat(getHoursForProcess(item.partName, "VMC Imported")).toFixed(2)}</td>
+<td>{parseFloat(getHoursForProcess(item.partName, "VMC Local")).toFixed(2)}</td>
+<td>{parseFloat(getHoursForProcess(item.partName, "Milling Manual")).toFixed(2)}</td>
+<td>{parseFloat(getHoursForProcess(item.partName, "Grinding Final")).toFixed(2)}</td>
+<td>{parseFloat(getHoursForProcess(item.partName, "CNC Lathe")).toFixed(2)}</td>
+<td>{parseFloat(getHoursForProcess(item.partName, "Drill/Tap")).toFixed(2)}</td>
+<td>{parseFloat(getHoursForProcess(item.partName, "Wire Cut Local")).toFixed(2)}</td>
+<td>{parseFloat(getHoursForProcess(item.partName, "Wire Cut Rough")).toFixed(2)}</td>
+<td>{parseFloat(getHoursForProcess(item.partName, "Wire Cut Imported")).toFixed(2)}</td>
+<td>{parseFloat(getHoursForProcess(item.partName, "EDM")).toFixed(2)}</td>
+<td>{parseFloat(getHoursForProcess(item.partName, "Black Oxide")).toFixed(2)}</td>
+<td>{parseFloat(getHoursForProcess(item.partName, "Laser Marking")).toFixed(2)}</td>
+<td>{parseFloat(getHoursForProcess(item.partName, "Lapping/Polishing")).toFixed(2)}</td>
+<td>{parseFloat(getHoursForProcess(item.partName, "Grinding Blank/Rough")).toFixed(2)}</td>
+<td>{parseFloat(getHoursForProcess(item.partName, "Gauges & Fixtures")).toFixed(2)}</td>
                         </tr>
                       </React.Fragment>
                     ))

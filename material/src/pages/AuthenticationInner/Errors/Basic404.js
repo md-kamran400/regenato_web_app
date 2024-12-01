@@ -26,7 +26,7 @@ document.title ="404 Error Basic | Velzon - React Admin & Dashboard Template";
                                             <h1 className="display-1 fw-medium">404</h1>
                                             <h3 className="text-uppercase">Sorry, Page not Found 😭</h3>
                                             <p className="text-muted mb-4">The page you are looking for not available!</p>
-                                            <Link to="/dashboard" className="btn btn-success"><i className="mdi mdi-home me-1"></i>Back to home</Link>
+                                            <Link to="/regenato-home" className="btn btn-success"><i className="mdi mdi-home me-1"></i>Back to home</Link>
                                         </div>
                                     </div>
                                 </Col>

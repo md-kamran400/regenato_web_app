@@ -16,7 +16,7 @@ const AuthSlider = () => {
                     <div className="bg-overlay"></div>
                     <div className="position-relative h-100 d-flex flex-column">
                         <div className="mb-4">
-                            <Link to="/dashboard" className="d-block">
+                            <Link to="/regenato-home" className="d-block">
                                 <img src={logoLight} alt="" height="18" />
                             </Link>
                         </div>

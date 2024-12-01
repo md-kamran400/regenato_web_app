@@ -23,7 +23,7 @@ document.title ="500 Error | Velzon - React Admin & Dashboard Template";
                                 <div>
                                     <h4>Internal Server Error!</h4>
                                     <p className="text-muted w-75 mx-auto">Server Error 500. We're not exactly sure what happened, but our servers say something is wrong.</p>
-                                    <Link to="/dashboard" className="btn btn-success"><i className="mdi mdi-home me-1"></i>Back to home</Link>
+                                    <Link to="/regenato-home" className="btn btn-success"><i className="mdi mdi-home me-1"></i>Back to home</Link>
                                 </div>
                             </Col>
                         </Row>

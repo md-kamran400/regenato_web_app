@@ -286,14 +286,14 @@ const GeneralVariable = ({ partDetails }) => {
                   <table className="table align-middle table-nowrap">
                     <thead className="table-light">
                       <tr>
-                        <th style={{ width: "50px" }}>
+                        {/* <th style={{ width: "50px" }}>
                           <div className="form-check">
                             <input
                               className="form-check-input"
                               type="checkbox"
                             />
                           </div>
-                        </th>
+                        </th> */}
                         <th>ID</th>
                         <th>Name</th>
                         <th>Values</th>
@@ -303,14 +303,14 @@ const GeneralVariable = ({ partDetails }) => {
                     <tbody>
                       {generlvariabledata.map((item) => (
                         <tr key={item.categoryId}>
-                          <td>
+                          {/* <td>
                             <div className="form-check">
                               <input
                                 className="form-check-input"
                                 type="checkbox"
                               />
                             </div>
-                          </td>
+                          </td> */}
                           <td>{item.categoryId}</td>
                           <td>{item.name}</td>
                           <td>{item.value}</td>

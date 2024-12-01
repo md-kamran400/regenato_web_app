@@ -283,24 +283,26 @@ const SingeProject = () => {
   );
 
   const updateManufacturingVariable = (updatedVariable) => {
-    setPartDetails(prevData => {
-      const updatedAllProjects = prevData.allProjects.map(project => {
+    setPartDetails((prevData) => {
+      const updatedAllProjects = prevData.allProjects.map((project) => {
         if (project._id === updatedVariable.projectId) {
           return {
             ...project,
-            manufacturingVariables: project.manufacturingVariables.map(variable => {
-              if (variable._id === updatedVariable._id) {
-                return updatedVariable;
+            manufacturingVariables: project.manufacturingVariables.map(
+              (variable) => {
+                if (variable._id === updatedVariable._id) {
+                  return updatedVariable;
+                }
+                return variable;
               }
-              return variable;
-            })
+            ),
           };
         }
         return project;
       });
       return {
         ...prevData,
-        allProjects: updatedAllProjects
+        allProjects: updatedAllProjects,
       };
     });
   };
@@ -392,11 +394,27 @@ const SingeProject = () => {
                               <td className="parent_partName">
                                 {item.partName} ({item.Uid})
                               </td>
-                              <td>{item.costPerUnit !== undefined ? item.costPerUnit.toFixed(2) : 'N/A'}</td>
-                              <td>{item.timePerUnit !== undefined ? item.timePerUnit.toFixed(2) : 'N/A'}</td>
-                              <td>{item.quantity !== undefined ? item.quantity : 'N/A'}</td>
-                              <td>{(item.costPerUnit * item.quantity).toFixed(2)}</td>
-                              <td>{(item.timePerUnit * item.quantity).toFixed(2)}</td>
+                              <td>
+                                {item.costPerUnit !== undefined
+                                  ? item.costPerUnit.toFixed(2)
+                                  : "N/A"}
+                              </td>
+                              <td>
+                                {item.timePerUnit !== undefined
+                                  ? item.timePerUnit.toFixed(2)
+                                  : "N/A"}
+                              </td>
+                              <td>
+                                {item.quantity !== undefined
+                                  ? item.quantity
+                                  : "N/A"}
+                              </td>
+                              <td>
+                                {(item.costPerUnit * item.quantity).toFixed(2)}
+                              </td>
+                              <td>
+                                {(item.timePerUnit * item.quantity).toFixed(2)}
+                              </td>
                             </tr>
                             {expandedRowId === item._id && (
                               <tr className="details-row">
@@ -535,8 +553,13 @@ const SingeProject = () => {
                   className="form-control"
                   type="number"
                   id="quantity"
-                  value={quantity}
-                  onChange={(e) => setQuantity(Number(e.target.value))}
+                  value={quantity.toString()}
+                  onChange={(e) => {
+                    const inputValue = e.target.value;
+                    if (inputValue === "" || /^\d+$/.test(inputValue)) {
+                      setQuantity(inputValue === "" ? 0 : parseInt(inputValue));
+                    }
+                  }}
                   required
                 />
               </div>
