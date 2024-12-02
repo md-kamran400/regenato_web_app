@@ -16,7 +16,7 @@ ProjectRouter.get("/", async (req, res) => {
 
 // POST Route: Create a new project
 ProjectRouter.post("/", async (req, res) => {
-  const { projectName, costPerUnit, timePerUnit, stockPoQty, allProjects } =
+  const { projectName, costPerUnit, timePerUnit, stockPoQty, projectType , allProjects } =
     req.body;
 
   const newProject = new ProjectModal({
@@ -24,6 +24,7 @@ ProjectRouter.post("/", async (req, res) => {
     costPerUnit,
     timePerUnit,
     stockPoQty,
+    projectType,
     allProjects,
   });
 

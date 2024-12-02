@@ -1,5 +1,5 @@
 // model/project/Projectmodel.js
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 /// Part schema nested inside Project schema
 const partSchema = new mongoose.Schema({
@@ -46,7 +46,8 @@ const projectSchema = new mongoose.Schema({
   costPerUnit: Number,
   timePerUnit: Number,
   stockPoQty: Number,
-  allProjects: [partSchema], 
+  projectType: String,
+  allProjects: [partSchema],
 });
 
 const ProjectModal = mongoose.model("Project", projectSchema);
