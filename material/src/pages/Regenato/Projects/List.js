@@ -49,9 +49,11 @@ const List = () => {
   const [timePerUnit, setTimePerUnit] = useState(0);
   const [stockPOQty, setStockPOQty] = useState(0);
   const [posting, setPosting] = useState(false);
+  const [totalCountCost, setTotalCostCount] = useState(0);
   const [error, setError] = useState(null); // State for handling errors
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [projectType, setProjectType] = useState("");
   const itemsPerPage = 25;
   const [formData, setFormData] = useState({
     projectName: "",
@@ -59,6 +61,12 @@ const List = () => {
     timePerUnit: "",
     stockPOQty: "",
   });
+
+  // totalCountstring
+  const handleSingleProjectTotalCount = (newTotal) => {
+    setTotalCostCount(newTotal);
+  };
+
   const toggleModal = () => {
     setModalList(!modal_list);
   };
@@ -134,12 +142,13 @@ const List = () => {
 
   // Handle adding a new part
   const handleAddPart = async () => {
-    if (newprojectName.trim() !== "") {
+    if (newprojectName.trim() !== "" && projectType !== "") {
       const newPart = {
         projectName: newprojectName,
         costPerUnit: 0,
         timePerUnit: 0,
         stockPoQty: 0,
+        projectType: projectType,
       };
       try {
         const response = await fetch(
@@ -149,22 +158,23 @@ const List = () => {
             headers: {
               "Content-Type": "application/json",
             },
-            body: JSON.stringify(newPart), // Send new part data
+            body: JSON.stringify(newPart),
           }
         );
-
+  
         if (!response.ok) {
           throw new Error("Failed to add the part");
         }
-
+  
         const addedPart = await response.json();
         setprojectListsData((prevData) => [...prevData, addedPart]);
         toast.success("Part added successfully!");
       } catch (error) {
         toast.error(`Error: ${error.message}`);
       } finally {
-        setNewprojectName(""); // Reset the input field
-        toggleModal(); // Close the modal
+        setNewprojectName("");
+        setProjectType("");
+        toggleModal();
       }
     }
   };
@@ -242,89 +252,6 @@ const List = () => {
           </div>
         </div>
       </Row>
-
-      {/* <div className="row">
-        {(projectListsData || []).map((item, index) => (
-          <React.Fragment key={index}>
-            <Col xxl={3} sm={6} className="project-card">
-              <Card>
-                <CardBody>
-                  <div
-                    className={`p-3 mt-n3 mx-n3 bg-success-subtle rounded-top`}
-                  >
-                    <div className="d-flex align-items-center">
-                      <div className="flex-grow-1">
-                        <h5 className="mb-0 fs-14">
-                          <Link to={`/projectSection/${item._id}`} className="text-body" >
-                            {item.projectName}
-                          </Link>
-                        </h5>
-                      </div>
-                      <div className="flex-shrink-0">
-                        <div className="d-flex gap-1 align-items-center my-n2">
-                          <button type="button" className={`btn avatar-xs mt-n1 p-0 favourite-btn shadow-none`} onClick={(e) => activebtn(e)}>
-                            <span className="avatar-title bg-transparent fs-15">
-                              <i className="ri-star-fill"></i>
-                            </span>
-                          </button>
-                          <UncontrolledDropdown direction="start">
-                            <DropdownToggle
-                              tag="button"
-                              className="btn btn-link text-muted p-1 mt-n2 py-0 text-decoration-none fs-15 shadow-none"
-                            >
-                              <FeatherIcon icon="more-horizontal" className="icon-sm"/>
-                            </DropdownToggle>
-
-                            <DropdownMenu className="dropdown-menu-end">
-                              <DropdownItem onClick={() => toggleEditModal(item)}
-                              >
-                                <i className="ri-pencil-fill align-bottom me-2 text-muted"></i>{" "}
-                                Edit
-                              </DropdownItem>
-                              <div className="dropdown-divider"></div>
-                              <DropdownItem
-                                href="#"
-                                // onClick={() => onClickData(item)}
-                                data-bs-toggle="modal"
-                                data-bs-target="#removeProjectModal"
-                              >
-                                <i className="ri-delete-bin-fill align-bottom me-2 text-muted"></i>{" "}
-                                Remove
-                              </DropdownItem>
-                            </DropdownMenu>
-                          </UncontrolledDropdown>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="py-3">
-                    <Row className="gy-3">
-                      <Col xs={6}>
-                        <div>
-                          <p className="text-muted mb-1">Cost per unit</p>
-                          <div>{item.costPerUnit}</div>
-                        </div>
-                      </Col>
-                      <Col xs={6}>
-                        <div>
-                          <p className="text-muted mb-1">Total Hours</p>
-                          <h5 className="fs-14">{item.timePerUnit}</h5>
-                        </div>
-                      </Col>
-                    </Row>
-
-                    <div className="d-flex align-items-center mt-3">
-                      <p className="text-muted mb-0 me-2">On Hand :</p>
-                      <p className="mb-0 me-2">{item.stockPOQty}</p>
-                    </div>
-                  </div>
-                </CardBody>
-              </Card>
-            </Col>
-          </React.Fragment>
-        ))}
-      </div> */}
       <table className="table table-striped">
         <thead>
           <tr>
@@ -336,15 +263,15 @@ const List = () => {
           </tr>
         </thead>
         <tbody>
-        {paginatedData.map((item, index) => (
+          {paginatedData.map((item, index) => (
             <tr key={index}>
-              <td>
+              <td style={{color: "blue", textDecoration: "underline"}}>
                 <Link to={`/projectSection/${item._id}`} className="text-body">
                   {item.projectName}
                 </Link>
               </td>
-              <td>{item.costPerUnit}</td>
-              <td>{item.timePerUnit}</td>
+              <td>0</td>
+              <td>0</td>
               <td>0</td>
               <td>
                 <UncontrolledDropdown direction="start">
@@ -399,7 +326,7 @@ const List = () => {
           <ModalBody>
             <div className="mb-3">
               <label htmlFor="parts-field" className="form-label">
-                Parts Name
+                Project Name
               </label>
               <input
                 type="text"
@@ -411,10 +338,29 @@ const List = () => {
                 required
               />
             </div>
-
-            <Button type="submit" color="success" className="add-btn me-1">
-              <i className="ri-add-line align-bottom me-1"></i> Add Project
+            <div className="mb-3">
+              <label htmlFor="project-type" className="form-label">
+                Select Type
+              </label>
+              <Input
+                type="select"
+                id="project-type"
+                className="form-control"
+                value={projectType}
+                onChange={(e) => setProjectType(e.target.value)}
+                required
+              >
+                <option value="">Select a type</option>
+                <option value="External PO">External PO</option>
+                <option value="Internal PO">Internal PO</option>
+                <option value="PO Type 1">PO Type 1</option>
+                <option value="PO Type 2">PO Type 2</option>
+              </Input>
+            </div>
+            <Button type="submit" color="primary">
+              Add Project
             </Button>
+           
           </ModalBody>
         </form>
       </Modal>

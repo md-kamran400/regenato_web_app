@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Dropdown, DropdownMenu, DropdownToggle, Form } from 'reactstrap';
+import { Dropdown, DropdownMenu, DropdownToggle, Form, Navbar, Nav, NavItem, NavLink } from 'reactstrap';
 
 //import images
 import logoSm from "../assets/images/logo-sm.png";
@@ -132,28 +132,7 @@ const Header = ({ onChangeLayoutMode, layoutModeType, headerClass }) => {
                                 </DropdownMenu>
                             </Dropdown>
 
-                            {/* LanguageDropdown */}
-                            {/* <LanguageDropdown /> */}
-
-                            {/* WebAppsDropdown */}
-                            {/* <WebAppsDropdown /> */}
-
-                            {/* MyCartDropdwon */}
-                            {/* <MyCartDropdown /> */}
-
-                            {/* FullScreenDropdown */}
-                            {/* <FullScreenDropdown /> */}
-
-                            {/* Dark/Light Mode set */}
-                            <LightDark
-                                layoutMode={layoutModeType}
-                                onChangeLayoutMode={onChangeLayoutMode}
-                            />
-
-                            {/* NotificationDropdown */}
-                            {/* <NotificationDropdown /> */}
-
-                            {/* ProfileDropdown */}
+                            {/* add a navbar here */}
                             <ProfileDropdown />
                         </div>
                     </div>

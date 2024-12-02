@@ -53,8 +53,10 @@ const SingeProject = () => {
   const [manufacturingInput, setManufacturingInput] = useState("");
   const [shipmentInput, setShipmentInput] = useState("");
   const [overheadsProfitInput, setOverheadsProfitInput] = useState("");
+  const [projectName, setProjectName] = useState('');
+  const [projectType, setprojectType] = useState('');
   const [partId, setPartId] = useState("");
-
+  // ... other state declarations ...
   const [inputs, setInputs] = useState({
     machineHours: {},
     machineTbu: {},
@@ -62,10 +64,52 @@ const SingeProject = () => {
   });
   const [calculatedValues, setCalculatedValues] = useState({});
   const [machinesTBU, setMachinesTBU] = useState({});
+
+  const [showTable, setShowTable] = useState(() => {
+    const storedValue = localStorage.getItem('showTable');
+    return storedValue ? JSON.parse(storedValue) : false;
+  });
+
+  const [showAssemblyTable, setShowAssemblyTable] = useState(() => {
+    const storedValue = localStorage.getItem('showAssemblyTable');
+    return storedValue ? JSON.parse(storedValue) : false;
+  });
+
+  const [showSubAssemblyTable, setShowSubAssemblyTable] = useState(() => {
+    const storedValue = localStorage.getItem('showSubAssemblyTable');
+    return storedValue ? JSON.parse(storedValue) : false;
+  });
+
+  // ... other state declarations ...
+
+  useEffect(() => {
+    localStorage.setItem('showTable', JSON.stringify(showTable));
+  }, [showTable]);
+
+  useEffect(() => {
+    localStorage.setItem('showAssemblyTable', JSON.stringify(showAssemblyTable));
+  }, [showAssemblyTable]);
+
+  useEffect(() => {
+    localStorage.setItem('showSubAssemblyTable', JSON.stringify(showSubAssemblyTable));
+  }, [showSubAssemblyTable]);
+
+  const handleAddPartList = useCallback(() => {
+    setShowTable(true);
+  }, []);
+
+  const handleAddAssembly = useCallback(() => {
+    setShowAssemblyTable(true);
+  }, []);
+
+  const handleAddSubAssembly = useCallback(() => {
+    setShowSubAssemblyTable(true);
+  }, []);
   const toggleAddModal = () => {
     setModalAdd(!modalAdd);
   };
 
+  
   useEffect(() => {
     const fetchParts = async () => {
       const response = await fetch(
@@ -92,6 +136,11 @@ const SingeProject = () => {
     fetchManufacturingVariables();
   }, []);
 
+
+  // const [projectName, setProjectName] = useState('');
+
+  // ... (other state declarations)
+  
   const fetchProjectDetails = useCallback(async () => {
     try {
       const response = await fetch(
@@ -99,13 +148,15 @@ const SingeProject = () => {
       );
       const data = await response.json();
       setPartDetails(data);
+      setProjectName(data.projectName || ''); // Store the project name
+      setprojectType(data.projectType || ''); // Store the project name
       console.log(data);
     } catch (error) {
       setError(error.message);
     } finally {
       setLoading(false);
     }
-  });
+  }, [_id]);
 
   useEffect(() => {
     fetchProjectDetails();
@@ -319,15 +370,18 @@ const SingeProject = () => {
   console.log(detailedPartData);
   return (
     <React.Fragment>
-      <div className="page-content">
+      <div className="page-content" style={{marginTop: "-70px"}}>
+  
         <Container fluid>
-          <BreadCrumb title="Project Details" pageTitle="Project Details" />
+        
 
           <div className="project-header">
             {/* Left Section */}
             <div className="header-section left">
-              <h2 className="project-name">Production Order 001</h2>
+            <h2 className="project-name">PROJECT DETIALS</h2>
+            <h4 className="">{projectName}</h4>
               <p className="po-id">PO ID: PO001</p>
+              <p className="po-id">PO Type: {projectType}</p>
             </div>
 
             {/* Center Section */}
@@ -352,6 +406,19 @@ const SingeProject = () => {
               <span className="status-badge">In Progress</span>
             </div>
           </div>
+
+          <div className="button-group">
+            <Button style={{color: "#9C27B0", color:"white"}} className="add-btn" onClick={handleAddPartList}>
+              <i className="ri-add-line align-bottom me-1"></i> Add Part List
+            </Button>
+            <Button color="primary" className="add-btn" onClick={handleAddAssembly}>
+              <i className="ri-add-line align-bottom me-1"></i> Add Assembly
+            </Button>
+            <Button color="danger" className="add-btn" onClick={handleAddSubAssembly}>
+              <i className="ri-add-line align-bottom me-1"></i> Add Sub Assembly
+            </Button>
+          </div>
+          {showTable && (
           <Row>
             <Col lg={12}>
               <Card>
@@ -378,6 +445,7 @@ const SingeProject = () => {
                           <th>Quantity</th>
                           <th>Total Cost</th>
                           <th>Total Machining Hours</th>
+                          <th>Action</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -415,6 +483,7 @@ const SingeProject = () => {
                               <td>
                                 {(item.timePerUnit * item.quantity).toFixed(2)}
                               </td>
+                              <td>🔧</td>
                             </tr>
                             {expandedRowId === item._id && (
                               <tr className="details-row">
@@ -483,6 +552,60 @@ const SingeProject = () => {
               </Card>
             </Col>
           </Row>
+          )}
+
+{showAssemblyTable && (
+            <Row>
+              <Col lg={12}>
+                <Card>
+                  <CardBody>
+                    <h4>Assembly Table</h4>
+                    <table className="project-table">
+                      <thead>
+                        <tr>
+                          <th>Name</th>
+                          <th>Cost</th>
+                          <th>Quantity</th>
+                          <th>Total Cost</th>
+                          <th>Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {/* ... Assembly items will go here ... */}
+                      </tbody>
+                    </table>
+                  </CardBody>
+                </Card>
+              </Col>
+            </Row>
+          )}
+
+{showSubAssemblyTable && (
+            <Row>
+              <Col lg={12}>
+                <Card>
+                  <CardBody>
+                    <h4>Sub Assembly Table</h4>
+                    <table className="project-table">
+                      <thead>
+                        <tr>
+                          <th>Name</th>
+                          <th>Cost</th>
+                          <th>Quantity</th>
+                          <th>Total Cost</th>
+                          <th>Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {/* ... Sub Assembly items will go here ... */}
+                      </tbody>
+                    </table>
+                  </CardBody>
+                </Card>
+              </Col>
+            </Row>
+          )}
+
         </Container>
 
         <Modal isOpen={modalAdd} toggle={toggleAddModal}>

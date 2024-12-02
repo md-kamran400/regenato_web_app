@@ -33,24 +33,11 @@ const ProjectSection = () => {
   return (
     <React.Fragment>
       {/* Top Section with Tabs */}
-      <Row style={{ marginTop: "60px" }}>
+      <Row style={{ marginTop: "60px"}}>
         <Col lg={12}>
           <Card >
-            <div className="bg-warning-subtle">
+            <div style={{margin: "auto"}}>
               <CardBody >
-                <Row>
-                  <div className="col-md">
-                    <Row className="align-items-center">
-                      <div className="col-md-auto">
-                        <div className="avatar-md">
-                          <div className="avatar-title bg-white rounded-circle">
-                          </div>
-                        </div>
-                      </div>
-                    </Row>
-                  </div>
-                </Row>
-
                 {/* Tabs */}
                 <Nav className="nav-tabs-custom" role="tablist">
                   <NavItem>

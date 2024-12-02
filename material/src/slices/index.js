@@ -67,7 +67,7 @@ import TodosReducer from "./todos/reducer";
 import JobReducer from "./jobs/reducer";
 
 // API Key
-import APIKeyReducer from "./apiKey/reducer";
+// import APIKeyReducer from "./apiKey/reducer";
 
 const rootReducer = combineReducers({
     Layout: LayoutReducer,
@@ -95,7 +95,7 @@ const rootReducer = combineReducers({
     FileManager: FileManagerReducer,
     Todos: TodosReducer,
     Jobs: JobReducer,
-    APIKey: APIKeyReducer
+    // APIKey: APIKeyReducer
 });
 
 export default rootReducer;

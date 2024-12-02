@@ -418,8 +418,18 @@ const HoursPlanningTab = () => {
     const processData = processPartsMap[processName]?.find(
       (item) => item.partName === partName
     );
-    return (processData?.hours || 0) * (partDetails.allProjects.find(item => item.partName === partName)?.quantity || 1).toFixed(2);
+    const quantity =
+      partDetails.allProjects.find((item) => item.partName === partName)?.quantity || 1;
+    
+    if (!processData || !processData.hours) {
+      return "-";
+    }
+  
+    const hours = processData.hours * quantity;
+    
+    return hours.toFixed(2);
   };
+  
 
   const calculateTotalHoursForProcess = (processName) => {
     if (!processPartsMap[processName]) return 0;
@@ -503,21 +513,95 @@ const HoursPlanningTab = () => {
                             {`${item.partName || "N/A"}  (${item.Uid})`}
 
                           </td>
-                          <td>{parseFloat(getHoursForProcess(item.partName, "VMC Imported")).toFixed(2)}</td>
-<td>{parseFloat(getHoursForProcess(item.partName, "VMC Local")).toFixed(2)}</td>
-<td>{parseFloat(getHoursForProcess(item.partName, "Milling Manual")).toFixed(2)}</td>
-<td>{parseFloat(getHoursForProcess(item.partName, "Grinding Final")).toFixed(2)}</td>
-<td>{parseFloat(getHoursForProcess(item.partName, "CNC Lathe")).toFixed(2)}</td>
-<td>{parseFloat(getHoursForProcess(item.partName, "Drill/Tap")).toFixed(2)}</td>
-<td>{parseFloat(getHoursForProcess(item.partName, "Wire Cut Local")).toFixed(2)}</td>
-<td>{parseFloat(getHoursForProcess(item.partName, "Wire Cut Rough")).toFixed(2)}</td>
-<td>{parseFloat(getHoursForProcess(item.partName, "Wire Cut Imported")).toFixed(2)}</td>
-<td>{parseFloat(getHoursForProcess(item.partName, "EDM")).toFixed(2)}</td>
-<td>{parseFloat(getHoursForProcess(item.partName, "Black Oxide")).toFixed(2)}</td>
-<td>{parseFloat(getHoursForProcess(item.partName, "Laser Marking")).toFixed(2)}</td>
-<td>{parseFloat(getHoursForProcess(item.partName, "Lapping/Polishing")).toFixed(2)}</td>
-<td>{parseFloat(getHoursForProcess(item.partName, "Grinding Blank/Rough")).toFixed(2)}</td>
-<td>{parseFloat(getHoursForProcess(item.partName, "Gauges & Fixtures")).toFixed(2)}</td>
+                          <td>
+    {getHoursForProcess(item.partName, "VMC Imported") === "-"
+      ? "-"
+      : parseFloat(getHoursForProcess(item.partName, "VMC Imported")).toFixed(2)}
+  </td>
+
+  <td>
+    {getHoursForProcess(item.partName, "VMC Local") === "-"
+      ? "-"
+      : parseFloat(getHoursForProcess(item.partName, "VMC Local")).toFixed(2)}
+  </td>
+
+  <td>
+    {getHoursForProcess(item.partName, "Milling Manual") === "-"
+      ? "-"
+      : parseFloat(getHoursForProcess(item.partName, "Milling Manual")).toFixed(2)}
+  </td>
+
+  <td>
+    {getHoursForProcess(item.partName, "Grinding Final") === "-"
+      ? "-"
+      : parseFloat(getHoursForProcess(item.partName, "Grinding Final")).toFixed(2)}
+  </td>
+
+  <td>
+    {getHoursForProcess(item.partName, "CNC Lathe") === "-"
+      ? "-"
+      : parseFloat(getHoursForProcess(item.partName, "CNC Lathe")).toFixed(2)}
+  </td>
+
+  <td>
+    {getHoursForProcess(item.partName, "Drill/Tap") === "-"
+      ? "-"
+      : parseFloat(getHoursForProcess(item.partName, "Drill/Tap")).toFixed(2)}
+  </td>
+
+  <td>
+    {getHoursForProcess(item.partName, "Wire Cut Local") === "-"
+      ? "-"
+      : parseFloat(getHoursForProcess(item.partName, "Wire Cut Local")).toFixed(2)}
+  </td>
+
+  <td>
+    {getHoursForProcess(item.partName, "Wire Cut Rough") === "-"
+      ? "-"
+      : parseFloat(getHoursForProcess(item.partName, "Wire Cut Rough")).toFixed(2)}
+  </td>
+
+  <td>
+    {getHoursForProcess(item.partName, "Wire Cut Imported") === "-"
+      ? "-"
+      : parseFloat(getHoursForProcess(item.partName, "Wire Cut Imported")).toFixed(2)}
+  </td>
+
+  <td>
+    {getHoursForProcess(item.partName, "EDM") === "-"
+      ? "-"
+      : parseFloat(getHoursForProcess(item.partName, "EDM")).toFixed(2)}
+  </td>
+
+  <td>
+    {getHoursForProcess(item.partName, "Black Oxide") === "-"
+      ? "-"
+      : parseFloat(getHoursForProcess(item.partName, "Black Oxide")).toFixed(2)}
+  </td>
+
+  <td>
+    {getHoursForProcess(item.partName, "Laser Marking") === "-"
+      ? "-"
+      : parseFloat(getHoursForProcess(item.partName, "Laser Marking")).toFixed(2)}
+  </td>
+
+  <td>
+    {getHoursForProcess(item.partName, "Lapping/Polishing") === "-"
+      ? "-"
+      : parseFloat(getHoursForProcess(item.partName, "Lapping/Polishing")).toFixed(2)}
+  </td>
+
+  <td>
+    {getHoursForProcess(item.partName, "Grinding Blank/Rough") === "-"
+      ? "-"
+      : parseFloat(getHoursForProcess(item.partName, "Grinding Blank/Rough")).toFixed(2)}
+  </td>
+
+  <td>
+    {getHoursForProcess(item.partName, "Gauges & Fixtures") === "-"
+      ? "-"
+      : parseFloat(getHoursForProcess(item.partName, "Gauges & Fixtures")).toFixed(2)}
+  </td>
                         </tr>
                       </React.Fragment>
                     ))

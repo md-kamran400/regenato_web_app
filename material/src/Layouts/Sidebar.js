@@ -43,14 +43,6 @@ const Sidebar = ({ layoutType }) => {
     <React.Fragment>
       <div className="app-menu navbar-menu">
         <div className="navbar-brand-box">
-          <Link to="/" className="logo logo-dark">
-            <span className="logo-sm">
-              {/* <img src={ccmpldarklogo} alt="" height="22" /> */}
-            </span>
-            <span className="logo-lg">
-              {/* <img src={ccmpldarklogo} alt="" height="17" /> */}
-            </span>
-          </Link>
 
           <Link to="/" className="logo logo-light">
             <span className="logo-sm">
@@ -61,14 +53,6 @@ const Sidebar = ({ layoutType }) => {
               <img src={ccmpldarklogo} alt="" height="35" width={120}/>
             </span>
           </Link>
-          <button
-            onClick={addEventListenerOnSmHoverMenu}
-            type="button"
-            className="btn btn-sm p-0 fs-20 header-item float-end btn-vertical-sm-hover"
-            id="vertical-hover"
-          >
-            <i className="ri-record-circle-line"></i>
-          </button>
         </div>
         {layoutType === "horizontal" ? (
           <div id="scrollbar">
