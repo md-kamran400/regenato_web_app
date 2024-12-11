@@ -387,7 +387,7 @@ const AssmblyMultyPart = ({ partsAssmeblyItems, assemblyId }) => {
           
               {/* {partsAssmeblyItems.map((item) => ( */}
                 <CardBody key={partsAssmeblyItems._id}>
-                  <h5>{partsAssmeblyItems.assmeblyMultyPartsLsitName}</h5>
+                  <h5>{partsAssmeblyItems.assemblyMultyPartsListName}</h5>
                   <div className="button-group">
                     <Button
                       color="success"

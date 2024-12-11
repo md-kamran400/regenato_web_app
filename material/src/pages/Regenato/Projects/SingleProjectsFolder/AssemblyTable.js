@@ -69,7 +69,8 @@ const AssemblyTable = ({ assemblypartsList }) => {
   const [modalAddPartAssmebly, setModalAddPartAssmebly] = useState(false);
 
   const [subAssemblyListName, setSubAssemblyListName] = useState("");
-  const [assmeblyMultyPartsLsitName, setassmeblyMultyPartsLsitName] = useState("");
+  const [assemblyMultyPartsListName, setassemblyMultyPartsListName] =
+    useState("");
 
   const [machinesTBU, setMachinesTBU] = useState({});
 
@@ -401,30 +402,29 @@ const AssemblyTable = ({ assemblypartsList }) => {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            assemblyMultyPartsListName: assmeblyMultyPartsLsitName,
-            assemblyId: assemblypartsList._id,
+            assemblyMultyPartsListName: assemblyMultyPartsListName,
           }),
         }
       );
-  
+
       if (!response.ok) {
         throw new Error("Failed to add new assembly list");
       }
-  
+
       const addedAssemblyList = await response.json();
       setpartsAssmeblyItems((prevAssemblyLists) => [
         ...prevAssemblyLists,
         addedAssemblyList,
       ]);
-      setassmeblyMultyPartsLsitName("");
+      setassemblyMultyPartsListName("");
       setModalAddPartAssmebly(false);
-  
+
       // Refetch the data to ensure we have the latest information
-      const updatedResponse = await fetch(
-        `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/assemblyPartsLists/${assemblypartsList._id}/assemblyMultyPartsList`
-      );
-      const updatedData = await updatedResponse.json();
-      setpartsAssmeblyItems(updatedData);
+      // const updatedResponse = await fetch(
+      //   `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/assemblyPartsLists/${assemblypartsList._id}/assemblyMultyPartsList`
+      // );
+      // const updatedData = await updatedResponse.json();
+      // setpartsAssmeblyItems(updatedData);
     } catch (error) {
       console.error("Error adding new assembly list:", error);
       setError("Failed to add new assembly list. Please try again.");
@@ -488,7 +488,7 @@ const AssemblyTable = ({ assemblypartsList }) => {
                   </div>
                 ))
               ) : (
-                <div>No sub-assemblies available.</div>
+                <div>No sub-Parts assembly available.</div>
               )}
 
               {/* <div className="table-wrapper">
@@ -966,8 +966,8 @@ const AssemblyTable = ({ assemblypartsList }) => {
               <Input
                 type="text"
                 id="partsListName"
-                value={assmeblyMultyPartsLsitName}
-                onChange={(e) => setassmeblyMultyPartsLsitName(e.target.value)}
+                value={assemblyMultyPartsListName}
+                onChange={(e) => setassemblyMultyPartsListName(e.target.value)}
                 required
               />
             </div>

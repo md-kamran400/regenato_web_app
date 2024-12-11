@@ -32,10 +32,9 @@ import { useParams } from "react-router-dom";
 import { MdOutlineDelete } from "react-icons/md";
 import Manufacturing from "../ExpandFolders/Manufacturing";
 import FeatherIcon from "feather-icons-react";
-import { ToastContainer, toast } from 'react-toastify';
+import { ToastContainer, toast } from "react-toastify";
 
-
-const PartsTable = ({ partsList, partsLists, updatePartsLists }) => {
+const PartsTable = ({ partsList = {}, partsLists, updatePartsLists }) => {
   const { _id } = useParams();
   const [modalAdd, setModalAdd] = useState(false);
   const [modal_delete, setModalDelete] = useState(false);
@@ -77,7 +76,6 @@ const PartsTable = ({ partsList, partsLists, updatePartsLists }) => {
   });
   const [calculatedValues, setCalculatedValues] = useState({});
   const [machinesTBU, setMachinesTBU] = useState({});
-
   // duplicate creation useState
 
   // duplicate creation useState ends here
@@ -431,8 +429,7 @@ const PartsTable = ({ partsList, partsLists, updatePartsLists }) => {
     }
   };
 
-
-  // duplicate 
+  // duplicate
   // const handleDuplicate = async () => {
   //   setConfirmDuplicateModal(false);
   //   try {
@@ -443,7 +440,7 @@ const PartsTable = ({ partsList, partsLists, updatePartsLists }) => {
   //         headers: { "Content-Type": "application/json" },
   //       }
   //     );
-      
+
   //     if (!response.ok) {
   //       throw new Error("Failed to duplicate project");
   //     }
@@ -469,7 +466,6 @@ const PartsTable = ({ partsList, partsLists, updatePartsLists }) => {
           <Card>
             <CardBody>
               <div className="button-group flex justify-content-between align-items-center">
-              
                 <h4 style={{ fontWeight: "600" }}>{partsList.partsListName}</h4>
                 <UncontrolledDropdown direction="left">
                   <DropdownToggle
@@ -518,7 +514,7 @@ const PartsTable = ({ partsList, partsLists, updatePartsLists }) => {
                     </tr>
                   </thead>
                   <tbody>
-                    {partsList.partsListItems.map((item) => (
+                    {partsList.partsListItems?.map((item) => (
                       <React.Fragment key={item._id}>
                         <tr
                           onClick={() =>
@@ -619,7 +615,7 @@ const PartsTable = ({ partsList, partsLists, updatePartsLists }) => {
                           </tr>
                         )}
                       </React.Fragment>
-                    ))}
+                    )) ?? []}
                   </tbody>
                 </table>
               </div>
