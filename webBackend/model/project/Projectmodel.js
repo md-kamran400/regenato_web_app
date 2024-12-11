@@ -129,13 +129,12 @@ const projectSchema = new mongoose.Schema({
           partsListItems: [partSchema],
         },
       ],
-      assmeblyMultyPartsLsit: [
+      assemblyMultyPartsList: [
         {
-          assmeblyMultyPartsLsitName: String,
+          assemblyMultyPartsListName: String,
           partsListItems: [partSchema],
         },
       ],
-      
     },
   ],
 });

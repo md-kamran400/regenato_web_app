@@ -724,75 +724,7 @@ ProjectRouter.post("/:_id/assemblyPartsLists/:listId/subAssemblyPartsLists/:subL
 
 
 
-// 
-// POST Route: Add a new sub-assembly parts list to an existing project
-ProjectRouter.post("/:_id/assemblyPartsLists/:listId/assemblyMultyPartsList", async (req, res) => {
-  const { _id, listId } = req.params;
-  const { assemblyMultyPartsListName } = req.body;
 
-  try {
-    const project = await ProjectModal.findById(_id);
-    if (!project) {
-      return res.status(404).json({ message: "Project not found" });
-    }
-
-    const assemblyList = project.assemblyPartsLists.id(listId);
-    if (!assemblyList) {
-      return res.status(404).json({ message: "Assembly list not found" });
-    }
-
-    const newAssemblyMultyPartsList = {
-      assemblyMultyPartsListName,
-      partsListItems: [],
-    };
-
-    assemblyList.assemblyMultyPartsList.push(newAssemblyMultyPartsList);
-    const updatedProject = await project.save();
-    res.status(200).json(updatedProject);
-  } catch (error) {
-    console.error("Error adding new assembly list:", error);
-    res.status(500).json({ message: "Failed to add new assembly list" });
-  }
-});
-
-// POST Route: Add a new part to a specific sub-assembly parts list
-ProjectRouter.post("/:_id/assemblyPartsLists/:listId/assemblyMultyPartsList/:subListId/items", async (req, res) => {
-  try {
-    const { _id, listId, subListId } = req.params;
-    const project = await ProjectModal.findById(_id);
-    if (!project) {
-      return res.status(404).json({ message: "Project not found" });
-    }
-
-    const assemblyList = project.assemblyPartsLists.id(listId);
-    if (!assemblyList) {
-      return res.status(404).json({ message: "Assembly list not found" });
-    }
-
-    const subPartsASsmeblyList = assemblyList.assmeblyMultyPartsLsit.id(subListId);
-    if (!subPartsASsmeblyList) {
-      return res.status(404).json({ message: "Sub-assembly list not found" });
-    }
-
-    const newPart = {
-      Uid: req.body.partId,
-      partName: req.body.partName,
-      costPerUnit: req.body.costPerUnit,
-      timePerUnit: req.body.timePerUnit,
-      quantity: req.body.quantity,
-      rmVariables: req.body.rmVariables || [],
-      manufacturingVariables: req.body.manufacturingVariables || [],
-      shipmentVariables: req.body.shipmentVariables || [],
-      overheadsAndProfits: req.body.overheadsAndProfits || [],
-    };
-
-    subPartsASsmeblyList.partsListItems.push(newPart);
-    const updatedProject = await project.save();
-    res.status(200).json(updatedProject);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
 
 
 // POST Route: Add a new part to a specific sub-assembly parts list
@@ -1082,6 +1014,82 @@ ProjectRouter.get("/:_id/assemblyPartsLists/:listId/items", async (req, res) => 
     res.status(200).json(item);
   } catch (error) {
     console.error("Error:", error.message);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+
+
+
+
+// 
+// POST Route: Add a new sub-assembly parts list to an existing project
+ProjectRouter.post("/:_id/assemblyPartsLists/:listId/assemblyMultyPartsList", async (req, res) => {
+  const { _id, listId } = req.params;
+  const { assemblyMultyPartsListName } = req.body;
+
+  try {
+    const project = await ProjectModal.findById(_id);
+    if (!project) {
+      return res.status(404).json({ message: "Project not found" });
+    }
+
+    const assemblyList = project.assemblyPartsLists.id(listId);
+    if (!assemblyList) {
+      return res.status(404).json({ message: "Assembly list not found" });
+    }
+
+    const newAssemblyMultyPartsList = {
+      assemblyMultyPartsListName,
+      partsListItems: [],
+    };
+
+    assemblyList.assemblyMultyPartsList.push(newAssemblyMultyPartsList);
+    const updatedProject = await project.save();
+
+    // Return only the newly added assembly multi-parts list
+    res.status(200).json(newAssemblyMultyPartsList);
+  } catch (error) {
+    console.error("Error adding new assembly list:", error);
+    res.status(500).json({ message: "Failed to add new assembly list" });
+  }
+});
+
+// POST Route: Add a new part to a specific sub-assembly parts list
+ProjectRouter.post("/:_id/assemblyPartsLists/:listId/assemblyMultyPartsList/:subListId/items", async (req, res) => {
+  try {
+    const { _id, listId, subListId } = req.params;
+    const project = await ProjectModal.findById(_id);
+    if (!project) {
+      return res.status(404).json({ message: "Project not found" });
+    }
+
+    const assemblyList = project.assemblyPartsLists.id(listId);
+    if (!assemblyList) {
+      return res.status(404).json({ message: "Assembly list not found" });
+    }
+
+    const subPartsASsmeblyList = assemblyList.assmeblyMultyPartsLsit.id(subListId);
+    if (!subPartsASsmeblyList) {
+      return res.status(404).json({ message: "Sub-assembly list not found" });
+    }
+
+    const newPart = {
+      Uid: req.body.partId,
+      partName: req.body.partName,
+      costPerUnit: req.body.costPerUnit,
+      timePerUnit: req.body.timePerUnit,
+      quantity: req.body.quantity,
+      rmVariables: req.body.rmVariables || [],
+      manufacturingVariables: req.body.manufacturingVariables || [],
+      shipmentVariables: req.body.shipmentVariables || [],
+      overheadsAndProfits: req.body.overheadsAndProfits || [],
+    };
+
+    subPartsASsmeblyList.partsListItems.push(newPart);
+    const updatedProject = await project.save();
+    res.status(200).json(updatedProject);
+  } catch (error) {
     res.status(500).json({ message: error.message });
   }
 });
