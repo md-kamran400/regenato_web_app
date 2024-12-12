@@ -18,6 +18,7 @@ import ActivitiesTab from "./ActivitiesTab";
 import DocumentsTab from "./DocumentsTab";
 import HoursPlanningTab from "./HoursPlanningTab";
 import HoursSummary from "./HoursSummary";
+import NewHoursPlaaning from "./NewHoursPlaaning";
 
 const ProjectSection = () => {
   // State to track the active tab
@@ -110,6 +111,20 @@ const ProjectSection = () => {
                       BOM
                     </NavLink>
                   </NavItem>
+                  <NavItem>
+                    <NavLink
+                      className={classnames(
+                        { active: activeTab === "6" },
+                        "fw-semibold"
+                      )}
+                      onClick={() => {
+                        toggleTab("6");
+                      }}
+                      href="#"
+                    >
+                      New Hours Planning
+                    </NavLink>
+                  </NavItem>
                 </Nav>
               </CardBody>
             </div>
@@ -135,6 +150,9 @@ const ProjectSection = () => {
             </TabPane>
             <TabPane tabId="5">
               <ActivitiesTab />
+            </TabPane>
+            <TabPane tabId="6">
+              <NewHoursPlaaning />
             </TabPane>
           </TabContent>
         </Col>

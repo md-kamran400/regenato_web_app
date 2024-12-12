@@ -147,7 +147,6 @@ const AssmblyMultyPart = ({ partsAssmeblyItems, assemblyId }) => {
   };
 
   // const [projectName, setProjectName] = useState('');
-
   // ... (other state declarations)
 
   // for parts
