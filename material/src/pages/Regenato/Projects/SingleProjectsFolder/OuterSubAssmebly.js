@@ -16,6 +16,10 @@ import {
   AccordionBody,
   AccordionHeader,
   AccordionItem,
+  DropdownItem,
+  DropdownMenu,
+  DropdownToggle,
+  UncontrolledDropdown,
 } from "reactstrap";
 import { FiEdit } from "react-icons/fi";
 import Autocomplete from "@mui/material/Autocomplete";
@@ -27,10 +31,10 @@ import Overheads from "../ExpandFolders/Overheads";
 import { useParams } from "react-router-dom";
 import { MdOutlineDelete } from "react-icons/md";
 import Manufacturing from "../ExpandFolders/Manufacturing";
-import SubAssemblyTable from "./SubAssemblyTable";
-import AssmblyMultyPart from "./AssmblyMultyPart";
+import FeatherIcon from "feather-icons-react";
+import { ToastContainer, toast } from "react-toastify";
 
-const AssemblyTable = ({ assemblypartsList }) => {
+const OuterSubAssmebly = ({ subAssemblyItem = {}, partsLists, updatePartsLists }) => {
   const { _id } = useParams();
   const [modalAdd, setModalAdd] = useState(false);
   const [modal_delete, setModalDelete] = useState(false);
@@ -55,45 +59,74 @@ const AssemblyTable = ({ assemblypartsList }) => {
   const [manufacturingInput, setManufacturingInput] = useState("");
   const [shipmentInput, setShipmentInput] = useState("");
   const [overheadsProfitInput, setOverheadsProfitInput] = useState("");
+  const [confirmDuplicateModal, setConfirmDuplicateModal] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
   const [projectName, setProjectName] = useState("");
   const [projectType, setprojectType] = useState("");
   const [partId, setPartId] = useState("");
   const [partsListItems, setPartsListsItems] = useState([]);
+  const [partsDisplay, setPartsDisplay] = useState([]);
   const [assemblyItems, setAssemblyItems] = useState([]);
-
   const [subAssemblyItems, setSubAssemblyItems] = useState([]);
-  const [partsAssmeblyItems, setpartsAssmeblyItems] = useState([]);
-
-  const [modalAddSubassembly, setModalAddSubassembly] = useState(false);
-  const [modalAddPartAssmebly, setModalAddPartAssmebly] = useState(false);
-
-  const [subAssemblyListName, setSubAssemblyListName] = useState("");
-  const [assemblyMultyPartsListName, setassemblyMultyPartsListName] =
-    useState("");
-
+  const [isLoading, setIsLoading] = useState(false);
+  // ... other state declarations ...
+  const [inputs, setInputs] = useState({
+    machineHours: {},
+    machineTbu: {},
+    daysToWork: {},
+  });
+  const [calculatedValues, setCalculatedValues] = useState({});
   const [machinesTBU, setMachinesTBU] = useState({});
+  // duplicate creation useState
 
-  const toggleAddModalsubAssembly = () => {
-    setModalAddSubassembly(!modalAddSubassembly);
-  };
-  const toggleAddModalPartAssembly = () => {
-    setModalAddPartAssmebly(!modalAddPartAssmebly);
-  };
+  // duplicate creation useState ends here
+
+  const [showTable, setShowTable] = useState(() => {
+    const storedValue = localStorage.getItem("showTable");
+    return storedValue ? JSON.parse(storedValue) : false;
+  });
+
+  const [showAssemblyTable, setShowAssemblyTable] = useState(() => {
+    const storedValue = localStorage.getItem("showAssemblyTable");
+    return storedValue ? JSON.parse(storedValue) : false;
+  });
+
+  const [showSubAssemblyTable, setShowSubAssemblyTable] = useState(() => {
+    const storedValue = localStorage.getItem("showSubAssemblyTable");
+    return storedValue ? JSON.parse(storedValue) : false;
+  });
+
+  // ... other state declarations ...
 
   useEffect(() => {
-    setSubAssemblyItems(assemblypartsList.subAssemblyPartsLists || []);
-  }, [assemblypartsList]);
+    localStorage.setItem("showTable", JSON.stringify(showTable));
+  }, [showTable]);
 
   useEffect(() => {
-    setpartsAssmeblyItems(assemblypartsList.assemblyMultyPartsList || []);
-  }, [assemblypartsList]);
+    localStorage.setItem(
+      "showAssemblyTable",
+      JSON.stringify(showAssemblyTable)
+    );
+  }, [showAssemblyTable]);
 
-  const tog_delete = (_id) => {
-    setModalDelete(!modal_delete);
-    setSelectedId(_id);
-  };
+  useEffect(() => {
+    localStorage.setItem(
+      "showSubAssemblyTable",
+      JSON.stringify(showSubAssemblyTable)
+    );
+  }, [showSubAssemblyTable]);
 
+  const handleAddPartList = useCallback(() => {
+    setShowTable(true);
+  }, []);
+
+  const handleAddAssembly = useCallback(() => {
+    setShowAssemblyTable(true);
+  }, []);
+
+  const handleAddSubAssembly = useCallback(() => {
+    setShowSubAssemblyTable(true);
+  }, []);
   const toggleAddModal = () => {
     setModalAdd(!modalAdd);
   };
@@ -124,7 +157,11 @@ const AssemblyTable = ({ assemblypartsList }) => {
     fetchManufacturingVariables();
   }, []);
 
-  // for parts
+  const tog_delete = (_id) => {
+    setModalDelete(!modal_delete);
+    setSelectedId(_id);
+  };
+
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -147,7 +184,6 @@ const AssemblyTable = ({ assemblypartsList }) => {
     fetchData();
   }, [fetchData]);
 
-  // for parts
   const fetchDetailedPartData = useCallback(async (partName) => {
     try {
       const response = await fetch(
@@ -182,7 +218,6 @@ const AssemblyTable = ({ assemblypartsList }) => {
     }
   }, [selectedPartData]);
 
-  // for projects
   const handleAutocompleteChange = (event, newValue) => {
     if (newValue) {
       const selectedPart = parts.find(
@@ -217,7 +252,6 @@ const AssemblyTable = ({ assemblypartsList }) => {
     }
   };
 
-  // for projects
   const fetchProjectDetails = useCallback(async () => {
     try {
       const response = await fetch(
@@ -227,7 +261,6 @@ const AssemblyTable = ({ assemblypartsList }) => {
       setProjectName(data.projectName || "");
       setprojectType(data.projectType || "");
       setPartsListsItems(data.partsLists || []);
-
       console.log(
         "hello wrold this is my data of re fetching",
         data.partsLists
@@ -243,13 +276,32 @@ const AssemblyTable = ({ assemblypartsList }) => {
     fetchProjectDetails();
   }, [fetchProjectDetails]);
 
-  // useEffect(() => {
-  //   setSubAssemblyItems(assemblypartsList.subAssemblyPartsLists || []);
-  // }, [assemblypartsList]);
+  const PartsTableFetch = useCallback(async () => {
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/partsLists`
+      );
+      const data = await response.json();
+      setPartsDisplay(data.partsListItems || []);
+      console.log(
+        "hello wrold this is my data of re fetching",
+        data.partsListItems
+      );
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [_id]);
+
+  useEffect(() => {
+    PartsTableFetch();
+  }, [PartsTableFetch]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-
+    setIsLoading(true);
+    
     const payload = {
       partId: selectedPartData.id,
       partName: selectedPartData.partName,
@@ -264,7 +316,7 @@ const AssemblyTable = ({ assemblypartsList }) => {
 
     try {
       const response = await fetch(
-        `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/assemblyPartsLists/${assemblypartsList._id}/items`,
+        `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/subAssemblyListFirst/${subAssemblyItem._id}/items`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -273,28 +325,92 @@ const AssemblyTable = ({ assemblypartsList }) => {
       );
 
       if (!response.ok) {
-        const error = await response.json();
-        setError("Failed to add part. Please try again.");
-        await fetchProjectDetails();
-        return;
+        throw new Error("Failed to add part. Please try again.");
+        setIsLoading(false)
       }
+
       const newPart = await response.json();
-      await fetchProjectDetails();
-      setListData((prevData) => [...prevData, newPart]);
+      await PartsTableFetch();
+      // Update the parts list state locally
+      setPartsListsItems((prevParts) => [
+        ...prevParts,
+        { ...newPart, _id: newPart.id },
+      ]);
+
+      // Trigger re-fetch for consistency
+      await PartsTableFetch();
+
+      // Reset modal and fields
       setModalAdd(false);
+      setSelectedPartData(null);
+      setCostPerUnit("");
+      setTimePerUnit("");
+      setQuantity(0);
+      await PartsTableFetch();
+
+      // Refresh the page after successful submission
+      window.location.reload();
     } catch (error) {
       console.error("Error submitting part:", error);
       setError("Failed to add part. Please try again.");
+      setIsLoading(false)
     }
   };
 
   if (loading) return <div>Loading...</div>;
   if (error) return <div>Error: {error}</div>;
 
+  // Toggle function for expanding/collapsing the row
+  const handleRowClickParts = async (rowId, partName) => {
+    setExpandedRowId(expandedRowId === rowId ? null : rowId);
+
+    const matchingPart = parts.find((part) => part.partName === partName);
+    if (matchingPart) {
+      await fetchDetailedPartData(partName); // Fetch data for the selected part
+    } else {
+      console.error("Part not found in parts list.");
+      setDetailedPartData({}); // Clear data if not found
+    }
+  };
+
   console.log(
     "Is partsData.rmVariables an array:",
     Array.isArray(partsData.rmVariables)
   );
+
+  const updateManufacturingVariable = (updatedVariable) => {
+    setPartDetails((prevData) => {
+      const updatedAllProjects = prevData.allProjects.map((project) => {
+        if (project._id === updatedVariable.projectId) {
+          return {
+            ...project,
+            manufacturingVariables: project.manufacturingVariables.map(
+              (variable) => {
+                if (variable._id === updatedVariable._id) {
+                  return updatedVariable;
+                }
+                return variable;
+              }
+            ),
+          };
+        }
+        return project;
+      });
+      return {
+        ...prevData,
+        allProjects: updatedAllProjects,
+      };
+    });
+  };
+
+  const handleInputChange = (e, section, index, key) => {
+    const updatedValue = e.target.value;
+    setDetailedPartData((prevState) => {
+      const updatedSection = [...prevState[section]];
+      updatedSection[index][key] = updatedValue;
+      return { ...prevState, [section]: updatedSection };
+    });
+  };
 
   const handleDelete = async (partId) => {
     setPosting(true);
@@ -320,188 +436,86 @@ const AssemblyTable = ({ assemblypartsList }) => {
     }
   };
 
-  // Move this useCallback declaration outside of any functions or conditions
-  // const handleSubmitAssemblyParts = useCallback(
-  //   async ({ subAssemblyListName }) => {
-  //     try {
-  //       const response = await fetch(
-  //         `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/subAssemblyPartsLists`,
-  //         {
-  //           method: "POST",
-  //           headers: { "Content-Type": "application/json" },
-  //           body: JSON.stringify({ subAssemblyListName }),
-  //         }
-  //       );
-
-  //       if (!response.ok) {
-  //         throw new Error("Failed to add new assembly list");
+  // duplicate
+  // const handleDuplicate = async () => {
+  //   setConfirmDuplicateModal(false);
+  //   try {
+  //     const response = await fetch(
+  //       `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/duplicate`,
+  //       {
+  //         method: "POST",
+  //         headers: { "Content-Type": "application/json" },
   //       }
+  //     );
 
-  //       const addedAssemblyList = await response.json();
-
-  //       setSubAssemblyItems((prevAssemblyLists) => [
-  //         ...prevAssemblyLists,
-  //         addedAssemblyList,
-  //       ]);
-
-  //       setSubAssemblyListName("");
-  //       setModalAddSubassembly(false);
-  //     } catch (error) {
-  //       console.error("Error adding new assembly list:", error);
-  //       setError("Failed to add new assembly list. Please try again.");
+  //     if (!response.ok) {
+  //       throw new Error("Failed to duplicate project");
   //     }
-  //   },
-  //   [_id]
-  // );
 
-  // Now, use handleSubmitAssemblyParts in your component
+  //     const duplicatedProject = await response.json();
+  //     console.log("Duplicated project:", duplicatedProject);
 
-  // updating function
-  const handlePartsUpdate = (updatedParts) => {
-    setpartsAssmeblyItems(updatedParts);
-  };
+  //     // Refresh the project details
+  //     await fetchProjectDetails();
 
-  const handleSubmitSubAssembly = async () => {
-    try {
-      const response = await fetch(
-        `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/assemblyPartsLists/${assemblypartsList._id}/subAssemblyPartsLists`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            subAssemblyListName: subAssemblyListName,
-            assemblyId: assemblypartsList._id, // Add this line
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to add new assembly list");
-      }
-
-      const addedAssemblyList = await response.json();
-      setSubAssemblyItems((prevAssemblyLists) => [
-        ...prevAssemblyLists,
-        addedAssemblyList,
-      ]);
-      setSubAssemblyListName("");
-      setModalAddSubassembly(false);
-
-      // Refetch the data to ensure we have the latest information
-      const updatedResponse = await fetch(
-        `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/assemblyPartsLists/${assemblypartsList._id}/subAssemblyPartsLists`
-      );
-      const updatedData = await updatedResponse.json();
-      setSubAssemblyItems(updatedData);
-    } catch (error) {
-      console.error("Error adding new assembly list:", error);
-      setError("Failed to add new assembly list. Please try again.");
-    }
-  };
-
-  const handleMultySubmitpartsAssmebly = async () => {
-    try {
-      const response = await fetch(
-        `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/assemblyPartsLists/${assemblypartsList._id}/assemblyMultyPartsList`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            assemblyMultyPartsListName: assemblyMultyPartsListName,
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to add new assembly list");
-      }
-
-      const addedAssemblyList = await response.json();
-      setpartsAssmeblyItems((prevAssemblyLists) => [
-        ...prevAssemblyLists,
-        addedAssemblyList,
-      ]);
-      setassemblyMultyPartsListName("");
-      setModalAddPartAssmebly(false);
-
-      // Refetch the data to ensure we have the latest information
-      const updatedResponse = await fetch(
-        `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/assemblyPartsLists/${assemblypartsList._id}/assemblyMultyPartsList`
-      );
-      const updatedData = await updatedResponse.json();
-      setpartsAssmeblyItems(updatedData);
-    } catch (error) {
-      console.error("Error adding new assembly list:", error);
-      setError("Failed to add new assembly list. Please try again.");
-    }
-  };
+  //     // Show success message
+  //     toast.success("Project successfully duplicated!");
+  //   } catch (error) {
+  //     console.error("Error duplicating project:", error);
+  //     toast.error("Failed to duplicate project. Please try again.");
+  //   }
+  // };
 
   return (
-    <Col
-      lg={12}
-      style={{ boxSizing: "border-box", borderTop: "5px solid blue" }}
-    >
+    <>
+    {isLoading && (
+      <div className="loader-overlay">
+        <div className="spinner-border text-primary" role="status">
+          <span className="visually-hidden">Loading...</span>
+        </div>
+      </div>
+    )}
+    <Col lg={12}  style={{ boxSizing: "border-box", borderTop: "5px solid red" }}>
       <Row>
         <Col lg={12}>
           <Card>
             <CardBody>
-              <div className="button-group">
-                <h4 style={{ fontWeight: "600" }}>
-                  {assemblypartsList.assemblyListName}
-                </h4>
+              <div className="button-group flex justify-content-between align-items-center">
+                <h4 style={{ fontWeight: "600" }}>{subAssemblyItem.subAssemblyListName}</h4>
+                <UncontrolledDropdown direction="left">
+                  <DropdownToggle
+                    tag="button"
+                    className="btn btn-link text-muted p-1 mt-n2 py-0 text-decoration-none fs-15 shadow-none"
+                  >
+                    <FeatherIcon icon="more-horizontal" className="icon-sm" />
+                  </DropdownToggle>
+
+                  <DropdownMenu className="dropdown-menu-start">
+                    <DropdownItem
+                      href="#"
+                      // onClick={(e) => {
+                      //   e.preventDefault();
+                      //   setConfirmDuplicateModal(true);
+                      // }}
+                    >
+                      <i className="ri-file-copy-line align-bottom me-2 text-muted"></i>{" "}
+                      Duplicate
+                    </DropdownItem>
+                    <div className="dropdown-divider"></div>
+                  </DropdownMenu>
+                </UncontrolledDropdown>
               </div>
               <div className="button-group">
                 <Button
                   color="success"
                   className="add-btn"
-                  onClick={toggleAddModalPartAssembly}
+                  onClick={toggleAddModal}
                 >
-                  <i className="ri-add-line align-bottom me-1"></i> Add Part
-                  List
-                </Button>
-                <Button
-                  color="danger"
-                  className="add-btn"
-                  onClick={toggleAddModalsubAssembly}
-                >
-                  <i className="ri-add-line align-bottom me-1"></i> Add Sub
-                  Assembly
+                  <i className="ri-add-line align-bottom me-1"></i> Add Part List
                 </Button>
               </div>
 
-              {/* calling my component of sub assmebly  */}
-              {Array.isArray(subAssemblyItems) &&
-              subAssemblyItems.length > 0 ? (
-                subAssemblyItems.map((subAssemblyItem, index) => (
-                  <div key={index} className="parts-list">
-                    <SubAssemblyTable
-                      key={index}
-                      subAssemblyItems={subAssemblyItem}
-                      assemblyId={assemblypartsList._id}
-                    />
-                  </div>
-                ))
-              ) : (
-                <div>No sub-assemblies available.</div>
-              )}
-
-              {Array.isArray(partsAssmeblyItems) &&
-              partsAssmeblyItems.length > 0 ? (
-                partsAssmeblyItems.map((partsAssmeblyItem, index) => (
-                  <div key={index} className="parts-list">
-                    <AssmblyMultyPart
-                      key={index}
-                      partsAssmeblyItems={partsAssmeblyItem}
-                      assemblyId={assemblypartsList._id}
-                      onUpdateParts={handlePartsUpdate}
-                    />
-                  </div>
-                ))
-              ) : (
-                <div>No sub-Parts assembly available.</div>
-              )}
-
-              {/* <div className="table-wrapper">
+              <div className="table-wrapper">
                 <table className="project-table">
                   <thead>
                     <tr>
@@ -515,7 +529,7 @@ const AssemblyTable = ({ assemblypartsList }) => {
                     </tr>
                   </thead>
                   <tbody>
-                    {assemblypartsList.partsListItems.map((item) => (
+                    {subAssemblyItem.partsListItems?.map((item) => (
                       <React.Fragment key={item._id}>
                         <tr
                           onClick={() =>
@@ -544,7 +558,7 @@ const AssemblyTable = ({ assemblypartsList }) => {
                               : "N/A"}
                           </td>
                           <td>
-                            {(item.costPerUnit * item.quantity).toFixed(2)}
+                            {Math.round(item.costPerUnit * item.quantity)}
                           </td>
                           <td>
                             {(item.timePerUnit * item.quantity).toFixed(2)}
@@ -581,7 +595,7 @@ const AssemblyTable = ({ assemblypartsList }) => {
                                   />
                                   {item.partName}
                                 </h5>
-                               
+                                {/* Raw Materials Section */}
                                 <RawMaterial
                                   partName={item.partName}
                                   rmVariables={item.rmVariables || {}}
@@ -616,17 +630,41 @@ const AssemblyTable = ({ assemblypartsList }) => {
                           </tr>
                         )}
                       </React.Fragment>
-                    ))}
+                    )) ?? []}
                   </tbody>
                 </table>
-              </div>  */}
+              </div>
             </CardBody>
           </Card>
         </Col>
       </Row>
 
+      {/* <Modal
+        isOpen={confirmDuplicateModal}
+        toggle={() => setConfirmDuplicateModal(false)}
+      >
+        <ModalHeader toggle={() => setConfirmDuplicateModal(false)}>
+          Confirm Duplication
+        </ModalHeader>
+        <ModalBody>
+          Are you sure you want to duplicate this project? This action cannot be
+          undone.
+        </ModalBody>
+        <ModalFooter>
+          <Button
+            color="secondary"
+            onClick={() => setConfirmDuplicateModal(false)}
+          >
+            Cancel
+          </Button>
+          <Button color="primary" onClick={handleDuplicate}>
+            Confirm Duplication
+          </Button>
+        </ModalFooter>
+      </Modal> */}
+
       <Modal isOpen={modalAdd} toggle={toggleAddModal}>
-        <ModalHeader toggle={toggleAddModal}>Add Part</ModalHeader>
+        <ModalHeader toggle={toggleAddModal}>Add Part List</ModalHeader>
         <ModalBody>
           <form onSubmit={handleSubmit}>
             <Autocomplete
@@ -932,68 +970,9 @@ const AssemblyTable = ({ assemblypartsList }) => {
           </Button>
         </ModalFooter>
       </Modal>
-
-      {/* modle for sub assembly */}
-      <Modal isOpen={modalAddSubassembly} toggle={toggleAddModalsubAssembly}>
-        <ModalHeader toggle={toggleAddModalsubAssembly}>
-          Add Sub Assembly List Name
-        </ModalHeader>
-        <ModalBody>
-          <form onSubmit={(e) => handleSubmitSubAssembly(e.preventDefault())}>
-            <div className="form-group">
-              <Label for="partsListName">Add Sub Assembly List Name</Label>
-              <Input
-                type="text"
-                id="partsListName"
-                value={subAssemblyListName}
-                onChange={(e) => setSubAssemblyListName(e.target.value)}
-                required
-              />
-            </div>
-            <ModalFooter>
-              <Button color="success" type="submit">
-                Add Parts List
-              </Button>
-              <Button color="secondary" onClick={toggleAddModalsubAssembly}>
-                Cancel
-              </Button>
-            </ModalFooter>
-          </form>
-        </ModalBody>
-      </Modal>
-
-      {/* modle for parts assembly */}
-      <Modal isOpen={modalAddPartAssmebly} toggle={toggleAddModalPartAssembly}>
-        <ModalHeader toggle={toggleAddModalPartAssembly}>
-          Add Parts Assembly List Name
-        </ModalHeader>
-        <ModalBody>
-          <form
-            onSubmit={(e) => handleMultySubmitpartsAssmebly(e.preventDefault())}
-          >
-            <div className="form-group">
-              <Label for="partsListName">Add Parts Assembly List Name</Label>
-              <Input
-                type="text"
-                id="partsListName"
-                value={assemblyMultyPartsListName}
-                onChange={(e) => setassemblyMultyPartsListName(e.target.value)}
-                required
-              />
-            </div>
-            <ModalFooter>
-              <Button color="success" type="submit">
-                Add Parts List
-              </Button>
-              <Button color="secondary" onClick={toggleAddModalPartAssembly}>
-                Cancel
-              </Button>
-            </ModalFooter>
-          </form>
-        </ModalBody>
-      </Modal>
     </Col>
+    </>
   );
 };
 
-export default AssemblyTable;
+export default OuterSubAssmebly;

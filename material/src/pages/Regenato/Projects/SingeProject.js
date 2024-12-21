@@ -35,6 +35,7 @@ import { MdOutlineDelete } from "react-icons/md";
 import AssemblyTable from "./SingleProjectsFolder/AssemblyTable";
 import SubAssemblyTable from "./SingleProjectsFolder/SubAssemblyTable";
 import PartsTable from "./SingleProjectsFolder/PartsTable";
+import OuterSubAssmebly from "./SingleProjectsFolder/OuterSubAssmebly";
 
 const SingeProject = () => {
   const { _id } = useParams();
@@ -56,6 +57,7 @@ const SingeProject = () => {
   const [AssemblyListName, setAssemblyListName] = useState("");
 
   const [partsListName, setPartsListName] = useState("");
+  const [subAssemblyListName, setsubAssemblyListName] = useState("");
 
   const toggleAddModal = () => {
     setModalAdd(!modalAdd);
@@ -145,6 +147,7 @@ const SingeProject = () => {
       setprojectType(data.projectType || "");
       setPartsLists(data.partsLists || []);
       setassemblyLists(data.assemblyPartsLists || []);
+      setSubAssemblyItems(data.subAssemblyListFirst);
       console.log("asssssssssembly", data.assemblyPartsLists);
     } catch (error) {
       setError(error.message);
@@ -266,7 +269,58 @@ const SingeProject = () => {
     }
   };
 
+  const handleAddNewSubAsssmebly = useCallback(
+    async (newPartsList) => {
+      try {
+        const response = await fetch(
+          `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/subAssemblyListFirst`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(newPartsList),
+          }
+        );
 
+        if (!response.ok) {
+          throw new Error("Failed to add new parts list");
+        }
+
+        const addedPartsList = await response.json();
+
+        // Update local state immediately
+        setSubAssemblyItems((prevPartsLists) => [
+          ...prevPartsLists,
+          addedPartsList,
+        ]);
+
+        // Refetch project details to ensure consistency
+        await fetchProjectDetails();
+
+        // Reset form fields
+        setsubAssemblyListName("");
+
+        // Close the modal
+        setModalAddSubassembly(false);
+
+        // Show success notification (optional)
+        // toast.success("New parts list added successfully!");
+      } catch (error) {
+        console.error("Error adding new parts list:", error);
+        setError("Failed to add new parts list. Please try again.");
+      }
+    },
+    [_id]
+  );
+
+  const handleSubmitSubAsssmebly = async (event) => {
+    event.preventDefault();
+
+    try {
+      await handleAddNewSubAsssmebly({ subAssemblyListName });
+    } catch (error) {
+      console.error("Error in handleSubmit:", error);
+    }
+  };
 
   // fetching and hadleing the fetching and post crud operations for assembly list
   if (loading) return <div>Loading...</div>;
@@ -275,7 +329,7 @@ const SingeProject = () => {
   console.log(detailedPartData);
   return (
     <React.Fragment>
-      <div className="page-content" style={{ marginTop: "-70px" }}>
+      <div className="page-content">
         <Container fluid>
           <div className="project-header">
             {/* Left Section */}
@@ -311,8 +365,8 @@ const SingeProject = () => {
 
           <div className="button-group">
             <Button
-              style={{ color: "#9C27B0", color: "white" }}
-              className="add-btn"
+              className="add-btn "
+              color="success"
               onClick={toggleAddModal}
             >
               <i className="ri-add-line align-bottom me-1"></i> Add Part List
@@ -334,9 +388,12 @@ const SingeProject = () => {
           </div>
 
           {/* showTable */}
-          <div className="parts-lists">
+          <div
+            className="parts-lists"
+            
+          >
             {partsLists.map((partsList, index) => (
-              <div key={index} className="parts-list">
+              <div key={index} className="parts-list border-top-green">
                 <PartsTable
                   partsList={partsList}
                   partsLists={partsLists}
@@ -346,7 +403,20 @@ const SingeProject = () => {
             ))}
           </div>
 
+          {/* showTable */}
           <div className="parts-lists">
+            {subAssemblyItems.map((subAssemblyItem, index) => (
+              <div key={index} className="parts-list">
+                <OuterSubAssmebly
+                  subAssemblyItem={subAssemblyItem}
+                  subAssemblyItems={subAssemblyItems}
+                  updatesubAssemblyItems={fetchProjectDetails}
+                />
+              </div>
+            ))}
+          </div>
+
+          <div className="parts-lists" >
             {assemblyLists.map((assemblypartsList, index) => (
               <div key={index} className="parts-list">
                 <AssemblyTable
@@ -359,6 +429,7 @@ const SingeProject = () => {
         </Container>
       </div>
 
+      {/* modal for parts list  */}
       <Modal isOpen={modalAdd} toggle={toggleAddModal}>
         <ModalHeader toggle={toggleAddModal}>Add Parts List</ModalHeader>
         <ModalBody>
@@ -414,7 +485,34 @@ const SingeProject = () => {
         </ModalBody>
       </Modal>
 
-
+      {/* modal for outer sub assmebly list */}
+      <Modal isOpen={modalAddSubassembly} toggle={toggleAddModalsubAssembly}>
+        <ModalHeader toggle={toggleAddModalsubAssembly}>
+          Add Sub Assembly List
+        </ModalHeader>
+        <ModalBody>
+          <form onSubmit={handleSubmitSubAsssmebly}>
+            <div className="form-group">
+              <Label for="partsListName">Sub Assembly List Name</Label>
+              <Input
+                type="text"
+                id="partsListName"
+                value={subAssemblyListName}
+                onChange={(e) => setsubAssemblyListName(e.target.value)}
+                required
+              />
+            </div>
+            <ModalFooter>
+              <Button color="success" type="submit">
+                Add Sub Assembly
+              </Button>
+              <Button color="secondary" onClick={toggleAddModalsubAssembly}>
+                Cancel
+              </Button>
+            </ModalFooter>
+          </form>
+        </ModalBody>
+      </Modal>
     </React.Fragment>
   );
 };

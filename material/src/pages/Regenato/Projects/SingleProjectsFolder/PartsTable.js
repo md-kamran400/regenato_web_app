@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect } from "react";
+import "../project.css";
 import {
   Card,
   Button,
@@ -49,83 +50,21 @@ const PartsTable = ({ partsList = {}, partsLists, updatePartsLists }) => {
   const [parts, setParts] = useState([]);
   const [selectedPartData, setSelectedPartData] = useState(parts[0]);
   const [manufacturingVariables, setManufacturingVariables] = useState([]);
-  const [expandedRows, setExpandedRows] = useState({});
   const [expandedRowId, setExpandedRowId] = useState(null);
   const [costPerUnit, setCostPerUnit] = useState("");
   const [timePerUnit, setTimePerUnit] = useState("");
   const [detailedPartData, setDetailedPartData] = useState({});
-  const [refetchManufacturing, setRefetchManufacturing] = useState(false);
-  const [rawMaterialInput, setRawMaterialInput] = useState("");
-  const [manufacturingInput, setManufacturingInput] = useState("");
-  const [shipmentInput, setShipmentInput] = useState("");
-  const [overheadsProfitInput, setOverheadsProfitInput] = useState("");
-  const [confirmDuplicateModal, setConfirmDuplicateModal] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
   const [projectName, setProjectName] = useState("");
   const [projectType, setprojectType] = useState("");
   const [partId, setPartId] = useState("");
   const [partsListItems, setPartsListsItems] = useState([]);
   const [partsDisplay, setPartsDisplay] = useState([]);
-  const [assemblyItems, setAssemblyItems] = useState([]);
   const [subAssemblyItems, setSubAssemblyItems] = useState([]);
-  // ... other state declarations ...
-  const [inputs, setInputs] = useState({
-    machineHours: {},
-    machineTbu: {},
-    daysToWork: {},
-  });
-  const [calculatedValues, setCalculatedValues] = useState({});
+  const [isLoading, setIsLoading] = useState(false);
   const [machinesTBU, setMachinesTBU] = useState({});
   // duplicate creation useState
 
-  // duplicate creation useState ends here
-
-  const [showTable, setShowTable] = useState(() => {
-    const storedValue = localStorage.getItem("showTable");
-    return storedValue ? JSON.parse(storedValue) : false;
-  });
-
-  const [showAssemblyTable, setShowAssemblyTable] = useState(() => {
-    const storedValue = localStorage.getItem("showAssemblyTable");
-    return storedValue ? JSON.parse(storedValue) : false;
-  });
-
-  const [showSubAssemblyTable, setShowSubAssemblyTable] = useState(() => {
-    const storedValue = localStorage.getItem("showSubAssemblyTable");
-    return storedValue ? JSON.parse(storedValue) : false;
-  });
-
-  // ... other state declarations ...
-
-  useEffect(() => {
-    localStorage.setItem("showTable", JSON.stringify(showTable));
-  }, [showTable]);
-
-  useEffect(() => {
-    localStorage.setItem(
-      "showAssemblyTable",
-      JSON.stringify(showAssemblyTable)
-    );
-  }, [showAssemblyTable]);
-
-  useEffect(() => {
-    localStorage.setItem(
-      "showSubAssemblyTable",
-      JSON.stringify(showSubAssemblyTable)
-    );
-  }, [showSubAssemblyTable]);
-
-  const handleAddPartList = useCallback(() => {
-    setShowTable(true);
-  }, []);
-
-  const handleAddAssembly = useCallback(() => {
-    setShowAssemblyTable(true);
-  }, []);
-
-  const handleAddSubAssembly = useCallback(() => {
-    setShowSubAssemblyTable(true);
-  }, []);
   const toggleAddModal = () => {
     setModalAdd(!modalAdd);
   };
@@ -178,6 +117,7 @@ const PartsTable = ({ partsList = {}, partsLists, updatePartsLists }) => {
       setLoading(false);
     }
   }, []);
+
 
   useEffect(() => {
     fetchData();
@@ -299,6 +239,7 @@ const PartsTable = ({ partsList = {}, partsLists, updatePartsLists }) => {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    setIsLoading(true);
 
     const payload = {
       partId: selectedPartData.id,
@@ -324,6 +265,7 @@ const PartsTable = ({ partsList = {}, partsLists, updatePartsLists }) => {
 
       if (!response.ok) {
         throw new Error("Failed to add part. Please try again.");
+        setIsLoading(true);
       }
 
       const newPart = await response.json();
@@ -334,9 +276,6 @@ const PartsTable = ({ partsList = {}, partsLists, updatePartsLists }) => {
         { ...newPart, _id: newPart.id },
       ]);
 
-      // Trigger re-fetch for consistency
-      await PartsTableFetch();
-
       // Reset modal and fields
       setModalAdd(false);
       setSelectedPartData(null);
@@ -344,9 +283,13 @@ const PartsTable = ({ partsList = {}, partsLists, updatePartsLists }) => {
       setTimePerUnit("");
       setQuantity(0);
       await PartsTableFetch();
+
+      // Refresh the page after successful submission
+      window.location.reload();
     } catch (error) {
       console.error("Error submitting part:", error);
       setError("Failed to add part. Please try again.");
+      setIsLoading(false);
     }
   };
 
@@ -393,15 +336,6 @@ const PartsTable = ({ partsList = {}, partsLists, updatePartsLists }) => {
         ...prevData,
         allProjects: updatedAllProjects,
       };
-    });
-  };
-
-  const handleInputChange = (e, section, index, key) => {
-    const updatedValue = e.target.value;
-    setDetailedPartData((prevState) => {
-      const updatedSection = [...prevState[section]];
-      updatedSection[index][key] = updatedValue;
-      return { ...prevState, [section]: updatedSection };
     });
   };
 
@@ -460,171 +394,191 @@ const PartsTable = ({ partsList = {}, partsLists, updatePartsLists }) => {
   // };
 
   return (
-    <Col lg={12}>
-      <Row>
-        <Col lg={12}>
-          <Card>
-            <CardBody>
-              <div className="button-group flex justify-content-between align-items-center">
-                <h4 style={{ fontWeight: "600" }}>{partsList.partsListName}</h4>
-                <UncontrolledDropdown direction="left">
-                  <DropdownToggle
-                    tag="button"
-                    className="btn btn-link text-muted p-1 mt-n2 py-0 text-decoration-none fs-15 shadow-none"
-                  >
-                    <FeatherIcon icon="more-horizontal" className="icon-sm" />
-                  </DropdownToggle>
-
-                  <DropdownMenu className="dropdown-menu-start">
-                    <DropdownItem
-                      href="#"
-                      // onClick={(e) => {
-                      //   e.preventDefault();
-                      //   setConfirmDuplicateModal(true);
-                      // }}
+    <>
+      {isLoading && (
+        <div className="loader-overlay">
+          <div className="spinner-border text-primary" role="status">
+            <span className="visually-hidden">Loading...</span>
+          </div>
+        </div>
+      )}
+      <Col
+        lg={12}
+        style={{ boxSizing: "border-box", borderTop: "5px solid green" }}
+      >
+        <Row>
+          <Col lg={12}>
+            <Card>
+              <CardBody>
+                <div className="button-group flex justify-content-between align-items-center">
+                  <h4 style={{ fontWeight: "600" }}>
+                    {partsList.partsListName}
+                  </h4>
+                  <UncontrolledDropdown direction="left">
+                    <DropdownToggle
+                      tag="button"
+                      className="btn btn-link text-muted p-1 mt-n2 py-0 text-decoration-none fs-15 shadow-none"
                     >
-                      <i className="ri-file-copy-line align-bottom me-2 text-muted"></i>{" "}
-                      Duplicate
-                    </DropdownItem>
-                    <div className="dropdown-divider"></div>
-                  </DropdownMenu>
-                </UncontrolledDropdown>
-              </div>
-              <div className="button-group">
-                <Button
-                  color="success"
-                  className="add-btn"
-                  onClick={toggleAddModal}
-                >
-                  <i className="ri-add-line align-bottom me-1"></i> Add Part
-                </Button>
-              </div>
+                      <FeatherIcon icon="more-horizontal" className="icon-sm" />
+                    </DropdownToggle>
 
-              <div className="table-wrapper">
-                <table className="project-table">
-                  <thead>
-                    <tr>
-                      <th onClick={() => handleRowClickParts("name")}>Name</th>
-                      <th>Cost Per Unit</th>
-                      <th>Machining Hours</th>
-                      <th>Quantity</th>
-                      <th>Total Cost</th>
-                      <th>Total Machining Hours</th>
-                      <th>Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {partsList.partsListItems?.map((item) => (
-                      <React.Fragment key={item._id}>
-                        <tr
-                          onClick={() =>
-                            handleRowClickParts(item._id, item.partName)
-                          }
-                          className={
-                            expandedRowId === item._id ? "expanded" : ""
-                          }
-                        >
-                          <td className="parent_partName">
-                            {item.partName} ({item.Uid})
-                          </td>
-                          <td>
-                            {item.costPerUnit !== undefined
-                              ? item.costPerUnit.toFixed(2)
-                              : "N/A"}
-                          </td>
-                          <td>
-                            {item.timePerUnit !== undefined
-                              ? item.timePerUnit.toFixed(2)
-                              : "N/A"}
-                          </td>
-                          <td>
-                            {item.quantity !== undefined
-                              ? item.quantity
-                              : "N/A"}
-                          </td>
-                          <td>
-                            {(item.costPerUnit * item.quantity).toFixed(2)}
-                          </td>
-                          <td>
-                            {(item.timePerUnit * item.quantity).toFixed(2)}
-                          </td>
-                          <td className="action-cell">
-                            <div className="action-buttons">
-                              <span>
-                                <FiEdit size={20} />
-                              </span>
-                              <span onClick={() => tog_delete(item._id)}>
-                                <MdOutlineDelete size={25} />
-                              </span>
-                            </div>
-                          </td>
-                        </tr>
-                        {expandedRowId === item._id && (
-                          <tr className="details-row">
-                            <td colSpan={6}>
-                              <div className="details-box">
-                                <h5
-                                  className="mb-3 d-flex align-items-center"
-                                  style={{
-                                    fontWeight: "bold",
-                                    color: "#333",
-                                  }}
-                                >
-                                  <FiSettings
-                                    style={{
-                                      fontSize: "1.2rem",
-                                      marginRight: "10px",
-                                      color: "#2563eb",
-                                      fontWeight: "bold",
-                                    }}
-                                  />
-                                  {item.partName}
-                                </h5>
-                                {/* Raw Materials Section */}
-                                <RawMaterial
-                                  partName={item.partName}
-                                  rmVariables={item.rmVariables || {}}
-                                  projectId={_id}
-                                  partId={item._id}
-                                />
-                                <Manufacturing
-                                  partName={item.partName}
-                                  manufacturingVariables={
-                                    item.manufacturingVariables || []
-                                  }
-                                  projectId={_id}
-                                  partId={item._id}
-                                  onUpdateVariable={updateManufacturingVariable}
-                                  onTotalCountUpdate={() => {}}
-                                />
+                    <DropdownMenu className="dropdown-menu-start">
+                      <DropdownItem
+                        href="#"
+                        // onClick={(e) => {
+                        //   e.preventDefault();
+                        //   setConfirmDuplicateModal(true);
+                        // }}
+                      >
+                        <i className="ri-file-copy-line align-bottom me-2 text-muted"></i>{" "}
+                        Duplicate
+                      </DropdownItem>
+                      <div className="dropdown-divider"></div>
+                    </DropdownMenu>
+                  </UncontrolledDropdown>
+                </div>
+                <div className="button-group">
+                  <Button
+                    color="success"
+                    className="add-btn"
+                    onClick={toggleAddModal}
+                  >
+                    <i className="ri-add-line align-bottom me-1"></i> Add Part
+                    List
+                  </Button>
+                </div>
 
-                                <Shipment
-                                  partName={item.partName}
-                                  shipmentVariables={
-                                    item.shipmentVariables || []
-                                  }
-                                  projectId={_id}
-                                  partId={item._id}
-                                />
-                                <Overheads
-                                  partName={item.partName}
-                                  overheadsAndProfits={item.overheadsAndProfits}
-                                />
+                <div className="table-wrapper">
+                  <table className="project-table">
+                    <thead>
+                      <tr>
+                        <th onClick={() => handleRowClickParts("name")}>
+                          Name
+                        </th>
+                        <th>Cost Per Unit</th>
+                        <th>Machining Hours</th>
+                        <th>Quantity</th>
+                        <th>Total Cost</th>
+                        <th>Total Machining Hours</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {partsList.partsListItems?.map((item) => (
+                        <React.Fragment key={item._id}>
+                          <tr
+                            onClick={() =>
+                              handleRowClickParts(item._id, item.partName)
+                            }
+                            className={
+                              expandedRowId === item._id ? "expanded" : ""
+                            }
+                          >
+                            <td className="parent_partName">
+                              {item.partName} ({item.Uid})
+                            </td>
+                            <td>
+                              {item.costPerUnit !== undefined
+                                ? item.costPerUnit.toFixed(2)
+                                : "N/A"}
+                            </td>
+                            <td>
+                              {item.timePerUnit !== undefined
+                                ? item.timePerUnit.toFixed(2)
+                                : "N/A"}
+                            </td>
+                            <td>
+                              {item.quantity !== undefined
+                                ? item.quantity
+                                : "N/A"}
+                            </td>
+                            <td>
+                              {Math.round(item.costPerUnit * item.quantity)}
+                            </td>
+                            <td>
+                              {(item.timePerUnit * item.quantity).toFixed(2)}
+                            </td>
+                            <td className="action-cell">
+                              <div className="action-buttons">
+                                <span>
+                                  <FiEdit size={20} />
+                                </span>
+                                <span onClick={() => tog_delete(item._id)}>
+                                  <MdOutlineDelete size={25} />
+                                </span>
                               </div>
                             </td>
                           </tr>
-                        )}
-                      </React.Fragment>
-                    )) ?? []}
-                  </tbody>
-                </table>
-              </div>
-            </CardBody>
-          </Card>
-        </Col>
-      </Row>
+                          {expandedRowId === item._id && (
+                            <tr className="details-row">
+                              <td colSpan={6}>
+                                <div className="details-box">
+                                  <h5
+                                    className="mb-3 d-flex align-items-center"
+                                    style={{
+                                      fontWeight: "bold",
+                                      color: "#333",
+                                    }}
+                                  >
+                                    <FiSettings
+                                      style={{
+                                        fontSize: "1.2rem",
+                                        marginRight: "10px",
+                                        color: "#2563eb",
+                                        fontWeight: "bold",
+                                      }}
+                                    />
+                                    {item.partName}
+                                  </h5>
+                                  {/* Raw Materials Section */}
+                                  <RawMaterial
+                                    partName={item.partName}
+                                    rmVariables={item.rmVariables || {}}
+                                    projectId={_id}
+                                    partId={item._id}
+                                  />
+                                  <Manufacturing
+                                    partName={item.partName}
+                                    manufacturingVariables={
+                                      item.manufacturingVariables || []
+                                    }
+                                    projectId={_id}
+                                    partId={item._id}
+                                    onUpdateVariable={
+                                      updateManufacturingVariable
+                                    }
+                                    onTotalCountUpdate={() => {}}
+                                  />
 
-      {/* <Modal
+                                  <Shipment
+                                    partName={item.partName}
+                                    shipmentVariables={
+                                      item.shipmentVariables || []
+                                    }
+                                    projectId={_id}
+                                    partId={item._id}
+                                  />
+                                  <Overheads
+                                    partName={item.partName}
+                                    overheadsAndProfits={
+                                      item.overheadsAndProfits
+                                    }
+                                  />
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
+                      )) ?? []}
+                    </tbody>
+                  </table>
+                </div>
+              </CardBody>
+            </Card>
+          </Col>
+        </Row>
+
+        {/* <Modal
         isOpen={confirmDuplicateModal}
         toggle={() => setConfirmDuplicateModal(false)}
       >
@@ -648,314 +602,318 @@ const PartsTable = ({ partsList = {}, partsLists, updatePartsLists }) => {
         </ModalFooter>
       </Modal> */}
 
-      <Modal isOpen={modalAdd} toggle={toggleAddModal}>
-        <ModalHeader toggle={toggleAddModal}>Add Part</ModalHeader>
-        <ModalBody>
-          <form onSubmit={handleSubmit}>
-            <Autocomplete
-              options={parts}
-              getOptionLabel={(option) => option.partName || ""}
-              onChange={handleAutocompleteChange}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label="Select Part"
-                  variant="outlined"
+        <Modal isOpen={modalAdd} toggle={toggleAddModal}>
+          <ModalHeader toggle={toggleAddModal}>Add Part List</ModalHeader>
+          <ModalBody>
+            <form onSubmit={handleSubmit}>
+              <Autocomplete
+                options={parts}
+                getOptionLabel={(option) => option.partName || ""}
+                onChange={handleAutocompleteChange}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Select Part"
+                    variant="outlined"
+                    required
+                  />
+                )}
+              />
+
+              <div className="form-group">
+                <Label for="partId" className="form-label">
+                  Part ID
+                </Label>
+                <Input
+                  className="form-control"
+                  type="text"
+                  id="partId"
+                  value={partId}
+                  onChange={(e) => setPartId(e.target.value)}
                   required
                 />
-              )}
-            />
+              </div>
 
-            <div className="form-group">
-              <Label for="partId" className="form-label">
-                Part ID
-              </Label>
-              <Input
-                className="form-control"
-                type="text"
-                id="partId"
-                value={partId}
-                onChange={(e) => setPartId(e.target.value)}
-                required
-              />
-            </div>
+              <div className="form-group">
+                <Label for="costPerUnit" className="form-label">
+                  Cost Per Unit
+                </Label>
+                <Input
+                  className="form-control"
+                  type="number"
+                  id="costPerUnit"
+                  value={Number(costPerUnit).toFixed(2) || "0.00"}
+                  onChange={(e) => setCostPerUnit(Number(e.target.value))}
+                  required
+                />
+              </div>
 
-            <div className="form-group">
-              <Label for="costPerUnit" className="form-label">
-                Cost Per Unit
-              </Label>
-              <Input
-                className="form-control"
-                type="number"
-                id="costPerUnit"
-                value={Number(costPerUnit).toFixed(2) || "0.00"}
-                onChange={(e) => setCostPerUnit(Number(e.target.value))}
-                required
-              />
-            </div>
+              <div className="form-group">
+                <Label for="timePerUnit" className="form-label">
+                  Time Per Unit
+                </Label>
+                <Input
+                  className="form-control"
+                  type="number"
+                  id="timePerUnit"
+                  value={Number(timePerUnit).toFixed(2) || "0.00"}
+                  onChange={(e) => setTimePerUnit(e.target.value)}
+                  required
+                />
+              </div>
 
-            <div className="form-group">
-              <Label for="timePerUnit" className="form-label">
-                Time Per Unit
-              </Label>
-              <Input
-                className="form-control"
-                type="number"
-                id="timePerUnit"
-                value={Number(timePerUnit).toFixed(2) || "0.00"}
-                onChange={(e) => setTimePerUnit(e.target.value)}
-                required
-              />
-            </div>
-
-            <div className="form-group">
-              <Label for="quantity" className="form-label">
-                Quantity
-              </Label>
-              <Input
-                className="form-control"
-                type="number"
-                id="quantity"
-                value={quantity.toString()}
-                onChange={(e) => {
-                  const inputValue = e.target.value;
-                  if (inputValue === "" || /^\d+$/.test(inputValue)) {
-                    setQuantity(inputValue === "" ? 0 : parseInt(inputValue));
-                  }
-                }}
-                required
-              />
-            </div>
-            <UncontrolledAccordion defaultOpen="1">
-              {/* Raw Materials Accordion */}
-              <AccordionItem>
-                <AccordionHeader targetId="1">Raw Materials</AccordionHeader>
-                <AccordionBody
-                  accordionId="1"
-                  className="accordion-body-custom"
-                >
-                  {detailedPartData.rmVariables?.map((rm, index) => (
-                    <FormGroup key={rm._id} className="accordion-item-custom">
-                      <Label className="accordion-label">{rm.name}</Label>
-                      <Input
-                        type="number"
-                        className="accordion-input"
-                        value={rm.netWeight || ""}
-                        onChange={(e) =>
-                          setDetailedPartData((prev) => ({
-                            ...prev,
-                            rmVariables: prev.rmVariables.map((item, idx) =>
-                              idx === index
-                                ? { ...item, netWeight: e.target.value }
-                                : item
-                            ),
-                          }))
-                        }
-                        placeholder="Enter net weight"
-                      />
-                      <Input
-                        type="number"
-                        className="accordion-input"
-                        value={rm.pricePerKg || ""}
-                        onChange={(e) =>
-                          setDetailedPartData((prev) => ({
-                            ...prev,
-                            rmVariables: prev.rmVariables.map((item, idx) =>
-                              idx === index
-                                ? { ...item, pricePerKg: e.target.value }
-                                : item
-                            ),
-                          }))
-                        }
-                        placeholder="Enter price per kg"
-                      />
-                      <p className="accordion-total-rate">
-                        Total Rate: {rm.totalRate}
-                      </p>
-                    </FormGroup>
-                  ))}
-                </AccordionBody>
-              </AccordionItem>
-
-              {/* Manufacturing Variable Accordion */}
-              <AccordionItem>
-                <AccordionHeader targetId="2">
-                  Manufacturing Variable
-                </AccordionHeader>
-                <AccordionBody accordionId="2">
-                  {detailedPartData.manufacturingVariables?.map(
-                    (man, index) => (
-                      <FormGroup
-                        key={man._id}
-                        className="accordion-item-custom"
-                      >
-                        <Label className="accordion-label">{man.name}</Label>
+              <div className="form-group">
+                <Label for="quantity" className="form-label">
+                  Quantity
+                </Label>
+                <Input
+                  className="form-control"
+                  type="number"
+                  id="quantity"
+                  value={quantity.toString()}
+                  onChange={(e) => {
+                    const inputValue = e.target.value;
+                    if (inputValue === "" || /^\d+$/.test(inputValue)) {
+                      setQuantity(inputValue === "" ? 0 : parseInt(inputValue));
+                    }
+                  }}
+                  required
+                />
+              </div>
+              <UncontrolledAccordion defaultOpen="1">
+                {/* Raw Materials Accordion */}
+                <AccordionItem>
+                  <AccordionHeader targetId="1">Raw Materials</AccordionHeader>
+                  <AccordionBody
+                    accordionId="1"
+                    className="accordion-body-custom"
+                  >
+                    {detailedPartData.rmVariables?.map((rm, index) => (
+                      <FormGroup key={rm._id} className="accordion-item-custom">
+                        <Label className="accordion-label">{rm.name}</Label>
                         <Input
                           type="number"
                           className="accordion-input"
-                          value={man.hours || ""}
+                          value={rm.netWeight || ""}
                           onChange={(e) =>
                             setDetailedPartData((prev) => ({
                               ...prev,
-                              manufacturingVariables:
-                                prev.manufacturingVariables.map((item, idx) =>
-                                  idx === index
-                                    ? { ...item, hours: e.target.value }
-                                    : item
-                                ),
+                              rmVariables: prev.rmVariables.map((item, idx) =>
+                                idx === index
+                                  ? { ...item, netWeight: e.target.value }
+                                  : item
+                              ),
                             }))
                           }
-                          placeholder="Enter hours"
+                          placeholder="Enter net weight"
                         />
                         <Input
                           type="number"
                           className="accordion-input"
-                          value={man.hourlyRate || ""}
+                          value={rm.pricePerKg || ""}
                           onChange={(e) =>
                             setDetailedPartData((prev) => ({
                               ...prev,
-                              manufacturingVariables:
-                                prev.manufacturingVariables.map((item, idx) =>
+                              rmVariables: prev.rmVariables.map((item, idx) =>
+                                idx === index
+                                  ? { ...item, pricePerKg: e.target.value }
+                                  : item
+                              ),
+                            }))
+                          }
+                          placeholder="Enter price per kg"
+                        />
+                        <p className="accordion-total-rate">
+                          Total Rate: {rm.totalRate}
+                        </p>
+                      </FormGroup>
+                    ))}
+                  </AccordionBody>
+                </AccordionItem>
+
+                {/* Manufacturing Variable Accordion */}
+                <AccordionItem>
+                  <AccordionHeader targetId="2">
+                    Manufacturing Variable
+                  </AccordionHeader>
+                  <AccordionBody accordionId="2">
+                    {detailedPartData.manufacturingVariables?.map(
+                      (man, index) => (
+                        <FormGroup
+                          key={man._id}
+                          className="accordion-item-custom"
+                        >
+                          <Label className="accordion-label">{man.name}</Label>
+                          <Input
+                            type="number"
+                            className="accordion-input"
+                            value={man.hours || ""}
+                            onChange={(e) =>
+                              setDetailedPartData((prev) => ({
+                                ...prev,
+                                manufacturingVariables:
+                                  prev.manufacturingVariables.map((item, idx) =>
+                                    idx === index
+                                      ? { ...item, hours: e.target.value }
+                                      : item
+                                  ),
+                              }))
+                            }
+                            placeholder="Enter hours"
+                          />
+                          <Input
+                            type="number"
+                            className="accordion-input"
+                            value={man.hourlyRate || ""}
+                            onChange={(e) =>
+                              setDetailedPartData((prev) => ({
+                                ...prev,
+                                manufacturingVariables:
+                                  prev.manufacturingVariables.map((item, idx) =>
+                                    idx === index
+                                      ? { ...item, hourlyRate: e.target.value }
+                                      : item
+                                  ),
+                              }))
+                            }
+                            placeholder="Enter hourly rate"
+                          />
+                          <p className="accordion-total-rate">
+                            Total Rate: {man.totalRate}
+                          </p>
+                        </FormGroup>
+                      )
+                    )}
+                  </AccordionBody>
+                </AccordionItem>
+
+                {/* Shipment Variable Accordion */}
+                <AccordionItem>
+                  <AccordionHeader targetId="3">
+                    Shipment Variable
+                  </AccordionHeader>
+                  <AccordionBody accordionId="3">
+                    {detailedPartData.shipmentVariables?.map((ship, index) => (
+                      <FormGroup
+                        key={ship._id}
+                        className="accordion-item-custom"
+                      >
+                        <Label className="accordion-label">{ship.name}</Label>
+                        <Input
+                          type="number"
+                          className="accordion-input"
+                          value={ship.hourlyRate || ""}
+                          onChange={(e) =>
+                            setDetailedPartData((prev) => ({
+                              ...prev,
+                              shipmentVariables: prev.shipmentVariables.map(
+                                (item, idx) =>
                                   idx === index
                                     ? { ...item, hourlyRate: e.target.value }
                                     : item
-                                ),
+                              ),
                             }))
                           }
                           placeholder="Enter hourly rate"
                         />
                         <p className="accordion-total-rate">
-                          Total Rate: {man.totalRate}
+                          Total Rate: {ship.hourlyRate}
                         </p>
                       </FormGroup>
-                    )
-                  )}
-                </AccordionBody>
-              </AccordionItem>
+                    ))}
+                  </AccordionBody>
+                </AccordionItem>
 
-              {/* Shipment Variable Accordion */}
-              <AccordionItem>
-                <AccordionHeader targetId="3">
-                  Shipment Variable
-                </AccordionHeader>
-                <AccordionBody accordionId="3">
-                  {detailedPartData.shipmentVariables?.map((ship, index) => (
-                    <FormGroup key={ship._id} className="accordion-item-custom">
-                      <Label className="accordion-label">{ship.name}</Label>
-                      <Input
-                        type="number"
-                        className="accordion-input"
-                        value={ship.hourlyRate || ""}
-                        onChange={(e) =>
-                          setDetailedPartData((prev) => ({
-                            ...prev,
-                            shipmentVariables: prev.shipmentVariables.map(
-                              (item, idx) =>
-                                idx === index
-                                  ? { ...item, hourlyRate: e.target.value }
-                                  : item
-                            ),
-                          }))
-                        }
-                        placeholder="Enter hourly rate"
-                      />
-                      <p className="accordion-total-rate">
-                        Total Rate: {ship.hourlyRate}
-                      </p>
-                    </FormGroup>
-                  ))}
-                </AccordionBody>
-              </AccordionItem>
+                {/* Overheads and Profit Accordion */}
+                <AccordionItem>
+                  <AccordionHeader targetId="4">
+                    Overheads and Profit
+                  </AccordionHeader>
+                  <AccordionBody accordionId="4">
+                    {detailedPartData.overheadsAndProfits?.map(
+                      (overhead, index) => (
+                        <FormGroup
+                          key={overhead._id}
+                          className="accordion-item-custom"
+                        >
+                          <Label className="accordion-label">
+                            {overhead.name}
+                          </Label>
+                          <Input
+                            type="number"
+                            className="accordion-input"
+                            value={overhead.percentage || ""}
+                            onChange={(e) =>
+                              setDetailedPartData((prev) => ({
+                                ...prev,
+                                overheadsAndProfits:
+                                  prev.overheadsAndProfits.map((item, idx) =>
+                                    idx === index
+                                      ? { ...item, percentage: e.target.value }
+                                      : item
+                                  ),
+                              }))
+                            }
+                            placeholder="Enter percentage"
+                          />
+                          <p className="accordion-total-rate">
+                            Total Rate: {overhead.totalRate}
+                          </p>
+                        </FormGroup>
+                      )
+                    )}
+                  </AccordionBody>
+                </AccordionItem>
+              </UncontrolledAccordion>
 
-              {/* Overheads and Profit Accordion */}
-              <AccordionItem>
-                <AccordionHeader targetId="4">
-                  Overheads and Profit
-                </AccordionHeader>
-                <AccordionBody accordionId="4">
-                  {detailedPartData.overheadsAndProfits?.map(
-                    (overhead, index) => (
-                      <FormGroup
-                        key={overhead._id}
-                        className="accordion-item-custom"
-                      >
-                        <Label className="accordion-label">
-                          {overhead.name}
-                        </Label>
-                        <Input
-                          type="number"
-                          className="accordion-input"
-                          value={overhead.percentage || ""}
-                          onChange={(e) =>
-                            setDetailedPartData((prev) => ({
-                              ...prev,
-                              overheadsAndProfits: prev.overheadsAndProfits.map(
-                                (item, idx) =>
-                                  idx === index
-                                    ? { ...item, percentage: e.target.value }
-                                    : item
-                              ),
-                            }))
-                          }
-                          placeholder="Enter percentage"
-                        />
-                        <p className="accordion-total-rate">
-                          Total Rate: {overhead.totalRate}
-                        </p>
-                      </FormGroup>
-                    )
-                  )}
-                </AccordionBody>
-              </AccordionItem>
-            </UncontrolledAccordion>
+              <Button
+                type="submit"
+                color="primary"
+                disabled={
+                  !selectedPartData || !costPerUnit || !timePerUnit || !quantity
+                }
+              >
+                Add
+              </Button>
+            </form>
+          </ModalBody>
+        </Modal>
 
-            <Button
-              type="submit"
-              color="primary"
-              disabled={
-                !selectedPartData || !costPerUnit || !timePerUnit || !quantity
-              }
-            >
-              Add
-            </Button>
-          </form>
-        </ModalBody>
-      </Modal>
-
-      <Modal isOpen={modal_delete} toggle={tog_delete} centered>
-        <ModalHeader className="bg-light p-3" toggle={tog_delete}>
-          Delete Record
-        </ModalHeader>
-        <ModalBody>
-          <div className="mt-2 text-center">
-            <lord-icon
-              src="https://cdn.lordicon.com/gsqxdxog.json"
-              trigger="loop"
-              colors="primary:#f7b84b,secondary:#f06548"
-              style={{ width: "100px", height: "100px" }}
-            ></lord-icon>
-            <div className="mt-4 pt-2 fs-15 mx-4 mx-sm-5">
-              <h4>Are you Sure?</h4>
-              <p className="text-muted mx-4 mb-0">
-                Are you sure you want to remove this record?
-              </p>
+        <Modal isOpen={modal_delete} toggle={tog_delete} centered>
+          <ModalHeader className="bg-light p-3" toggle={tog_delete}>
+            Delete Record
+          </ModalHeader>
+          <ModalBody>
+            <div className="mt-2 text-center">
+              <lord-icon
+                src="https://cdn.lordicon.com/gsqxdxog.json"
+                trigger="loop"
+                colors="primary:#f7b84b,secondary:#f06548"
+                style={{ width: "100px", height: "100px" }}
+              ></lord-icon>
+              <div className="mt-4 pt-2 fs-15 mx-4 mx-sm-5">
+                <h4>Are you Sure?</h4>
+                <p className="text-muted mx-4 mb-0">
+                  Are you sure you want to remove this record?
+                </p>
+              </div>
             </div>
-          </div>
-        </ModalBody>
-        <ModalFooter>
-          <Button
-            color="danger"
-            onClick={() => handleDelete(selectedId)}
-            disabled={posting}
-          >
-            {posting ? "Deleting..." : "Yes! Delete It"}
-          </Button>
-          <Button color="secondary" onClick={tog_delete} disabled={posting}>
-            Cancel
-          </Button>
-        </ModalFooter>
-      </Modal>
-    </Col>
+          </ModalBody>
+          <ModalFooter>
+            <Button
+              color="danger"
+              onClick={() => handleDelete(selectedId)}
+              disabled={posting}
+            >
+              {posting ? "Deleting..." : "Yes! Delete It"}
+            </Button>
+            <Button color="secondary" onClick={tog_delete} disabled={posting}>
+              Cancel
+            </Button>
+          </ModalFooter>
+        </Modal>
+      </Col>
+    </>
   );
 };
 

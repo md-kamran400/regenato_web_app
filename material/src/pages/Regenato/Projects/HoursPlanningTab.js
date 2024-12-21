@@ -121,9 +121,32 @@ const HoursPlanningTab = () => {
             });
         }
 
+        if (!isMatchingPart) {
+            for (const subAssemblyListFirst of partDetails.subAssemblyListFirst || []) {
+              for (const item of subAssemblyListFirst.partsListItems || []) {
+                if (item.partName === part.partName) {
+                  isMatchingPart = true;
+                  break;
+                }
+              }
+              if (isMatchingPart) break;
+            }
+          }
+      
+          if (isMatchingPart) {
+            part.manufacturingVariables.forEach((variable) => {
+              if (!acc[variable.name]) acc[variable.name] = [];
+              acc[variable.name].push({
+                partName: part.partName,
+                hours: variable.hours,
+              });
+            });
+          }
+
         return acc;
     }, {});
     console.log("processPartsMap", processPartsMap);
+    console.log("subAssemblyListFirst:", partDetails.subAssemblyListFirst);
 
     const getHoursForProcess = (partName, processName) => {
         const processData = processPartsMap[processName]?.find(
@@ -302,7 +325,28 @@ const HoursPlanningTab = () => {
             return '-'
         }
     }
+
+
+    const calculateTotalHoursForSubAssemblyFirst = (processName, subAssemblyListFirst) => {
+        return subAssemblyListFirst.partsListItems.reduce(
+          (sum, item) => sum + (processPartsMap[processName]?.find(part => part.partName === item.partName)?.hours || 0) * item.quantity,
+          0
+        ).toFixed(2);
+      };
+      
+      const calculateMonthsRequiredForSubAssemblyFirst = (processName, subAssemblyListFirst) => {
+        const totalHours = calculateTotalHoursForSubAssemblyFirst(processName, subAssemblyListFirst);
+        const availableMachineHoursPerMonth = (machineHoursPerDay[`${processName}_${subAssemblyListFirst._id}`] || 0) * (numberOfMachines[`${processName}_${subAssemblyListFirst._id}`] || 0) * (daysToWork[`${processName}_${subAssemblyListFirst._id}`] || 0);
+        
+        if (availableMachineHoursPerMonth === 0) {
+          return "--";
+        }
+        
+        const monthsRequired = totalHours / availableMachineHoursPerMonth;
+        return monthsRequired.toFixed(2);
+      };
     
+
     const columnNames = [
         "VMC Imported",
         "VMC Local",
@@ -329,7 +373,7 @@ const HoursPlanningTab = () => {
                         <div className="table-wrapper">
                             {partDetails.partsLists.map((partsList) => (
                                 <React.Fragment key={partsList._id}>
-                                    <Card className="mb-4">
+                                    <Card className="mb-4" style={{ boxSizing: "border-box", borderTop: "5px solid green" , padding: "10px"}}>
                                         <CardBody>
                                             <h4>{partsList.partsListName}</h4>
                                             <div className="table-wrapper">
@@ -453,10 +497,146 @@ const HoursPlanningTab = () => {
                                     </Card>
                                 </React.Fragment>
                             ))}
+
+                            {/* for sub assmbly outer  */}
+                            {partDetails.subAssemblyListFirst?.map((subAssemblyListFirst) => (
+  <React.Fragment key={subAssemblyListFirst._id}>
+                                    <Card className="mb-4" style={{ boxSizing: "border-box", borderTop: "5px solid red" , padding: "10px"}}>
+                                    <CardBody>
+    <h5>{subAssemblyListFirst.subAssemblyListName}</h5>
+    <div className="parts-lists">
+      <div className="table-wrapper">
+        <div className="table-responsive">
+          <table className="table table-hover align-middle">
+            <thead className="table-header">
+              <tr>
+                <th className="part-name-header" style={{ backgroundColor: "#F5F5F5" }}>
+                  Sub-Assembly Part Name
+                </th>
+                {columnNames.map((item) => <th key={item} className="child_parts">{item}</th>)}
+              </tr>
+            </thead>
+            <tbody>
+              {!loading && !error && subAssemblyListFirst.partsListItems?.length > 0 ? (
+                subAssemblyListFirst.partsListItems.map((item) => (
+                  <React.Fragment key={item.Uid}>
+                    <tr className="table-row-main">
+                      <td
+                        style={{
+                          backgroundColor: "#EFEBE9",
+                          color: "black",
+                        }}
+                        className="part-name"
+                      >
+                        {`${item.partName || "N/A"}  (${item.Uid})`}
+                      </td>
+                      {columnNames.map((column) => <td key={column} >{getHoursForPartListItems(column,item.quantity,item.manufacturingVariables)}</td>)}
+                    </tr>
+                  </React.Fragment>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="16" className="text-center">
+                    {loading ? "Loading..." : error ? error : "No sub-assembly parts available"}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+                                                        <br />
+                                                        <br />
+            <tbody>
+              <tr className="table-row-main">
+                <td className="part-name-header" style={{ backgroundColor: "#C8E6C9", color: "black" }}>Required Machinewise Total Hours</td>
+                {/* {columnNames.map((processName) => (
+                  <td key={processName}>
+                    {calculateTotalHoursForSubAssemblyFirst(processName, subAssemblyListFirst)}
+                  </td>
+                ))} */}
+                 {["VMC Imported", "VMC Local", "Milling Manual", "Grinding Final", "CNC Lathe", "Drill/Tap", "Wire Cut Local", "Wire Cut Rough", "Wire Cut Imported", "EDM", "Black Oxide", "Laser Marking", "Lapping/Polishing", "Grinding Blank/Rough", "Gauges & Fixtures"].map((processName) => (
+                                                                    <td key={processName}>
+                                                                        {calculateTotalHoursForSubAssemblyFirst(processName, subAssemblyListFirst)}
+                                                                    </td>
+                                                                ))}
+              </tr>
+
+              <tr className="table-row-main">
+                <td className="part-name-header" style={{ backgroundColor: "#EFEBE9", color: "black" }}>Available machine hours per day</td>
+                {columnNames.map((processName) => (
+                  <td key={processName}>
+                    <input
+                      className="input-field"
+                      type="number"
+                      value={machineHoursPerDay[`${processName}_${subAssemblyListFirst._id}`] || 0}
+                      onChange={(e) => handleInputChange(e, "machineHoursPerDay", `${processName}_${subAssemblyListFirst._id}`)}
+                    />
+                  </td>
+                ))}
+              </tr>
+
+              <tr className="table-row-main">
+                <td className="part-name-header" style={{ backgroundColor: "#EFEBE9", color: "black" }}>Number of Machines TBU</td>
+                {columnNames.map((processName) => (
+                  <td key={processName}>
+                    <input
+                      className="input-field"
+                      type="number"
+                      value={numberOfMachines[`${processName}_${subAssemblyListFirst._id}`] || 0}
+                      onChange={(e) => handleInputChange(e, "numberOfMachines", `${processName}_${subAssemblyListFirst._id}`)}
+                    />
+                  </td>
+                ))}
+              </tr>
+
+              <tr className="table-row-main">
+                <td className="part-name-header" style={{ backgroundColor: "#EFEBE9", color: "black" }}>Number of Days to be worked</td>
+                {columnNames.map((processName) => (
+                  <td key={processName}>
+                    <input
+                      className="input-field"
+                      type="number"
+                      value={daysToWork[`${processName}_${subAssemblyListFirst._id}`] || 0}
+                      onChange={(e) => handleInputChange(e, "daysToWork", `${processName}_${subAssemblyListFirst._id}`)}
+                    />
+                  </td>
+                ))}
+              </tr>
+
+              <tr className="table-row-main">
+                <td className="part-name-header" style={{ backgroundColor: "#EFEBE9", color: "black" }}>Available machine hours per month</td>
+                {columnNames.map((processName) => (
+                  <td key={processName}>
+                    {(
+                      (machineHoursPerDay[`${processName}_${subAssemblyListFirst._id}`] || 0) *
+                      (numberOfMachines[`${processName}_${subAssemblyListFirst._id}`] || 0) *
+                      (daysToWork[`${processName}_${subAssemblyListFirst._id}`] || 0)
+                    ).toFixed(2)}
+                  </td>
+                ))}
+              </tr>
+
+              <tr className="table-row-main">
+                <td className="part-name-header" style={{ backgroundColor: "#C8E6C9", color: "black" }}>Months Required to complete</td>
+                {columnNames.map((processName) => (
+                  <td key={processName}>
+                    {calculateMonthsRequiredForSubAssemblyFirst(processName, subAssemblyListFirst)}
+                  </td>
+                ))}
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    </CardBody>
+    </Card>
+  </React.Fragment>
+                             ))}
+
+                             
                             {!loading && !error && partDetails.assemblyPartsLists?.length > 0 ? (
                                 partDetails.assemblyPartsLists.map((assemblyList) => (
                                     <React.Fragment key={assemblyList._id}>
-                                        <Card >
+                                         <Card className="mb-4" style={{ boxSizing: "border-box", borderTop: "5px solid blue" , padding: "10px"}}>
                                             <CardBody>
                                                 <h4>{assemblyList.assemblyListName}</h4>
                                                 <div className="table-wrapper">
