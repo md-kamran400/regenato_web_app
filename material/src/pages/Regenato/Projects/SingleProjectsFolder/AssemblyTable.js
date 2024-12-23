@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect } from "react";
+import "../project.css";
 import {
   Card,
   Button,
@@ -228,10 +229,6 @@ const AssemblyTable = ({ assemblypartsList }) => {
       setprojectType(data.projectType || "");
       setPartsListsItems(data.partsLists || []);
 
-      console.log(
-        "hello wrold this is my data of re fetching",
-        data.partsLists
-      );
     } catch (error) {
       setError(error.message);
     } finally {
@@ -288,13 +285,14 @@ const AssemblyTable = ({ assemblypartsList }) => {
     }
   };
 
-  if (loading) return <div>Loading...</div>;
+  if (loading) return <div className="loader-overlay">
+  <div className="spinner-border text-primary" role="status">
+    <span className="visually-hidden">Loading...</span>
+  </div>
+</div>;
   if (error) return <div>Error: {error}</div>;
 
-  console.log(
-    "Is partsData.rmVariables an array:",
-    Array.isArray(partsData.rmVariables)
-  );
+
 
   const handleDelete = async (partId) => {
     setPosting(true);
@@ -357,8 +355,21 @@ const AssemblyTable = ({ assemblypartsList }) => {
   // Now, use handleSubmitAssemblyParts in your component
 
   // updating function
-  const handlePartsUpdate = (updatedParts) => {
-    setpartsAssmeblyItems(updatedParts);
+ 
+  const handleSubAssemblyUpdate = (updatedSubAssembly) => {
+    setSubAssemblyItems((prevItems) =>
+      prevItems.map((item) =>
+        item._id === updatedSubAssembly._id ? updatedSubAssembly : item
+      )
+    );
+  };
+
+  const handleMultySubAssemblyUpdate = (updatedSubAssembly) => {
+    setpartsAssmeblyItems((prevItems) =>
+      prevItems.map((item) =>
+        item._id === updatedSubAssembly._id ? updatedSubAssembly : item
+      )
+    );
   };
 
   const handleSubmitSubAssembly = async () => {
@@ -380,6 +391,7 @@ const AssemblyTable = ({ assemblypartsList }) => {
       }
 
       const addedAssemblyList = await response.json();
+      // Update local state immediately
       setSubAssemblyItems((prevAssemblyLists) => [
         ...prevAssemblyLists,
         addedAssemblyList,
@@ -452,20 +464,19 @@ const AssemblyTable = ({ assemblypartsList }) => {
               </div>
               <div className="button-group">
                 <Button
-                  color="success"
                   className="add-btn"
                   onClick={toggleAddModalPartAssembly}
+                  style={{backgroundColor: "#8E24AA", color: "white"}}
                 >
-                  <i className="ri-add-line align-bottom me-1"></i> Add Part
-                  List
+                  <i className="ri-add-line align-bottom me-1"></i> Add Part List
                 </Button>
                 <Button
                   color="danger"
                   className="add-btn"
                   onClick={toggleAddModalsubAssembly}
+                  style={{backgroundColor: "#0097A7", color: "white"}}
                 >
-                  <i className="ri-add-line align-bottom me-1"></i> Add Sub
-                  Assembly
+                  <i className="ri-add-line align-bottom me-1"></i> Add Sub Assembly
                 </Button>
               </div>
 
@@ -478,6 +489,7 @@ const AssemblyTable = ({ assemblypartsList }) => {
                       key={index}
                       subAssemblyItems={subAssemblyItem}
                       assemblyId={assemblypartsList._id}
+                      onUpdateSubAssembly={handleSubAssemblyUpdate}
                     />
                   </div>
                 ))
@@ -488,12 +500,12 @@ const AssemblyTable = ({ assemblypartsList }) => {
               {Array.isArray(partsAssmeblyItems) &&
               partsAssmeblyItems.length > 0 ? (
                 partsAssmeblyItems.map((partsAssmeblyItem, index) => (
-                  <div key={index} className="parts-list">
+                  <div key={index} className="parts-list" >
                     <AssmblyMultyPart
                       key={index}
                       partsAssmeblyItems={partsAssmeblyItem}
                       assemblyId={assemblypartsList._id}
-                      onUpdateParts={handlePartsUpdate}
+                      onUpdateSubAssembly={handleMultySubAssemblyUpdate}
                     />
                   </div>
                 ))

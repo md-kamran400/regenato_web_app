@@ -50,7 +50,6 @@ const SingeProject = () => {
   const [detailedPartData, setDetailedPartData] = useState({});
   const [projectName, setProjectName] = useState("");
   const [projectType, setprojectType] = useState("");
-  const [assemblyItems, setAssemblyItems] = useState([]);
   const [subAssemblyItems, setSubAssemblyItems] = useState([]);
   const [partsLists, setPartsLists] = useState([]);
   const [assemblyLists, setassemblyLists] = useState([]);
@@ -117,13 +116,13 @@ const SingeProject = () => {
     setShowSubAssemblyTable(true);
   }, []);
 
-  useEffect(() => {
-    if (selectedPartData && selectedPartData.partName) {
-      setDetailedPartData(selectedPartData);
-    } else {
-      setDetailedPartData({});
-    }
-  }, [selectedPartData]);
+  // useEffect(() => {
+  //   if (selectedPartData && selectedPartData.partName) {
+  //     setDetailedPartData(selectedPartData);
+  //   } else {
+  //     setDetailedPartData({});
+  //   }
+  // }, [selectedPartData]);
 
   const totalCost =
     partDetails.allProjects?.reduce(
@@ -147,18 +146,33 @@ const SingeProject = () => {
       setprojectType(data.projectType || "");
       setPartsLists(data.partsLists || []);
       setassemblyLists(data.assemblyPartsLists || []);
-      setSubAssemblyItems(data.subAssemblyListFirst);
-      console.log("asssssssssembly", data.assemblyPartsLists);
+      setSubAssemblyItems(data.subAssemblyListFirst || []);
     } catch (error) {
       setError(error.message);
     } finally {
       setLoading(false);
     }
-  }, [_id]);
+  }, [_id, partsLists, subAssemblyItems]);
 
   useEffect(() => {
     fetchProjectDetails();
   }, [fetchProjectDetails]);
+
+  const handlePartsListUpdate = (updatedSubAssembly) => {
+    setPartsLists((prevItems) =>
+      prevItems.map((item) =>
+        item._id === updatedSubAssembly._id ? updatedSubAssembly : item
+      )
+    );
+  };
+
+  const handleOuterSubAssmeblyUpdate = (updatedSubAssembly) => {
+    setSubAssemblyItems((prevItems) =>
+      prevItems.map((item) =>
+        item._id === updatedSubAssembly._id ? updatedSubAssembly : item
+      )
+    );
+  };
 
   const handleAddNewPartsList = useCallback(
     async (newPartsList) => {
@@ -326,7 +340,7 @@ const SingeProject = () => {
   if (loading) return <div>Loading...</div>;
   if (error) return <div>Error: {error}</div>;
 
-  console.log(detailedPartData);
+
   return (
     <React.Fragment>
       <div className="page-content">
@@ -388,16 +402,13 @@ const SingeProject = () => {
           </div>
 
           {/* showTable */}
-          <div
-            className="parts-lists"
-            
-          >
+          <div className="parts-lists">
             {partsLists.map((partsList, index) => (
               <div key={index} className="parts-list border-top-green">
                 <PartsTable
                   partsList={partsList}
-                  partsLists={partsLists}
-                  updatePartsLists={fetchProjectDetails}
+                  partsListID={partsLists._id}
+                  updatePartsLists={handlePartsListUpdate}
                 />
               </div>
             ))}
@@ -409,14 +420,13 @@ const SingeProject = () => {
               <div key={index} className="parts-list">
                 <OuterSubAssmebly
                   subAssemblyItem={subAssemblyItem}
-                  subAssemblyItems={subAssemblyItems}
-                  updatesubAssemblyItems={fetchProjectDetails}
+                  updatesubAssemblyItems={handleOuterSubAssmeblyUpdate}
                 />
               </div>
             ))}
           </div>
 
-          <div className="parts-lists" >
+          <div className="parts-lists">
             {assemblyLists.map((assemblypartsList, index) => (
               <div key={index} className="parts-list">
                 <AssemblyTable

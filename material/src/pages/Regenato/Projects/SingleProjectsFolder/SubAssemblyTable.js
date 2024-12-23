@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from "react";
-import "../project.css"
+import "../project.css";
 import {
   Card,
   Button,
@@ -29,7 +29,7 @@ import { useParams } from "react-router-dom";
 import { MdOutlineDelete } from "react-icons/md";
 import Manufacturing from "../ExpandFolders/Manufacturing";
 
-const SubAssemblyTable = ({ subAssemblyItems, assemblyId }) => {
+const SubAssemblyTable = ({ subAssemblyItems, assemblyId, onUpdateSubAssembly }) => {
   const { _id } = useParams();
   const [modalAdd, setModalAdd] = useState(false);
   const [modal_delete, setModalDelete] = useState(false);
@@ -53,7 +53,6 @@ const SubAssemblyTable = ({ subAssemblyItems, assemblyId }) => {
   const [projectType, setprojectType] = useState("");
   const [partId, setPartId] = useState("");
   const [partsListItems, setPartsListsItems] = useState([]);
-  const [assemblyItems, setAssemblyItems] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [machinesTBU, setMachinesTBU] = useState({});
 
@@ -74,14 +73,37 @@ const SubAssemblyTable = ({ subAssemblyItems, assemblyId }) => {
 
   // ... other state declarations ...
 
-  useEffect(() => {
-    console.log("Received subAssemblyItems:", subAssemblyItems);
-    console.log("Received Id:", assemblyId);
 
-    // Access the subAssemblyListName
-    // const subAssemblyListName = subAssemblyItems.subAssemblyListName;
-    // console.log('SubAssembly List Name:', subAssemblyListName);
-  }, [subAssemblyItems, assemblyId]);
+  // fetching 
+  useEffect(() => {
+    const fetchPartsListItems = async () => {
+      try {
+        const response = await fetch(`${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/assemblyPartsLists/${assemblyId}/subAssemblyPartsLists/${subAssemblyItems._id}/items`);
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        const data = await response.json();
+        setPartsListsItems(data);
+        console.log('items data of parts lists', data)
+      } catch (error) {
+        console.error('Error fetching parts list items:', error);
+        // You might want to handle the error, e.g., show an error message to the user
+      }
+    };
+
+    fetchPartsListItems();
+  }, [_id, assemblyId, subAssemblyItems]);
+
+
+
+  // useEffect(() => {
+  //   console.log("Received subAssemblyItems:", subAssemblyItems);
+  //   console.log("Received Id:", assemblyId);
+
+  //   // Access the subAssemblyListName
+  //   // const subAssemblyListName = subAssemblyItems.subAssemblyListName;
+  //   // console.log('SubAssembly List Name:', subAssemblyListName);
+  // }, [subAssemblyItems, assemblyId]);
 
   useEffect(() => {
     localStorage.setItem("showTable", JSON.stringify(showTable));
@@ -101,17 +123,7 @@ const SubAssemblyTable = ({ subAssemblyItems, assemblyId }) => {
     );
   }, [showSubAssemblyTable]);
 
-  const handleAddPartList = useCallback(() => {
-    setShowTable(true);
-  }, []);
 
-  const handleAddAssembly = useCallback(() => {
-    setShowAssemblyTable(true);
-  }, []);
-
-  const handleAddSubAssembly = useCallback(() => {
-    setShowSubAssemblyTable(true);
-  }, []);
   const toggleAddModal = () => {
     setModalAdd(!modalAdd);
   };
@@ -253,11 +265,6 @@ const SubAssemblyTable = ({ subAssemblyItems, assemblyId }) => {
       const data = await response.json();
       setProjectName(data.projectName || "");
       setprojectType(data.projectType || "");
-      setPartsListsItems(data.subAssemblyPartsLists || []);
-      console.log(
-        "hello wrold this is my data of re fetching",
-        data.partsLists
-      );
     } catch (error) {
       setError(error.message);
     } finally {
@@ -269,10 +276,12 @@ const SubAssemblyTable = ({ subAssemblyItems, assemblyId }) => {
     fetchProjectDetails();
   }, [fetchProjectDetails]);
 
+
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     setIsLoading(true);
-
+  
     const payload = {
       partId: selectedPartData.id,
       partName: selectedPartData.partName,
@@ -282,41 +291,60 @@ const SubAssemblyTable = ({ subAssemblyItems, assemblyId }) => {
       rmVariables: detailedPartData.rmVariables || [],
       manufacturingVariables: detailedPartData.manufacturingVariables || [],
       shipmentVariables: detailedPartData.shipmentVariables || [],
-      overheadsAndProfits: detailedPartData.overheadsAndProfits || [],
+      overheadsAndProfits: detailedPartData.overheadsAndProfits || []
     };
-
+  
     try {
       const response = await fetch(
         `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/assemblyPartsLists/${assemblyId}/subAssemblyPartsLists/${subAssemblyItems._id}/items`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
+          body: JSON.stringify(payload)
         }
       );
-
+  
       if (!response.ok) {
-        const error = await response.json();
-        setError("Failed to add part. Please try again.");
-        setIsLoading(false);
-        return;
+        throw new Error("Failed to add part");
       }
-
+  
       const newPart = await response.json();
-      await fetchProjectDetails();
-      setListData((prevData) => [...prevData, newPart]);
+      
+      // Update local state with new part
+      const updatedPartsListItems = [...(subAssemblyItems.partsListItems || []), newPart];
+      const updatedSubAssemblyItems = {
+        ...subAssemblyItems,
+        partsListItems: updatedPartsListItems
+      };
+  
+      // Update parent component state
+      onUpdateSubAssembly(updatedSubAssemblyItems);
+      
       setModalAdd(false);
-
-      // Refresh the page after successful submission
-      window.location.reload();
+      setIsLoading(false);
+      
+      // Reset form
+      setSelectedPartData(null);
+      setCostPerUnit("");
+      setTimePerUnit("");
+      setQuantity(0);
+      setDetailedPartData({});
+      
     } catch (error) {
-      console.error("Error submitting part:", error);
+      console.error("Error:", error);
       setError("Failed to add part. Please try again.");
+    } finally {
       setIsLoading(false);
     }
   };
+  
+  
 
-  if (loading) return <div>Loading...</div>;
+  if (loading) return <div className="loader-overlay">
+  <div className="spinner-border text-primary" role="status">
+    <span className="visually-hidden">Loading...</span>
+  </div>
+</div>;
   if (error) return <div>Error: {error}</div>;
 
   // Toggle function for expanding/collapsing the row
@@ -395,10 +423,10 @@ const SubAssemblyTable = ({ subAssemblyItems, assemblyId }) => {
           </div>
         </div>
       )}
-      <Col lg={12}>
+      <Col lg={12} >
         <Row>
-          <Col lg={12}>
-            <Card>
+          <Col lg={12} >
+            <Card style={{ boxSizing: "border-box", borderTop: "5px solid #0097A7" }}>
               {/* {subAssemblyItems.map((item) => ( */}
               <CardBody key={subAssemblyItems._id}>
                 <h5>{subAssemblyItems.subAssemblyListName}</h5>
@@ -428,7 +456,7 @@ const SubAssemblyTable = ({ subAssemblyItems, assemblyId }) => {
                       </tr>
                     </thead>
                     <tbody>
-                      {subAssemblyItems.partsListItems?.map((item) => (
+                      {partsListItems.map((item) => (
                         <React.Fragment key={item._id}>
                           <tr
                             onClick={() =>
@@ -439,31 +467,28 @@ const SubAssemblyTable = ({ subAssemblyItems, assemblyId }) => {
                             }
                           >
                             <td className="parent_partName">
-                              {item.partName} ({item.Uid})
+                              {item.partName} ({item.Uid || ""})
                             </td>
                             <td>
-                              {item.costPerUnit !== undefined
-                                ? item.costPerUnit.toFixed(2)
-                                : "N/A"}
+                              {parseFloat(item.costPerUnit || 0).toFixed(2)}
                             </td>
                             <td>
-                              {item.timePerUnit !== undefined
-                                ? item.timePerUnit.toFixed(2)
-                                : "N/A"}
+                              {parseFloat(item.timePerUnit || 0).toFixed(2)}
                             </td>
+                            <td>{parseInt(item.quantity || 0)}</td>
                             <td>
-                              {item.quantity !== undefined
-                                ? item.quantity
-                                : "N/A"}
-                            </td>
-                            <td>
-                              {Math.round(
-                                item.costPerUnit * item.quantity
+                              {(
+                                parseFloat(item.costPerUnit || 0) *
+                                parseInt(item.quantity || 0)
                               ).toFixed(2)}
                             </td>
                             <td>
-                              {(item.timePerUnit * item.quantity).toFixed(2)}
+                              {(
+                                parseFloat(item.timePerUnit || 0) *
+                                parseInt(item.quantity || 0)
+                              ).toFixed(2)}
                             </td>
+
                             <td className="action-cell">
                               <div className="action-buttons">
                                 <span>

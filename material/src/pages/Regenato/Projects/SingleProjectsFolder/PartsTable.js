@@ -35,7 +35,7 @@ import Manufacturing from "../ExpandFolders/Manufacturing";
 import FeatherIcon from "feather-icons-react";
 import { ToastContainer, toast } from "react-toastify";
 
-const PartsTable = ({ partsList = {}, partsLists, updatePartsLists }) => {
+const PartsTable = ({ partsList, updatePartsLists }) => {
   const { _id } = useParams();
   const [modalAdd, setModalAdd] = useState(false);
   const [modal_delete, setModalDelete] = useState(false);
@@ -60,7 +60,6 @@ const PartsTable = ({ partsList = {}, partsLists, updatePartsLists }) => {
   const [partId, setPartId] = useState("");
   const [partsListItems, setPartsListsItems] = useState([]);
   const [partsDisplay, setPartsDisplay] = useState([]);
-  const [subAssemblyItems, setSubAssemblyItems] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [machinesTBU, setMachinesTBU] = useState({});
   // duplicate creation useState
@@ -68,6 +67,28 @@ const PartsTable = ({ partsList = {}, partsLists, updatePartsLists }) => {
   const toggleAddModal = () => {
     setModalAdd(!modalAdd);
   };
+
+  // fetching
+  useEffect(() => {
+    const fetchPartsListItems = async () => {
+      try {
+        const response = await fetch(
+          `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/partsLists/${partsList._id}/items`
+        );
+        if (!response.ok) {
+          throw new Error("Network response was not ok");
+        }
+        const data = await response.json();
+        setPartsListsItems(data);
+        console.log("items data of parts lists", data);
+      } catch (error) {
+        console.error("Error fetching parts list items:", error);
+        // You might want to handle the error, e.g., show an error message to the user
+      }
+    };
+
+    fetchPartsListItems();
+  }, [_id, partsList]);
 
   useEffect(() => {
     const fetchParts = async () => {
@@ -117,7 +138,6 @@ const PartsTable = ({ partsList = {}, partsLists, updatePartsLists }) => {
       setLoading(false);
     }
   }, []);
-
 
   useEffect(() => {
     fetchData();
@@ -199,11 +219,6 @@ const PartsTable = ({ partsList = {}, partsLists, updatePartsLists }) => {
       const data = await response.json();
       setProjectName(data.projectName || "");
       setprojectType(data.projectType || "");
-      setPartsListsItems(data.partsLists || []);
-      console.log(
-        "hello wrold this is my data of re fetching",
-        data.partsLists
-      );
     } catch (error) {
       setError(error.message);
     } finally {
@@ -222,10 +237,6 @@ const PartsTable = ({ partsList = {}, partsLists, updatePartsLists }) => {
       );
       const data = await response.json();
       setPartsDisplay(data.partsListItems || []);
-      console.log(
-        "hello wrold this is my data of re fetching",
-        data.partsListItems
-      );
     } catch (error) {
       setError(error.message);
     } finally {
@@ -264,36 +275,50 @@ const PartsTable = ({ partsList = {}, partsLists, updatePartsLists }) => {
       );
 
       if (!response.ok) {
-        throw new Error("Failed to add part. Please try again.");
-        setIsLoading(true);
+        throw new Error("Failed to add part");
       }
 
       const newPart = await response.json();
-      await PartsTableFetch();
-      // Update the parts list state locally
-      setPartsListsItems((prevParts) => [
-        ...prevParts,
-        { ...newPart, _id: newPart.id },
-      ]);
 
-      // Reset modal and fields
+      // Update local state with new part
+      const updatedPartsListItems = [
+        ...(partsList.partsListItems || []),
+        newPart,
+      ];
+      const updatedpartsList = {
+        ...partsList,
+        partsListItems: updatedPartsListItems,
+      };
+
+      // Update parent component state
+      updatePartsLists(updatedpartsList);
+
       setModalAdd(false);
+      setIsLoading(false);
+
+      // Reset form
       setSelectedPartData(null);
       setCostPerUnit("");
       setTimePerUnit("");
       setQuantity(0);
-      await PartsTableFetch();
-
-      // Refresh the page after successful submission
-      window.location.reload();
+      setDetailedPartData({});
     } catch (error) {
-      console.error("Error submitting part:", error);
+      console.error("Error:", error);
       setError("Failed to add part. Please try again.");
+    } finally {
       setIsLoading(false);
     }
   };
 
-  if (loading) return <div>Loading...</div>;
+  if (loading)
+    return (
+      <div className="loader-overlay">
+        <div className="spinner-border text-primary" role="status">
+          <span className="visually-hidden">Loading...</span>
+        </div>
+      </div>
+    );
+    
   if (error) return <div>Error: {error}</div>;
 
   // Toggle function for expanding/collapsing the row
@@ -308,11 +333,6 @@ const PartsTable = ({ partsList = {}, partsLists, updatePartsLists }) => {
       setDetailedPartData({}); // Clear data if not found
     }
   };
-
-  console.log(
-    "Is partsData.rmVariables an array:",
-    Array.isArray(partsData.rmVariables)
-  );
 
   const updateManufacturingVariable = (updatedVariable) => {
     setPartDetails((prevData) => {
@@ -444,7 +464,6 @@ const PartsTable = ({ partsList = {}, partsLists, updatePartsLists }) => {
                     onClick={toggleAddModal}
                   >
                     <i className="ri-add-line align-bottom me-1"></i> Add Part
-                    List
                   </Button>
                 </div>
 
@@ -464,7 +483,7 @@ const PartsTable = ({ partsList = {}, partsLists, updatePartsLists }) => {
                       </tr>
                     </thead>
                     <tbody>
-                      {partsList.partsListItems?.map((item) => (
+                      {partsListItems.map((item) => (
                         <React.Fragment key={item._id}>
                           <tr
                             onClick={() =>
@@ -475,29 +494,28 @@ const PartsTable = ({ partsList = {}, partsLists, updatePartsLists }) => {
                             }
                           >
                             <td className="parent_partName">
-                              {item.partName} ({item.Uid})
+                              {item.partName} ({item.Uid || ""})
                             </td>
                             <td>
-                              {item.costPerUnit !== undefined
-                                ? item.costPerUnit.toFixed(2)
-                                : "N/A"}
+                              {parseFloat(item.costPerUnit || 0).toFixed(2)}
                             </td>
                             <td>
-                              {item.timePerUnit !== undefined
-                                ? item.timePerUnit.toFixed(2)
-                                : "N/A"}
+                              {parseFloat(item.timePerUnit || 0).toFixed(2)}
+                            </td>
+                            <td>{parseInt(item.quantity || 0)}</td>
+                            <td>
+                              {(
+                                parseFloat(item.costPerUnit || 0) *
+                                parseInt(item.quantity || 0)
+                              ).toFixed(2)}
                             </td>
                             <td>
-                              {item.quantity !== undefined
-                                ? item.quantity
-                                : "N/A"}
+                              {(
+                                parseFloat(item.timePerUnit || 0) *
+                                parseInt(item.quantity || 0)
+                              ).toFixed(2)}
                             </td>
-                            <td>
-                              {Math.round(item.costPerUnit * item.quantity)}
-                            </td>
-                            <td>
-                              {(item.timePerUnit * item.quantity).toFixed(2)}
-                            </td>
+
                             <td className="action-cell">
                               <div className="action-buttons">
                                 <span>
@@ -569,7 +587,7 @@ const PartsTable = ({ partsList = {}, partsLists, updatePartsLists }) => {
                             </tr>
                           )}
                         </React.Fragment>
-                      )) ?? []}
+                      ))}
                     </tbody>
                   </table>
                 </div>
