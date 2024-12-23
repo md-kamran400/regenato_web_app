@@ -478,7 +478,25 @@ ProjectRouter.post("/:_id/subAssemblyListFirst/:listId/items", async (req, res) 
   }
 });
 
+// get for sub assembly list first component
+ProjectRouter.get("/:_id/subAssemblyListFirst/:listId/items", async (req, res) => {
+  try {
+    const project = await ProjectModal.findById(req.params._id);
+    if (!project) {
+      return res.status(404).json({ message: "Project not found" });
+    }
 
+    const partsList = project.subAssemblyListFirst.id(req.params.listId);
+    if (!partsList) {
+      return res.status(404).json({ message: "Sub-assembly list not found" });
+    }
+
+    const items = partsList.partsListItems;
+    res.status(200).json(items);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
 
 
 
@@ -558,26 +576,6 @@ ProjectRouter.delete("/:_id/assemblyPartsLists/:index", async (req, res) => {
 
     const updatedProject = await project.save();
     res.status(200).json(updatedProject);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
-
-// GET Route: Retrieve a specific parts list
-ProjectRouter.get("/:_id/assemblyPartsLists/:index", async (req, res) => {
-  const { index } = req.params;
-
-  try {
-    const project = await ProjectModal.findById(req.params._id);
-    if (!project) {
-      return res.status(404).json({ message: "Project not found" });
-    }
-
-    if (index >= project.assemblyPartsLists.length) {
-      return res.status(404).json({ message: "Parts list not found" });
-    }
-
-    res.status(200).json(project.assemblyPartsLists[index]);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -773,6 +771,32 @@ ProjectRouter.post("/:_id/assemblyPartsLists/:listId/subAssemblyPartsLists/:subL
     res.status(500).json({ message: error.message });
   }
 });
+
+ProjectRouter.get("/:_id/assemblyPartsLists/:listId/subAssemblyPartsLists/:subListId/items", async (req, res) => {
+  try {
+    const { _id, listId, subListId } = req.params;
+    const project = await ProjectModal.findById(_id);
+    if (!project) {
+      return res.status(404).json({ message: "Project not found" });
+    }
+
+    const assemblyList = project.assemblyPartsLists.id(listId);
+    if (!assemblyList) {
+      return res.status(404).json({ message: "Assembly list not found" });
+    }
+
+    const subAssemblyList = assemblyList.subAssemblyPartsLists.id(subListId);
+    if (!subAssemblyList) {
+      return res.status(404).json({ message: "Sub-assembly list not found" });
+    }
+
+    const items = subAssemblyList.partsListItems;
+    res.status(200).json(items);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 
 
 
@@ -1177,11 +1201,9 @@ ProjectRouter.post("/:_id/assemblyPartsLists/:assemblyId/assemblyMultyPartsList"
   }
 });
 
-// GET Route: Retrieve sub-assembly parts lists for a specific assembly list
-ProjectRouter.get("/:_id/assemblyPartsLists/:listId/assemblyMultyPartsList", async (req, res) => {
-  const { _id, listId } = req.params;
-
+ProjectRouter.get("/:_id/assemblyPartsLists/:listId/assemblyMultyPartsList/:subListId/items", async (req, res) => {
   try {
+    const { _id, listId, subListId } = req.params;
     const project = await ProjectModal.findById(_id);
     if (!project) {
       return res.status(404).json({ message: "Project not found" });
@@ -1192,10 +1214,18 @@ ProjectRouter.get("/:_id/assemblyPartsLists/:listId/assemblyMultyPartsList", asy
       return res.status(404).json({ message: "Assembly list not found" });
     }
 
-    res.status(200).json(assemblyList.assemblyMultyPartsList);
+    const subPartsASsmeblyList = assemblyList.assemblyMultyPartsList.id(subListId);
+    if (!subPartsASsmeblyList) {
+      return res.status(404).json({ message: "Sub-assembly list not found" });
+    }
+
+    const items = subPartsASsmeblyList.partsListItems;
+    res.status(200).json(items);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 });
+
+
 
 module.exports = { ProjectRouter };
