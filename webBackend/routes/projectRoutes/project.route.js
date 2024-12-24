@@ -1118,13 +1118,12 @@ ProjectRouter.post("/:_id/assemblyPartsLists/:listId/assemblyMultyPartsList", as
 
     const newAssemblyMultyPartsList = {
       assemblyMultyPartsListName,
-      partsListItems: [],
+      partsListItems: []
     };
 
     assemblyList.assemblyMultyPartsList.push(newAssemblyMultyPartsList);
     const updatedProject = await project.save();
 
-    // Return only the newly added assembly multi-parts list
     res.status(200).json(newAssemblyMultyPartsList);
   } catch (error) {
     console.error("Error adding new assembly list:", error);
@@ -1171,10 +1170,9 @@ ProjectRouter.post("/:_id/assemblyPartsLists/:listId/assemblyMultyPartsList/:sub
   }
 });
 
-// POST Route: Add a new multi-part assembly list to an existing project
-ProjectRouter.post("/:_id/assemblyPartsLists/:assemblyId/assemblyMultyPartsList", async (req, res) => {
-  const { _id, assemblyId } = req.params;
-  const { assemblyMultyPartsListName } = req.body;
+
+ProjectRouter.get("/:_id/assemblyPartsLists/:listId/assemblyMultyPartsList", async (req, res) => {
+  const { _id, listId } = req.params;
 
   try {
     const project = await ProjectModal.findById(_id);
@@ -1182,22 +1180,17 @@ ProjectRouter.post("/:_id/assemblyPartsLists/:assemblyId/assemblyMultyPartsList"
       return res.status(404).json({ message: "Project not found" });
     }
 
-    const assemblyList = project.assemblyPartsLists.find(list => list._id.toString() === assemblyId);
+    const assemblyList = project.assemblyPartsLists.id(listId);
     if (!assemblyList) {
       return res.status(404).json({ message: "Assembly list not found" });
     }
 
-    const newMultyPartsList = {
-      assemblyMultyPartsListName,
-      partsListItems: []
-    };
+    const assemblyMultyPartsLists = assemblyList.assemblyMultyPartsList;
 
-    assemblyList.assemblyMultyPartsList.push(newMultyPartsList);
-    const updatedProject = await project.save();
-    res.status(200).json(updatedProject);
+    res.status(200).json(assemblyMultyPartsLists);
   } catch (error) {
-    console.error("Error adding new multi-part assembly list:", error);
-    res.status(500).json({ message: error.message });
+    console.error("Error fetching assembly multi-part lists:", error);
+    res.status(500).json({ message: "Failed to fetch assembly multi-part lists" });
   }
 });
 
