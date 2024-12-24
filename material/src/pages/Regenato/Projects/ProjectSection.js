@@ -31,14 +31,31 @@ const ProjectSection = () => {
     }
   };
 
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case "2":
+        return <HoursPlanningTab />;
+      case "3":
+        return <HoursSummary />;
+      case "4":
+        return <DocumentsTab />;
+      case "5":
+        return <ActivitiesTab />;
+      case "6":
+        return <NewHoursPlaaning />;
+      default:
+        return null;
+    }
+  };
+
   return (
     <React.Fragment>
       {/* Top Section with Tabs */}
-      <Row style={{ marginTop: "60px"}}>
+      <Row style={{ marginTop: "60px" }}>
         <Col lg={12}>
-          <Card >
-            <div style={{margin: "auto"}}>
-              <CardBody >
+          <Card>
+            <div style={{ margin: "auto" }}>
+              <CardBody>
                 {/* Tabs */}
                 <Nav className="nav-tabs-custom" role="tablist">
                   <NavItem>
@@ -133,28 +150,14 @@ const ProjectSection = () => {
       </Row>
 
       {/* Tab Content Section */}
-      <Row style={{ paddingTop: "20px"}}>
+      <Row style={{ paddingTop: "20px" }}>
         <Col lg={12}>
           <TabContent activeTab={activeTab} className="text-muted">
             <TabPane tabId="1">
-                <SingeProject />
-            </TabPane>
-            <TabPane tabId="2">
-              <HoursPlanningTab />
-            </TabPane>
-            <TabPane tabId="3">
-              <HoursSummary />
-            </TabPane>
-            <TabPane tabId="4">
-              <DocumentsTab />
-            </TabPane>
-            <TabPane tabId="5">
-              <ActivitiesTab />
-            </TabPane>
-            <TabPane tabId="6">
-              <NewHoursPlaaning />
+              <SingeProject />
             </TabPane>
           </TabContent>
+          {renderTabContent()}
         </Col>
       </Row>
     </React.Fragment>
@@ -162,7 +165,6 @@ const ProjectSection = () => {
 };
 
 export default ProjectSection;
-
 
 // import React from 'react'
 

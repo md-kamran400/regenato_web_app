@@ -348,7 +348,7 @@ const SingeProject = () => {
           <div className="project-header">
             {/* Left Section */}
             <div className="header-section left">
-              <h2 className="project-name">PROJECT DETIALS</h2>
+              <h2 className="project-name">PROJECT DETAILS</h2>
               <h4 className="">{projectName}</h4>
               <p className="po-id">PO ID: PO001</p>
               <p className="po-id">PO Type: {projectType}</p>

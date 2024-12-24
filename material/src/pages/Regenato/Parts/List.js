@@ -41,7 +41,10 @@ const List = () => {
   const [modal_edit, setModalEdit] = useState(false);
   const [modal_delete, setModalDelete] = useState(false);
   const [newPartId, setNewPartId] = useState("");
+
   const [newPartName, setNewPartName] = useState(""); // For storing new part name
+  const [newCodeName, setnewCodeName] = useState(""); // For storing new part name
+
   const [listData, setListData] = useState([]); // Local state to store project list
   const [loading, setLoading] = useState(true); // State to manage loading state
   const [error, setError] = useState(null); // State for handling errors
@@ -170,6 +173,7 @@ const List = () => {
     const newPart = {
       id: parseInt(numericId),
       partName: newPartName,
+      codeName: newCodeName,
       costPerUnit: costPerUnit || 0,
       timePerUnit: timePerUnit || 0,
       stockPOQty: stockPOQty || 0,
@@ -197,6 +201,7 @@ const List = () => {
       // Reset form fields
       setNewPartId("");
       setNewPartName("");
+      setnewCodeName("")
       setCostPerUnit(0);
       setTimePerUnit(0);
       setStockPOQty(0);
@@ -226,6 +231,7 @@ const List = () => {
           body: JSON.stringify({
             id: duplicatePartData.id,
             partName: duplicatePartData.partName,
+            codeName: duplicatePartData.codeName,  //code name new added here
             costPerUnit: duplicatePartData.costPerUnit,
             timePerUnit: duplicatePartData.timePerUnit,
             stockPOQty: duplicatePartData.stockPOQty,
@@ -386,7 +392,7 @@ const List = () => {
             <tr key={index}>
               <td>
                 <Link to={`/singlepart/${item._id}`} className="text-body">
-                  {item.partName} ({item.id})
+                  {item.partName} ({item.id}) {item.codeName}
                 </Link>
               </td>
               <td>
@@ -469,9 +475,10 @@ const List = () => {
                 required
               />
             </div>
+
             <div className="mb-3">
               <label htmlFor="parts-name" className="form-label">
-                Parts Name
+                Common Name
               </label>
               <input
                 type="text"
@@ -483,6 +490,22 @@ const List = () => {
                 required
               />
             </div>
+
+            <div className="mb-3">
+              <label htmlFor="code-name" className="form-label">
+                 Code Name
+              </label>
+              <input
+                type="text"
+                id="code-name"
+                className="form-control"
+                placeholder="Enter Code Name"
+                value={newCodeName}
+                onChange={(e) => setnewCodeName(e.target.value)}
+                required
+              />
+            </div>
+
             <div className="mb-3 mt-3">
               <label htmlFor="category" className="form-label">
                 Category

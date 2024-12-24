@@ -420,22 +420,21 @@ const AssemblyTable = ({ assemblypartsList }) => {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             assemblyMultyPartsListName: assemblyMultyPartsListName,
+            assemblyId: assemblypartsList._id,
           }),
         }
       );
-
+  
       if (!response.ok) {
-        throw new Error("Failed to add new assembly list");
+        const errorData = await response.text();
+        throw new Error(`HTTP error! status: ${response.status}, data: ${errorData}`);
       }
-
+  
       const addedAssemblyList = await response.json();
-      setpartsAssmeblyItems((prevAssemblyLists) => [
-        ...prevAssemblyLists,
-        addedAssemblyList,
-      ]);
+      setpartsAssmeblyItems((prevAssemblyLists) => [...prevAssemblyLists, addedAssemblyList]);
       setassemblyMultyPartsListName("");
       setModalAddPartAssmebly(false);
-
+  
       // Refetch the data to ensure we have the latest information
       const updatedResponse = await fetch(
         `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/assemblyPartsLists/${assemblypartsList._id}/assemblyMultyPartsList`

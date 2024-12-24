@@ -11,7 +11,8 @@ const HoursPlanningTab = () => {
     const [partDetails, setPartDetails] = useState({
         allProjects: [],
         assemblyPartsLists: [],
-        partsLists: []
+        partsLists: [],
+        subAssemblyListFirst: []
     });
     const [parts, setParts] = useState([]);
     const [manufacturingVariables, setManufacturingVariables] = useState([]);
@@ -501,7 +502,7 @@ const HoursPlanningTab = () => {
                             {/* for sub assmbly outer  */}
                             {partDetails.subAssemblyListFirst?.map((subAssemblyListFirst) => (
   <React.Fragment key={subAssemblyListFirst._id}>
-                                    <Card className="mb-4" style={{ boxSizing: "border-box", borderTop: "5px solid red" , padding: "10px"}}>
+                                    <Card className="mb-4" style={{ boxSizing: "border-box", borderTop: "5px solid red" }}>
                                     <CardBody>
     <h4>{subAssemblyListFirst.subAssemblyListName}</h4>
     <div className="parts-lists">
