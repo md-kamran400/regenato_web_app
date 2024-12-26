@@ -50,6 +50,7 @@ const List = () => {
   const [stockPOQty, setStockPOQty] = useState(0);
   const [posting, setPosting] = useState(false);
   const [totalCountCost, setTotalCostCount] = useState(0);
+  const [selectedId, setSelectedId] = useState(null);
   const [error, setError] = useState(null); // State for handling errors
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -71,6 +72,7 @@ const List = () => {
     setModalList(!modal_list);
   };
 
+  // function to toggle edit the modal
   const toggleEditModal = (item = null) => {
     if (item) {
       // Pre-fill the modal with data from the selected item
@@ -92,6 +94,11 @@ const List = () => {
       setEditId(null);
     }
     setModalEdit(!modal_edit);
+  };
+
+  // Function to toggle 'Delete' modal
+  const tog_delete = () => {
+    setModalDelete(!modal_delete);
   };
 
   const toggleModalCategory = () => {
@@ -161,11 +168,11 @@ const List = () => {
             body: JSON.stringify(newPart),
           }
         );
-  
+
         if (!response.ok) {
           throw new Error("Failed to add the part");
         }
-  
+
         const addedPart = await response.json();
         setprojectListsData((prevData) => [...prevData, addedPart]);
         toast.success("Part added successfully!");
@@ -208,6 +215,29 @@ const List = () => {
         stockPOQty: "",
       });
       toggleEditModal();
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      setPosting(false);
+    }
+  };
+
+  // handleing the deletion functionlaity
+  const handleDelete = async (_id) => {
+    setPosting(true);
+    setError(null);
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}`,
+        {
+          method: "DELETE",
+        }
+      );
+      if (!response.ok) {
+        throw new Error("Network response was not ok");
+      }
+      await fetchData(); // Refetch the data to update the table
+      tog_delete(); // Close the modal
     } catch (error) {
       setError(error.message);
     } finally {
@@ -265,7 +295,7 @@ const List = () => {
         <tbody>
           {paginatedData.map((item, index) => (
             <tr key={index}>
-              <td style={{color: "blue", textDecoration: "underline"}}>
+              <td style={{ color: "blue", textDecoration: "underline" }}>
                 <Link to={`/projectSection/${item._id}`} className="text-body">
                   {item.projectName}
                 </Link>
@@ -290,9 +320,10 @@ const List = () => {
                     <div className="dropdown-divider"></div>
                     <DropdownItem
                       href="#"
-                      // onClick={() => onClickData(item)}
-                      data-bs-toggle="modal"
-                      data-bs-target="#removeProjectModal"
+                      onClick={() => {
+                        setSelectedId(item._id);
+                        tog_delete();
+                      }}
                     >
                       <i className="ri-delete-bin-fill align-bottom me-2 text-muted"></i>{" "}
                       Remove
@@ -360,7 +391,6 @@ const List = () => {
             <Button type="submit" color="primary">
               Add Project
             </Button>
-           
           </ModalBody>
         </form>
       </Modal>
@@ -443,6 +473,42 @@ const List = () => {
             </ModalFooter>
           </form>
         </ModalBody>
+      </Modal>
+
+      {/* delete modal */}
+      {/* Delete modal */}
+      <Modal isOpen={modal_delete} toggle={tog_delete} centered>
+        <ModalHeader className="bg-light p-3" toggle={tog_delete}>
+          Delete Record
+        </ModalHeader>
+        <ModalBody>
+          <div className="mt-2 text-center">
+            <lord-icon
+              src="https://cdn.lordicon.com/gsqxdxog.json"
+              trigger="loop"
+              colors="primary:#f7b84b,secondary:#f06548"
+              style={{ width: "100px", height: "100px" }}
+            ></lord-icon>
+            <div className="mt-4 pt-2 fs-15 mx-4 mx-sm-5">
+              <h4>Are you Sure?</h4>
+              <p className="text-muted mx-4 mb-0">
+                Are you sure you want to remove this record?
+              </p>
+            </div>
+          </div>
+        </ModalBody>
+        <ModalFooter>
+          <Button
+            color="danger"
+            onClick={() => handleDelete(selectedId)}
+            disabled={posting}
+          >
+            {posting ? "Deleting..." : "Yes! Delete It"}
+          </Button>
+          <Button color="secondary" onClick={tog_delete} disabled={posting}>
+            Cancel
+          </Button>
+        </ModalFooter>
       </Modal>
     </React.Fragment>
   );
