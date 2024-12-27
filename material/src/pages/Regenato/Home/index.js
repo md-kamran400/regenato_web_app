@@ -42,13 +42,13 @@ const Home = () => {
                   </Card>
                 </Col>
               </Row>
-              <Col lg={12}>
+              {/* <Col lg={12}>
                 <Card>
                   <CardBody>
                     <ProjectsOverview />
                   </CardBody>
                 </Card>
-              </Col>
+              </Col> */}
             </Col>
           </Row>
           <Row>
