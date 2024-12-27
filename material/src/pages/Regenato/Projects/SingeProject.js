@@ -191,6 +191,8 @@ const SingeProject = () => {
     fetchProjectDetails();
   }, [fetchProjectDetails]);
 
+
+  
   // fetching existing part list
   useEffect(() => {
     const fetchExistingPartsLists = async () => {
@@ -396,7 +398,6 @@ const SingeProject = () => {
   );
 
 
-
   const handleDuplicateSubAssemblyList = useCallback(
     async (subAssemblyListId) => {
       try {
@@ -510,13 +511,13 @@ const SingeProject = () => {
           <div className="project-header">
             {/* Left Section */}
             <div className="header-section left">
-              <h2 className="project-name">PROJECT DETAILS</h2>
+              <h2 className="project-name" style={{fontWeight: "bold"}} >PROJECT DETAILS</h2>
+              <br/>
               <h4 className="">{projectName}</h4>
-              <p className="po-id">PO ID: PO001</p>
-              <p className="po-id">PO Type: {projectType}</p>
+              <p className="po-id"> <span style={{fontWeight: "bold"}}>PO Type:</span> {projectType}</p>
             </div>
 
-            {/* Center Section */}
+            {/* Center Section
             <div className="header-section center">
               <div className="stats-container">
                 <div className="stat-item">
@@ -531,12 +532,12 @@ const SingeProject = () => {
                   <p className="stat-value">{totalMachiningHours}</p>
                 </div>
               </div>
-            </div>
+            </div> */}
 
-            {/* Right Section */}
+            {/* Right Section
             <div className="header-section right">
               <span className="status-badge">In Progress</span>
-            </div>
+            </div> */}
           </div>
 
           <div className="button-group">

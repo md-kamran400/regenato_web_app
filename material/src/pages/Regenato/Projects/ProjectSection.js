@@ -37,12 +37,12 @@ const ProjectSection = () => {
         return <HoursPlanningTab />;
       case "3":
         return <HoursSummary />;
-      case "4":
-        return <DocumentsTab />;
-      case "5":
-        return <ActivitiesTab />;
-      case "6":
-        return <NewHoursPlaaning />;
+      // case "4":
+      //   return <DocumentsTab />;
+      // case "5":
+      //   return <ActivitiesTab />;
+      // case "6":
+      //   return <NewHoursPlaaning />;
       default:
         return null;
     }
@@ -51,7 +51,7 @@ const ProjectSection = () => {
   return (
     <React.Fragment>
       {/* Top Section with Tabs */}
-      <Row style={{ marginTop: "60px" }}>
+      <Row style={{ marginTop: "10px" }}>
         <Col lg={12}>
           <Card>
             <div style={{ margin: "auto" }}>
@@ -100,7 +100,7 @@ const ProjectSection = () => {
                       Hours Summary
                     </NavLink>
                   </NavItem>
-                  <NavItem>
+                  {/* <NavItem>
                     <NavLink
                       className={classnames(
                         { active: activeTab === "4" },
@@ -140,8 +140,8 @@ const ProjectSection = () => {
                       href="#"
                     >
                       New Hours Planning
-                    </NavLink>
-                  </NavItem>
+                    </NavLink> 
+                  </NavItem>*/}
                 </Nav>
               </CardBody>
             </div>

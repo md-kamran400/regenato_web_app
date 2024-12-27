@@ -11,29 +11,30 @@ import {
 } from "reactstrap";
 
 //import images
-import logoSm from "../assets/images/logo-sm.png";
-import logoDark from "../assets/images/logo-dark.png";
-import logoLight from "../assets/images/logo-light.png";
+// import logoSm from "../assets/images/logo-sm.png";
+// import logoDark from "../assets/images/logo-dark.png";
+// import logoLight from "../assets/images/logo-light.png";
 
-//import Components
-import SearchOption from "../Components/Common/SearchOption";
-import LanguageDropdown from "../Components/Common/LanguageDropdown";
-import WebAppsDropdown from "../Components/Common/WebAppsDropdown";
-import MyCartDropdown from "../Components/Common/MyCartDropdown";
-import FullScreenDropdown from "../Components/Common/FullScreenDropdown";
-import NotificationDropdown from "../Components/Common/NotificationDropdown";
-import ProfileDropdown from "../Components/Common/ProfileDropdown";
-import LightDark from "../Components/Common/LightDark";
+// //import Components
+// import SearchOption from "../Components/Common/SearchOption";
+// import LanguageDropdown from "../Components/Common/LanguageDropdown";
+// import WebAppsDropdown from "../Components/Common/WebAppsDropdown";
+// import MyCartDropdown from "../Components/Common/MyCartDropdown";
+// import FullScreenDropdown from "../Components/Common/FullScreenDropdown";
+// import NotificationDropdown from "../Components/Common/NotificationDropdown";
+// import ProfileDropdown from "../Components/Common/ProfileDropdown";
+// import LightDark from "../Components/Common/LightDark";
 
 import { changeSidebarVisibility } from "../slices/thunks";
 import { useSelector, useDispatch } from "react-redux";
 import { createSelector } from "reselect";
 
-import navdata from './LayoutMenuData';
+import navdata from '../Layouts/LayoutMenuData';
 
 import "./style.css"
+import ProfileDropdown from "../Components/Common/ProfileDropdown";
 
-const Header = ({ onChangeLayoutMode, layoutModeType, headerClass }) => {
+const Navbar = () => {
   const dispatch = useDispatch();
 
   const [menuOpen, setMenuOpen] = useState(false);
@@ -99,10 +100,10 @@ const Header = ({ onChangeLayoutMode, layoutModeType, headerClass }) => {
 
   return (
     <React.Fragment>
-      <header id="page-topbar" className={headerClass}>
+      <header className="header-class">
         <div className="layout-width">
           <div className="navbar-header">
-            <div className="d-flex">
+            {/* <div className="d-flex">
               <button
                 onClick={toogleMenuBtn}
                 type="button"
@@ -115,9 +116,9 @@ const Header = ({ onChangeLayoutMode, layoutModeType, headerClass }) => {
                   <span></span>
                 </span>
               </button>
-            </div>
+            </div> */}
 
-            <div className="d-flex align-items-center">
+            <div className="d-flex align-items-center" >
               {/* Navbar Menu */}
               <nav className={`navbar ${menuOpen ? "show" : ""}`}>
                 <ul className="nav">
@@ -131,8 +132,9 @@ const Header = ({ onChangeLayoutMode, layoutModeType, headerClass }) => {
                 </ul>
               </nav>
 
-              <ProfileDropdown />
+              
             </div>
+            <ProfileDropdown />
           </div>
         </div>
       </header>
@@ -140,4 +142,4 @@ const Header = ({ onChangeLayoutMode, layoutModeType, headerClass }) => {
   );
 };
 
-export default Header;
+export default Navbar;

@@ -69,11 +69,32 @@ const AssemblyTable = ({ assemblypartsList }) => {
   const [modalAddSubassembly, setModalAddSubassembly] = useState(false);
   const [modalAddPartAssmebly, setModalAddPartAssmebly] = useState(false);
 
+  // duplicate creationf for assmebly
+  const [existingSubAssemblyLists, setExistingSubAssemblyLists] = useState([]);
+  const [selectedSubAssemblyList, setSelectedSubAssemblyList] = useState(null);
+  const [isAddingNewSubAssembly, setIsAddingNewSubAssembly] = useState(false);
+
   const [subAssemblyListName, setSubAssemblyListName] = useState("");
   const [assemblyMultyPartsListName, setassemblyMultyPartsListName] =
     useState("");
 
   const [machinesTBU, setMachinesTBU] = useState({});
+
+  // Function to fetch existing sub assembly lists
+  const fetchExistingSubAssemblyLists = useCallback(async () => {
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/assemblyPartsLists/${assemblypartsList._id}/subAssemblyPartsLists`
+      );
+      const data = await response.json();
+      setExistingSubAssemblyLists(data);
+    } catch (error) {
+      console.error("Error fetching existing sub assembly lists:", error);
+    }
+  }, [_id, existingSubAssemblyLists]);
+  useEffect(() => {
+    fetchExistingSubAssemblyLists();
+  }, [fetchExistingSubAssemblyLists]);
 
   const toggleAddModalsubAssembly = () => {
     setModalAddSubassembly(!modalAddSubassembly);
@@ -228,7 +249,6 @@ const AssemblyTable = ({ assemblypartsList }) => {
       setProjectName(data.projectName || "");
       setprojectType(data.projectType || "");
       setPartsListsItems(data.partsLists || []);
-
     } catch (error) {
       setError(error.message);
     } finally {
@@ -285,14 +305,15 @@ const AssemblyTable = ({ assemblypartsList }) => {
     }
   };
 
-  if (loading) return <div className="loader-overlay">
-  <div className="spinner-border text-primary" role="status">
-    <span className="visually-hidden">Loading...</span>
-  </div>
-</div>;
+  if (loading)
+    return (
+      <div className="loader-overlay">
+        <div className="spinner-border text-primary" role="status">
+          <span className="visually-hidden">Loading...</span>
+        </div>
+      </div>
+    );
   if (error) return <div>Error: {error}</div>;
-
-
 
   const handleDelete = async (partId) => {
     setPosting(true);
@@ -355,7 +376,7 @@ const AssemblyTable = ({ assemblypartsList }) => {
   // Now, use handleSubmitAssemblyParts in your component
 
   // updating function
- 
+
   const handleSubAssemblyUpdate = (updatedSubAssembly) => {
     setSubAssemblyItems((prevItems) =>
       prevItems.map((item) =>
@@ -424,17 +445,22 @@ const AssemblyTable = ({ assemblypartsList }) => {
           }),
         }
       );
-  
+
       if (!response.ok) {
         const errorData = await response.text();
-        throw new Error(`HTTP error! status: ${response.status}, data: ${errorData}`);
+        throw new Error(
+          `HTTP error! status: ${response.status}, data: ${errorData}`
+        );
       }
-  
+
       const addedAssemblyList = await response.json();
-      setpartsAssmeblyItems((prevAssemblyLists) => [...prevAssemblyLists, addedAssemblyList]);
+      setpartsAssmeblyItems((prevAssemblyLists) => [
+        ...prevAssemblyLists,
+        addedAssemblyList,
+      ]);
       setassemblyMultyPartsListName("");
       setModalAddPartAssmebly(false);
-  
+
       // Refetch the data to ensure we have the latest information
       const updatedResponse = await fetch(
         `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/assemblyPartsLists/${assemblypartsList._id}/assemblyMultyPartsList`
@@ -446,6 +472,33 @@ const AssemblyTable = ({ assemblypartsList }) => {
       setError("Failed to add new assembly list. Please try again.");
     }
   };
+
+  // Function to duplicate an existing sub assembly list
+  const handleDuplicateSubAssembly = async (listId) => {
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/assemblyPartsLists/${assemblypartsList._id}/subAssemblyPartsLists/${listId}/duplicate`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      if (!response.ok) {
+        const error = await response.text();
+        console.error("Duplicate API Error:", error);
+        throw new Error("Failed to duplicate sub-assembly");
+      }
+      const duplicatedList = await response.json();
+      console.log("Duplicated Sub-assembly:", duplicatedList); // Add this log
+      setSubAssemblyItems((prevLists) => [...prevLists, duplicatedList]);
+    } catch (error) {
+      console.error("Error duplicating sub-assembly:", error);
+      setError("Failed to duplicate sub-assembly. Please try again.");
+    }
+  };
+  
 
   return (
     <Col
@@ -465,17 +518,19 @@ const AssemblyTable = ({ assemblypartsList }) => {
                 <Button
                   className="add-btn"
                   onClick={toggleAddModalPartAssembly}
-                  style={{backgroundColor: "#8E24AA", color: "white"}}
+                  style={{ backgroundColor: "#8E24AA", color: "white" }}
                 >
-                  <i className="ri-add-line align-bottom me-1"></i> Add Part List
+                  <i className="ri-add-line align-bottom me-1"></i> Add Part
+                  List
                 </Button>
                 <Button
                   color="danger"
                   className="add-btn"
                   onClick={toggleAddModalsubAssembly}
-                  style={{backgroundColor: "#0097A7", color: "white"}}
+                  style={{ backgroundColor: "#0097A7", color: "white" }}
                 >
-                  <i className="ri-add-line align-bottom me-1"></i> Add Sub Assembly
+                  <i className="ri-add-line align-bottom me-1"></i> Add Sub
+                  Assembly
                 </Button>
               </div>
 
@@ -499,7 +554,7 @@ const AssemblyTable = ({ assemblypartsList }) => {
               {Array.isArray(partsAssmeblyItems) &&
               partsAssmeblyItems.length > 0 ? (
                 partsAssmeblyItems.map((partsAssmeblyItem, index) => (
-                  <div key={index} className="parts-list" >
+                  <div key={index} className="parts-list">
                     <AssmblyMultyPart
                       key={index}
                       partsAssmeblyItems={partsAssmeblyItem}
@@ -947,23 +1002,69 @@ const AssemblyTable = ({ assemblypartsList }) => {
       {/* modle for sub assembly */}
       <Modal isOpen={modalAddSubassembly} toggle={toggleAddModalsubAssembly}>
         <ModalHeader toggle={toggleAddModalsubAssembly}>
-          Add Sub Assembly List Name
+          Add/Duplicate Sub Assembly List
         </ModalHeader>
         <ModalBody>
           <form onSubmit={(e) => handleSubmitSubAssembly(e.preventDefault())}>
             <div className="form-group">
-              <Label for="partsListName">Add Sub Assembly List Name</Label>
-              <Input
-                type="text"
-                id="partsListName"
-                value={subAssemblyListName}
-                onChange={(e) => setSubAssemblyListName(e.target.value)}
-                required
-              />
+              <Label for="subAssemblyListName">Sub Assembly List Name</Label>
+              <div className="d-flex">
+                <div className="">
+                  <select
+                    style={{ width: "410px" }}
+                    className="form-select"
+                    value={selectedSubAssemblyList}
+                    onChange={(e) => {
+                      setSelectedSubAssemblyList(e.target.value);
+                      setIsAddingNewSubAssembly(false);
+                    }}
+                  >
+                    <option value="">Select Existing Sub Assembly List</option>
+                    {existingSubAssemblyLists.map((list) => (
+                      <option key={list._id} value={list._id}>
+                        {list.subAssemblyListName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              {isAddingNewSubAssembly && (
+                <Input
+                  className="mt-2"
+                  type="text"
+                  id="subAssemblyListName"
+                  placeholder="New Sub Assembly List Name"
+                  value={subAssemblyListName}
+                  onChange={(e) => setSubAssemblyListName(e.target.value)}
+                  required
+                />
+              )}
             </div>
             <ModalFooter>
-              <Button color="success" type="submit">
-                Add Parts List
+              <Button
+                color="primary"
+                onClick={() => {
+                  setSelectedSubAssemblyList(null);
+                  setIsAddingNewSubAssembly(true);
+                }}
+              >
+                Add New Sub Assembly
+              </Button>
+              <Button
+                color="success"
+                type="submit"
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (selectedSubAssemblyList) {
+                    handleDuplicateSubAssembly(selectedSubAssemblyList);
+                  } else {
+                    handleSubmitSubAssembly();
+                  }
+                }}
+              >
+                {selectedSubAssemblyList
+                  ? "Duplicate Sub Assembly"
+                  : "Add Sub Assembly"}
               </Button>
               <Button color="secondary" onClick={toggleAddModalsubAssembly}>
                 Cancel
