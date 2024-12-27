@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { debounce } from "lodash";
+import "./project.css";
 import {
   Card,
   CardBody,
@@ -374,9 +375,16 @@ const List = () => {
         </div>
       </Row>
 
-      {loading && <p>Loading...</p>}
+      {/* {loading && <p>Loading...</p>} */}
       {error && <p>Error: {error}</p>}
-
+      <>
+      {loading && (
+        <div className="loader-overlay">
+          <div className="spinner-border text-primary" role="status">
+            <span className="visually-hidden">Loading...</span>
+          </div>
+        </div>
+      )}
       <table className="table table-striped">
         <thead>
           <tr>
@@ -448,7 +456,7 @@ const List = () => {
         currentPage={currentPage}
         onPageChange={handlePageChange}
       />      
-            
+      </>
       {/* Modal for adding a new item */}
       <Modal isOpen={modal_list} toggle={toggleModal} centered>
         <ModalHeader className="bg-light p-3" toggle={toggleModal}>

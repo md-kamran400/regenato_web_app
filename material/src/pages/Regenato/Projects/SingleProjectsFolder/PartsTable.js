@@ -80,7 +80,7 @@ const PartsTable = ({ partsList, updatePartsLists }) => {
         }
         const data = await response.json();
         setPartsListsItems(data);
-        console.log("items data of parts lists", data);
+        // console.log("items data of parts lists", data);
       } catch (error) {
         console.error("Error fetching parts list items:", error);
         // You might want to handle the error, e.g., show an error message to the user
@@ -119,6 +119,7 @@ const PartsTable = ({ partsList, updatePartsLists }) => {
   const tog_delete = (_id) => {
     setModalDelete(!modal_delete);
     setSelectedId(_id);
+
   };
 
   const fetchData = useCallback(async () => {

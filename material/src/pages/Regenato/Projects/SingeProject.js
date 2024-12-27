@@ -55,8 +55,25 @@ const SingeProject = () => {
   const [assemblyLists, setassemblyLists] = useState([]);
   const [AssemblyListName, setAssemblyListName] = useState("");
 
+  // duplicate creation for parts
+  const [existingPartsLists, setExistingPartsLists] = useState([]);
+  const [selectedPartsList, setSelectedPartsList] = useState(null);
+  const [isAddingNew, setIsAddingNew] = useState(false);
+
+  // duplicate creationf for assmebly
+  const [existingAssemblyLists, setExistingAssemblyLists] = useState([]);
+  const [selectedAssemblyList, setSelectedAssemblyList] = useState(null);
+  const [isAddingNewAssembly, setIsAddingNewAssembly] = useState(false);
+
   const [partsListName, setPartsListName] = useState("");
-  const [subAssemblyListName, setsubAssemblyListName] = useState("");
+  // const [subAssemblyListName, setsubAssemblyListName] = useState("");
+
+  //sub assembly part list state
+  const [subAssemblyLists, setSubAssemblyLists] = useState([]);
+  const [selectedSubAssemblyList, setSelectedSubAssemblyList] = useState(null);
+  const [isAddingNewSubAssembly, setIsAddingNewSubAssembly] = useState(false);
+  const [subAssemblyListName, setSubAssemblyListName] = useState("");
+  const [existingSubAssemblyLists, setExistingSubAssemblyLists] = useState([]);
 
   const toggleAddModal = () => {
     setModalAdd(!modalAdd);
@@ -94,6 +111,26 @@ const SingeProject = () => {
     localStorage.setItem("showTable", JSON.stringify(showTable));
   }, [showTable]);
 
+  //sub assembly list
+  useEffect(() => {
+    const fetchExistingSubAssemblyLists = async () => {
+      try {
+        const response = await fetch(
+          `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/subAssemblyListFirst`
+        );
+        const data = await response.json();
+        setExistingSubAssemblyLists(data);
+      } catch (error) {
+        console.error("Error fetching existing sub-assembly lists:", error);
+      }
+    };
+    fetchExistingSubAssemblyLists();
+  }, [_id]);
+
+  const handleAddSubAssembly = useCallback(() => {
+    setShowSubAssemblyTable(true);
+  }, []);
+
   useEffect(() => {
     localStorage.setItem(
       "showAssemblyTable",
@@ -110,10 +147,6 @@ const SingeProject = () => {
 
   const handleAddAssembly = useCallback(() => {
     setShowAssemblyTable(true);
-  }, []);
-
-  const handleAddSubAssembly = useCallback(() => {
-    setShowSubAssemblyTable(true);
   }, []);
 
   // useEffect(() => {
@@ -146,7 +179,7 @@ const SingeProject = () => {
       setprojectType(data.projectType || "");
       setPartsLists(data.partsLists || []);
       setassemblyLists(data.assemblyPartsLists || []);
-      setSubAssemblyItems(data.subAssemblyListFirst || []);
+      setSubAssemblyItems(data.subAssemblyListFirst || []); // Update this line
     } catch (error) {
       setError(error.message);
     } finally {
@@ -157,6 +190,38 @@ const SingeProject = () => {
   useEffect(() => {
     fetchProjectDetails();
   }, [fetchProjectDetails]);
+
+  // fetching existing part list
+  useEffect(() => {
+    const fetchExistingPartsLists = async () => {
+      try {
+        const response = await fetch(
+          `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/partsLists`
+        );
+        const data = await response.json();
+        setExistingPartsLists(data);
+      } catch (error) {
+        console.error("Error fetching existing parts lists:", error);
+      }
+    };
+    fetchExistingPartsLists();
+  }, [_id, existingPartsLists]);
+
+  // fetchign for assmebly list
+  useEffect(() => {
+    const fetchExistingAssemblyLists = async () => {
+      try {
+        const response = await fetch(
+          `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/assemblyPartsLists`
+        );
+        const data = await response.json();
+        setExistingAssemblyLists(data);
+      } catch (error) {
+        console.error("Error fetching existing assembly lists:", error);
+      }
+    };
+    fetchExistingAssemblyLists();
+  }, [_id, existingAssemblyLists]);
 
   const handlePartsListUpdate = (updatedSubAssembly) => {
     setPartsLists((prevItems) =>
@@ -185,40 +250,28 @@ const SingeProject = () => {
             body: JSON.stringify(newPartsList),
           }
         );
-
         if (!response.ok) {
           throw new Error("Failed to add new parts list");
         }
-
         const addedPartsList = await response.json();
-
-        // Update local state immediately
         setPartsLists((prevPartsLists) => [...prevPartsLists, addedPartsList]);
-
-        // Refetch project details to ensure consistency
-        await fetchProjectDetails();
-
-        // Reset form fields
         setPartsListName("");
-
-        // Close the modal
         setModalAdd(false);
-
-        // Show success notification (optional)
-        // toast.success("New parts list added successfully!");
+        await fetchProjectDetails();
       } catch (error) {
         console.error("Error adding new parts list:", error);
         setError("Failed to add new parts list. Please try again.");
       }
     },
-    [_id]
+    [_id, partsLists]
   );
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-
+    setModalAdd(false); 
     try {
       await handleAddNewPartsList({ partsListName });
+
     } catch (error) {
       console.error("Error in handleSubmit:", error);
     }
@@ -266,64 +319,110 @@ const SingeProject = () => {
 
   const handleSubmitAssembly = async (event) => {
     event.preventDefault();
-
     try {
-      await handleSubmitAssemblyParts({ assemblyListName: AssemblyListName });
-
-      // Clear the input field
+      if (selectedAssemblyList) {
+        await handleDuplicateAssemblyList(selectedAssemblyList);
+      } else {
+        await handleAddNewAssemblyList({ assemblyListName: AssemblyListName });
+      }
       setAssemblyListName("");
-
-      // Close the modal
       setModalAddassembly(false);
-
-      // Optionally, refetch the project details
       await fetchProjectDetails();
     } catch (error) {
       console.error("Error in handleSubmitAssembly:", error);
+    }finally {
+      setAssemblyListName(""); // Reset input field
     }
   };
 
+  const handleAddNewAssemblyList = useCallback(
+    async (newAssemblyList) => {
+      try {
+        const response = await fetch(
+          `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/assemblyPartsLists`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(newAssemblyList),
+          }
+        );
+        if (!response.ok) {
+          throw new Error("Failed to add new assembly list");
+        }
+        const addedAssemblyList = await response.json();
+        setassemblyLists((prevAssemblyLists) => [
+          ...prevAssemblyLists,
+          addedAssemblyList,
+        ]);
+        setAssemblyListName("");
+        setModalAddassembly(false);
+        await fetchProjectDetails();
+      } catch (error) {
+        console.error("Error adding new assembly list:", error);
+        setError("Failed to add new assembly list. Please try again.");
+      }
+    },
+    [_id, assemblyLists]
+  );
+
   const handleAddNewSubAsssmebly = useCallback(
-    async (newPartsList) => {
+    async (newSubAssemblyList) => {
       try {
         const response = await fetch(
           `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/subAssemblyListFirst`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(newPartsList),
+            body: JSON.stringify(newSubAssemblyList),
           }
         );
-
         if (!response.ok) {
-          throw new Error("Failed to add new parts list");
+          throw new Error("Failed to add new sub-assembly list");
         }
-
-        const addedPartsList = await response.json();
-
-        // Update local state immediately
-        setSubAssemblyItems((prevPartsLists) => [
-          ...prevPartsLists,
-          addedPartsList,
+        const addedSubAssemblyList = await response.json();
+        setSubAssemblyItems((prevItems) => [
+          ...prevItems,
+          addedSubAssemblyList,
         ]);
-
-        // Refetch project details to ensure consistency
-        await fetchProjectDetails();
-
-        // Reset form fields
-        setsubAssemblyListName("");
-
-        // Close the modal
+        setSubAssemblyListName("");
         setModalAddSubassembly(false);
-
-        // Show success notification (optional)
-        // toast.success("New parts list added successfully!");
+        await fetchProjectDetails();
       } catch (error) {
-        console.error("Error adding new parts list:", error);
-        setError("Failed to add new parts list. Please try again.");
+        console.error("Error adding new sub-assembly list:", error);
+        setError("Failed to add new sub-assembly list. Please try again.");
       }
     },
     [_id]
+  );
+
+
+
+  const handleDuplicateSubAssemblyList = useCallback(
+    async (subAssemblyListId) => {
+      try {
+        const response = await fetch(
+          `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/subAssemblyListFirst/${subAssemblyListId}/duplicate`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+          }
+        );
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(
+            errorData.message || "Failed to duplicate sub-assembly list"
+          );
+        }
+        const duplicatedSubAssemblyList = await response.json();
+        setSubAssemblyItems((prevItems) => [...prevItems, duplicatedSubAssemblyList]);
+        setModalAddSubassembly(false); // Close the sub-assembly modal
+        await fetchProjectDetails();
+      } catch (error) {
+        console.error("Error duplicating sub-assembly list:", error);
+        setError("Failed to duplicate sub-assembly list. Please try again.");
+      }
+    },
+    [_id, subAssemblyItems]
   );
 
   const handleSubmitSubAsssmebly = async (event) => {
@@ -331,15 +430,78 @@ const SingeProject = () => {
 
     try {
       await handleAddNewSubAsssmebly({ subAssemblyListName });
+      setModalAddSubassembly(false);
     } catch (error) {
       console.error("Error in handleSubmit:", error);
     }
   };
 
+  // duplicate creatation for parts list
+  const handleDuplicatePartsList = useCallback(
+    async (partsListId) => {
+      try {
+        const response = await fetch(
+          `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/partsLists/${partsListId}/duplicate`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+          }
+        );
+        if (!response.ok) {
+          throw new Error("Failed to duplicate parts list");
+        }
+        const duplicatedPartsList = await response.json();
+        setPartsLists((prevPartsLists) => [
+          ...prevPartsLists,
+          duplicatedPartsList,
+        ]);
+        setPartsListName("");
+        setModalAdd(false);
+        await fetchProjectDetails();
+      } catch (error) {
+        console.error("Error duplicating parts list:", error);
+        setError("Failed to duplicate parts list. Please try again.");
+      }
+    },
+    [_id, partsLists]
+  );
+
+
+  const handleDuplicateAssemblyList = useCallback(
+    async (assemblyListId) => {
+      try {
+        const response = await fetch(
+          `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/assemblyPartsLists/${assemblyListId}/duplicate`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+          }
+        );
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(
+            errorData.message || "Failed to duplicate assembly list"
+          );
+        }
+        const duplicatedAssemblyList = await response.json();
+        setassemblyLists((prevAssemblyLists) => [
+          ...prevAssemblyLists,
+          duplicatedAssemblyList,
+        ]);
+        setModalAddassembly(false); // Close modal
+        await fetchProjectDetails(); // Refresh the UI with updated data
+      } catch (error) {
+        console.error("Error duplicating assembly list:", error);
+        setError("Failed to duplicate assembly list. Please try again.");
+      }
+    },
+    [_id, assemblyLists]
+  );
+
   // fetching and hadleing the fetching and post crud operations for assembly list
   if (loading) return <div>Loading...</div>;
   if (error) return <div>Error: {error}</div>;
-
+  // console.log(existingSubAssemblyLists);
 
   return (
     <React.Fragment>
@@ -446,17 +608,63 @@ const SingeProject = () => {
           <form onSubmit={handleSubmit}>
             <div className="form-group">
               <Label for="partsListName">Parts List Name</Label>
-              <Input
-                type="text"
-                id="partsListName"
-                value={partsListName}
-                onChange={(e) => setPartsListName(e.target.value)}
-                required
-              />
+              <div className="d-flex">
+                <div className="">
+                  <select
+                    style={{ width: "410px" }}
+                    className="form-select"
+                    value={selectedPartsList}
+                    onChange={(e) => {
+                      setSelectedPartsList(e.target.value);
+                      setIsAddingNew(false);
+                    }}
+                  >
+                    <option value="">Select Existing Parts List</option>
+                    {existingPartsLists.map((list) => (
+                      <option key={list._id} value={list._id}>
+                        {list.partsListName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                {/* <div></div> */}
+              </div>
+              {isAddingNew && (
+                <Input
+                  className="mt-2"
+                  type="text"
+                  id="partsListName"
+                  placeholder="New Part List Name"
+                  value={partsListName}
+                  onChange={(e) => setPartsListName(e.target.value)}
+                  required
+                />
+              )}
             </div>
             <ModalFooter>
-              <Button color="success" type="submit">
-                Add Parts List
+              <Button
+                color="primary"
+                onClick={() => {
+                  setSelectedPartsList(null);
+                  setIsAddingNew(true);
+                }}
+              >
+                Add New Part
+              </Button>
+
+              <Button
+                color="success"
+                type="submit"
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (selectedPartsList) {
+                    handleDuplicatePartsList(selectedPartsList);
+                  } else {
+                    handleAddNewPartsList({ partsListName });
+                  }
+                }}
+              >
+                {selectedPartsList ? "Duplicate Part" : "Add Part"}
               </Button>
               <Button color="secondary" onClick={toggleAddModal}>
                 Cancel
@@ -467,25 +675,74 @@ const SingeProject = () => {
       </Modal>
 
       {/* modle for assembly */}
+
       <Modal isOpen={modalAddassembly} toggle={toggleAddModalAssembly}>
         <ModalHeader toggle={toggleAddModalAssembly}>
-          Add Assembly List Name
+          Add Assembly List
         </ModalHeader>
         <ModalBody>
           <form onSubmit={handleSubmitAssembly}>
             <div className="form-group">
               <Label for="AssemblyListName">Assembly List Name</Label>
-              <Input
-                type="text"
-                id="AssemblyListName"
-                value={AssemblyListName}
-                onChange={(e) => setAssemblyListName(e.target.value)}
-                required
-              />
+              <div className="d-flex">
+                <div>
+                  <select
+                    style={{ width: "410px" }}
+                    className="form-select"
+                    value={selectedAssemblyList}
+                    onChange={(e) => {
+                      setSelectedAssemblyList(e.target.value);
+                      setIsAddingNewAssembly(false);
+                    }}
+                  >
+                    <option value="">Select Existing Assembly List</option>
+                    {existingAssemblyLists.map((list) => (
+                      <option key={list._id} value={list._id}>
+                        {list.assemblyListName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div></div>
+              </div>
+              {isAddingNewAssembly && (
+                <Input
+                  className="mt-2"
+                  type="text"
+                  id="AssemblyListName"
+                  placeholder="Add New Assembly"
+                  value={AssemblyListName}
+                  onChange={(e) => setAssemblyListName(e.target.value)}
+                  required
+                />
+              )}
             </div>
             <ModalFooter>
-              <Button color="success" type="submit">
-                Add Parts List
+              <Button
+                color="primary"
+                onClick={() => {
+                  setSelectedAssemblyList(null);
+                  setIsAddingNewAssembly(true);
+                }}
+              >
+                Add New Assembly
+              </Button>
+
+              <Button
+                color="success"
+                type="submit"
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (selectedAssemblyList) {
+                    handleDuplicateAssemblyList(selectedAssemblyList);
+                  } else {
+                    handleAddNewAssemblyList({
+                      assemblyListName: AssemblyListName,
+                    });
+                  }
+                }}
+              >
+                {selectedAssemblyList ? "Duplicate" : "Add"}
               </Button>
               <Button color="secondary" onClick={toggleAddModalAssembly}>
                 Cancel
@@ -496,6 +753,8 @@ const SingeProject = () => {
       </Modal>
 
       {/* modal for outer sub assmebly list */}
+
+
       <Modal isOpen={modalAddSubassembly} toggle={toggleAddModalsubAssembly}>
         <ModalHeader toggle={toggleAddModalsubAssembly}>
           Add Sub Assembly List
@@ -503,18 +762,65 @@ const SingeProject = () => {
         <ModalBody>
           <form onSubmit={handleSubmitSubAsssmebly}>
             <div className="form-group">
-              <Label for="partsListName">Sub Assembly List Name</Label>
-              <Input
-                type="text"
-                id="partsListName"
-                value={subAssemblyListName}
-                onChange={(e) => setsubAssemblyListName(e.target.value)}
-                required
-              />
+              <Label for="subAssemblyListName">Sub Assembly List Name</Label>
+              <div className="d-flex">
+                <div>
+                  <select
+                    style={{ width: "410px" }}
+                    className="form-select"
+                    value={selectedSubAssemblyList}
+                    onChange={(e) => {
+                      setSelectedSubAssemblyList(e.target.value);
+                      setIsAddingNewSubAssembly(false);
+                    }}
+                  >
+                    <option value="">Select Existing Sub Assembly List</option>
+                    {subAssemblyItems.map((list) => (
+                      <option key={list._id} value={list._id}>
+                        {list.subAssemblyListName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div></div>
+              </div>
+              {isAddingNewSubAssembly && (
+                <Input
+                  className="mt-2"
+                  type="text"
+                  id="subAssemblyListName"
+                  placeholder="Add New Sub Assembly"
+                  value={subAssemblyListName}
+                  onChange={(e) => setSubAssemblyListName(e.target.value)}
+                  required
+                />
+              )}
             </div>
             <ModalFooter>
-              <Button color="success" type="submit">
-                Add Sub Assembly
+              <Button
+                color="primary"
+                onClick={() => {
+                  setSelectedSubAssemblyList(null);
+                  setIsAddingNewSubAssembly(true);
+                }}
+              >
+                Add New Sub Assembly
+              </Button>
+              <Button
+                color="success"
+                type="submit"
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (selectedSubAssemblyList) {
+                    handleDuplicateSubAssemblyList(selectedSubAssemblyList);
+                  } else {
+                    handleAddNewSubAsssmebly({ subAssemblyListName });
+                  }
+                }}
+              >
+                {selectedSubAssemblyList
+                  ? "Duplicate"
+                  : "Add"}
               </Button>
               <Button color="secondary" onClick={toggleAddModalsubAssembly}>
                 Cancel

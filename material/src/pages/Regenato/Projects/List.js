@@ -31,6 +31,8 @@ import FeatherIcon from "feather-icons-react";
 import { ToastContainer, toast } from "react-toastify";
 import "./project.css";
 
+import { Puff } from "react-loader-spinner";
+
 // component import
 import DeleteModal from "../../../Components/Common/DeleteModal";
 import PaginatedList from "../Pagination/PaginatedList";
@@ -43,6 +45,9 @@ const List = () => {
   const [projectListsData, setprojectListsData] = useState([]);
   const [deleteModal, setDeleteModal] = useState(false);
   const [loading, setLoading] = useState(true); // State to manage loading state
+
+  // loader
+  const [isLoading, setIsLoading] = useState(true);
   const [newprojectName, setNewprojectName] = useState(""); // For storing new part name
   const [editId, setEditId] = useState(null); // ID for the item being edited
   const [costPerUnit, setCostPerUnit] = useState(0);
@@ -63,6 +68,7 @@ const List = () => {
     stockPOQty: "",
   });
 
+  console.log("hlsfhj");
   // totalCountstring
   const handleSingleProjectTotalCount = (newTotal) => {
     setTotalCostCount(newTotal);
@@ -105,7 +111,7 @@ const List = () => {
     setModal_category(!modal_category);
   };
   const fetchData = useCallback(async () => {
-    setLoading(true);
+    setIsLoading(true);
     setError(null);
     try {
       const response = await fetch(
@@ -119,7 +125,7 @@ const List = () => {
     } catch (err) {
       setError(err.message);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   }, []);
 
@@ -282,66 +288,78 @@ const List = () => {
           </div>
         </div>
       </Row>
-      <table className="table table-striped">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Cost per Unit</th>
-            <th>Total Hours</th>
-            <th>On Hand</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {paginatedData.map((item, index) => (
-            <tr key={index}>
-              <td style={{ color: "blue", textDecoration: "underline" }}>
-                <Link to={`/projectSection/${item._id}`} className="text-body">
-                  {item.projectName}
-                </Link>
-              </td>
-              <td>0</td>
-              <td>0</td>
-              <td>0</td>
-              <td>
-                <UncontrolledDropdown direction="start">
-                  <DropdownToggle
-                    tag="button"
-                    className="btn btn-link text-muted p-1 mt-n2 py-0 text-decoration-none fs-15 shadow-none"
-                  >
-                    <FeatherIcon icon="more-horizontal" className="icon-sm" />
-                  </DropdownToggle>
 
-                  <DropdownMenu className="dropdown-menu-end">
-                    <DropdownItem onClick={() => toggleEditModal(item)}>
-                      <i className="ri-pencil-fill align-bottom me-2 text-muted"></i>{" "}
-                      Edit
-                    </DropdownItem>
-                    <div className="dropdown-divider"></div>
-                    <DropdownItem
-                      href="#"
-                      onClick={() => {
-                        setSelectedId(item._id);
-                        tog_delete();
-                      }}
-                    >
-                      <i className="ri-delete-bin-fill align-bottom me-2 text-muted"></i>{" "}
-                      Remove
-                    </DropdownItem>
-                  </DropdownMenu>
-                </UncontrolledDropdown>
-              </td>
+      <>
+        {isLoading && (
+          <div className="loader-overlay">
+            <div className="spinner-border text-primary" role="status">
+              <span className="visually-hidden">Loading...</span>
+            </div>
+          </div>
+        )}
+        <table className="table table-striped">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Cost per Unit</th>
+              <th>Total Hours</th>
+              <th>On Hand</th>
+              <th>Actions</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {paginatedData.map((item, index) => (
+              <tr key={index}>
+                <td style={{ color: "blue", textDecoration: "underline" }}>
+                  <Link
+                    to={`/projectSection/${item._id}`}
+                    className="text-body"
+                  >
+                    {item.projectName}
+                  </Link>
+                </td>
+                <td>0</td>
+                <td>0</td>
+                <td>0</td>
+                <td>
+                  <UncontrolledDropdown direction="start">
+                    <DropdownToggle
+                      tag="button"
+                      className="btn btn-link text-muted p-1 mt-n2 py-0 text-decoration-none fs-15 shadow-none"
+                    >
+                      <FeatherIcon icon="more-horizontal" className="icon-sm" />
+                    </DropdownToggle>
 
-      <PaginatedList
-        totalPages={totalPages}
-        currentPage={currentPage}
-        onPageChange={handlePageChange}
-      />
+                    <DropdownMenu className="dropdown-menu-end">
+                      <DropdownItem onClick={() => toggleEditModal(item)}>
+                        <i className="ri-pencil-fill align-bottom me-2 text-muted"></i>{" "}
+                        Edit
+                      </DropdownItem>
+                      <div className="dropdown-divider"></div>
+                      <DropdownItem
+                        href="#"
+                        onClick={() => {
+                          setSelectedId(item._id);
+                          tog_delete();
+                        }}
+                      >
+                        <i className="ri-delete-bin-fill align-bottom me-2 text-muted"></i>{" "}
+                        Remove
+                      </DropdownItem>
+                    </DropdownMenu>
+                  </UncontrolledDropdown>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
 
+        <PaginatedList
+          totalPages={totalPages}
+          currentPage={currentPage}
+          onPageChange={handlePageChange}
+        />
+      </>
       {/* Modal for adding a new item */}
       <Modal isOpen={modal_list} toggle={toggleModal} centered>
         <ModalHeader className="bg-light p-3" toggle={toggleModal}>
