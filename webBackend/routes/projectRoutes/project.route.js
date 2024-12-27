@@ -423,9 +423,6 @@ ProjectRouter.get("/:_id/partsLists/:listId/items", async (req, res) => {
   }
 });
 
-
-
-
 // post for outer sub assmebly list
 ProjectRouter.post("/:_id/subAssemblyListFirst", async (req, res) => {
   const { _id } = req.params;
@@ -510,36 +507,35 @@ ProjectRouter.get(
 );
 
 // POST Route: Duplicate a sub-assembly parts list
-ProjectRouter.post("/:_id/subAssemblyListFirst/:listId/duplicate", async (req, res) => {
-  const { _id, listId } = req.params;
+ProjectRouter.post(
+  "/:_id/subAssemblyListFirst/:listId/duplicate",
+  async (req, res) => {
+    const { _id, listId } = req.params;
 
-  try {
-    const project = await ProjectModal.findById(_id);
-    if (!project) {
-      return res.status(404).json({ message: "Project not found" });
+    try {
+      const project = await ProjectModal.findById(_id);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+
+      const subAssemblyList = project.subAssemblyListFirst.id(listId);
+      if (!subAssemblyList) {
+        return res.status(404).json({ message: "Sub-assembly list not found" });
+      }
+
+      const newSubAssemblyList = {
+        subAssemblyListName: `${subAssemblyList.subAssemblyListName} (Copy)`,
+        partsListItems: [...subAssemblyList.partsListItems], // Ensure deep cloning
+      };
+
+      project.subAssemblyListFirst.push(newSubAssemblyList);
+      await project.save();
+      res.status(200).json(newSubAssemblyList);
+    } catch (error) {
+      res.status(500).json({ message: error.message });
     }
-
-    const subAssemblyList = project.subAssemblyListFirst.id(listId);
-    if (!subAssemblyList) {
-      return res.status(404).json({ message: "Sub-assembly list not found" });
-    }
-
-    const newSubAssemblyList = {
-      subAssemblyListName: `${subAssemblyList.subAssemblyListName} (Copy)`,
-      partsListItems: [...subAssemblyList.partsListItems], // Ensure deep cloning
-    };
-
-    project.subAssemblyListFirst.push(newSubAssemblyList);
-    await project.save();
-    res.status(200).json(newSubAssemblyList);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
   }
-});
-
-
-
-
+);
 
 // asembly operation start from here
 // POST Route: Add a new parts list to an existing project
@@ -1443,6 +1439,107 @@ ProjectRouter.get(
 
       const items = subPartsASsmeblyList.partsListItems;
       res.status(200).json(items);
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  }
+);
+
+
+
+
+// duplicate for multy part list and sub assmebly part list
+ProjectRouter.get(
+  "/:_id/assemblyPartsLists/:assemblyId/subAssemblyPartsLists",
+  async (req, res) => {
+    const { _id, assemblyId } = req.params;
+
+    try {
+      const project = await ProjectModal.findById(_id);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+
+      const assembly = project.assemblyPartsLists.id(assemblyId);
+      if (!assembly) {
+        return res.status(404).json({ message: "Assembly not found" });
+      }
+
+      const subAssemblyPartsLists = assembly.subAssemblyPartsLists;
+      res.status(200).json(subAssemblyPartsLists);
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  }
+);
+
+// POST Route: Duplicate a sub-assembly parts list
+ProjectRouter.post(
+  "/:_id/assemblyPartsLists/:assemblyId/subAssemblyPartsLists/:subListId/duplicate",
+  async (req, res) => {
+    const { _id, assemblyId, subListId } = req.params;
+    try {
+      const project = await ProjectModal.findById(_id);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      const assembly = project.assemblyPartsLists.id(assemblyId);
+      if (!assembly) {
+        return res.status(404).json({ message: "Assembly not found" });
+      }
+      const subAssemblyList = assembly.subAssemblyPartsLists.id(subListId);
+      if (!subAssemblyList) {
+        return res.status(404).json({ message: "Sub-assembly not found" });
+      }
+
+      const newSubAssemblyList = {
+        subAssemblyListName: `${subAssemblyList.subAssemblyListName} (Copy)`,
+        partsListItems: [...subAssemblyList.partsListItems],
+      };
+
+      assembly.subAssemblyPartsLists.push(newSubAssemblyList);
+      await project.save();
+
+      res.status(200).json(newSubAssemblyList);
+    } catch (error) {
+      console.error("Error duplicating sub-assembly:", error);
+      res.status(500).json({ message: "Internal Server Error" });
+    }
+  }
+);
+
+// POST Route: Duplicate an assembly multi parts list
+ProjectRouter.post(
+  "/:_id/assemblyPartsLists/:assemblyId/assemblyMultyPartsList/:multiListId/duplicate",
+  async (req, res) => {
+    const { _id, assemblyId, multiListId } = req.params;
+
+    try {
+      const project = await ProjectModal.findById(_id);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+
+      const assembly = project.assemblyPartsLists.id(assemblyId);
+      if (!assembly) {
+        return res.status(404).json({ message: "Assembly not found" });
+      }
+
+      const assemblyMultyList = assembly.assemblyMultyPartsList.id(multiListId);
+      if (!assemblyMultyList) {
+        return res
+          .status(404)
+          .json({ message: "Assembly multi parts list not found" });
+      }
+
+      const newAssemblyMultyList = {
+        assemblyMultyPartsListName: `${assemblyMultyList.assemblyMultyPartsListName} (Copy)`,
+        partsListItems: [...assemblyMultyList.partsListItems],
+      };
+
+      assembly.assemblyMultyPartsList.push(newAssemblyMultyList);
+      await project.save();
+      res.status(200).json(newAssemblyMultyList);
     } catch (error) {
       res.status(500).json({ message: error.message });
     }
