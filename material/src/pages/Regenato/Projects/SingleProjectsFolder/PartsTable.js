@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect } from "react"; //add parts list
 import "../project.css";
 import {
   Card,
