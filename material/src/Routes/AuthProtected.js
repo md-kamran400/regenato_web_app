@@ -10,6 +10,7 @@ import { logoutUser } from "../slices/auth/login/thunk";
 const AuthProtected = (props) => {
   const dispatch = useDispatch();
   const { userProfile, loading, token } = useProfile();
+  
   useEffect(() => {
     if (userProfile && !loading && token) {
       setAuthorization(token);
