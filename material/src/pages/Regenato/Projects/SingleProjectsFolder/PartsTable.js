@@ -63,6 +63,10 @@ const PartsTable = ({ partsList, updatePartsLists }) => {
   const [isLoading, setIsLoading] = useState(false);
   // const [machinesTBU, setMachinesTBU] = useState({});
   // duplicate creation useState
+  const [editModal, setEditModal] = useState(false);
+  const [editData, setEditData] = useState({
+    partsListName: "",
+  });
 
   const toggleAddModal = () => {
     setModalAdd(!modalAdd);
@@ -119,7 +123,29 @@ const PartsTable = ({ partsList, updatePartsLists }) => {
   const tog_delete = (_id) => {
     setModalDelete(!modal_delete);
     setSelectedId(_id);
+  };
 
+  const toggleEditModal = (editMode, partsListId) => {
+    console.log("Edit Mode:", editMode, "PartsList ID:", partsListId);
+    if (editMode && Array.isArray(partsList)) {
+      const partsListToEdit = partsList.find(
+        (item) => item._id === partsListId
+      );
+      console.log("Parts List to Edit:", partsListToEdit);
+      if (partsListToEdit) {
+        setEditData({
+          partsListName: partsListToEdit.partsListName,
+          partsListItems: partsListToEdit.partsListItems || [],
+          // Add any other fields you want to prefill
+        });
+      } else {
+        console.warn("No parts list found with ID:", partsListId);
+      }
+    } else {
+      console.warn("Invalid edit mode or partsList:", { editMode, partsList });
+      setEditData({ partsListName: "" });
+    }
+    setEditModal(!editModal);
   };
 
   const fetchData = useCallback(async () => {
@@ -319,7 +345,7 @@ const PartsTable = ({ partsList, updatePartsLists }) => {
         </div>
       </div>
     );
-    
+
   if (error) return <div>Error: {error}</div>;
 
   // Toggle function for expanding/collapsing the row
@@ -360,29 +386,29 @@ const PartsTable = ({ partsList, updatePartsLists }) => {
     });
   };
 
-  const handleDelete = async (partId) => {
-    setPosting(true);
-    setError(null);
-    try {
-      const response = await fetch(
-        `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/delete-part`,
-        {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ partId }),
-        }
-      );
-      if (!response.ok) {
-        throw new Error("Network response was not ok");
-      }
-      await fetchProjectDetails(); // Refetch the data to update the table
-      tog_delete(); // Close the modal
-    } catch (error) {
-      setError(error.message);
-    } finally {
-      setPosting(false);
-    }
-  };
+  // const handleDelete = async (partId) => {
+  //   setPosting(true);
+  //   setError(null);
+  //   try {
+  //     const response = await fetch(
+  //       `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/delete-part`,
+  //       {
+  //         method: "DELETE",
+  //         headers: { "Content-Type": "application/json" },
+  //         body: JSON.stringify({ partId }),
+  //       }
+  //     );
+  //     if (!response.ok) {
+  //       throw new Error("Network response was not ok");
+  //     }
+  //     await fetchProjectDetails(); // Refetch the data to update the table
+  //     tog_delete(); // Close the modal
+  //   } catch (error) {
+  //     setError(error.message);
+  //   } finally {
+  //     setPosting(false);
+  //   }
+  // };
 
   // duplicate
   // const handleDuplicate = async () => {
@@ -414,6 +440,58 @@ const PartsTable = ({ partsList, updatePartsLists }) => {
   //   }
   // };
 
+  const handleDelete = async () => {
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/partsLists/${partsList._id}`,
+        {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+      if (!response.ok) {
+        throw new Error("Failed to delete part");
+      }
+      const updatedProject = await response.json();
+      updatePartsLists(updatedProject);
+      setModalDelete(false);
+      toast.success("Part deleted successfully");
+    } catch (error) {
+      console.error("Error deleting part:", error);
+      toast.error("Failed to delete part. Please try again.");
+    }
+  };
+
+  //edit
+  const handleEditSubmit = async (event) => {
+    event.preventDefault();
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/partsLists/${partsList._id}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(editData),
+        }
+      );
+      if (!response.ok) {
+        throw new Error("Failed to update parts list");
+      }
+      const updatedData = await response.json();
+      // Update local state with the new data
+      updatePartsLists((prevLists) =>
+        prevLists.map((item) =>
+          item._id === partsList._id ? updatedData : item
+        )
+      );
+      toggleEditModal(false);
+      toast.success("Parts list updated successfully!");
+    } catch (error) {
+      console.error("Error updating parts list:", error);
+      toast.error("Failed to update parts list. Please try again.");
+    }
+  };
+
   return (
     <>
       {isLoading && (
@@ -444,16 +522,43 @@ const PartsTable = ({ partsList, updatePartsLists }) => {
                     </DropdownToggle>
 
                     <DropdownMenu className="dropdown-menu-start">
+                      {/* <DropdownItem
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          toggleEditModal(true, partsList._id);
+                        }}
+                      >
+                        <i className="ri-edit-2-line align-bottom me-2 text-muted"></i>{" "}
+                        Edit
+                      </DropdownItem> */}
+
                       <DropdownItem
                         href="#"
-                        // onClick={(e) => {
-                        //   e.preventDefault();
-                        //   setConfirmDuplicateModal(true);
-                        // }}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          console.log(
+                            "Editing parts list with ID:",
+                            partsList._id
+                          );
+                          toggleEditModal(true, partsList._id);
+                        }}
                       >
-                        <i className="ri-file-copy-line align-bottom me-2 text-muted"></i>{" "}
-                        Duplicate
+                        <i className="ri-edit-2-line align-bottom me-2 text-muted"></i>{" "}
+                        Edit
                       </DropdownItem>
+
+                      <DropdownItem
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          tog_delete("delete", partsList._id);
+                        }}
+                      >
+                        <i className="ri-delete-bin-6-line align-bottom me-2 text-muted"></i>{" "}
+                        Delete
+                      </DropdownItem>
+
                       <div className="dropdown-divider"></div>
                     </DropdownMenu>
                   </UncontrolledDropdown>
@@ -898,38 +1003,54 @@ const PartsTable = ({ partsList, updatePartsLists }) => {
           </ModalBody>
         </Modal>
 
-        <Modal isOpen={modal_delete} toggle={tog_delete} centered>
-          <ModalHeader className="bg-light p-3" toggle={tog_delete}>
-            Delete Record
-          </ModalHeader>
-          <ModalBody>
-            <div className="mt-2 text-center">
-              <lord-icon
-                src="https://cdn.lordicon.com/gsqxdxog.json"
-                trigger="loop"
-                colors="primary:#f7b84b,secondary:#f06548"
-                style={{ width: "100px", height: "100px" }}
-              ></lord-icon>
-              <div className="mt-4 pt-2 fs-15 mx-4 mx-sm-5">
-                <h4>Are you Sure?</h4>
-                <p className="text-muted mx-4 mb-0">
-                  Are you sure you want to remove this record?
-                </p>
-              </div>
-            </div>
-          </ModalBody>
+        <Modal isOpen={modal_delete} toggle={tog_delete}>
+          <ModalHeader toggle={tog_delete}>Confirm Delete</ModalHeader>
+          <ModalBody>Are you sure you want to delete this part?</ModalBody>
           <ModalFooter>
-            <Button
-              color="danger"
-              onClick={() => handleDelete(selectedId)}
-              disabled={posting}
-            >
-              {posting ? "Deleting..." : "Yes! Delete It"}
+            <Button color="danger" onClick={handleDelete}>
+              Delete
             </Button>
-            <Button color="secondary" onClick={tog_delete} disabled={posting}>
+            <Button color="secondary" onClick={tog_delete}>
               Cancel
             </Button>
           </ModalFooter>
+        </Modal>
+
+        <Modal isOpen={editModal} toggle={() => toggleEditModal(false)}>
+          <ModalHeader toggle={() => toggleEditModal(false)}>
+            Edit Parts List
+          </ModalHeader>
+          <ModalBody>
+            <form onSubmit={(e) => handleEditSubmit(e)}>
+              <div className="form-group">
+                <Label for="partsListName">Parts List Name</Label>
+                
+                <Input
+                  type="text"
+                  id="partsListName"
+                  value={editData.partsListName}
+                  onChange={(e) =>
+                    setEditData({
+                      ...editData,
+                      partsListName: e.target.value,
+                    })
+                  }
+                  required
+                />
+              </div>
+              <ModalFooter>
+                <Button color="primary" type="submit">
+                  Save Changes
+                </Button>
+                <Button
+                  color="secondary"
+                  onClick={() => toggleEditModal(false)}
+                >
+                  Cancel
+                </Button>
+              </ModalFooter>
+            </form>
+          </ModalBody>
         </Modal>
       </Col>
     </>

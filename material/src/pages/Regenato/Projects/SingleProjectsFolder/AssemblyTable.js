@@ -17,8 +17,13 @@ import {
   AccordionBody,
   AccordionHeader,
   AccordionItem,
+  DropdownItem,
+  DropdownMenu,
+  DropdownToggle,
+  UncontrolledDropdown,
 } from "reactstrap";
 import { FiEdit } from "react-icons/fi";
+import FeatherIcon from "feather-icons-react";
 import Autocomplete from "@mui/material/Autocomplete";
 import TextField from "@mui/material/TextField";
 import { FiSettings } from "react-icons/fi";
@@ -30,6 +35,7 @@ import { MdOutlineDelete } from "react-icons/md";
 import Manufacturing from "../ExpandFolders/Manufacturing";
 import SubAssemblyTable from "./SubAssemblyTable";
 import AssmblyMultyPart from "./AssmblyMultyPart";
+import { ToastContainer, toast } from "react-toastify"; // Add this import
 
 const AssemblyTable = ({ assemblypartsList }) => {
   const { _id } = useParams();
@@ -86,6 +92,12 @@ const AssemblyTable = ({ assemblypartsList }) => {
   const [assemblyMultyPartsListName, setassemblyMultyPartsListName] =
     useState("");
 
+  const [editModal, setEditModal] = useState(false);
+  const [editData, setEditData] = useState({
+    assemblyListName: "",
+    // partsListItems: [],
+  });
+
   const [machinesTBU, setMachinesTBU] = useState({});
 
   // Function to fetch existing sub assembly lists
@@ -95,11 +107,21 @@ const AssemblyTable = ({ assemblypartsList }) => {
         `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/assemblyPartsLists/${assemblypartsList._id}/subAssemblyPartsLists`
       );
       const data = await response.json();
-      setExistingSubAssemblyLists(data);
+      if (Array.isArray(data)) {
+        setExistingSubAssemblyLists(data);
+      } else {
+        console.error(
+          "Expected an array of sub-assembly lists, but received:",
+          data
+        );
+        setExistingSubAssemblyLists([]);
+      }
     } catch (error) {
       console.error("Error fetching existing sub assembly lists:", error);
+      setExistingSubAssemblyLists([]);
     }
   }, [_id, existingSubAssemblyLists]);
+
   useEffect(() => {
     fetchExistingSubAssemblyLists();
   }, [fetchExistingSubAssemblyLists]);
@@ -111,12 +133,21 @@ const AssemblyTable = ({ assemblypartsList }) => {
         `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/assemblyPartsLists/${assemblypartsList._id}/assemblyMultyPartsList`
       );
       const data = await response.json();
-      setExistingAssemblyMultyPartsLists(data);
+      if (Array.isArray(data)) {
+        setExistingAssemblyMultyPartsLists(data);
+      } else {
+        console.error(
+          "Expected an array of assembly multi parts lists, but received:",
+          data
+        );
+        setExistingAssemblyMultyPartsLists([]);
+      }
     } catch (error) {
       console.error(
         "Error fetching existing assembly multi parts lists:",
         error
       );
+      setExistingAssemblyMultyPartsLists([]);
     }
   }, [_id, existingAssemblyMultyPartsLists]);
 
@@ -147,6 +178,28 @@ const AssemblyTable = ({ assemblypartsList }) => {
 
   const toggleAddModal = () => {
     setModalAdd(!modalAdd);
+  };
+
+  const toggleEditModal = (editMode, assemblyId) => {
+    if (editMode && Array.isArray(assemblypartsList)) {
+      const assemblyToEdit = assemblypartsList.find(
+        (item) => item._id === assemblyId
+      );
+
+      if (assemblyToEdit) {
+        setEditData({
+          assemblyListName: assemblyToEdit.assemblyListName,
+          partsListItems: assemblyToEdit.partsListItems || [],
+        });
+      } else {
+        console.warn("Assembly not found for ID:", assemblyId);
+      }
+    } else {
+      console.warn("assemblypartsList is not an array:", assemblypartsList);
+      setEditData({ assemblyListName: "", partsListItems: [] });
+    }
+
+    setEditModal(!editModal);
   };
 
   useEffect(() => {
@@ -349,22 +402,57 @@ const AssemblyTable = ({ assemblypartsList }) => {
     setError(null);
     try {
       const response = await fetch(
-        `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/delete-part`,
+        `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/assemblyPartsLists/${assemblypartsList._id}`,
         {
           method: "DELETE",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ partId }),
         }
       );
+
       if (!response.ok) {
-        throw new Error("Network response was not ok");
+        throw new Error("Failed to delete part");
       }
-      await fetchProjectDetails(); // Refetch the data to update the table
-      tog_delete(); // Close the modal
+
+      const updatedProject = await response.json();
+      updatePartsLists(updatedProject);
+      setModalDelete(false);
+      toast.success("Part deleted successfully");
     } catch (error) {
-      setError(error.message);
-    } finally {
-      setPosting(false);
+      console.error("Error deleting part:", error);
+      toast.error("Failed to delete part. Please try again.");
+    }
+  };
+
+  const handleEditSubmit = async (event) => {
+    event.preventDefault();
+
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/assemblyPartsLists/${assemblypartsList._id}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(editData),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to update assembly list");
+      }
+
+      const updatedData = await response.json();
+      // Update local state with the new data
+      setAssemblyItems((prevItems) =>
+        prevItems.map((item) =>
+          item._id === assemblypartsList._id ? updatedData : item
+        )
+      );
+
+      toggleEditModal(false);
+      toast.success("Assembly updated successfully!");
+    } catch (error) {
+      console.error("Error updating assembly:", error);
+      toast.error("Failed to update assembly. Please try again.");
     }
   };
 
@@ -561,10 +649,44 @@ const AssemblyTable = ({ assemblypartsList }) => {
         <Col lg={12}>
           <Card>
             <CardBody>
-              <div className="button-group">
+              <div className="button-group flex justify-content-between align-items-center">
                 <h4 style={{ fontWeight: "600" }}>
                   {assemblypartsList.assemblyListName}
                 </h4>
+                <UncontrolledDropdown direction="left">
+                  <DropdownToggle
+                    tag="button"
+                    className="btn btn-link text-muted p-1 mt-n2 py-0 text-decoration-none fs-15 shadow-none"
+                  >
+                    <FeatherIcon icon="more-horizontal" className="icon-sm" />
+                  </DropdownToggle>
+
+                  <DropdownMenu className="dropdown-menu-start">
+                    <DropdownItem
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        toggleEditModal(true, assemblypartsList._id); // Pass assembly ID
+                      }}
+                    >
+                      <i className="ri-edit-2-line align-bottom me-2 text-muted"></i>{" "}
+                      Edit
+                    </DropdownItem>
+
+                    <DropdownItem
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        tog_delete("delete", assemblypartsList._id);
+                      }}
+                    >
+                      <i className="ri-delete-bin-6-line align-bottom me-2 text-muted"></i>{" "}
+                      Delete
+                    </DropdownItem>
+
+                    <div className="dropdown-divider"></div>
+                  </DropdownMenu>
+                </UncontrolledDropdown>
               </div>
               <div className="button-group">
                 <Button
@@ -1015,38 +1137,48 @@ const AssemblyTable = ({ assemblypartsList }) => {
           </form>
         </ModalBody>
       </Modal>
-      <Modal isOpen={modal_delete} toggle={tog_delete} centered>
-        <ModalHeader className="bg-light p-3" toggle={tog_delete}>
-          Delete Record
-        </ModalHeader>
-        <ModalBody>
-          <div className="mt-2 text-center">
-            <lord-icon
-              src="https://cdn.lordicon.com/gsqxdxog.json"
-              trigger="loop"
-              colors="primary:#f7b84b,secondary:#f06548"
-              style={{ width: "100px", height: "100px" }}
-            ></lord-icon>
-            <div className="mt-4 pt-2 fs-15 mx-4 mx-sm-5">
-              <h4>Are you Sure?</h4>
-              <p className="text-muted mx-4 mb-0">
-                Are you sure you want to remove this record?
-              </p>
-            </div>
-          </div>
-        </ModalBody>
+      <Modal isOpen={modal_delete} toggle={tog_delete}>
+        <ModalHeader toggle={tog_delete}>Confirm Delete</ModalHeader>
+        <ModalBody>Are you sure you want to delete this part?</ModalBody>
         <ModalFooter>
-          <Button
-            color="danger"
-            onClick={() => handleDelete(selectedId)}
-            disabled={posting}
-          >
-            {posting ? "Deleting..." : "Yes! Delete It"}
+          <Button color="danger" onClick={handleDelete}>
+            Delete
           </Button>
-          <Button color="secondary" onClick={tog_delete} disabled={posting}>
+          <Button color="secondary" onClick={tog_delete}>
             Cancel
           </Button>
         </ModalFooter>
+      </Modal>
+      {/* <ToastContainer /> */}
+
+      <Modal isOpen={editModal} toggle={() => toggleEditModal(false)}>
+        <ModalHeader toggle={() => toggleEditModal(false)}>
+          Edit Assembly
+        </ModalHeader>
+        <ModalBody>
+          <form onSubmit={(e) => handleEditSubmit(e)}>
+            <div className="form-group">
+              <Label for="assemblyListName">Assembly List Name</Label>
+              <Input
+                type="text"
+                id="assemblyListName"
+                value={editData.assemblyListName} //partsListName
+                onChange={(e) =>
+                  setEditData({ ...editData, assemblyListName: e.target.value })
+                }
+                required
+              />
+            </div>
+            <ModalFooter>
+              <Button color="primary" type="submit">
+                Save Changes
+              </Button>
+              <Button color="secondary" onClick={() => toggleEditModal(false)}>
+                Cancel
+              </Button>
+            </ModalFooter>
+          </form>
+        </ModalBody>
       </Modal>
 
       {/* modle for sub assembly */}
@@ -1095,11 +1227,16 @@ const AssemblyTable = ({ assemblypartsList }) => {
                     }}
                   >
                     <option value="">Select Existing Sub Assembly List</option>
-                    {existingSubAssemblyLists.map((list) => (
-                      <option key={list._id} value={list._id}>
-                        {list.subAssemblyListName}
-                      </option>
-                    ))}
+                    {Array.isArray(existingSubAssemblyLists) &&
+                    existingSubAssemblyLists.length > 0 ? (
+                      existingSubAssemblyLists.map((list) => (
+                        <option key={list._id} value={list._id}>
+                          {list.subAssemblyListName}
+                        </option>
+                      ))
+                    ) : (
+                      <option>No existing sub-assembly lists available</option>
+                    )}
                   </select>
                 </div>
                 <Button
@@ -1177,11 +1314,18 @@ const AssemblyTable = ({ assemblypartsList }) => {
                     <option value="">
                       Select Existing Assembly Multi Parts List
                     </option>
-                    {existingAssemblyMultyPartsLists.map((list) => (
-                      <option key={list._id} value={list._id}>
-                        {list.assemblyMultyPartsListName}
+                    {Array.isArray(existingAssemblyMultyPartsLists) &&
+                    existingAssemblyMultyPartsLists.length > 0 ? (
+                      existingAssemblyMultyPartsLists.map((list) => (
+                        <option key={list._id} value={list._id}>
+                          {list.assemblyMultyPartsListName}
+                        </option>
+                      ))
+                    ) : (
+                      <option>
+                        No existing assembly multi parts lists available
                       </option>
-                    ))}
+                    )}
                   </select>
                 </div>
                 <Button

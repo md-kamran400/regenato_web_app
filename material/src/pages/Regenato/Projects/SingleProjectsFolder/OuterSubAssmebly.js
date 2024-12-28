@@ -65,6 +65,137 @@ const OuterSubAssmebly = ({ subAssemblyItem, updatesubAssemblyItems }) => {
   const [subAssemblyItems, setSubAssemblyItems] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
+  //for edting the subassmbely name
+  const [editModal, setEditModal] = useState(false);
+  const [editData, setEditData] = useState({
+    subAssemblyListName: "",
+  });
+
+  const tog_delete = (_id) => {
+    setModalDelete(!modal_delete);
+    setSelectedId(_id);
+    // handleDelete(_id, subAssemblyItem._id);
+  };
+
+  //edit toogle model
+  // const toggleEditModal = (editMode, subAssemblyId) => {
+  //   if (editMode && Array.isArray(subAssemblyItems)) {
+  //     const subAssemblyToEdit = subAssemblyItems.find(
+  //       (item) => item._id === subAssemblyId
+  //     );
+
+  //     if (subAssemblyToEdit) {
+  //       setEditData({
+  //         subAssemblyListName: subAssemblyToEdit.subAssemblyListName,
+  //       });
+  //     } else {
+  //       console.warn("Sub-assembly not found for ID:", subAssemblyId);
+  //     }
+  //   } else {
+  //     console.warn("subAssemblyItems is not an array:", subAssemblyItems);
+  //     setEditData({ subAssemblyListName: "" });
+  //   }
+
+  //   setEditModal(!editModal);
+  // };
+  // const toggleEditModal = (editMode, subAssemblyId) => {
+  //   if (editMode && Array.isArray(subAssemblyItems)) {
+  //     const subAssemblyToEdit = subAssemblyItems.find(
+  //       (item) => item._id === subAssemblyId
+  //     );
+
+  //     if (subAssemblyToEdit) {
+  //       setEditData({
+  //         subAssemblyListName: subAssemblyToEdit.subAssemblyListName || "",
+  //       });
+  //     } else {
+  //       console.warn("Sub-assembly not found for ID:", subAssemblyId);
+  //     }
+  //   } else {
+  //     console.warn("Invalid sub-assembly items data.");
+  //     setEditData({ subAssemblyListName: "" }); // Reset for new entry
+  //   }
+
+  //   setEditModal(!editModal); // Toggle the modal
+  // };
+  //
+  const toggleEditModal = async (editMode, subAssemblyId) => {
+    if (editMode) {
+      setEditModal(true);
+      try {
+        // Fetch the specific sub-assembly data
+        const response = await fetch(
+          `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/subAssemblyListFirst/${subAssemblyId}`
+        );
+        if (!response.ok) {
+          throw new Error("Failed to fetch sub-assembly details.");
+        }
+        const subAssemblyToEdit = await response.json();
+        setEditData({
+          subAssemblyListName: subAssemblyToEdit.subAssemblyListName,
+        });
+      } catch (error) {
+        console.error("Error fetching sub-assembly data:", error);
+        toast.error("Failed to load sub-assembly data.");
+      }
+    } else {
+      setEditData({ subAssemblyListName: "" });
+      setEditModal(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    try {
+      const response = await fetch(
+        ` ${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/subAssemblyListFirst/${subAssemblyItem._id}`,
+        {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to delete part");
+      }
+
+      const updatedProject = await response.json();
+      updatePartsLists(updatedProject);
+      setModalDelete(false);
+      toast.success("Part deleted successfully");
+    } catch (error) {
+      console.error("Error deleting part:", error);
+      toast.error("Failed to delete part. Please try again.");
+    }
+  };
+
+  // Update the handleEditSubmit function
+  const handleEditSubmit = async (event) => {
+    event.preventDefault();
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/subAssemblyListFirst/${subAssemblyItem._id}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(editData),
+        }
+      );
+      if (!response.ok) {
+        throw new Error("Failed to update sub-assembly list");
+      }
+      const updatedData = await response.json();
+      setSubAssemblyItems((prevItems) =>
+        prevItems.map((item) =>
+          item._id === subAssemblyItem._id ? updatedData : item
+        )
+      );
+      setEditModal(false);
+      toast.success("Sub-assembly updated successfully!");
+    } catch (error) {
+      console.error("Error updating sub-assembly:", error);
+      toast.error("Failed to update sub-assembly. Please try again.");
+    }
+  };
   const [machinesTBU, setMachinesTBU] = useState({});
   // duplicate creation useState
 
@@ -120,10 +251,10 @@ const OuterSubAssmebly = ({ subAssemblyItem, updatesubAssemblyItems }) => {
     fetchManufacturingVariables();
   }, []);
 
-  const tog_delete = (_id) => {
-    setModalDelete(!modal_delete);
-    setSelectedId(_id);
-  };
+  // const tog_delete = (_id) => {
+  //   setModalDelete(!modal_delete);
+  //   setSelectedId(_id);
+  // };
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -318,7 +449,6 @@ const OuterSubAssmebly = ({ subAssemblyItem, updatesubAssemblyItems }) => {
     }
   };
 
-  
   if (loading)
     return (
       <div className="loader-overlay">
@@ -368,29 +498,29 @@ const OuterSubAssmebly = ({ subAssemblyItem, updatesubAssemblyItems }) => {
     });
   };
 
-  const handleDelete = async (partId) => {
-    setPosting(true);
-    setError(null);
-    try {
-      const response = await fetch(
-        `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/delete-part`,
-        {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ partId }),
-        }
-      );
-      if (!response.ok) {
-        throw new Error("Network response was not ok");
-      }
-      await fetchProjectDetails(); // Refetch the data to update the table
-      tog_delete(); // Close the modal
-    } catch (error) {
-      setError(error.message);
-    } finally {
-      setPosting(false);
-    }
-  };
+  // const handleDelete = async (partId) => {
+  //   setPosting(true);
+  //   setError(null);
+  //   try {
+  //     const response = await fetch(
+  //       `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/delete-part`,
+  //       {
+  //         method: "DELETE",
+  //         headers: { "Content-Type": "application/json" },
+  //         body: JSON.stringify({ partId }),
+  //       }
+  //     );
+  //     if (!response.ok) {
+  //       throw new Error("Network response was not ok");
+  //     }
+  //     await fetchProjectDetails(); // Refetch the data to update the table
+  //     tog_delete(); // Close the modal
+  //   } catch (error) {
+  //     setError(error.message);
+  //   } finally {
+  //     setPosting(false);
+  //   }
+  // };
 
   // duplicate
   // const handleDuplicate = async () => {
@@ -454,14 +584,25 @@ const OuterSubAssmebly = ({ subAssemblyItem, updatesubAssemblyItems }) => {
                     <DropdownMenu className="dropdown-menu-start">
                       <DropdownItem
                         href="#"
-                        // onClick={(e) => {
-                        //   e.preventDefault();
-                        //   setConfirmDuplicateModal(true);
-                        // }}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          toggleEditModal(true, subAssemblyItem._id);
+                        }}
                       >
-                        <i className="ri-file-copy-line align-bottom me-2 text-muted"></i>{" "}
-                        Duplicate
+                        <i className="ri-edit-2-line align-bottom me-2 text-muted"></i>{" "}
+                        Edit
                       </DropdownItem>
+                      <DropdownItem
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          tog_delete("delete", subAssemblyItem._id);
+                        }}
+                      >
+                        <i className="ri-delete-bin-6-line align-bottom me-2 text-muted"></i>{" "}
+                        Delete
+                      </DropdownItem>
+
                       <div className="dropdown-divider"></div>
                     </DropdownMenu>
                   </UncontrolledDropdown>
@@ -908,38 +1049,54 @@ const OuterSubAssmebly = ({ subAssemblyItem, updatesubAssemblyItems }) => {
           </ModalBody>
         </Modal>
 
-        <Modal isOpen={modal_delete} toggle={tog_delete} centered>
-          <ModalHeader className="bg-light p-3" toggle={tog_delete}>
-            Delete Record
-          </ModalHeader>
-          <ModalBody>
-            <div className="mt-2 text-center">
-              <lord-icon
-                src="https://cdn.lordicon.com/gsqxdxog.json"
-                trigger="loop"
-                colors="primary:#f7b84b,secondary:#f06548"
-                style={{ width: "100px", height: "100px" }}
-              ></lord-icon>
-              <div className="mt-4 pt-2 fs-15 mx-4 mx-sm-5">
-                <h4>Are you Sure?</h4>
-                <p className="text-muted mx-4 mb-0">
-                  Are you sure you want to remove this record?
-                </p>
-              </div>
-            </div>
-          </ModalBody>
+        <Modal isOpen={modal_delete} toggle={tog_delete}>
+          <ModalHeader toggle={tog_delete}>Confirm Delete</ModalHeader>
+          <ModalBody>Are you sure you want to delete this part?</ModalBody>
           <ModalFooter>
-            <Button
-              color="danger"
-              onClick={() => handleDelete(selectedId)}
-              disabled={posting}
-            >
-              {posting ? "Deleting..." : "Yes! Delete It"}
+            <Button color="danger" onClick={handleDelete}>
+              Delete
             </Button>
-            <Button color="secondary" onClick={tog_delete} disabled={posting}>
+            <Button color="secondary" onClick={tog_delete}>
               Cancel
             </Button>
           </ModalFooter>
+        </Modal>
+
+        <Modal isOpen={editModal} toggle={() => toggleEditModal(false)}>
+          <ModalHeader toggle={() => toggleEditModal(false)}>
+            Edit Sub-Assembly
+          </ModalHeader>
+          <ModalBody>
+            <form onSubmit={handleEditSubmit}>
+              <div className="form-group">
+                <Label for="subAssemblyListName">Sub-Assembly List Name</Label>
+                <Input
+                  type="text"
+                  id="subAssemblyListName"
+                  value={editData.subAssemblyListName}
+                  // value={subAssemblyItem.subAssemblyListName}
+                  onChange={(e) =>
+                    setEditData({
+                      ...editData,
+                      subAssemblyListName: e.target.value,
+                    })
+                  }
+                  required
+                />
+              </div>
+              <ModalFooter>
+                <Button color="primary" type="submit">
+                  Save Changes
+                </Button>
+                <Button
+                  color="secondary"
+                  onClick={() => toggleEditModal(false)}
+                >
+                  Cancel
+                </Button>
+              </ModalFooter>
+            </form>
+          </ModalBody>
         </Modal>
       </Col>
     </>
