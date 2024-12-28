@@ -96,14 +96,8 @@ const SubAssemblyTable = ({ subAssemblyItems, assemblyId, onUpdateSubAssembly })
 
 
 
-  // useEffect(() => {
-  //   console.log("Received subAssemblyItems:", subAssemblyItems);
-  //   console.log("Received Id:", assemblyId);
-
-  //   // Access the subAssemblyListName
-  //   // const subAssemblyListName = subAssemblyItems.subAssemblyListName;
-  //   // console.log('SubAssembly List Name:', subAssemblyListName);
-  // }, [subAssemblyItems, assemblyId]);
+  useEffect(() => {
+  }, [subAssemblyItems, assemblyId]);
 
   useEffect(() => {
     localStorage.setItem("showTable", JSON.stringify(showTable));

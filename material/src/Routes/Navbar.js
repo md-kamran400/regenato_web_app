@@ -31,7 +31,7 @@ import { createSelector } from "reselect";
 
 import navdata from '../Layouts/LayoutMenuData';
 
-import "./style.css"
+import "./navbar.css"
 import ProfileDropdown from "../Components/Common/ProfileDropdown";
 
 const Navbar = () => {

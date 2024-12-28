@@ -10,7 +10,7 @@ const Index = () => {
     return (
         <React.Fragment>
             
-            <Navbar/>
+            {/* <Navbar/> */}
             
             <Routes>
                

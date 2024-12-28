@@ -61,7 +61,7 @@ const PartsTable = ({ partsList, updatePartsLists }) => {
   const [partsListItems, setPartsListsItems] = useState([]);
   const [partsDisplay, setPartsDisplay] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [machinesTBU, setMachinesTBU] = useState({});
+  // const [machinesTBU, setMachinesTBU] = useState({});
   // duplicate creation useState
 
   const toggleAddModal = () => {
@@ -106,10 +106,10 @@ const PartsTable = ({ partsList, updatePartsLists }) => {
       const data = await response.json();
       setManufacturingVariables(data);
 
-      setMachinesTBU((prev) => ({
-        ...prev,
-        ...data.reduce((acc, item) => ({ ...acc, [item.name]: 6 }), {}),
-      }));
+      // setMachinesTBU((prev) => ({
+      //   ...prev,
+      //   ...data.reduce((acc, item) => ({ ...acc, [item.name]: 6 }), {}),
+      // }));
     };
 
     fetchParts();

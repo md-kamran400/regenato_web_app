@@ -11,6 +11,7 @@ import Route from './Routes';
 
 // Fake Backend 
 import fakeBackend from "./helpers/AuthType/fakeBackend";
+import Navbar from './Routes/Navbar';
 
 // Activating fake backend
 fakeBackend();
@@ -32,6 +33,7 @@ fakeBackend();
 function App() {
   return (
     <React.Fragment>
+      <Navbar/>
       <Route />
     </React.Fragment>
   );

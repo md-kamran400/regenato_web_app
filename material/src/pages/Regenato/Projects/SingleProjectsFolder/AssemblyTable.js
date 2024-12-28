@@ -74,6 +74,14 @@ const AssemblyTable = ({ assemblypartsList }) => {
   const [selectedSubAssemblyList, setSelectedSubAssemblyList] = useState(null);
   const [isAddingNewSubAssembly, setIsAddingNewSubAssembly] = useState(false);
 
+  // Add this state to handle the existing assembly multi parts lists
+  const [existingAssemblyMultyPartsLists, setExistingAssemblyMultyPartsLists] =
+    useState([]);
+  const [selectedAssemblyMultyPartsList, setSelectedAssemblyMultyPartsList] =
+    useState(null);
+  const [isAddingNewAssemblyMultyParts, setIsAddingNewAssemblyMultyParts] =
+    useState(false);
+
   const [subAssemblyListName, setSubAssemblyListName] = useState("");
   const [assemblyMultyPartsListName, setassemblyMultyPartsListName] =
     useState("");
@@ -95,6 +103,27 @@ const AssemblyTable = ({ assemblypartsList }) => {
   useEffect(() => {
     fetchExistingSubAssemblyLists();
   }, [fetchExistingSubAssemblyLists]);
+
+  // Function to fetch existing assembly multi parts lists
+  const fetchExistingAssemblyMultyPartsLists = useCallback(async () => {
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/assemblyPartsLists/${assemblypartsList._id}/assemblyMultyPartsList`
+      );
+      const data = await response.json();
+      setExistingAssemblyMultyPartsLists(data);
+    } catch (error) {
+      console.error(
+        "Error fetching existing assembly multi parts lists:",
+        error
+      );
+    }
+  }, [_id, existingAssemblyMultyPartsLists]);
+
+  // Add this useEffect to fetch the lists when the component mounts
+  useEffect(() => {
+    fetchExistingAssemblyMultyPartsLists();
+  }, [fetchExistingAssemblyMultyPartsLists]);
 
   const toggleAddModalsubAssembly = () => {
     setModalAddSubassembly(!modalAddSubassembly);
@@ -498,7 +527,30 @@ const AssemblyTable = ({ assemblypartsList }) => {
       setError("Failed to duplicate sub-assembly. Please try again.");
     }
   };
-  
+
+  // Function to handle duplicate assembly multi parts list
+  const handleDuplicateAssemblyMultyParts = async (listId) => {
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/assemblyPartsLists/${assemblypartsList._id}/assemblyMultyPartsList/${listId}/duplicate`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      if (!response.ok) {
+        throw new Error("Failed to duplicate assembly multi parts list");
+      }
+      const duplicatedList = await response.json();
+      console.log("Duplicated Assembly Multi Parts:", duplicatedList);
+      setpartsAssmeblyItems((prevLists) => [...prevLists, duplicatedList]);
+    } catch (error) {
+      console.error("Error duplicating assembly multi parts:", error);
+      setError("Failed to duplicate assembly multi parts. Please try again.");
+    }
+  };
 
   return (
     <Col
@@ -690,7 +742,6 @@ const AssemblyTable = ({ assemblypartsList }) => {
           </Card>
         </Col>
       </Row>
-
       <Modal isOpen={modalAdd} toggle={toggleAddModal}>
         <ModalHeader toggle={toggleAddModal}>Add Part</ModalHeader>
         <ModalBody>
@@ -964,7 +1015,6 @@ const AssemblyTable = ({ assemblypartsList }) => {
           </form>
         </ModalBody>
       </Modal>
-
       <Modal isOpen={modal_delete} toggle={tog_delete} centered>
         <ModalHeader className="bg-light p-3" toggle={tog_delete}>
           Delete Record
@@ -1008,8 +1058,33 @@ const AssemblyTable = ({ assemblypartsList }) => {
           <form onSubmit={(e) => handleSubmitSubAssembly(e.preventDefault())}>
             <div className="form-group">
               <Label for="subAssemblyListName">Sub Assembly List Name</Label>
-              <div className="d-flex">
-                <div className="">
+              <div className="d-flex flex-column">
+                <div className="mb-3">
+                  <Input
+                    className="mt-2"
+                    type="text"
+                    id="subAssemblyListName"
+                    placeholder="New Sub Assembly List Name"
+                    value={subAssemblyListName}
+                    onChange={(e) => setSubAssemblyListName(e.target.value)}
+                    required
+                  />
+                </div>
+                <Button
+                  color="primary"
+                  onClick={() => {
+                    handleSubmitSubAssembly();
+                    setSubAssemblyListName("");
+                  }}
+                >
+                  Add New Sub Assembly
+                </Button>
+                <h3 className="text-center mt-3 mb-3">OR</h3>
+
+                <Label for="subAssemblyListName">
+                  Duplicate From Existing List
+                </Label>
+                <div className="mt-1">
                   <select
                     style={{ width: "410px" }}
                     className="form-select"
@@ -1027,45 +1102,19 @@ const AssemblyTable = ({ assemblypartsList }) => {
                     ))}
                   </select>
                 </div>
+                <Button
+                  color="success"
+                  className="mt-3"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleDuplicateSubAssembly(selectedSubAssemblyList);
+                  }}
+                >
+                  Duplicate Sub Assembly
+                </Button>
               </div>
-              {isAddingNewSubAssembly && (
-                <Input
-                  className="mt-2"
-                  type="text"
-                  id="subAssemblyListName"
-                  placeholder="New Sub Assembly List Name"
-                  value={subAssemblyListName}
-                  onChange={(e) => setSubAssemblyListName(e.target.value)}
-                  required
-                />
-              )}
             </div>
             <ModalFooter>
-              <Button
-                color="primary"
-                onClick={() => {
-                  setSelectedSubAssemblyList(null);
-                  setIsAddingNewSubAssembly(true);
-                }}
-              >
-                Add New Sub Assembly
-              </Button>
-              <Button
-                color="success"
-                type="submit"
-                onClick={(e) => {
-                  e.preventDefault();
-                  if (selectedSubAssemblyList) {
-                    handleDuplicateSubAssembly(selectedSubAssemblyList);
-                  } else {
-                    handleSubmitSubAssembly();
-                  }
-                }}
-              >
-                {selectedSubAssemblyList
-                  ? "Duplicate Sub Assembly"
-                  : "Add Sub Assembly"}
-              </Button>
               <Button color="secondary" onClick={toggleAddModalsubAssembly}>
                 Cancel
               </Button>
@@ -1074,29 +1123,82 @@ const AssemblyTable = ({ assemblypartsList }) => {
         </ModalBody>
       </Modal>
 
-      {/* modle for parts assembly */}
+      {/* Update the modal for adding/duplicating assembly multi parts list */}
       <Modal isOpen={modalAddPartAssmebly} toggle={toggleAddModalPartAssembly}>
         <ModalHeader toggle={toggleAddModalPartAssembly}>
-          Add Parts Assembly List Name
+          Add/Duplicate Assembly Multi Parts List
         </ModalHeader>
         <ModalBody>
           <form
             onSubmit={(e) => handleMultySubmitpartsAssmebly(e.preventDefault())}
           >
             <div className="form-group">
-              <Label for="partsListName">Add Parts Assembly List Name</Label>
-              <Input
-                type="text"
-                id="partsListName"
-                value={assemblyMultyPartsListName}
-                onChange={(e) => setassemblyMultyPartsListName(e.target.value)}
-                required
-              />
+              <Label for="partsListName">
+                Add Assembly Multi Parts List Name
+              </Label>
+              <div className="d-flex flex-column">
+                <div className="mb-3">
+                  <Input
+                    className="mt-2"
+                    type="text"
+                    id="assemblyMultyPartsListName"
+                    placeholder="New Assembly Multi Parts List Name"
+                    value={assemblyMultyPartsListName}
+                    onChange={(e) =>
+                      setassemblyMultyPartsListName(e.target.value)
+                    }
+                    required
+                  />
+                </div>
+                <Button
+                  color="primary"
+                  onClick={() => {
+                    handleMultySubmitpartsAssmebly();
+                    setassemblyMultyPartsListName("");
+                  }}
+                >
+                  Add New Assembly Multi Parts
+                </Button>
+                <h3 className="text-center mt-3 mb-3">OR</h3>
+
+                <Label for="partsListName">
+                  Duplicate From Existing Assembly Multi Parts List
+                </Label>
+                <div className="mt-1">
+                  <select
+                    style={{ width: "410px" }}
+                    className="form-select"
+                    value={selectedAssemblyMultyPartsList}
+                    onChange={(e) => {
+                      setSelectedAssemblyMultyPartsList(e.target.value);
+                      setIsAddingNewAssemblyMultyParts(false);
+                    }}
+                  >
+                    <option value="">
+                      Select Existing Assembly Multi Parts List
+                    </option>
+                    {existingAssemblyMultyPartsLists.map((list) => (
+                      <option key={list._id} value={list._id}>
+                        {list.assemblyMultyPartsListName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <Button
+                  color="success"
+                  className="mt-3"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleDuplicateAssemblyMultyParts(
+                      selectedAssemblyMultyPartsList
+                    );
+                  }}
+                >
+                  Duplicate Assembly Multi Parts
+                </Button>
+              </div>
             </div>
             <ModalFooter>
-              <Button color="success" type="submit">
-                Add Parts List
-              </Button>
               <Button color="secondary" onClick={toggleAddModalPartAssembly}>
                 Cancel
               </Button>

@@ -23,6 +23,7 @@ const HoursPlanningTab = () => {
     console.log("partDetails", partDetails);
 
     const fetchProjectDetails = useCallback(async () => {
+        setLoading(true);
         try {
             const response = await fetch(
                 `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}`
@@ -366,6 +367,14 @@ const HoursPlanningTab = () => {
         "Gauges & Fixtures"
     ];
 
+    if (loading)
+        return (
+          <div className="loader-overlay">
+            <div className="spinner-border text-primary" role="status">
+              <span className="visually-hidden">Loading...</span>
+            </div>
+          </div>
+        );
     return (
         <div className="table-container">
             <Row lg={12}>

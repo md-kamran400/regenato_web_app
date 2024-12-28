@@ -191,8 +191,6 @@ const SingeProject = () => {
     fetchProjectDetails();
   }, [fetchProjectDetails]);
 
-
-  
   // fetching existing part list
   useEffect(() => {
     const fetchExistingPartsLists = async () => {
@@ -270,10 +268,9 @@ const SingeProject = () => {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    setModalAdd(false); 
+    setModalAdd(false);
     try {
       await handleAddNewPartsList({ partsListName });
-
     } catch (error) {
       console.error("Error in handleSubmit:", error);
     }
@@ -332,7 +329,7 @@ const SingeProject = () => {
       await fetchProjectDetails();
     } catch (error) {
       console.error("Error in handleSubmitAssembly:", error);
-    }finally {
+    } finally {
       setAssemblyListName(""); // Reset input field
     }
   };
@@ -397,7 +394,6 @@ const SingeProject = () => {
     [_id]
   );
 
-
   const handleDuplicateSubAssemblyList = useCallback(
     async (subAssemblyListId) => {
       try {
@@ -415,7 +411,10 @@ const SingeProject = () => {
           );
         }
         const duplicatedSubAssemblyList = await response.json();
-        setSubAssemblyItems((prevItems) => [...prevItems, duplicatedSubAssemblyList]);
+        setSubAssemblyItems((prevItems) => [
+          ...prevItems,
+          duplicatedSubAssemblyList,
+        ]);
         setModalAddSubassembly(false); // Close the sub-assembly modal
         await fetchProjectDetails();
       } catch (error) {
@@ -467,7 +466,6 @@ const SingeProject = () => {
     [_id, partsLists]
   );
 
-
   const handleDuplicateAssemblyList = useCallback(
     async (assemblyListId) => {
       try {
@@ -511,10 +509,16 @@ const SingeProject = () => {
           <div className="project-header">
             {/* Left Section */}
             <div className="header-section left">
-              <h2 className="project-name" style={{fontWeight: "bold"}} >PROJECT DETAILS</h2>
-              <br/>
+              <h2 className="project-name" style={{ fontWeight: "bold" }}>
+                PROJECT DETAILS
+              </h2>
+              <br />
               <h4 className="">{projectName}</h4>
-              <p className="po-id"> <span style={{fontWeight: "bold"}}>PO Type:</span> {projectType}</p>
+              <p className="po-id">
+                {" "}
+                <span style={{ fontWeight: "bold" }}>PO Type:</span>{" "}
+                {projectType}
+              </p>
             </div>
 
             {/* Center Section
@@ -609,8 +613,31 @@ const SingeProject = () => {
           <form onSubmit={handleSubmit}>
             <div className="form-group">
               <Label for="partsListName">Parts List Name</Label>
-              <div className="d-flex">
-                <div className="">
+              <div className="d-flex flex-column">
+                <div className="mb-3">
+                  <Input
+                    className="mt-1"
+                    type="text"
+                    id="partsListName"
+                    placeholder="New Part List Name"
+                    value={partsListName}
+                    onChange={(e) => setPartsListName(e.target.value)}
+                    required
+                  />
+                </div>
+                <Button
+                  color="primary"
+                  onClick={() => {
+                    handleAddNewPartsList({ partsListName });
+                    setPartsListName("");
+                  }}
+                >
+                  Add New Part
+                </Button>
+                <h3 className="text-center mt-3 mb-3">OR</h3>
+
+                <Label for="partsListName">Duplicate From Existing List</Label>
+                <div className="mt-1">
                   <select
                     style={{ width: "410px" }}
                     className="form-select"
@@ -628,45 +655,19 @@ const SingeProject = () => {
                     ))}
                   </select>
                 </div>
-                {/* <div></div> */}
+                <Button
+                  color="success"
+                  className="mt-3"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleDuplicatePartsList(selectedPartsList);
+                  }}
+                >
+                  Duplicate
+                </Button>
               </div>
-              {isAddingNew && (
-                <Input
-                  className="mt-2"
-                  type="text"
-                  id="partsListName"
-                  placeholder="New Part List Name"
-                  value={partsListName}
-                  onChange={(e) => setPartsListName(e.target.value)}
-                  required
-                />
-              )}
             </div>
             <ModalFooter>
-              <Button
-                color="primary"
-                onClick={() => {
-                  setSelectedPartsList(null);
-                  setIsAddingNew(true);
-                }}
-              >
-                Add New Part
-              </Button>
-
-              <Button
-                color="success"
-                type="submit"
-                onClick={(e) => {
-                  e.preventDefault();
-                  if (selectedPartsList) {
-                    handleDuplicatePartsList(selectedPartsList);
-                  } else {
-                    handleAddNewPartsList({ partsListName });
-                  }
-                }}
-              >
-                {selectedPartsList ? "Duplicate Part" : "Add Part"}
-              </Button>
               <Button color="secondary" onClick={toggleAddModal}>
                 Cancel
               </Button>
@@ -676,7 +677,6 @@ const SingeProject = () => {
       </Modal>
 
       {/* modle for assembly */}
-
       <Modal isOpen={modalAddassembly} toggle={toggleAddModalAssembly}>
         <ModalHeader toggle={toggleAddModalAssembly}>
           Add Assembly List
@@ -685,8 +685,33 @@ const SingeProject = () => {
           <form onSubmit={handleSubmitAssembly}>
             <div className="form-group">
               <Label for="AssemblyListName">Assembly List Name</Label>
-              <div className="d-flex">
-                <div>
+              <div className="d-flex flex-column">
+                <div className="mb-3">
+                  <Input
+                    className="mt-2"
+                    type="text"
+                    id="AssemblyListName"
+                    placeholder="Add New Assembly"
+                    value={AssemblyListName}
+                    onChange={(e) => setAssemblyListName(e.target.value)}
+                    required
+                  />
+                </div>
+                <Button
+                  color="primary"
+                  onClick={() => {
+                    handleAddNewAssemblyList({
+                      assemblyListName: AssemblyListName,
+                    });
+                    setAssemblyListName("");
+                  }}
+                >
+                  Add New Assembly
+                </Button>
+                <h3 className="text-center mt-3 mb-3">OR</h3>
+
+                <Label for="partsListName">Duplicate From Existing List</Label>
+                <div className="mt-1">
                   <select
                     style={{ width: "410px" }}
                     className="form-select"
@@ -704,47 +729,19 @@ const SingeProject = () => {
                     ))}
                   </select>
                 </div>
-                <div></div>
+                <Button
+                  color="success"
+                  className="mt-3"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleDuplicateAssemblyList(selectedAssemblyList);
+                  }}
+                >
+                  Duplicate
+                </Button>
               </div>
-              {isAddingNewAssembly && (
-                <Input
-                  className="mt-2"
-                  type="text"
-                  id="AssemblyListName"
-                  placeholder="Add New Assembly"
-                  value={AssemblyListName}
-                  onChange={(e) => setAssemblyListName(e.target.value)}
-                  required
-                />
-              )}
             </div>
             <ModalFooter>
-              <Button
-                color="primary"
-                onClick={() => {
-                  setSelectedAssemblyList(null);
-                  setIsAddingNewAssembly(true);
-                }}
-              >
-                Add New Assembly
-              </Button>
-
-              <Button
-                color="success"
-                type="submit"
-                onClick={(e) => {
-                  e.preventDefault();
-                  if (selectedAssemblyList) {
-                    handleDuplicateAssemblyList(selectedAssemblyList);
-                  } else {
-                    handleAddNewAssemblyList({
-                      assemblyListName: AssemblyListName,
-                    });
-                  }
-                }}
-              >
-                {selectedAssemblyList ? "Duplicate" : "Add"}
-              </Button>
               <Button color="secondary" onClick={toggleAddModalAssembly}>
                 Cancel
               </Button>
@@ -755,7 +752,6 @@ const SingeProject = () => {
 
       {/* modal for outer sub assmebly list */}
 
-
       <Modal isOpen={modalAddSubassembly} toggle={toggleAddModalsubAssembly}>
         <ModalHeader toggle={toggleAddModalsubAssembly}>
           Add Sub Assembly List
@@ -764,8 +760,31 @@ const SingeProject = () => {
           <form onSubmit={handleSubmitSubAsssmebly}>
             <div className="form-group">
               <Label for="subAssemblyListName">Sub Assembly List Name</Label>
-              <div className="d-flex">
-                <div>
+              <div className="d-flex flex-column">
+                <div className="mb-3">
+                  <Input
+                    className="mt-2"
+                    type="text"
+                    id="subAssemblyListName"
+                    placeholder="Add New Sub Assembly"
+                    value={subAssemblyListName}
+                    onChange={(e) => setSubAssemblyListName(e.target.value)}
+                    required
+                  />
+                </div>
+                <Button
+                  color="primary"
+                  onClick={() => {
+                    handleAddNewSubAsssmebly({ subAssemblyListName });
+                    setSubAssemblyListName("");
+                  }}
+                >
+                  Add New Sub Assembly
+                </Button>
+                <h3 className="text-center mt-3 mb-3">OR</h3>
+
+                <Label for="partsListName">Duplicate From Existing List</Label>
+                <div className="mt-1">
                   <select
                     style={{ width: "410px" }}
                     className="form-select"
@@ -783,46 +802,19 @@ const SingeProject = () => {
                     ))}
                   </select>
                 </div>
-                <div></div>
+                <Button
+                  color="success"
+                  className="mt-3"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleDuplicateSubAssemblyList(selectedSubAssemblyList);
+                  }}
+                >
+                  Duplicate
+                </Button>
               </div>
-              {isAddingNewSubAssembly && (
-                <Input
-                  className="mt-2"
-                  type="text"
-                  id="subAssemblyListName"
-                  placeholder="Add New Sub Assembly"
-                  value={subAssemblyListName}
-                  onChange={(e) => setSubAssemblyListName(e.target.value)}
-                  required
-                />
-              )}
             </div>
             <ModalFooter>
-              <Button
-                color="primary"
-                onClick={() => {
-                  setSelectedSubAssemblyList(null);
-                  setIsAddingNewSubAssembly(true);
-                }}
-              >
-                Add New Sub Assembly
-              </Button>
-              <Button
-                color="success"
-                type="submit"
-                onClick={(e) => {
-                  e.preventDefault();
-                  if (selectedSubAssemblyList) {
-                    handleDuplicateSubAssemblyList(selectedSubAssemblyList);
-                  } else {
-                    handleAddNewSubAsssmebly({ subAssemblyListName });
-                  }
-                }}
-              >
-                {selectedSubAssemblyList
-                  ? "Duplicate"
-                  : "Add"}
-              </Button>
               <Button color="secondary" onClick={toggleAddModalsubAssembly}>
                 Cancel
               </Button>
