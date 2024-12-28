@@ -213,6 +213,9 @@ ProjectRouter.get("/:_id/allProjects/:id/variables", async (req, res) => {
   }
 });
 
+
+
+
 // POST Route: Add a new parts list to an existing project
 // In project.route.js
 
@@ -240,31 +243,31 @@ ProjectRouter.post("/:_id/partsLists", async (req, res) => {
 });
 
 // PUT Route: Update a parts list in the partsLists array
-ProjectRouter.put("/:_id/partsLists/:index", async (req, res) => {
-  const { index } = req.params;
-  const { partsListName, partsListItems } = req.body;
+// ProjectRouter.put("/:_id/partsLists/:index", async (req, res) => {
+//   const { index } = req.params;
+//   const { partsListName, partsListItems } = req.body;
 
-  try {
-    const project = await ProjectModal.findById(req.params._id);
-    if (!project) {
-      return res.status(404).json({ message: "Project not found" });
-    }
+//   try {
+//     const project = await ProjectModal.findById(req.params._id);
+//     if (!project) {
+//       return res.status(404).json({ message: "Project not found" });
+//     }
 
-    if (index >= project.partsLists.length) {
-      return res.status(404).json({ message: "Parts list not found" });
-    }
+//     if (index >= project.partsLists.length) {
+//       return res.status(404).json({ message: "Parts list not found" });
+//     }
 
-    project.partsLists[index] = {
-      partsListName,
-      partsListItems,
-    };
+//     project.partsLists[index] = {
+//       partsListName,
+//       partsListItems,
+//     };
 
-    const updatedProject = await project.save();
-    res.status(200).json(updatedProject);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
+//     const updatedProject = await project.save();
+//     res.status(200).json(updatedProject);
+//   } catch (error) {
+//     res.status(500).json({ message: error.message });
+//   }
+// });
 
 // DELETE Route: Remove a parts list from the partsLists array
 ProjectRouter.delete("/:_id/partsLists/:index", async (req, res) => {
@@ -344,34 +347,34 @@ ProjectRouter.post("/:_id/partsLists/:listId/items", async (req, res) => {
 });
 
 // PUT Route: Update a part in a parts list by its _id
-ProjectRouter.put(
-  "/:_id/partsLists/:listId/items/:itemId",
-  async (req, res) => {
-    try {
-      const project = await ProjectModal.findById(req.params._id);
-      if (!project) {
-        return res.status(404).json({ message: "Project not found" });
-      }
+// ProjectRouter.put(
+//   "/:_id/partsLists/:listId/items/:itemId",
+//   async (req, res) => {
+//     try {
+//       const project = await ProjectModal.findById(req.params._id);
+//       if (!project) {
+//         return res.status(404).json({ message: "Project not found" });
+//       }
 
-      const partsList = project.partsLists.id(req.params.listId);
-      if (!partsList) {
-        return res.status(404).json({ message: "Parts list not found" });
-      }
+//       const partsList = project.partsLists.id(req.params.listId);
+//       if (!partsList) {
+//         return res.status(404).json({ message: "Parts list not found" });
+//       }
 
-      const part = partsList.partsListItems.id(req.params.itemId);
-      if (!part) {
-        return res.status(404).json({ message: "Part not found" });
-      }
+//       const part = partsList.partsListItems.id(req.params.itemId);
+//       if (!part) {
+//         return res.status(404).json({ message: "Part not found" });
+//       }
 
-      Object.assign(part, req.body);
+//       Object.assign(part, req.body);
 
-      const updatedProject = await project.save();
-      res.status(200).json(updatedProject);
-    } catch (error) {
-      res.status(500).json({ message: error.message });
-    }
-  }
-);
+//       const updatedProject = await project.save();
+//       res.status(200).json(updatedProject);
+//     } catch (error) {
+//       res.status(500).json({ message: error.message });
+//     }
+//   }
+// );
 
 // DELETE Route: Remove a part from a parts list by its _id
 ProjectRouter.delete(
@@ -422,6 +425,44 @@ ProjectRouter.get("/:_id/partsLists/:listId/items", async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
+
+ProjectRouter.put("/:_id/partsLists/:listId", async (req, res) => {
+  const { _id, listId } = req.params;
+  const { partsListName } = req.body;
+
+  try {
+    // Find the project by ID
+    const project = await ProjectModal.findById(_id);
+    if (!project) {
+      return res.status(404).json({ message: "Project not found" });
+    }
+
+    // Locate the specific parts list using its ID
+    const partsList = project.partsLists.id(listId);
+    if (!partsList) {
+      return res.status(404).json({ message: "Parts list not found" });
+    }
+
+    // Update the parts list name if provided
+    if (partsListName !== undefined) {
+      partsList.partsListName = partsListName;
+    }
+
+    // Save the updated project
+    await project.save();
+    res.status(200).json({
+      message: "Parts list name updated successfully",
+      updatedPartsList: partsList,
+    });
+  } catch (error) {
+    console.error("Error updating parts list:", error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+
+
+
 
 // post for outer sub assmebly list
 ProjectRouter.post("/:_id/subAssemblyListFirst", async (req, res) => {
@@ -1504,6 +1545,30 @@ ProjectRouter.post(
     } catch (error) {
       console.error("Error duplicating sub-assembly:", error);
       res.status(500).json({ message: "Internal Server Error" });
+    }
+  }
+);
+
+ProjectRouter.get(
+  "/:_id/assemblyPartsLists/:assemblyId/assemblyMultyPartsList",
+  async (req, res) => {
+    const { _id, assemblyId } = req.params;
+
+    try {
+      const project = await ProjectModal.findById(_id);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+
+      const assembly = project.assemblyPartsLists.id(assemblyId);
+      if (!assembly) {
+        return res.status(404).json({ message: "Assembly not found" });
+      }
+
+      const assemblyMultyPartsList = assembly.assemblyMultyPartsList;
+      res.status(200).json(assemblyMultyPartsList);
+    } catch (error) {
+      res.status(500).json({ message: error.message });
     }
   }
 );
