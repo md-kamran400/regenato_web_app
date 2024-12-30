@@ -136,17 +136,11 @@ const AssemblyTable = ({ assemblypartsList }) => {
       if (Array.isArray(data)) {
         setExistingAssemblyMultyPartsLists(data);
       } else {
-        console.error(
-          "Expected an array of assembly multi parts lists, but received:",
-          data
-        );
+        console.error("Expected an array of assembly multi parts lists, but received:", data);
         setExistingAssemblyMultyPartsLists([]);
       }
     } catch (error) {
-      console.error(
-        "Error fetching existing assembly multi parts lists:",
-        error
-      );
+      console.error("Error fetching existing assembly multi parts lists:", error);
       setExistingAssemblyMultyPartsLists([]);
     }
   }, [_id, existingAssemblyMultyPartsLists]);
