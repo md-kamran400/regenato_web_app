@@ -27,8 +27,8 @@ const navdata = () => {
         //   icon: "fa fa-list", // Example FontAwesome icon class
         // },
         {
-          id: "variable",
-          label: "Variable",
+          id: "variables",
+          label: "Variables",
           link: "/regenato-variables",
           icon: "fa fa-sliders", // Example FontAwesome icon class
         },

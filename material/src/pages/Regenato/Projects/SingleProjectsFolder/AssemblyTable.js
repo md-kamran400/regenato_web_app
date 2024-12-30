@@ -37,7 +37,7 @@ import SubAssemblyTable from "./SubAssemblyTable";
 import AssmblyMultyPart from "./AssmblyMultyPart";
 import { ToastContainer, toast } from "react-toastify"; // Add this import
 
-const AssemblyTable = ({ assemblypartsList }) => {
+const AssemblyTable = React.memo(({ assemblypartsList, onAddPart }) => {
   const { _id } = useParams();
   const [modalAdd, setModalAdd] = useState(false);
   const [modal_delete, setModalDelete] = useState(false);
@@ -100,6 +100,9 @@ const AssemblyTable = ({ assemblypartsList }) => {
 
   const [machinesTBU, setMachinesTBU] = useState({});
 
+  //optimization for fetching
+  const [partsListItemsUpdated, setPartsListItemsUpdated] = useState(false);
+
   // Function to fetch existing sub assembly lists
   const fetchExistingSubAssemblyLists = useCallback(async () => {
     try {
@@ -120,11 +123,102 @@ const AssemblyTable = ({ assemblypartsList }) => {
       console.error("Error fetching existing sub assembly lists:", error);
       setExistingSubAssemblyLists([]);
     }
-  }, [_id, existingSubAssemblyLists]);
+  }, [_id]);
+// }, [_id, existingSubAssemblyLists]);
 
   useEffect(() => {
     fetchExistingSubAssemblyLists();
   }, [fetchExistingSubAssemblyLists]);
+
+
+  //  =================  ***********11******===========
+  const handleUpdateAssemblyLists = useCallback((updatedAssembly) => {
+    setSubAssemblyItems((prevItems) =>
+      prevItems.map((item) =>
+        item._id === updatedAssembly._id ? updatedAssembly : item
+      )
+    );
+  }, []);
+
+  const handleAddAssembly = useCallback((newAssembly) => {
+    setSubAssemblyItems((prevAssemblyLists) => [
+      ...prevAssemblyLists,
+      newAssembly,
+    ]);
+  }, []);
+
+
+  const SubrenderAssemblyContent = useCallback(() => {
+    return (
+      <div className="assembly-lists">
+        {Array.isArray(subAssemblyItems) && subAssemblyItems.length > 0 ? (
+          subAssemblyItems.map((subAssemblyItem, index) => (
+            <div key={index} className="parts-list">
+              <SubAssemblyTable
+                key={index}
+                subAssemblyItems={subAssemblyItem}
+                assemblyId={assemblypartsList._id}
+                // onUpdateSubAssembly={handleSubAssemblyUpdate}
+                onAddAssembly={handleAddAssembly}
+              />
+            </div>
+          ))
+        ) : (
+          <div>No sub-assemblies available.</div>
+        )}
+      </div>
+    );
+  }, [subAssemblyItems, handleUpdateAssemblyLists, handleAddAssembly]);
+//  =================  ***********11******===========
+
+
+
+
+  //  =================  *********22********===========
+  const MulityhandleUpdateAssemblyLists = useCallback((updatedAssembly) => {
+    setpartsAssmeblyItems((prevItems) =>
+      prevItems.map((item) =>
+        item._id === updatedAssembly._id ? updatedAssembly : item
+      )
+    );
+  }, []);
+
+  const MulityhandleAddAssembly = useCallback((newAssembly) => {
+    setpartsAssmeblyItems((prevAssemblyLists) => [
+      ...prevAssemblyLists,
+      newAssembly,
+    ]);
+  }, []);
+
+
+  const MulitySubrenderAssemblyContent = useCallback(() => {
+    return (
+      <div className="assembly-lists">
+          {Array.isArray(partsAssmeblyItems) &&
+              partsAssmeblyItems.length > 0 ? (
+                partsAssmeblyItems.map((partsAssmeblyItem, index) => (
+                  <div key={index} className="parts-list">
+                    <AssmblyMultyPart
+                      key={index}
+                      partsAssmeblyItems={partsAssmeblyItem}
+                      assemblyId={assemblypartsList._id}
+                      // onUpdateSubAssembly={handleMultySubAssemblyUpdate}
+                      onAddAssembly={MulityhandleAddAssembly}
+                    />
+                  </div>
+                ))
+              ) : (
+                <div>No sub-Parts assembly available.</div>
+          )}
+
+      </div>
+    );
+  }, [partsAssmeblyItems, MulityhandleUpdateAssemblyLists, MulityhandleAddAssembly]);
+
+//  =================  *****************===========
+
+
+
 
   // Function to fetch existing assembly multi parts lists
   const fetchExistingAssemblyMultyPartsLists = useCallback(async () => {
@@ -149,12 +243,15 @@ const AssemblyTable = ({ assemblypartsList }) => {
       );
       setExistingAssemblyMultyPartsLists([]);
     }
-  }, [_id, existingAssemblyMultyPartsLists]);
+  }, [_id]);
+// }, [_id, existingAssemblyMultyPartsLists]);
 
   // Add this useEffect to fetch the lists when the component mounts
   useEffect(() => {
     fetchExistingAssemblyMultyPartsLists();
   }, [fetchExistingAssemblyMultyPartsLists]);
+
+
 
   const toggleAddModalsubAssembly = () => {
     setModalAddSubassembly(!modalAddSubassembly);
@@ -709,7 +806,7 @@ const AssemblyTable = ({ assemblypartsList }) => {
               </div>
 
               {/* calling my component of sub assmebly  */}
-              {Array.isArray(subAssemblyItems) &&
+              {/* {Array.isArray(subAssemblyItems) &&
               subAssemblyItems.length > 0 ? (
                 subAssemblyItems.map((subAssemblyItem, index) => (
                   <div key={index} className="parts-list">
@@ -723,9 +820,11 @@ const AssemblyTable = ({ assemblypartsList }) => {
                 ))
               ) : (
                 <div>No sub-assemblies available.</div>
-              )}
+              )} */}
 
-              {Array.isArray(partsAssmeblyItems) &&
+              {SubrenderAssemblyContent()};
+              {MulitySubrenderAssemblyContent()};
+              {/* {Array.isArray(partsAssmeblyItems) &&
               partsAssmeblyItems.length > 0 ? (
                 partsAssmeblyItems.map((partsAssmeblyItem, index) => (
                   <div key={index} className="parts-list">
@@ -739,7 +838,8 @@ const AssemblyTable = ({ assemblypartsList }) => {
                 ))
               ) : (
                 <div>No sub-Parts assembly available.</div>
-              )}
+              )} */}
+
 
               {/* <div className="table-wrapper">
                 <table className="project-table">
@@ -864,6 +964,7 @@ const AssemblyTable = ({ assemblypartsList }) => {
           </Card>
         </Col>
       </Row>
+
       <Modal isOpen={modalAdd} toggle={toggleAddModal}>
         <ModalHeader toggle={toggleAddModal}>Add Part</ModalHeader>
         <ModalBody>
@@ -1137,6 +1238,7 @@ const AssemblyTable = ({ assemblypartsList }) => {
           </form>
         </ModalBody>
       </Modal>
+
       <Modal isOpen={modal_delete} toggle={tog_delete}>
         <ModalHeader toggle={tog_delete}>Confirm Delete</ModalHeader>
         <ModalBody>Are you sure you want to delete this part?</ModalBody>
@@ -1352,6 +1454,6 @@ const AssemblyTable = ({ assemblypartsList }) => {
       </Modal>
     </Col>
   );
-};
+});
 
 export default AssemblyTable;

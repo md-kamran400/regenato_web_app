@@ -28,8 +28,9 @@ import Overheads from "../ExpandFolders/Overheads";
 import { useParams } from "react-router-dom";
 import { MdOutlineDelete } from "react-icons/md";
 import Manufacturing from "../ExpandFolders/Manufacturing";
+import PropTypes from 'prop-types';
 
-const SubAssemblyTable = ({ subAssemblyItems, assemblyId, onUpdateSubAssembly }) => {
+const SubAssemblyTable = React.memo(({ subAssemblyItems, assemblyId, onAddAssembly }) => {
   const { _id } = useParams();
   const [modalAdd, setModalAdd] = useState(false);
   const [modal_delete, setModalDelete] = useState(false);
@@ -52,9 +53,10 @@ const SubAssemblyTable = ({ subAssemblyItems, assemblyId, onUpdateSubAssembly })
   const [projectName, setProjectName] = useState("");
   const [projectType, setprojectType] = useState("");
   const [partId, setPartId] = useState("");
-  const [partsListItems, setPartsListsItems] = useState([]);
+  const [partsListItems, setPartsListsItems] = useState([]); 
   const [isLoading, setIsLoading] = useState(false);
   const [machinesTBU, setMachinesTBU] = useState({});
+  const [partsListItemsUpdated, setPartsListItemsUpdated] = useState(false);
 
   const [showTable, setShowTable] = useState(() => {
     const storedValue = localStorage.getItem("showTable");
@@ -84,7 +86,8 @@ const SubAssemblyTable = ({ subAssemblyItems, assemblyId, onUpdateSubAssembly })
         }
         const data = await response.json();
         setPartsListsItems(data);
-        console.log('items data of parts lists', data)
+        
+        // console.log('items data of parts lists', data)
       } catch (error) {
         console.error('Error fetching parts list items:', error);
         // You might want to handle the error, e.g., show an error message to the user
@@ -92,9 +95,11 @@ const SubAssemblyTable = ({ subAssemblyItems, assemblyId, onUpdateSubAssembly })
     };
 
     fetchPartsListItems();
-  }, [_id, assemblyId, subAssemblyItems]);
+  }, [_id, assemblyId, subAssemblyItems,partsListItemsUpdated]);
 
-
+  useEffect(() => {
+    setPartsListItemsUpdated(false);
+  }, [partsListItemsUpdated]);
 
   useEffect(() => {
   }, [subAssemblyItems, assemblyId]);
@@ -304,16 +309,19 @@ const SubAssemblyTable = ({ subAssemblyItems, assemblyId, onUpdateSubAssembly })
   
       const newPart = await response.json();
       
-      // Update local state with new part
-      const updatedPartsListItems = [...(subAssemblyItems.partsListItems || []), newPart];
-      const updatedSubAssemblyItems = {
-        ...subAssemblyItems,
-        partsListItems: updatedPartsListItems
-      };
-  
-      // Update parent component state
-      onUpdateSubAssembly(updatedSubAssemblyItems);
       
+
+      setPartsListsItems((prevItems) => [...prevItems, newPart]);
+
+        // onAddAssembly(newPart);
+
+        if (typeof onAddAssembly === 'function') {
+          onAddAssembly(newPart);
+        }
+      
+        setPartsListItemsUpdated(true);
+
+
       setModalAdd(false);
       setIsLoading(false);
       
@@ -332,6 +340,7 @@ const SubAssemblyTable = ({ subAssemblyItems, assemblyId, onUpdateSubAssembly })
     }
   };
   
+
   
 
   if (loading) return <div className="loader-overlay">
@@ -354,10 +363,8 @@ const SubAssemblyTable = ({ subAssemblyItems, assemblyId, onUpdateSubAssembly })
     }
   };
 
-  console.log(
-    "Is partsData.rmVariables an array:",
-    Array.isArray(partsData.rmVariables)
-  );
+// onUpdateSubAssembly={handleSubAssemblyUpdate}
+// onAddAssembly={handleAddAssembly}
 
   const updateManufacturingVariable = (updatedVariable) => {
     setPartDetails((prevData) => {
@@ -877,6 +884,15 @@ const SubAssemblyTable = ({ subAssemblyItems, assemblyId, onUpdateSubAssembly })
       </Col>
     </>
   );
+});
+
+
+SubAssemblyTable.propTypes = {
+  subAssemblyItems: PropTypes.object.isRequired,
+  assemblyId: PropTypes.string.isRequired,
+  // onUpdateSubAssembly: PropTypes.func.isRequired,
+  // onAddAssembly: PropTypes.func.isRequired,
+  onAddAssembly: PropTypes.func.isRequired,
 };
 
 export default SubAssemblyTable;

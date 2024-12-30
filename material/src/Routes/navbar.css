@@ -1,5 +1,6 @@
-.header-class{
+/* .header-class{
     background-color: #fff;
+    border: 1px solid red;
 }
 
 .navbar {
@@ -42,7 +43,7 @@
         display: flex;
     }
 
-    .nav-item {
+    .\\ {
         margin: 10px 0;
     }
 
@@ -50,3 +51,137 @@
         font-size: 14px;
     }
 }
+
+
+add responsive for toogle  */
+
+/* General Navbar Styles */
+.header-class {
+  background-color: #fff;
+  border-bottom: 1px solid #ddd;
+  position: relative;
+}
+
+.layout-width {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 15px;
+}
+
+.navbar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+}
+
+.menu-toggle {
+  display: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.navbar {
+  display: flex;
+  flex-direction: row;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  justify-content: flex-start;
+}
+
+.navbar .nav-item {
+  margin: 0 10px;
+}
+
+.navbar .nav-link {
+  text-decoration: none;
+  color: #333;
+  font-size: 16px;
+}
+
+/* Profile Dropdown on Right */
+.navbar-header > .menu-toggle + .navbar + .ProfileDropdown {
+  margin-left: auto;
+}
+
+/* Styles for Small Screens */
+/* General Styles (Unchanged Parts Omitted for Brevity) */
+
+@media (max-width: 768px) {
+    .menu-toggle {
+      display: inline-block;
+    }
+  
+    .navbar {
+      display: none;
+      flex-direction: column;
+      background-color: #f8f9fa;
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100vh; /* Full height */
+      width: 70%; /* 70% width */
+      z-index: 1000;
+      padding: 20px;
+      border-right: 1px solid #ddd;
+      transform: translateX(-100%);
+      transition: fadeSlideIn 0.3s ease-in-out forwards; /* Slide-in effect */
+    }
+  
+    .navbar.show {
+      display: flex;
+      transform: translateX(0); /* Slide in */
+    }
+  
+    .nav-item {
+      /* margin: 35p 0; Space between each item */
+      padding: 20px;
+      text-align: left;
+      width: 100%;
+      opacity: 0;
+      transform: translateX(-20px);
+      animation: fadeSlideIn 0.5s ease-in-out forwards; /* Fade and slide effect */
+    }
+  
+    /* Add animation delay for each item */
+    .nav-item:nth-child(1) {
+      animation-delay: 0.1s;
+    }
+    .nav-item:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+    .nav-item:nth-child(3) {
+      animation-delay: 0.3s;
+    }
+    .nav-item:nth-child(4) {
+      animation-delay: 0.4s;
+    }
+  
+    .nav-link {
+      font-size: 18px;
+      width: 100%;
+      display: block;
+      color: #333;
+    }
+  
+    .menu-toggle {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      z-index: 1100;
+    }
+  }
+  
+  @keyframes fadeSlideIn {
+    from {
+      opacity: 0;
+      transform: translateX(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+  
