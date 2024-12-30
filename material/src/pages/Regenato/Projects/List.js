@@ -68,8 +68,6 @@ const List = () => {
     stockPOQty: "",
   });
 
-  console.log("hlsfhj");
-  // totalCountstring
   const handleSingleProjectTotalCount = (newTotal) => {
     setTotalCostCount(newTotal);
   };
