@@ -51,7 +51,7 @@ const SingeProject = () => {
   const [projectName, setProjectName] = useState("");
   const [projectType, setprojectType] = useState("");
   const [subAssemblyItems, setSubAssemblyItems] = useState([]);
-  const [partsLists, setPartsLists] = useState([]);
+  const [partsLists, setPartsLists] = useState([]); //
   const [assemblyLists, setassemblyLists] = useState([]);
   const [AssemblyListName, setAssemblyListName] = useState("");
 
@@ -127,6 +127,46 @@ const SingeProject = () => {
     fetchExistingSubAssemblyLists();
   }, [_id]);
 
+  // For Parts Lists
+  useEffect(() => {
+    const fetchExistingPartsLists = async () => {
+      try {
+        const response = await fetch(
+          `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/partsLists`
+        );
+        const data = await response.json();
+        setExistingPartsLists(data);
+      } catch (error) {
+        console.error("Error fetching existing parts lists:", error);
+      }
+    };
+    fetchExistingPartsLists();
+  }, [_id]);
+
+  // For Assembly Lists
+  useEffect(() => {
+    const fetchExistingAssemblyLists = async () => {
+      try {
+        const response = await fetch(
+          `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/assemblyPartsLists`
+        );
+        const data = await response.json();
+        setExistingAssemblyLists(data);
+      } catch (error) {
+        console.error("Error fetching existing assembly lists:", error);
+      }
+    };
+    fetchExistingAssemblyLists();
+  }, [_id]);
+
+  const updatesubAssemblyItems = (updatedSubAssembly) => {
+    setSubAssemblyItems((prevItems) =>
+      prevItems.map((item) =>
+        item._id === updatedSubAssembly._id ? updatedSubAssembly : item
+      )
+    );
+  };
+
   const handleAddSubAssembly = useCallback(() => {
     setShowSubAssemblyTable(true);
   }, []);
@@ -145,9 +185,9 @@ const SingeProject = () => {
     );
   }, [showSubAssemblyTable]);
 
-  const handleAddAssembly = useCallback(() => {
-    setShowAssemblyTable(true);
-  }, []);
+  // const handleAddAssembly = useCallback(() => {
+  //   setShowAssemblyTable(true);
+  // }, []);
 
   // useEffect(() => {
   //   if (selectedPartData && selectedPartData.partName) {
@@ -169,7 +209,29 @@ const SingeProject = () => {
   );
 
   // fetching and hadleing the fetching and post crud operations for parts list
-  const fetchProjectDetails = useCallback(async () => {
+  // useEffect(() => {
+  //   const fetchProjectDetails = async () => {
+  //     try {
+  //       const response = await fetch(
+  //         `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}`
+  //       );
+  //       const data = await response.json();
+  //       setProjectName(data.projectName || "");
+  //       setprojectType(data.projectType || "");
+  //       setPartsLists(data.partsLists || []);
+  //       // setassemblyLists(data.assemblyPartsLists || []);
+  //       // setSubAssemblyItems(data.subAssemblyListFirst || []); // Update this line
+  //     } catch (error) {
+  //       setError(error.message);
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   };
+
+  //   fetchProjectDetails();
+  // }, [ subAssemblyItems]);
+
+  const fetchProjectDetails = async () => {
     try {
       const response = await fetch(
         `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}`
@@ -179,58 +241,87 @@ const SingeProject = () => {
       setprojectType(data.projectType || "");
       setPartsLists(data.partsLists || []);
       setassemblyLists(data.assemblyPartsLists || []);
-      setSubAssemblyItems(data.subAssemblyListFirst || []); // Update this line
+      setSubAssemblyItems(data.subAssemblyListFirst || []);
     } catch (error) {
       setError(error.message);
     } finally {
       setLoading(false);
     }
-  }, [_id, partsLists, subAssemblyItems]);
+  };
 
+  // Ensure fetchProjectDetails is called in useEffect and handlers
   useEffect(() => {
     fetchProjectDetails();
-  }, [fetchProjectDetails]);
+  }, [_id]);
+  // Only `_id` as dependency
+
+  // Ensures this runs only once due to useCallback
 
   // fetching existing part list
-  useEffect(() => {
-    const fetchExistingPartsLists = async () => {
-      try {
-        const response = await fetch(
-          `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/partsLists`
-        );
-        const data = await response.json();
-        setExistingPartsLists(data);
-      } catch (error) {
-        console.error("Error fetching existing parts lists:", error);
-      }
-    };
-    fetchExistingPartsLists();
-  }, [_id, existingPartsLists]);
+  // useEffect(() => {
+  //   const fetchExistingPartsLists = async () => {
+  //     try {
+  //       const response = await fetch(
+  //         `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/partsLists`
+  //       );
+  //       const data = await response.json();
+  //       setExistingPartsLists(data);
+  //     } catch (error) {
+  //       console.error("Error fetching existing parts lists:", error);
+  //     }
+  //   };
+  //   fetchExistingPartsLists();
+  // }, [_id, existingPartsLists]);
 
   // fetchign for assmebly list
-  useEffect(() => {
-    const fetchExistingAssemblyLists = async () => {
-      try {
-        const response = await fetch(
-          `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/assemblyPartsLists`
-        );
-        const data = await response.json();
-        setExistingAssemblyLists(data);
-      } catch (error) {
-        console.error("Error fetching existing assembly lists:", error);
-      }
-    };
-    fetchExistingAssemblyLists();
-  }, [_id, existingAssemblyLists]);
+  // useEffect(() => {
+  //   const fetchExistingAssemblyLists = async () => {
+  //     try {
+  //       const response = await fetch(
+  //         `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/assemblyPartsLists`
+  //       );
+  //       const data = await response.json();
+  //       setExistingAssemblyLists(data);
+  //     } catch (error) {
+  //       console.error("Error fetching existing assembly lists:", error);
+  //     }
+  //   };
+  //   fetchExistingAssemblyLists();
+  // }, [_id, existingAssemblyLists]);
 
-  const handlePartsListUpdate = (updatedSubAssembly) => {
+  // ====================== ends
+  const handlePartsListUpdate = useCallback((updatedSubAssembly) => {
     setPartsLists((prevItems) =>
       prevItems.map((item) =>
         item._id === updatedSubAssembly._id ? updatedSubAssembly : item
       )
     );
-  };
+  }, []);
 
+  const handleAddPart = useCallback((newPart) => {
+    setPartsLists((prevLists) => [...prevLists, newPart]);
+  }, []);
+
+  const renderPartsContent = useCallback(() => {
+    return (
+      <div className="parts-lists">
+        {partsLists.map((partsList, index) => (
+          <div key={index} className="parts-list border-top-green">
+            <PartsTable
+              partsList={partsList}
+              partsListID={partsList._id}
+              updatePartsLists={handlePartsListUpdate}
+              onAddPart={handleAddPart}
+              onUpdatePrts={fetchProjectDetails}
+            />
+          </div>
+        ))}
+      </div>
+    );
+  }, [partsLists, handlePartsListUpdate, handleAddPart]);
+  // ====================ends here
+
+  // ================== for sub assmeblyfetching and updating
   const handleOuterSubAssmeblyUpdate = (updatedSubAssembly) => {
     setSubAssemblyItems((prevItems) =>
       prevItems.map((item) =>
@@ -238,6 +329,67 @@ const SingeProject = () => {
       )
     );
   };
+
+  const handleAddOutSubAssmebly = useCallback((newPart) => {
+    setSubAssemblyItems((prevLists) => [...prevLists, newPart]);
+  }, []);
+
+  const renderSubASsmeblyContent = useCallback(() => {
+    return (
+      <div className="parts-lists">
+        {subAssemblyItems.map((subAssemblyItem, index) => (
+          <div key={index} className="parts-list">
+            <OuterSubAssmebly
+              subAssemblyItem={subAssemblyItem}
+              updatesubAssemblyItems={updatesubAssemblyItems}
+              subAssemblyId={subAssemblyItem._id}
+              onAddPart={handleAddPart}
+              onUpdatePrts={fetchProjectDetails}
+            />
+          </div>
+        ))}
+      </div>
+    );
+  }, [subAssemblyItems, handleOuterSubAssmeblyUpdate, handleAddOutSubAssmebly]);
+
+  // =================== ends here
+
+  // ================ for add assmebly code start
+
+  const handleUpdateAssemblyLists = useCallback((updatedAssembly) => {
+    setassemblyLists((prevItems) =>
+      prevItems.map((item) =>
+        item._id === updatedAssembly._id ? updatedAssembly : item
+      )
+    );
+  }, []);
+
+  const handleAddAssembly = useCallback((newAssembly) => {
+    setassemblyLists((prevAssemblyLists) => [
+      ...prevAssemblyLists,
+      newAssembly,
+    ]);
+  }, []);
+
+  const renderAssemblyContent = useCallback(() => {
+    return (
+      <div className="assembly-lists">
+        {assemblyLists.map((assemblyList, index) => (
+          <div key={index} className="assembly-list border-top-green">
+            <AssemblyTable
+              // assemblyList={assemblyList}
+              assemblypartsList={assemblyList}
+              updateAssemblyLists={handleUpdateAssemblyLists}
+              onAddAssembly={handleAddAssembly}
+              onUpdatePrts={fetchProjectDetails}
+            />
+          </div>
+        ))}
+      </div>
+    );
+  }, [assemblyLists, handleUpdateAssemblyLists, handleAddAssembly]);
+
+  //================= for add assmebly code end here
 
   const handleAddNewPartsList = useCallback(
     async (newPartsList) => {
@@ -257,13 +409,13 @@ const SingeProject = () => {
         setPartsLists((prevPartsLists) => [...prevPartsLists, addedPartsList]);
         setPartsListName("");
         setModalAdd(false);
-        await fetchProjectDetails();
+        await fetchProjectDetails(); // Call fetchProjectDetails here
       } catch (error) {
         console.error("Error adding new parts list:", error);
         setError("Failed to add new parts list. Please try again.");
       }
     },
-    [_id, partsLists]
+    [_id]
   );
 
   const handleSubmit = async (event) => {
@@ -543,7 +695,6 @@ const SingeProject = () => {
               <span className="status-badge">In Progress</span>
             </div> */}
           </div>
-
           <div className="button-group">
             <Button
               className="add-btn "
@@ -567,9 +718,8 @@ const SingeProject = () => {
               <i className="ri-add-line align-bottom me-1"></i> Add Sub Assembly
             </Button>
           </div>
-
           {/* showTable */}
-          <div className="parts-lists">
+          {/* <div className="parts-lists">
             {partsLists.map((partsList, index) => (
               <div key={index} className="parts-list border-top-green">
                 <PartsTable
@@ -579,10 +729,10 @@ const SingeProject = () => {
                 />
               </div>
             ))}
-          </div>
-
+          </div> */}
+          {renderPartsContent()}
           {/* showTable */}
-          <div className="parts-lists">
+          {/* <div className="parts-lists">
             {subAssemblyItems.map((subAssemblyItem, index) => (
               <div key={index} className="parts-list">
                 <OuterSubAssmebly
@@ -591,9 +741,9 @@ const SingeProject = () => {
                 />
               </div>
             ))}
-          </div>
-
-          <div className="parts-lists">
+          </div> */}
+          {renderSubASsmeblyContent()}
+          {/* <div className="parts-lists">
             {assemblyLists.map((assemblypartsList, index) => (
               <div key={index} className="parts-list">
                 <AssemblyTable
@@ -602,7 +752,8 @@ const SingeProject = () => {
                 />
               </div>
             ))}
-          </div>
+          </div>  */}
+          {renderAssemblyContent()};
         </Container>
       </div>
 

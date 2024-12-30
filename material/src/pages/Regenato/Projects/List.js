@@ -301,9 +301,9 @@ const List = () => {
           <thead>
             <tr>
               <th>Name</th>
-              <th>Cost per Unit</th>
+              <th>Total Cost</th>
               <th>Total Hours</th>
-              <th>On Hand</th>
+              {/* <th>On Hand</th> */}
               <th>Actions</th>
             </tr>
           </thead>
@@ -320,7 +320,7 @@ const List = () => {
                 </td>
                 <td>0</td>
                 <td>0</td>
-                <td>0</td>
+                {/* <td>0</td> */}
                 <td>
                   <UncontrolledDropdown direction="start">
                     <DropdownToggle

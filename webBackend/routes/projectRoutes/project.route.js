@@ -213,9 +213,6 @@ ProjectRouter.get("/:_id/allProjects/:id/variables", async (req, res) => {
   }
 });
 
-
-
-
 // POST Route: Add a new parts list to an existing project
 // In project.route.js
 
@@ -459,10 +456,6 @@ ProjectRouter.put("/:_id/partsLists/:listId", async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
-
-
-
-
 
 // post for outer sub assmebly list
 ProjectRouter.post("/:_id/subAssemblyListFirst", async (req, res) => {
@@ -1486,9 +1479,6 @@ ProjectRouter.get(
   }
 );
 
-
-
-
 // duplicate for multy part list and sub assmebly part list
 ProjectRouter.get(
   "/:_id/assemblyPartsLists/:assemblyId/subAssemblyPartsLists",
@@ -1611,13 +1601,7 @@ ProjectRouter.post(
   }
 );
 
-
-
-
-
-
-
-// delete adn pout 
+// delete adn pout
 ///part list delte routes
 ProjectRouter.delete("/:_id/partsLists/:listId", async (req, res) => {
   try {
@@ -1723,7 +1707,6 @@ ProjectRouter.delete("/:_id/assemblyPartsLists/:listId", async (req, res) => {
 
 
 
-//subassebmlyfirstlist edit code 
 ProjectRouter.put("/:_id/subAssemblyListFirst/:listId", async (req, res) => {
   const { _id, listId } = req.params; // Extract project and sub-assembly list IDs
   const { subAssemblyListName } = req.body; // Extract new sub-assembly list name
@@ -1768,10 +1751,13 @@ ProjectRouter.put("/:_id/subAssemblyListFirst/:listId", async (req, res) => {
   }
 });
 
+//as
+// sembly part list edit
+// project.route.js
 ProjectRouter.put("/:_id/assemblyPartsLists/:listId", async (req, res) => {
   const { _id, listId } = req.params; // Extract project and sub-assembly list IDs
   const { assemblyListName } = req.body; // Extract new sub-assembly list name
-
+ 
   try {
     // Validate the incoming request body
     if (!assemblyListName || typeof assemblyListName !== "string") {
@@ -1785,19 +1771,25 @@ ProjectRouter.put("/:_id/assemblyPartsLists/:listId", async (req, res) => {
     if (!project) {
       return res.status(404).json({ message: "Project not found" });
     }
-
     // Find the sub-assembly list by its ID
     const subAssemblyList = project.assemblyPartsLists.id(listId);
     if (!subAssemblyList) {
       return res.status(404).json({ message: "Sub-assembly list not found" });
     }
 
+
     // Update the sub-assembly list name
     subAssemblyList.assemblyListName = assemblyListName;
 
     // Save the updated project
     await project.save();
-
+ 
+    // Update the sub-assembly list name
+    subAssemblyList.assemblyListName = assemblyListName;
+ 
+    // Save the updated project
+    await project.save();
+ 
     // Respond with the updated sub-assembly list
     res.status(200).json({
       message: "Sub-assembly list updated successfully",
@@ -1811,6 +1803,7 @@ ProjectRouter.put("/:_id/assemblyPartsLists/:listId", async (req, res) => {
     });
   }
 });
+// has context menu
 
 
 //edit part list code
