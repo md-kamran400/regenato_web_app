@@ -36,7 +36,13 @@ import FeatherIcon from "feather-icons-react";
 import { ToastContainer, toast } from "react-toastify";
 
 const OuterSubAssmebly = React.memo(
-  ({ subAssemblyItem, updatesubAssemblyItems, subAssemblyId, onAddPart }) => {
+  ({
+    subAssemblyItem,
+    updatesubAssemblyItems,
+    onUpdatePrts,
+    subAssemblyId,
+    onAddPart,
+  }) => {
     const { _id } = useParams();
     const [modalAdd, setModalAdd] = useState(false);
     const [modal_delete, setModalDelete] = useState(false);
@@ -67,85 +73,25 @@ const OuterSubAssmebly = React.memo(
     const [isLoading, setIsLoading] = useState(false);
     const [partsListItemsUpdated, setPartsListItemsUpdated] = useState(false);
 
-    //for edting the subassmbely name
     const [editModal, setEditModal] = useState(false);
-    const [editData, setEditData] = useState({
-      subAssemblyListName: "",
-    });
-
+    // const [editModal, setEditModal] = useState(false);
+    const [subAssemblyListName, setsubAssemblyListName] = useState("");
+    const [selectedPartsList, setSelectedPartsList] = useState(null);
     const tog_delete = (_id) => {
       setModalDelete(!modal_delete);
       setSelectedId(_id);
       // handleDelete(_id, subAssemblyItem._id);
     };
 
-    //edit toogle model
-    // const toggleEditModal = (editMode, subAssemblyId) => {
-    //   if (editMode && Array.isArray(subAssemblyItems)) {
-    //     const subAssemblyToEdit = subAssemblyItems.find(
-    //       (item) => item._id === subAssemblyId
-    //     );
-
-    //     if (subAssemblyToEdit) {
-    //       setEditData({
-    //         subAssemblyListName: subAssemblyToEdit.subAssemblyListName,
-    //       });
-    //     } else {
-    //       console.warn("Sub-assembly not found for ID:", subAssemblyId);
-    //     }
-    //   } else {
-    //     console.warn("subAssemblyItems is not an array:", subAssemblyItems);
-    //     setEditData({ subAssemblyListName: "" });
-    //   }
-
-    //   setEditModal(!editModal);
-    // };
-    // const toggleEditModal = (editMode, subAssemblyId) => {
-    //   if (editMode && Array.isArray(subAssemblyItems)) {
-    //     const subAssemblyToEdit = subAssemblyItems.find(
-    //       (item) => item._id === subAssemblyId
-    //     );
-
-    //     if (subAssemblyToEdit) {
-    //       setEditData({
-    //         subAssemblyListName: subAssemblyToEdit.subAssemblyListName || "",
-    //       });
-    //     } else {
-    //       console.warn("Sub-assembly not found for ID:", subAssemblyId);
-    //     }
-    //   } else {
-    //     console.warn("Invalid sub-assembly items data.");
-    //     setEditData({ subAssemblyListName: "" }); // Reset for new entry
-    //   }
-
-    //   setEditModal(!editModal); // Toggle the modal
-    // };
-    //
-    const toggleEditModal = async (editMode, subAssemblyId) => {
-      if (editMode) {
-        setEditModal(true);
-        try {
-          // Fetch the specific sub-assembly data
-          const response = await fetch(
-            `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/subAssemblyListFirst/${subAssemblyId}`
-          );
-          if (!response.ok) {
-            throw new Error("Failed to fetch sub-assembly details.");
-          }
-          const subAssemblyToEdit = await response.json();
-          setEditData({
-            subAssemblyListName: subAssemblyToEdit.subAssemblyListName,
-          });
-        } catch (error) {
-          console.error("Error fetching sub-assembly data:", error);
-          toast.error("Failed to load sub-assembly data.");
-        }
-      } else {
-        setEditData({ subAssemblyListName: "" });
-        setEditModal(false);
-      }
+    const toggleEditModal = (partsList) => {
+      setEditModal(!editModal);
+      setSelectedPartsList(partsList);
     };
-
+    useEffect(() => {
+      if (editModal && selectedPartsList) {
+        setsubAssemblyListName(selectedPartsList.subAssemblyListName);
+      }
+    }, [editModal, selectedPartsList]);
     const handleDelete = async () => {
       try {
         const response = await fetch(
@@ -169,35 +115,66 @@ const OuterSubAssmebly = React.memo(
         toast.error("Failed to delete part. Please try again.");
       }
     };
+    // `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/subAssemblyListFirst/${subAssemblyItem._id}`,
 
     // Update the handleEditSubmit function
-    const handleEditSubmit = async (event) => {
-      event.preventDefault();
+    // const handleEditSubmit = async (event) => {
+    //   event.preventDefault();
+    //   try {
+    //     const response = await fetch(
+    //       `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/subAssemblyListFirst/${subAssemblyItem._id}`,
+    //       {
+    //         method: "PUT",
+    //         headers: { "Content-Type": "application/json" },
+    //         body: JSON.stringify(editData),
+    //       }
+    //     );
+    //     if (!response.ok) {
+    //       throw new Error("Failed to update sub-assembly list");
+    //     }
+    //     const updatedData = await response.json();
+    //     setSubAssemblyItems((prevItems) =>
+    //       prevItems.map((item) =>
+    //         item._id === subAssemblyItem._id ? updatedData : item
+    //       )
+    //     );
+    //     setEditModal(false);
+    //     toast.success("Sub-assembly updated successfully!");
+    //   } catch (error) {
+    //     console.error("Error updating sub-assembly:", error);
+    //     toast.error("Failed to update sub-assembly. Please try again.");
+    //   }
+    // };
+
+    const handleEdit = async (e) => {
+      e.preventDefault();
+      const subAssemblyListName = e.target.subAssemblyListName.value;
+
       try {
         const response = await fetch(
           `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/subAssemblyListFirst/${subAssemblyItem._id}`,
           {
             method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(editData),
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ subAssemblyListName }),
           }
         );
+
         if (!response.ok) {
-          throw new Error("Failed to update sub-assembly list");
+          throw new Error("Network response was not ok");
         }
-        const updatedData = await response.json();
-        setSubAssemblyItems((prevItems) =>
-          prevItems.map((item) =>
-            item._id === subAssemblyItem._id ? updatedData : item
-          )
-        );
-        setEditModal(false);
-        toast.success("Sub-assembly updated successfully!");
+
+        const data = await response.json();
+        onUpdatePrts(data);
+        toggleEditModal(false);
       } catch (error) {
-        console.error("Error updating sub-assembly:", error);
-        toast.error("Failed to update sub-assembly. Please try again.");
+        console.error("Error updating parts list:", error);
+        // Handle the error (e.g., show an error message to the user)
       }
     };
+
     const [machinesTBU, setMachinesTBU] = useState({});
     // duplicate creation useState
 
@@ -217,14 +194,14 @@ const OuterSubAssmebly = React.memo(
           console.error("Error fetching parts list items:", error);
         }
       };
-    
+
       fetchPartsListItems();
     }, [_id, subAssemblyItem, partsListItemsUpdated]);
 
-// Add this useEffect to reset the partsListItemsUpdated state
-useEffect(() => {
-  setPartsListItemsUpdated(false);
-}, [partsListItemsUpdated]);
+    // Add this useEffect to reset the partsListItemsUpdated state
+    useEffect(() => {
+      setPartsListItemsUpdated(false);
+    }, [partsListItemsUpdated]);
 
     const toggleAddModal = () => {
       setModalAdd(!modalAdd);
@@ -438,8 +415,8 @@ useEffect(() => {
         // updatesubAssemblyItems(updatedsubAssemblyItem);
 
         // Call the onAddPart callback to update the parent component
-             // Update local state with new 
-             
+        // Update local state with new
+
         setPartsListsItems((prevItems) => [...prevItems, newPart]);
 
         onAddPart(newPart);
@@ -599,10 +576,7 @@ useEffect(() => {
                       <DropdownMenu className="dropdown-menu-start">
                         <DropdownItem
                           href="#"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            toggleEditModal(true, subAssemblyItem._id);
-                          }}
+                          onClick={() => toggleEditModal(subAssemblyItem)}
                         >
                           <i className="ri-edit-2-line align-bottom me-2 text-muted"></i>{" "}
                           Edit
@@ -1109,7 +1083,7 @@ useEffect(() => {
               Edit Sub-Assembly
             </ModalHeader>
             <ModalBody>
-              <form onSubmit={handleEditSubmit}>
+              <form onSubmit={handleEdit}>
                 <div className="form-group">
                   <Label for="subAssemblyListName">
                     Sub-Assembly List Name
@@ -1117,14 +1091,8 @@ useEffect(() => {
                   <Input
                     type="text"
                     id="subAssemblyListName"
-                    value={editData.subAssemblyListName}
-                    // value={subAssemblyItem.subAssemblyListName}
-                    onChange={(e) =>
-                      setEditData({
-                        ...editData,
-                        subAssemblyListName: e.target.value,
-                      })
-                    }
+                    name="subAssemblyListName"
+                    defaultValue={subAssemblyListName}
                     required
                   />
                 </div>

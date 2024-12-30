@@ -35,8 +35,9 @@ import Manufacturing from "../ExpandFolders/Manufacturing";
 import FeatherIcon from "feather-icons-react";
 import { ToastContainer, toast } from "react-toastify";
 
-const PartsTable = React.memo(({ partsList, partsListID, updatePartsLists, onAddPart }) => {
-    const { _id } = useParams();
+const PartsTable = React.memo(
+  ({ partsList, partsListID, updatePartsLists, onAddPart, onUpdatePrts }) => {
+    const { _id, listId } = useParams();
     const [modalAdd, setModalAdd] = useState(false);
     const [modal_delete, setModalDelete] = useState(false);
     const [loading, setLoading] = useState(true);
@@ -63,13 +64,11 @@ const PartsTable = React.memo(({ partsList, partsListID, updatePartsLists, onAdd
     const [isLoading, setIsLoading] = useState(false);
 
     const [partsListItemsUpdated, setPartsListItemsUpdated] = useState(false);
-    // const [machinesTBU, setMachinesTBU] = useState({});
-    // duplicate creation useState
+    
     const [editModal, setEditModal] = useState(false);
-    const [editData, setEditData] = useState({
-      partsListName: "",
-    });
-
+    // const [editModal, setEditModal] = useState(false);
+    const [partsListName, setPartsListName] = useState("");
+    const [selectedPartsList, setSelectedPartsList] = useState(null);
     const toggleAddModal = () => {
       setModalAdd(!modalAdd);
     };
@@ -95,7 +94,7 @@ const PartsTable = React.memo(({ partsList, partsListID, updatePartsLists, onAdd
           // You might want to handle the error, e.g., show an error message to the user
         }
       };
-    
+
       fetchPartsListItems();
     }, [_id, partsList, partsListItemsUpdated]);
 
@@ -134,31 +133,20 @@ const PartsTable = React.memo(({ partsList, partsListID, updatePartsLists, onAdd
       setSelectedId(_id);
     };
 
-    const toggleEditModal = (editMode, partsListId) => {
-      console.log("Edit Mode:", editMode, "PartsList ID:", partsListId);
-      if (editMode && Array.isArray(partsList)) {
-        const partsListToEdit = partsList.find(
-          (item) => item._id === partsListId
-        );
-        console.log("Parts List to Edit:", partsListToEdit);
-        if (partsListToEdit) {
-          setEditData({
-            partsListName: partsListToEdit.partsListName,
-            partsListItems: partsListToEdit.partsListItems || [],
-            // Add any other fields you want to prefill
-          });
-        } else {
-          console.warn("No parts list found with ID:", partsListId);
-        }
-      } else {
-        console.warn("Invalid edit mode or partsList:", {
-          editMode,
-          partsList,
-        });
-        setEditData({ partsListName: "" });
-      }
+  
+
+    // Function to toggle the edit modal
+    const toggleEditModal = (partsList) => {
       setEditModal(!editModal);
+      setSelectedPartsList(partsList);
     };
+
+    // useEffect to set partsListName when editModal is opened
+    useEffect(() => {
+      if (editModal && selectedPartsList) {
+        setPartsListName(selectedPartsList.partsListName);
+      }
+    }, [editModal, selectedPartsList]);
 
     const fetchData = useCallback(async () => {
       setLoading(true);
@@ -250,24 +238,24 @@ const PartsTable = React.memo(({ partsList, partsListID, updatePartsLists, onAdd
       }
     };
 
-    const fetchProjectDetails = useCallback(async () => {
-      try {
-        const response = await fetch(
-          `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}`
-        );
-        const data = await response.json();
-        setProjectName(data.projectName || "");
-        setprojectType(data.projectType || "");
-      } catch (error) {
-        setError(error.message);
-      } finally {
-        setLoading(false);
-      }
-    }, [_id]);
+    // const fetchProjectDetails = useCallback(async () => {
+    //   try {
+    //     const response = await fetch(
+    //       `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}`
+    //     );
+    //     const data = await response.json();
+    //     setProjectName(data.projectName || "");
+    //     setprojectType(data.projectType || "");
+    //   } catch (error) {
+    //     setError(error.message);
+    //   } finally {
+    //     setLoading(false);
+    //   }
+    // }, [_id]);
 
-    useEffect(() => {
-      fetchProjectDetails();
-    }, [fetchProjectDetails]);
+    // useEffect(() => {
+    //   fetchProjectDetails();
+    // }, [fetchProjectDetails]);
 
     const PartsTableFetch = useCallback(async () => {
       try {
@@ -290,7 +278,7 @@ const PartsTable = React.memo(({ partsList, partsListID, updatePartsLists, onAdd
     const handleSubmit = async (event) => {
       event.preventDefault();
       setIsLoading(true);
-    
+
       const payload = {
         partId: selectedPartData.id,
         partName: selectedPartData.partName,
@@ -302,7 +290,7 @@ const PartsTable = React.memo(({ partsList, partsListID, updatePartsLists, onAdd
         shipmentVariables: detailedPartData.shipmentVariables || [],
         overheadsAndProfits: detailedPartData.overheadsAndProfits || [],
       };
-    
+
       try {
         const response = await fetch(
           `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/partsLists/${partsList._id}/items`,
@@ -312,32 +300,31 @@ const PartsTable = React.memo(({ partsList, partsListID, updatePartsLists, onAdd
             body: JSON.stringify(payload),
           }
         );
-    
+
         if (!response.ok) {
           throw new Error("Failed to add part");
         }
-    
+
         const newPart = await response.json();
-    
+
         // Update local state with new part
         setPartsListsItems((prevItems) => [...prevItems, newPart]);
-    
+
         // Call the onAddPart callback to update the parent component
         onAddPart(newPart);
-    
+
         setModalAdd(false);
         setIsLoading(false);
-    
+
         // Reset form
         setSelectedPartData(null);
         setCostPerUnit("");
         setTimePerUnit("");
         setQuantity(0);
         setDetailedPartData({});
-    
+
         // Update the partsListItemsUpdated state
         setPartsListItemsUpdated(true);
-    
       } catch (error) {
         console.error("Error:", error);
         setError("Failed to add part. Please try again.");
@@ -395,60 +382,6 @@ const PartsTable = React.memo(({ partsList, partsListID, updatePartsLists, onAdd
       });
     };
 
-    // const handleDelete = async (partId) => {
-    //   setPosting(true);
-    //   setError(null);
-    //   try {
-    //     const response = await fetch(
-    //       `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/delete-part`,
-    //       {
-    //         method: "DELETE",
-    //         headers: { "Content-Type": "application/json" },
-    //         body: JSON.stringify({ partId }),
-    //       }
-    //     );
-    //     if (!response.ok) {
-    //       throw new Error("Network response was not ok");
-    //     }
-    //     await fetchProjectDetails(); // Refetch the data to update the table
-    //     tog_delete(); // Close the modal
-    //   } catch (error) {
-    //     setError(error.message);
-    //   } finally {
-    //     setPosting(false);
-    //   }
-    // };
-
-    // duplicate
-    // const handleDuplicate = async () => {
-    //   setConfirmDuplicateModal(false);
-    //   try {
-    //     const response = await fetch(
-    //       `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/duplicate`,
-    //       {
-    //         method: "POST",
-    //         headers: { "Content-Type": "application/json" },
-    //       }
-    //     );
-
-    //     if (!response.ok) {
-    //       throw new Error("Failed to duplicate project");
-    //     }
-
-    //     const duplicatedProject = await response.json();
-    //     console.log("Duplicated project:", duplicatedProject);
-
-    //     // Refresh the project details
-    //     await fetchProjectDetails();
-
-    //     // Show success message
-    //     toast.success("Project successfully duplicated!");
-    //   } catch (error) {
-    //     console.error("Error duplicating project:", error);
-    //     toast.error("Failed to duplicate project. Please try again.");
-    //   }
-    // };
-
     const handleDelete = async () => {
       try {
         const response = await fetch(
@@ -472,32 +405,33 @@ const PartsTable = React.memo(({ partsList, partsListID, updatePartsLists, onAdd
     };
 
     //edit
-    const handleEditSubmit = async (event) => {
-      event.preventDefault();
+    //  `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/partsLists/${partsList._id}`,
+    const handleEdit = async (e) => {
+      e.preventDefault();
+      const partsListName = e.target.partsListName.value;
+
       try {
         const response = await fetch(
           `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/partsLists/${partsList._id}`,
           {
             method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(editData),
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ partsListName }),
           }
         );
+
         if (!response.ok) {
-          throw new Error("Failed to update parts list");
+          throw new Error("Network response was not ok");
         }
-        const updatedData = await response.json();
-        // Update local state with the new data
-        // updatePartsLists((prevLists) =>
-        //   prevLists.map((item) =>
-        //     item._id === partsList._id ? updatedData : item
-        //   )
-        // );
+
+        const data = await response.json();
+        onUpdatePrts(data)
         toggleEditModal(false);
-        toast.success("Parts list updated successfully!");
       } catch (error) {
         console.error("Error updating parts list:", error);
-        toast.error("Failed to update parts list. Please try again.");
+        // Handle the error (e.g., show an error message to the user)
       }
     };
 
@@ -547,14 +481,7 @@ const PartsTable = React.memo(({ partsList, partsListID, updatePartsLists, onAdd
 
                         <DropdownItem
                           href="#"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            console.log(
-                              "Editing parts list with ID:",
-                              partsList._id
-                            );
-                            toggleEditModal(true, partsList._id);
-                          }}
+                          onClick={() => toggleEditModal(partsList)}
                         >
                           <i className="ri-edit-2-line align-bottom me-2 text-muted"></i>{" "}
                           Edit
@@ -713,30 +640,6 @@ const PartsTable = React.memo(({ partsList, partsListID, updatePartsLists, onAdd
               </Card>
             </Col>
           </Row>
-
-          {/* <Modal
-        isOpen={confirmDuplicateModal}
-        toggle={() => setConfirmDuplicateModal(false)}
-      >
-        <ModalHeader toggle={() => setConfirmDuplicateModal(false)}>
-          Confirm Duplication
-        </ModalHeader>
-        <ModalBody>
-          Are you sure you want to duplicate this project? This action cannot be
-          undone.
-        </ModalBody>
-        <ModalFooter>
-          <Button
-            color="secondary"
-            onClick={() => setConfirmDuplicateModal(false)}
-          >
-            Cancel
-          </Button>
-          <Button color="primary" onClick={handleDuplicate}>
-            Confirm Duplication
-          </Button>
-        </ModalFooter>
-      </Modal> */}
 
           <Modal isOpen={modalAdd} toggle={toggleAddModal}>
             <ModalHeader toggle={toggleAddModal}>Add Part List</ModalHeader>
@@ -1060,20 +963,14 @@ const PartsTable = React.memo(({ partsList, partsListID, updatePartsLists, onAdd
               Edit Parts List
             </ModalHeader>
             <ModalBody>
-              <form onSubmit={(e) => handleEditSubmit(e)}>
+              <form onSubmit={handleEdit}>
                 <div className="form-group">
                   <Label for="partsListName">Parts List Name</Label>
-
                   <Input
                     type="text"
                     id="partsListName"
-                    value={editData.partsListName}
-                    onChange={(e) =>
-                      setEditData({
-                        ...editData,
-                        partsListName: e.target.value,
-                      })
-                    }
+                    name="partsListName"
+                    defaultValue={partsListName}
                     required
                   />
                 </div>

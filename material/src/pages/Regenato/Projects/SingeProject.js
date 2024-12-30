@@ -111,7 +111,6 @@ const SingeProject = () => {
     localStorage.setItem("showTable", JSON.stringify(showTable));
   }, [showTable]);
 
-
   //sub assembly list
   useEffect(() => {
     const fetchExistingSubAssemblyLists = async () => {
@@ -129,32 +128,36 @@ const SingeProject = () => {
   }, [_id]);
 
   // For Parts Lists
-useEffect(() => {
-  const fetchExistingPartsLists = async () => {
-    try {
-      const response = await fetch(`${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/partsLists`);
-      const data = await response.json();
-      setExistingPartsLists(data);
-    } catch (error) {
-      console.error("Error fetching existing parts lists:", error);
-    }
-  };
-  fetchExistingPartsLists();
-}, [_id]);
+  useEffect(() => {
+    const fetchExistingPartsLists = async () => {
+      try {
+        const response = await fetch(
+          `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/partsLists`
+        );
+        const data = await response.json();
+        setExistingPartsLists(data);
+      } catch (error) {
+        console.error("Error fetching existing parts lists:", error);
+      }
+    };
+    fetchExistingPartsLists();
+  }, [_id]);
 
-// For Assembly Lists
-useEffect(() => {
-  const fetchExistingAssemblyLists = async () => {
-    try {
-      const response = await fetch(`${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/assemblyPartsLists`);
-      const data = await response.json();
-      setExistingAssemblyLists(data);
-    } catch (error) {
-      console.error("Error fetching existing assembly lists:", error);
-    }
-  };
-  fetchExistingAssemblyLists();
-}, [_id]);
+  // For Assembly Lists
+  useEffect(() => {
+    const fetchExistingAssemblyLists = async () => {
+      try {
+        const response = await fetch(
+          `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/assemblyPartsLists`
+        );
+        const data = await response.json();
+        setExistingAssemblyLists(data);
+      } catch (error) {
+        console.error("Error fetching existing assembly lists:", error);
+      }
+    };
+    fetchExistingAssemblyLists();
+  }, [_id]);
 
   const updatesubAssemblyItems = (updatedSubAssembly) => {
     setSubAssemblyItems((prevItems) =>
@@ -245,12 +248,12 @@ useEffect(() => {
       setLoading(false);
     }
   };
-  
+
   // Ensure fetchProjectDetails is called in useEffect and handlers
   useEffect(() => {
     fetchProjectDetails();
   }, [_id]);
-   // Only `_id` as dependency
+  // Only `_id` as dependency
 
   // Ensures this runs only once due to useCallback
 
@@ -309,6 +312,7 @@ useEffect(() => {
               partsListID={partsList._id}
               updatePartsLists={handlePartsListUpdate}
               onAddPart={handleAddPart}
+              onUpdatePrts={fetchProjectDetails}
             />
           </div>
         ))}
@@ -340,6 +344,7 @@ useEffect(() => {
               updatesubAssemblyItems={updatesubAssemblyItems}
               subAssemblyId={subAssemblyItem._id}
               onAddPart={handleAddPart}
+              onUpdatePrts={fetchProjectDetails}
             />
           </div>
         ))}
@@ -376,6 +381,7 @@ useEffect(() => {
               assemblypartsList={assemblyList}
               updateAssemblyLists={handleUpdateAssemblyLists}
               onAddAssembly={handleAddAssembly}
+              onUpdatePrts={fetchProjectDetails}
             />
           </div>
         ))}
