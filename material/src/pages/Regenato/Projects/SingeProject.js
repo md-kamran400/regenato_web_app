@@ -345,6 +345,7 @@ const SingeProject = () => {
               subAssemblyId={subAssemblyItem._id}
               onAddPart={handleAddPart}
               onUpdatePrts={fetchProjectDetails}
+
             />
           </div>
         ))}
@@ -386,7 +387,7 @@ const SingeProject = () => {
           </div>
         ))}
       </div>
-    );
+    )
   }, [assemblyLists, handleUpdateAssemblyLists, handleAddAssembly]);
 
   //================= for add assmebly code end here
@@ -753,7 +754,7 @@ const SingeProject = () => {
               </div>
             ))}
           </div>  */}
-          {renderAssemblyContent()};
+          {renderAssemblyContent()}
         </Container>
       </div>
 
@@ -799,7 +800,7 @@ const SingeProject = () => {
                     }}
                   >
                     <option value="">Select Existing Parts List</option>
-                    {existingPartsLists.map((list) => (
+                    {partsLists.map((list) => (
                       <option key={list._id} value={list._id}>
                         {list.partsListName}
                       </option>
@@ -873,7 +874,7 @@ const SingeProject = () => {
                     }}
                   >
                     <option value="">Select Existing Assembly List</option>
-                    {existingAssemblyLists.map((list) => (
+                    {assemblyLists.map((list) => (
                       <option key={list._id} value={list._id}>
                         {list.assemblyListName}
                       </option>
@@ -974,7 +975,7 @@ const SingeProject = () => {
         </ModalBody>
       </Modal>
     </React.Fragment>
-  );
+  )
 };
 
 export default SingeProject;

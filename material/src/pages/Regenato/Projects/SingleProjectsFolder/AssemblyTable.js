@@ -325,9 +325,8 @@ const AssemblyTable = React.memo(
       setpartsAssmeblyItems(assemblypartsList.assemblyMultyPartsList || []);
     }, [assemblypartsList]);
 
-    const tog_delete = (_id) => {
+    const tog_delete = () => {
       setModalDelete(!modal_delete);
-      setSelectedId(_id);
     };
 
     const toggleAddModal = () => {
@@ -546,7 +545,8 @@ const AssemblyTable = React.memo(
         }
 
         const updatedProject = await response.json();
-        updatePartsLists(updatedProject);
+        // updatePartsLists(updatedProject);
+        onUpdatePrts(updatedProject);
         setModalDelete(false);
         toast.success("Part deleted successfully");
       } catch (error) {
@@ -849,7 +849,9 @@ const AssemblyTable = React.memo(
               ) : (
                 <div>No sub-assemblies available.</div>
               )} */}
-                {SubrenderAssemblyContent()};{MulitySubrenderAssemblyContent()};
+                {SubrenderAssemblyContent()}
+                
+                {MulitySubrenderAssemblyContent()}
                 {/* {Array.isArray(partsAssmeblyItems) &&
               partsAssmeblyItems.length > 0 ? (
                 partsAssmeblyItems.map((partsAssmeblyItem, index) => (

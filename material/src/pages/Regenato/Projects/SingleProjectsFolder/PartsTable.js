@@ -73,6 +73,7 @@ const PartsTable = React.memo(
       setModalAdd(!modalAdd);
     };
 
+    console.log(partsListID,partsList._id)
     // console.log(partsList._id);
     // console.log(updatePartsLists)
 
@@ -128,9 +129,8 @@ const PartsTable = React.memo(
       fetchManufacturingVariables();
     }, []);
 
-    const tog_delete = (_id) => {
+    const tog_delete = () => {
       setModalDelete(!modal_delete);
-      setSelectedId(_id);
     };
 
   
@@ -395,8 +395,10 @@ const PartsTable = React.memo(
           throw new Error("Failed to delete part");
         }
         const updatedProject = await response.json();
+        onUpdatePrts(updatedProject)
         // updatePartsLists(updatedProject);
         setModalDelete(false);
+        
         toast.success("Part deleted successfully");
       } catch (error) {
         console.error("Error deleting part:", error);
@@ -489,9 +491,9 @@ const PartsTable = React.memo(
 
                         <DropdownItem
                           href="#"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            tog_delete("delete", partsList._id);
+                          onClick={() => {
+                            setSelectedId(partsList._id);
+                            tog_delete();
                           }}
                         >
                           <i className="ri-delete-bin-6-line align-bottom me-2 text-muted"></i>{" "}
@@ -949,7 +951,7 @@ const PartsTable = React.memo(
             <ModalHeader toggle={tog_delete}>Confirm Delete</ModalHeader>
             <ModalBody>Are you sure you want to delete this part?</ModalBody>
             <ModalFooter>
-              <Button color="danger" onClick={handleDelete}>
+              <Button color="danger"  onClick={() => handleDelete(selectedId)}>
                 Delete
               </Button>
               <Button color="secondary" onClick={tog_delete}>

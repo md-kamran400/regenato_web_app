@@ -77,10 +77,8 @@ const OuterSubAssmebly = React.memo(
     // const [editModal, setEditModal] = useState(false);
     const [subAssemblyListName, setsubAssemblyListName] = useState("");
     const [selectedPartsList, setSelectedPartsList] = useState(null);
-    const tog_delete = (_id) => {
+    const tog_delete = () => {
       setModalDelete(!modal_delete);
-      setSelectedId(_id);
-      // handleDelete(_id, subAssemblyItem._id);
     };
 
     const toggleEditModal = (partsList) => {
@@ -92,6 +90,7 @@ const OuterSubAssmebly = React.memo(
         setsubAssemblyListName(selectedPartsList.subAssemblyListName);
       }
     }, [editModal, selectedPartsList]);
+
     const handleDelete = async () => {
       try {
         const response = await fetch(
@@ -107,7 +106,8 @@ const OuterSubAssmebly = React.memo(
         }
 
         const updatedProject = await response.json();
-        updatePartsLists(updatedProject);
+        // updatePartsLists(updatedProject);
+        onUpdatePrts(updatedProject)
         setModalDelete(false);
         toast.success("Part deleted successfully");
       } catch (error) {
@@ -232,11 +232,6 @@ const OuterSubAssmebly = React.memo(
       fetchParts();
       fetchManufacturingVariables();
     }, []);
-
-    // const tog_delete = (_id) => {
-    //   setModalDelete(!modal_delete);
-    //   setSelectedId(_id);
-    // };
 
     const fetchData = useCallback(async () => {
       setLoading(true);
@@ -583,9 +578,13 @@ const OuterSubAssmebly = React.memo(
                         </DropdownItem>
                         <DropdownItem
                           href="#"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            tog_delete("delete", subAssemblyItem._id);
+                          // onClick={(e) => {
+                          //   e.preventDefault();
+                          //   tog_delete("delete", subAssemblyItem._id);
+                          // }}
+                          onClick={() => {
+                            setSelectedId(subAssemblyItem._id);
+                            tog_delete();
                           }}
                         >
                           <i className="ri-delete-bin-6-line align-bottom me-2 text-muted"></i>{" "}
