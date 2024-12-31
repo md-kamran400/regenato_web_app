@@ -1696,42 +1696,52 @@ ProjectRouter.delete("/:_id/assemblyPartsLists/:listId", async (req, res) => {
   }
 });
 
+
+
 //subassebmlyfirstlist edit code
-// DELETE Route: Remove a sub-assembly list from the subAssemblyListFirst array
-// ProjectRouter.delete("/:_id/subAssemblyListFirst/:listId", async (req, res) => {
-//   const { _id, listId } = req.params;
+ProjectRouter.put("/:_id/subAssemblyListFirst/:listId", async (req, res) => {
+  const { _id, listId } = req.params; // Extract project and sub-assembly list IDs
+  const { subAssemblyListName } = req.body; // Extract new sub-assembly list name
 
+  try {
+    // Validate the incoming request body
+    if (!subAssemblyListName || typeof subAssemblyListName !== "string") {
+      return res
+        .status(400)
+        .json({ message: "Invalid or missing sub-assembly list name" });
+    }
 
-// ProjectRouter.put("/:_id/subAssemblyListFirst/:listId", async (req, res) => {
-//   const { _id, listId } = req.params; // Extract project and sub-assembly list IDs
-//   const { subAssemblyListName } = req.body; // Extract new sub-assembly list name
+    // Find the project by ID
+    const project = await ProjectModal.findById(_id);
+    if (!project) {
+      return res.status(404).json({ message: "Project not found" });
+    }
 
-//   try {
-//     const project = await ProjectModal.findById(_id);
-//     if (!project) {
-//       return res.status(404).json({ message: "Project not found" });
-//     }
+    // Find the sub-assembly list by its ID
+    const subAssemblyList = project.subAssemblyListFirst.id(listId);
+    if (!subAssemblyList) {
+      return res.status(404).json({ message: "Sub-assembly list not found" });
+    }
 
-//     const index = project.subAssemblyListFirst.findIndex(
-//       (subAssembly) => subAssembly._id.toString() === listId
-//     );
+    // Update the sub-assembly list name
+    subAssemblyList.subAssemblyListName = subAssemblyListName;
 
-//     if (index === -1) {
-//       return res.status(404).json({ message: "Sub-assembly list not found" });
-//     }
+    // Save the updated project
+    await project.save();
 
-//     project.subAssemblyListFirst.splice(index, 1);
-//     const updatedProject = await project.save();
-
-//     res.status(200).json({
-//       message: "Sub-assembly list deleted successfully",
-//       updatedProject
-//     });
-//   } catch (error) {
-//     console.error("Error deleting sub-assembly list:", error);
-//     res.status(500).json({ message: error.message });
-//   }
-// });
+    // Respond with the updated sub-assembly list
+    res.status(200).json({
+      message: "Sub-assembly list updated successfully",
+      updatedSubAssemblyList: subAssemblyList,
+    });
+  } catch (error) {
+    console.error("Error updating sub-assembly list:", error.message);
+    res.status(500).json({
+      message: "Internal Server Error",
+      error: error.message,
+    });
+  }
+});
 
 // assembly part list edit
 // project.route.js
