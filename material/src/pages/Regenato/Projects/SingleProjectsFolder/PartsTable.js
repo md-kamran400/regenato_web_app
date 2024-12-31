@@ -38,6 +38,7 @@ import { ToastContainer, toast } from "react-toastify";
 const PartsTable = React.memo(
   ({ partsList, partsListID, updatePartsLists, onAddPart, onUpdatePrts }) => {
     const { _id, listId } = useParams();
+    const rm = 'partsList'
     const [modalAdd, setModalAdd] = useState(false);
     const [modal_delete, setModalDelete] = useState(false);
     const [loading, setLoading] = useState(true);
@@ -64,7 +65,7 @@ const PartsTable = React.memo(
     const [isLoading, setIsLoading] = useState(false);
 
     const [partsListItemsUpdated, setPartsListItemsUpdated] = useState(false);
-    
+
     const [editModal, setEditModal] = useState(false);
     // const [editModal, setEditModal] = useState(false);
     const [partsListName, setPartsListName] = useState("");
@@ -73,7 +74,7 @@ const PartsTable = React.memo(
       setModalAdd(!modalAdd);
     };
 
-    console.log(partsListID,partsList._id)
+    console.log(partsListID, partsList._id);
     // console.log(partsList._id);
     // console.log(updatePartsLists)
 
@@ -132,8 +133,6 @@ const PartsTable = React.memo(
     const tog_delete = () => {
       setModalDelete(!modal_delete);
     };
-
-  
 
     // Function to toggle the edit modal
     const toggleEditModal = (partsList) => {
@@ -310,7 +309,7 @@ const PartsTable = React.memo(
         // Update local state with new part
         setPartsListsItems((prevItems) => [...prevItems, newPart]);
 
-        onUpdatePrts(newPart)
+        onUpdatePrts(newPart);
 
         setModalAdd(false);
         setIsLoading(false);
@@ -394,10 +393,10 @@ const PartsTable = React.memo(
           throw new Error("Failed to delete part");
         }
         const updatedProject = await response.json();
-        onUpdatePrts(updatedProject)
+        onUpdatePrts(updatedProject);
         // updatePartsLists(updatedProject);
         setModalDelete(false);
-        
+
         toast.success("Part deleted successfully");
       } catch (error) {
         console.error("Error deleting part:", error);
@@ -428,13 +427,17 @@ const PartsTable = React.memo(
         }
 
         const data = await response.json();
-        onUpdatePrts(data)
+        onUpdatePrts(data);
         toggleEditModal(false);
       } catch (error) {
         console.error("Error updating parts list:", error);
         // Handle the error (e.g., show an error message to the user)
       }
     };
+
+
+    console.log(_id,);
+    
 
     return (
       <>
@@ -659,7 +662,6 @@ const PartsTable = React.memo(
                     />
                   )}
                 />
-
                 <div className="form-group">
                   <Label for="partId" className="form-label">
                     Part ID
@@ -673,7 +675,6 @@ const PartsTable = React.memo(
                     required
                   />
                 </div>
-
                 <div className="form-group">
                   <Label for="costPerUnit" className="form-label">
                     Cost Per Unit
@@ -687,21 +688,35 @@ const PartsTable = React.memo(
                     required
                   />
                 </div>
-
                 <div className="form-group">
                   <Label for="timePerUnit" className="form-label">
                     Time Per Unit
                   </Label>
-                  <Input
-                    className="form-control"
-                    type="number"
-                    id="timePerUnit"
-                    value={Number(timePerUnit).toFixed(2) || "0.00"}
-                    onChange={(e) => setTimePerUnit(e.target.value)}
-                    required
-                  />
+                  <div className="input-group">
+                    <Input
+                      className="form-control"
+                      
+                      type="number"
+                      id="timePerUnit"
+                      value={Number(timePerUnit).toFixed(2) || "0.00"}
+                      onChange={(e) => setTimePerUnit(e.target.value)}
+                      required
+                    />
+                    <button
+                      className="btn btn-outline-secondary bg-success"
+                      style={{borderRadius: "5px ", color: "white"}}
+                      type="button"
+                      onClick={() => {
+                        const currentHours = parseFloat(timePerUnit);
+                        const minutes = currentHours * 60;
+                        setTimePerUnit(minutes.toFixed(2));
+                      }}
+                    >
+                      To Min
+                    </button>
+                  </div>
                 </div>
-
+                
                 <div className="form-group">
                   <Label for="quantity" className="form-label">
                     Quantity
@@ -929,7 +944,6 @@ const PartsTable = React.memo(
                     </AccordionBody>
                   </AccordionItem>
                 </UncontrolledAccordion>
-
                 <Button
                   type="submit"
                   color="primary"
@@ -950,7 +964,7 @@ const PartsTable = React.memo(
             <ModalHeader toggle={tog_delete}>Confirm Delete</ModalHeader>
             <ModalBody>Are you sure you want to delete this part?</ModalBody>
             <ModalFooter>
-              <Button color="danger"  onClick={() => handleDelete(selectedId)}>
+              <Button color="danger" onClick={() => handleDelete(selectedId)}>
                 Delete
               </Button>
               <Button color="secondary" onClick={tog_delete}>

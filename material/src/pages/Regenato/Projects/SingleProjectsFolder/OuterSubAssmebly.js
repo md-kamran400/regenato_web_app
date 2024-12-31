@@ -399,7 +399,7 @@ const OuterSubAssmebly = React.memo(
         setPartsListsItems((prevItems) => [...prevItems, newPart]);
 
         onUpdatePrts(newPart);
-        
+
         setModalAdd(false);
         setIsLoading(false);
 
@@ -669,13 +669,16 @@ const OuterSubAssmebly = React.memo(
                                       />
                                       {item.partName}
                                     </h5>
+                                    
                                     {/* Raw Materials Section */}
                                     <RawMaterial
                                       partName={item.partName}
-                                      rmVariables={item.rmVariables || {}}
+                                      rmVariables={item.rmVariables || []}
                                       projectId={_id}
                                       partId={item._id}
+                                      onUpdatePrts={onUpdatePrts} // Pass the update function from parent
                                     />
+
                                     <Manufacturing
                                       partName={item.partName}
                                       manufacturingVariables={

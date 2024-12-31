@@ -30,6 +30,8 @@ const Manufacturing = ({ partName, manufacturingVariables, projectId, partId, on
     }))
   );
 
+  
+
   useEffect(() => {
     setUpdatedManufacturingVariables(manufacturingVariables.map(item => ({
       ...item,

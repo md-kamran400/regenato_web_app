@@ -1927,4 +1927,151 @@ ProjectRouter.put("/:_id/partsLists/:listId", async (req, res) => {
 //   }
 // );
 
+
+
+
+
+//============= subAssemblylistfirst daynamic put request do not touch ======================
+ProjectRouter.put(
+  "/:projectId/subAssemblyListFirst/:subAssemblyId/items/:itemId/:variableType/:variableId",
+  async (req, res) => {
+    const { projectId, subAssemblyId, itemId, variableType, variableId } = req.params;
+    const updateData = req.body;
+//manufacturingVariables
+    // Allowed variable types for safety
+    const allowedTypes = ["rmVariables", "manufacturingVariables", "shipmentVariables", "overheadsAndProfits"];
+
+    // Check if the provided variableType is valid
+    if (!allowedTypes.includes(variableType)) {
+      return res.status(400).json({ message: "Invalid variable type" });
+    }
+
+    try {
+      // Find the project and required subAssembly
+      const project = await ProjectModal.findOne({
+        _id: projectId,
+        "subAssemblyListFirst._id": subAssemblyId,
+      });
+
+      if (!project) {
+        return res.status(404).json({ message: "Project or SubAssembly not found" });
+      }
+
+      // Locate the subAssembly
+      const subAssembly = project.subAssemblyListFirst.find(
+        (list) => list._id.toString() === subAssemblyId
+      );
+
+      if (!subAssembly) {
+        return res.status(404).json({ message: "SubAssembly not found" });
+      }
+
+      // Locate the item within the subAssembly
+      const item = subAssembly.partsListItems.find((part) => part._id.toString() === itemId);
+
+      if (!item) {
+        return res.status(404).json({ message: "Item not found" });
+      }
+
+      // Locate the variable within the item
+      const variable = item[variableType].find((v) => v._id.toString() === variableId);
+
+      if (!variable) {
+        return res.status(404).json({ message: `${variableType} entry not found` });
+      }
+
+      // Update the fields dynamically
+      Object.keys(updateData).forEach((key) => {
+        if (updateData[key] !== undefined) {
+          variable[key] = updateData[key];
+        }
+      });
+
+      // Save the updated project
+      await project.save();
+
+      res.status(200).json({
+        message: `${variableType} updated successfully`,
+        updatedVariable: variable,
+      });
+    } catch (error) {
+      res.status(500).json({ message: "An error occurred", error });
+    }
+  }
+);
+
+
+
+
+
+// ============== partlist daynamic put request do not touch =======================
+ProjectRouter.put(
+  "/:projectId/partsLists/:partsListId/items/:itemId/:variableType/:variableId",
+  async (req, res) => {
+    const { projectId, partsListId, itemId, variableType, variableId } = req.params;
+    const updateData = req.body;
+
+    // Allowed variable types for safety
+    const allowedTypes = ["rmVariables", "manufacturingVariables", "shipmentVariables", "overheadsAndProfits"];
+
+    // Check if the provided variableType is valid
+    if (!allowedTypes.includes(variableType)) {
+      return res.status(400).json({ message: "Invalid variable type" });
+    }
+
+    try {
+      // Find the project and required partsList
+      const project = await ProjectModal.findOne({
+        _id: projectId,
+        "partsLists._id": partsListId,
+      });
+
+      if (!project) {
+        return res.status(404).json({ message: "Project or PartsList not found" });
+      }
+
+      // Locate the partsList
+      const partsList = project.partsLists.find(
+        (list) => list._id.toString() === partsListId
+      );
+
+      if (!partsList) {
+        return res.status(404).json({ message: "PartsList not found" });
+      }
+
+      // Locate the item within the partsList
+      const item = partsList.partsListItems.find((part) => part._id.toString() === itemId);
+
+      if (!item) {
+        return res.status(404).json({ message: "Item not found" });
+      }
+
+      // Locate the variable within the item
+      const variable = item[variableType].find((v) => v._id.toString() === variableId);
+
+      if (!variable) {
+        return res.status(404).json({ message: `${variableType} entry not found` });
+      }
+
+      // Update the fields dynamically
+      Object.keys(updateData).forEach((key) => {
+        if (updateData[key] !== undefined) {
+          variable[key] = updateData[key];
+        }
+      });
+
+      // Save the updated project
+      await project.save();
+
+      res.status(200).json({
+        message: `${variableType} updated successfully`,
+        updatedVariable: variable,
+      });
+    } catch (error) {
+      res.status(500).json({ message: "An error occurred", error });
+    }
+  }
+);
+
+
 module.exports = { ProjectRouter };
