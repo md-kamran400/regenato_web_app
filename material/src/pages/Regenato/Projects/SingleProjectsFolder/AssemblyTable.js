@@ -121,7 +121,7 @@ const AssemblyTable = React.memo(
     // const fetchExistingSubAssemblyLists = useCallback(async () => {
     //   try {
     //     const response = await fetch(
-    //       `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/assemblyPartsLists/${assemblypartsList._id}/subAssemblyPartsLists`
+    //       ${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/assemblyPartsLists/${assemblypartsList._id}/subAssemblyPartsLists
     //     );
     //     const data = await response.json();
     //     if (Array.isArray(data)) {
@@ -180,7 +180,7 @@ const AssemblyTable = React.memo(
       // This will cause a re-render when existingSubAssemblyLists changes
     }, [existingSubAssemblyLists]);
 
-    //  =================  ***********11******===========
+    //  =================  **********11*===========
     const handleUpdateAssemblyLists = useCallback((updatedAssembly) => {
       setSubAssemblyItems((prevItems) =>
         prevItems.map((item) =>
@@ -207,6 +207,7 @@ const AssemblyTable = React.memo(
                   subAssemblyItems={subAssemblyItem}
                   assemblyId={assemblypartsList._id}
                   // onUpdateSubAssembly={handleSubAssemblyUpdate}
+                  onUpdatePrts={onUpdatePrts}
                   onAddAssembly={handleAddAssembly}
                 />
               </div>
@@ -217,9 +218,9 @@ const AssemblyTable = React.memo(
         </div>
       );
     }, [subAssemblyItems, handleUpdateAssemblyLists, handleAddAssembly]);
-    //  =================  ***********11******===========
+    //  =================  **********11*===========
 
-    //  =================  *********22********===========
+    //  =================  ********22*===========
     const MulityhandleUpdateAssemblyLists = useCallback((updatedAssembly) => {
       setpartsAssmeblyItems((prevItems) =>
         prevItems.map((item) =>
@@ -247,6 +248,7 @@ const AssemblyTable = React.memo(
                   partsAssmeblyItems={partsAssmeblyItem}
                   assemblyId={assemblypartsList._id}
                   // onUpdateSubAssembly={handleMultySubAssemblyUpdate}
+                  onUpdatePrts={onUpdatePrts}
                   onAddAssembly={MulityhandleAddAssembly}
                 />
               </div>
@@ -301,6 +303,7 @@ const AssemblyTable = React.memo(
     const toggleEditModal = (partsList) => {
       setEditModal(!editModal);
       setSelectedPartsList(partsList);
+      setassemblyListName(partsList.assemblyListName);
     };
     // assemblyListName
     // useEffect to set partsListName when editModal is opened
@@ -554,11 +557,12 @@ const AssemblyTable = React.memo(
         toast.error("Failed to delete part. Please try again.");
       }
     };
-    //  `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/assemblyPartsLists/${assemblypartsList._id}`,
+    //  ${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/assemblyPartsLists/${assemblypartsList._id},
 
     const handleEdit = async (e) => {
       e.preventDefault();
-      const assemblyListName = e.target.assemblyListName.value;
+      // const assemblyListName = e.target.assemblyListName.value;
+      const assemblyListName = assemblyListName;
 
       try {
         const response = await fetch(
@@ -590,7 +594,7 @@ const AssemblyTable = React.memo(
     //   async ({ subAssemblyListName }) => {
     //     try {
     //       const response = await fetch(
-    //         `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/subAssemblyPartsLists`,
+    //         ${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/subAssemblyPartsLists,
     //         {
     //           method: "POST",
     //           headers: { "Content-Type": "application/json" },
@@ -681,7 +685,7 @@ const AssemblyTable = React.memo(
     const handleMultySubmitpartsAssmebly = async () => {
       try {
         const response = await fetch(
-          `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/assemblyPartsLists/${assemblypartsList._id}/assemblyMultyPartsList`,
+          ` ${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/assemblyPartsLists/${assemblypartsList._id}/assemblyMultyPartsList`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -695,7 +699,7 @@ const AssemblyTable = React.memo(
         if (!response.ok) {
           const errorData = await response.text();
           throw new Error(
-            `HTTP error! status: ${response.status}, data: ${errorData}`
+            HTTP`error! status: ${response.status}, data: ${errorData}`
           );
         }
 
@@ -850,7 +854,7 @@ const AssemblyTable = React.memo(
                 <div>No sub-assemblies available.</div>
               )} */}
                 {SubrenderAssemblyContent()}
-                
+
                 {MulitySubrenderAssemblyContent()}
                 {/* {Array.isArray(partsAssmeblyItems) &&
               partsAssmeblyItems.length > 0 ? (
@@ -1290,11 +1294,19 @@ const AssemblyTable = React.memo(
             <form onSubmit={(e) => handleEdit(e)}>
               <div className="form-group">
                 <Label for="assemblyListName">Assembly List Name</Label>
-                <Input
+                {/* <Input
                   type="text"
                   id="assemblyListName"
                   name="assemblyListName"
                   defaultValue={assemblyListName}
+                  required
+                /> */}
+                <Input
+                  type="text"
+                  id="assemblyListName"
+                  name="assemblyListName"
+                  value={assemblyListName}
+                  onChange={(e) => setassemblyListName(e.target.value)}
                   required
                 />
               </div>

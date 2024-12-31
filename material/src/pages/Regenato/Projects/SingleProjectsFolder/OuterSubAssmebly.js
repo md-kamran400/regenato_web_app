@@ -107,7 +107,7 @@ const OuterSubAssmebly = React.memo(
 
         const updatedProject = await response.json();
         // updatePartsLists(updatedProject);
-        onUpdatePrts(updatedProject)
+        onUpdatePrts(updatedProject);
         setModalDelete(false);
         toast.success("Part deleted successfully");
       } catch (error) {
@@ -396,30 +396,13 @@ const OuterSubAssmebly = React.memo(
 
         const newPart = await response.json();
 
-        // Update local state with new part
-        // const updatedsubAssemblyItemItems = [
-        //   ...(subAssemblyItem.partsListItems || []),
-        //   newPart,
-        // ];
-        // const updatedsubAssemblyItem = {
-        //   ...subAssemblyItem,
-        //   partsListItems: updatedsubAssemblyItemItems,
-        // };
-
-        // Update parent component state
-        // updatesubAssemblyItems(updatedsubAssemblyItem);
-
-        // Call the onAddPart callback to update the parent component
-        // Update local state with new
-
         setPartsListsItems((prevItems) => [...prevItems, newPart]);
 
-        onAddPart(newPart);
-        setPartsListItemsUpdated(true);
+        onUpdatePrts(newPart);
+        
         setModalAdd(false);
         setIsLoading(false);
 
-        // Reset form
         setSelectedPartData(null);
         setCostPerUnit("");
         setTimePerUnit("");

@@ -310,8 +310,7 @@ const PartsTable = React.memo(
         // Update local state with new part
         setPartsListsItems((prevItems) => [...prevItems, newPart]);
 
-        // Call the onAddPart callback to update the parent component
-        onAddPart(newPart);
+        onUpdatePrts(newPart)
 
         setModalAdd(false);
         setIsLoading(false);
