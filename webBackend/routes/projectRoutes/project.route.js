@@ -1920,33 +1920,77 @@ ProjectRouter.put("/:_id/partsLists/:listId", async (req, res) => {
 
 // delete partsListItems
 // Add this new route after the existing ones
-ProjectRouter.delete("/:_id/partsLists/:listId/items/:itemId",  async (req, res) => {
-      try {
-        const project = await ProjectModal.findById(req.params._id);
-        if (!project) {
-          return res.status(404).json({ message: "Project not found" });
-        }
+// ProjectRouter.delete("/:_id/partsLists/:listId/items/:itemId",  async (req, res) => {
+//       try {
+//         const project = await ProjectModal.findById(req.params._id);
+//         if (!project) {
+//           return res.status(404).json({ message: "Project not found" });
+//         }
   
-        const partsList = project.partsLists.id(req.params.listId);
-        if (!partsList) {
-          return res.status(404).json({ message: "Parts list not found" });
-        }
+//         const partsList = project.partsLists.id(req.params.listId);
+//         if (!partsList) {
+//           return res.status(404).json({ message: "Parts list not found" });
+//         }
   
-        const part = partsList.partsListItems.id(req.params.itemId);
-        if (!part) {
-          return res.status(404).json({ message: "Part not found" });
-        }
+//         const part = partsList.partsListItems.id(req.params.itemId);
+//         if (!part) {
+//           return res.status(404).json({ message: "Part not found" });
+//         }
   
-        part.remove();
+//         part.remove();
   
-        const updatedProject = await project.save();
-        res.status(200).json(updatedProject);
-      } catch (error) {
-        res.status(500).json({ message: error.message });
-      }
-    }
-  );
+//         const updatedProject = await project.save();
+//         res.status(200).json(updatedProject);
+//       } catch (error) {
+//         res.status(500).json({ message: error.message });
+//       }
+//     }
+//   );
 
+
+// DELETE Route: Remove a specific item from a parts list
+ProjectRouter.delete(
+  "/:_id/partsLists/:listId/items/:itemId",
+  async (req, res) => {
+    try {
+      const { _id, listId, itemId } = req.params;
+
+      // Find the project by ID
+      const project = await ProjectModal.findById(_id);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+
+      // Find the specific parts list by ID
+      const partsList = project.partsLists.id(listId);
+      if (!partsList) {
+        return res.status(404).json({ message: "Parts list not found" });
+      }
+
+      // Find the specific item in the parts list and remove it
+      const item = partsList.partsListItems.id(itemId);
+      if (!item) {
+        return res.status(404).json({ message: "Part not found in the list" });
+      }
+
+      item.remove();
+
+      // Save the updated project
+      const updatedProject = await project.save();
+
+      res.status(200).json({
+        message: "Part removed successfully",
+        project: updatedProject,
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Server error", error: error.message });
+    }
+  }
+);
+
+
+
+  
 
 
 
