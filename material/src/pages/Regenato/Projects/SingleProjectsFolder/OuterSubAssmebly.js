@@ -349,10 +349,7 @@ const OuterSubAssmebly = React.memo(
         );
         const data = await response.json();
         setPartsDisplay(data.partsListItems || []);
-        console.log(
-          "hello wrold this is my data of re fetching",
-          data.partsListItems
-        );
+       
       } catch (error) {
         setError(error.message);
       } finally {
@@ -663,6 +660,7 @@ const OuterSubAssmebly = React.memo(
                                       partId={subAssemblyItem._id}
                                       itemId={item._id}
                                       source="subAssemblyListFirst"
+                                      rawMatarialsUpdate={onUpdatePrts}
                                     />
 
                                     <Manufacturing
@@ -677,6 +675,7 @@ const OuterSubAssmebly = React.memo(
                                         updateManufacturingVariable
                                       }
                                       source="subAssemblyListFirst"
+                                      manufatcuringUpdate={onUpdatePrts}
                                     />
 
                                     <Shipment
@@ -688,6 +687,7 @@ const OuterSubAssmebly = React.memo(
                                       partId={subAssemblyItem._id}
                                       itemId={item._id}
                                       source="subAssemblyListFirst"
+                                      shipmentUpdate={onUpdatePrts}
                                     />
                                     <Overheads
                                       partName={item.partName}
@@ -698,6 +698,7 @@ const OuterSubAssmebly = React.memo(
                                         item.overheadsAndProfits
                                       }
                                       source="subAssemblyListFirst"
+                                      overHeadsUpdate={onUpdatePrts}
                                     />
                                   </div>
                                 </td>

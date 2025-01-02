@@ -74,7 +74,6 @@ const PartsTable = React.memo(
       setModalAdd(!modalAdd);
     };
 
-    console.log(partsListID, partsList._id);
     // console.log(partsList._id);
     // console.log(updatePartsLists)
 
@@ -462,7 +461,7 @@ const PartsTable = React.memo(
       }
     };
 
-    console.log(_id);
+    // console.log(_id);
 
     return (
       <>
@@ -708,22 +707,17 @@ const PartsTable = React.memo(
                                     /> */}
                                     <Shipment
                                       partName={item.partName}
-                                      shipmentVariables={
-                                        item.shipmentVariables || []
-                                      }
                                       projectId={_id}
                                       partId={partsList._id}
                                       itemId={item._id}
                                       source="partList"
                                       shipmentUpdate={onUpdatePrts}
+                                      shipmentVariables={
+                                        item.shipmentVariables || []
+                                      }
                                     />
 
-                                    {/* <Overheads
-                                      partName={item.partName}
-                                      overheadsAndProfits={
-                                        item.overheadsAndProfits
-                                      }
-                                    /> */}
+                                    
                                     <Overheads
                                       partName={item.partName}
                                       overheadsAndProfits={

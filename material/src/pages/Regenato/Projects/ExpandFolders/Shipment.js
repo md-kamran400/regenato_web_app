@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState,useEffect } from "react";
 import "./Matarials.css";
 import { FaEdit } from "react-icons/fa";
 import { MdDelete } from "react-icons/md";
@@ -27,12 +27,17 @@ const Shipment = ({
     totalRate: "",
   });
 
-  const [updatedShipmentVariables, setUpdatedShipmentVariables] = useState(
-    shipmentVariables.map((ship) => ({
-      ...ship,
-      totalRate: ship.totalRate || 0,
-    }))
-  );
+  const [updatedShipmentVariables, setUpdatedShipmentVariables] = useState([]);
+
+  // useEffect to update local state when shipmentVariables prop changes
+  useEffect(() => {
+    setUpdatedShipmentVariables(
+      shipmentVariables.map((ship) => ({
+        ...ship,
+        totalRate: ship.totalRate || 0,
+      }))
+    );
+  }, [shipmentVariables]);
 
   // Toggle edit modal
   const tog_edit = (item = null) => {
@@ -139,7 +144,7 @@ const Shipment = ({
     e.preventDefault();
     setPosting(true);
     setError(null);
-  
+
     try {
       const endpoint = getApiEndpoint(editId); // Pass editId here
       const response = await fetch(endpoint, {
@@ -153,19 +158,19 @@ const Shipment = ({
           totalRate: parseFloat(formData.totalRate),
         }),
       });
-  
+
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to update shipment variable");
+        throw new Error(
+          errorData.message || "Failed to update shipment variable"
+        );
       }
-  
+
       const updatedData = await response.json();
-      setUpdatedShipmentVariables((prevVariables) =>
-        prevVariables.map((ship) =>
-          ship._id === updatedData._id ? updatedData : ship
-        )
+       setUpdatedShipmentVariables((prevVariables) =>
+        prevVariables.map((ship) => (ship._id === updatedData._id ? updatedData : ship))
       );
-      shipmentUpdate(updatedData)
+      shipmentUpdate(updatedData);
       toast.success("Shipment variable updated successfully");
       setModalEdit(false);
       resetForm();
@@ -176,31 +181,32 @@ const Shipment = ({
       setPosting(false);
     }
   };
-  
 
   const handleDelete = async () => {
     setPosting(true);
     setError(null);
-  
+
     try {
       const endpoint = getApiEndpoint(deleteId); // Pass deleteId here
       const response = await fetch(endpoint, {
         method: "DELETE",
       });
-  
+
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to delete shipment variable");
+        throw new Error(
+          errorData.message || "Failed to delete shipment variable"
+        );
       }
-  
+
       // Update the local state to remove the deleted item
       setUpdatedShipmentVariables((prevVariables) =>
         prevVariables.filter((ship) => ship._id !== deleteId)
       );
 
       const updateData = await response.json();
-      shipmentUpdate(updateData)
-  
+      shipmentUpdate(updateData);
+
       toast.success("Shipment variable deleted successfully");
       setModalDelete(false);
     } catch (error) {
@@ -211,7 +217,6 @@ const Shipment = ({
       setPosting(false);
     }
   };
-  
 
   return (
     <div className="shipment-container">
@@ -306,20 +311,20 @@ const Shipment = ({
         </ModalBody>
       </Modal>
       {/* Delete Confirmation Modal */}
-            <Modal isOpen={modal_delete} toggle={tog_delete}>
-              <ModalHeader toggle={tog_delete}>Confirm Deletion</ModalHeader>
-              <ModalBody>
-                Are you sure you want to delete this raw material?
-              </ModalBody>
-              <ModalFooter>
-                <Button color="danger" onClick={handleDelete} disabled={posting}>
-                  {posting ? "Deleting..." : "Delete"}
-                </Button>
-                <Button color="secondary" onClick={tog_delete}>
-                  Cancel
-                </Button>
-              </ModalFooter>
-            </Modal>
+      <Modal isOpen={modal_delete} toggle={tog_delete}>
+        <ModalHeader toggle={tog_delete}>Confirm Deletion</ModalHeader>
+        <ModalBody>
+          Are you sure you want to delete this raw material?
+        </ModalBody>
+        <ModalFooter>
+          <Button color="danger" onClick={handleDelete} disabled={posting}>
+            {posting ? "Deleting..." : "Delete"}
+          </Button>
+          <Button color="secondary" onClick={tog_delete}>
+            Cancel
+          </Button>
+        </ModalFooter>
+      </Modal>
     </div>
   );
 };

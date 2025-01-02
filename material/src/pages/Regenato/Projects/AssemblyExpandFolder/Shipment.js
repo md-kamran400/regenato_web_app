@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState,useEffect } from "react";
 import "./Matarials.css";
 import { FaEdit } from "react-icons/fa";
 import { MdDelete } from "react-icons/md";
@@ -28,12 +28,17 @@ const Shipment = ({
     totalRate: "",
   });
 
-  const [updatedShipmentVariables, setUpdatedShipmentVariables] = useState(
-    shipmentVariables.map((ship) => ({
-      ...ship,
-      totalRate: ship.totalRate || 0,
-    }))
-  );
+  const [updatedShipmentVariables, setUpdatedShipmentVariables] = useState([]);
+
+  // useEffect to update local state when shipmentVariables prop changes
+  useEffect(() => {
+    setUpdatedShipmentVariables(
+      shipmentVariables.map((ship) => ({
+        ...ship,
+        totalRate: ship.totalRate || 0,
+      }))
+    );
+  }, [shipmentVariables]);
 
   // Toggle edit modal
   const tog_edit = (item = null) => {
@@ -118,9 +123,7 @@ const Shipment = ({
   
       const updatedData = await response.json();
       setUpdatedShipmentVariables((prevVariables) =>
-        prevVariables.map((ship) =>
-          ship._id === updatedData._id ? updatedData : ship
-        )
+        prevVariables.map((ship) => (ship._id === updatedData._id ? updatedData : ship))
       );
       shipmentUpdate(updatedData)
       toast.success("Shipment variable updated successfully");

@@ -111,8 +111,8 @@ const AssmblyMultyPart = React.memo(
     }, [partsListItemsUpdated]);
 
     useEffect(() => {
-      console.log("Received partsAssmeblyItems:", partsAssmeblyItems);
-      console.log("Received Id:", assemblyId);
+      // console.log("Received partsAssmeblyItems:", partsAssmeblyItems);
+      // console.log("Received Id:", assemblyId);
 
       // Access the subAssemblyListName
       // const subAssemblyListName = partsAssmeblyItems.subAssemblyListName;

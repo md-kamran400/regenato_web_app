@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "./Matarials.css";
 import { FaEdit } from "react-icons/fa";
 import { MdDelete } from "react-icons/md";
@@ -27,12 +27,18 @@ const Overheads = ({
     totalRate: "",
   });
 
-  const [updatedOverheads, setUpdatedOverheads] = useState(
-    overheadsAndProfits.map((overhead) => ({
-      ...overhead,
-      totalRate: overhead.totalRate || 0,
-    }))
-  );
+  // State to store updated overheads
+  const [updatedOverheads, setUpdatedOverheads] = useState([]);
+
+  // useEffect to update local state when overheadsAndProfits prop changes
+  useEffect(() => {
+    setUpdatedOverheads(
+      overheadsAndProfits.map((overhead) => ({
+        ...overhead,
+        totalRate: overhead.totalRate || 0,
+      }))
+    );
+  }, [overheadsAndProfits]);
 
   // Toggle edit modal
   const tog_edit = (item = null) => {
@@ -116,7 +122,13 @@ const Overheads = ({
       }
 
       const updatedData = await response.json();
-      overHeadsUpdate(updatedData)
+      // Update local state
+      setUpdatedOverheads((prevOverheads) =>
+        prevOverheads.map((overhead) =>
+          overhead._id === updatedData._id ? updatedData : overhead
+        )
+      );
+      overHeadsUpdate(updatedData);
 
       toast.success("Overheads updated successfully");
       setModalEdit(false);
@@ -145,7 +157,7 @@ const Overheads = ({
       }
 
       const updatedData = await response.json();
-      overHeadsUpdate(updatedData)
+      overHeadsUpdate(updatedData);
 
       toast.success("Raw material deleted successfully");
       setModalDelete(false);
@@ -160,9 +172,7 @@ const Overheads = ({
 
   return (
     <div className="overheads-container">
-      <h5 className="section-title">
-        💰 Overheads and Profits for {partName}
-      </h5>
+      <h5 className="section-title">💰 Overheads and Profits for {partName}</h5>
       <table className="table align-middle table-nowrap">
         <thead className="table-light">
           <tr>
@@ -271,7 +281,6 @@ const Overheads = ({
       </Modal>
     </div>
   );
-
 };
 
 export default Overheads;
