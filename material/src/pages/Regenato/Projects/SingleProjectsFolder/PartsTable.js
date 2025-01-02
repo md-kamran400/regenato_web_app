@@ -38,7 +38,7 @@ import { ToastContainer, toast } from "react-toastify";
 const PartsTable = React.memo(
   ({ partsList, partsListID, updatePartsLists, onAddPart, onUpdatePrts }) => {
     const { _id, listId } = useParams();
-    const rm = 'partsList'
+    const rm = "partsList";
     const [modalAdd, setModalAdd] = useState(false);
     const [modal_delete, setModalDelete] = useState(false);
     const [loading, setLoading] = useState(true);
@@ -313,7 +313,7 @@ const PartsTable = React.memo(
 
         setModalAdd(false);
         setIsLoading(false);
-
+        toast.success("New Part List Added successfully");
         // Reset form
         setSelectedPartData(null);
         setCostPerUnit("");
@@ -326,6 +326,7 @@ const PartsTable = React.memo(
       } catch (error) {
         console.error("Error:", error);
         setError("Failed to add part. Please try again.");
+        toast.error("Failed to add part. Please try again.");
       } finally {
         setIsLoading(false);
       }
@@ -355,20 +356,44 @@ const PartsTable = React.memo(
       }
     };
 
+    // const updateManufacturingVariable = (updatedVariable) => {
+    //   setPartDetails((prevData) => {
+    //     const updatedAllProjects = prevData.allProjects.map((project) => {
+    //       if (project._id === updatedVariable.projectId) {
+    //         return {
+    //           ...project,
+    //           manufacturingVariables: project.manufacturingVariables.map(
+    //             (variable) => {
+    //               if (variable._id === updatedVariable._id) {
+    //                 return updatedVariable;
+    //               }
+    //               return variable;
+    //             }
+    //           ),
+    //         };
+    //       }
+    //       return project;
+    //     });
+    //     return {
+    //       ...prevData,
+    //       allProjects: updatedAllProjects,
+    //     };
+    //   });
+    // };
     const updateManufacturingVariable = (updatedVariable) => {
       setPartDetails((prevData) => {
-        const updatedAllProjects = prevData.allProjects.map((project) => {
+        const updatedAllProjects = prevData.allProjects?.map((project) => {
           if (project._id === updatedVariable.projectId) {
             return {
               ...project,
-              manufacturingVariables: project.manufacturingVariables.map(
-                (variable) => {
-                  if (variable._id === updatedVariable._id) {
-                    return updatedVariable;
-                  }
-                  return variable;
+              manufacturingVariables: (
+                project.manufacturingVariables || []
+              ).map((variable) => {
+                if (variable._id === updatedVariable._id) {
+                  return updatedVariable;
                 }
-              ),
+                return variable;
+              }),
             };
           }
           return project;
@@ -429,15 +454,15 @@ const PartsTable = React.memo(
         const data = await response.json();
         onUpdatePrts(data);
         toggleEditModal(false);
+        toast.success("Part Edited successfully");
       } catch (error) {
         console.error("Error updating parts list:", error);
         // Handle the error (e.g., show an error message to the user)
+        toast.error("Failed to Edited part. Please try again.");
       }
     };
 
-
-    console.log(_id,);
-    
+    console.log(_id);
 
     return (
       <>
@@ -450,22 +475,47 @@ const PartsTable = React.memo(
         )}
         <Col
           lg={12}
-          style={{ boxSizing: "border-box", borderTop: "5px solid green" }}
+          style={{
+            boxSizing: "border-box",
+            borderTop: "20px solid rgb(69, 203, 133)",
+            borderRadius: "5px"
+          }}
         >
           <Row>
             <Col lg={12}>
               <Card>
                 <CardBody>
-                  <div className="button-group flex justify-content-between align-items-center">
-                    <h4 style={{ fontWeight: "600" }}>
-                      {partsList.partsListName}
-                    </h4>
+                  <div
+                    style={{
+                      padding: "5px 10px 0px 10px",
+                      borderRadius: "3px",
+                    }}
+                    className="button-group flex justify-content-between align-items-center"
+                    // danger primary
+                  >
+                    <ul
+                      style={{
+                        listStyleType: "none",
+                        padding: 0,
+                        fontWeight: "600",
+                      }}
+                    >
+                      <li style={{ fontSize: "25px", marginBottom: "5px" }}>
+                        {partsList.partsListName}
+                      </li>
+
+                      <li style={{fontSize: "19px"}}><span class="badge bg-success-subtle text-success">
+                        Parts
+                      </span></li>
+                    </ul>
+
                     <UncontrolledDropdown direction="left">
                       <DropdownToggle
                         tag="button"
                         className="btn btn-link text-muted p-1 mt-n2 py-0 text-decoration-none fs-15 shadow-none"
                       >
                         <FeatherIcon
+                          style={{ fontWeight: "600" }}
                           icon="more-horizontal"
                           className="icon-sm"
                         />
@@ -506,6 +556,7 @@ const PartsTable = React.memo(
                       </DropdownMenu>
                     </UncontrolledDropdown>
                   </div>
+
                   <div className="button-group">
                     <Button
                       color="success"
@@ -542,7 +593,10 @@ const PartsTable = React.memo(
                                 expandedRowId === item._id ? "expanded" : ""
                               }
                             >
-                              <td className="parent_partName">
+                              <td
+                                style={{ cursor: "pointer", color: "#64B5F6" }}
+                                className="parent_partName"
+                              >
                                 {item.partName} ({item.Uid || ""})
                               </td>
                               <td>
@@ -598,38 +652,89 @@ const PartsTable = React.memo(
                                       {item.partName}
                                     </h5>
                                     {/* Raw Materials Section */}
-                                    <RawMaterial
+                                    {/* <RawMaterial
                                       partName={item.partName}
                                       rmVariables={item.rmVariables || {}}
                                       projectId={_id}
                                       partId={item._id}
+                                      source="partList"
+                                    /> */}
+                                    <RawMaterial
+                                      partName={item.partName}
+                                      rmVariables={item.rmVariables}
+                                      projectId={_id} //project id
+                                      partId={partsList._id} // parts List Id
+                                      itemId={item._id} //items id
+                                      source="partList"
+                                      rawMatarialsUpdate={onUpdatePrts}
                                     />
+
+                                    {/* <Manufacturing
+                                      partName={item.partName}
+                                      manufacturingVariables={
+                                        item.manufacturingVariables || []
+                                      }
+                                      projectId={_id}
+                                      partId={partsList._id}
+                                      itemId={item._id}
+                                      onUpdateVariable={
+                                        updateManufacturingVariable
+                                      }
+                                      onTotalCountUpdate={() => {}}
+                                      source="partList"
+                                    /> */}
                                     <Manufacturing
                                       partName={item.partName}
                                       manufacturingVariables={
                                         item.manufacturingVariables || []
                                       }
                                       projectId={_id}
-                                      partId={item._id}
+                                      partId={partsList._id}
+                                      itemId={item._id}
                                       onUpdateVariable={
                                         updateManufacturingVariable
                                       }
-                                      onTotalCountUpdate={() => {}}
+                                      source="partList"
+                                      manufatcuringUpdate={onUpdatePrts}
                                     />
 
-                                    <Shipment
+                                    {/* <Shipment
                                       partName={item.partName}
                                       shipmentVariables={
                                         item.shipmentVariables || []
                                       }
                                       projectId={_id}
                                       partId={item._id}
+                                    /> */}
+                                    <Shipment
+                                      partName={item.partName}
+                                      shipmentVariables={
+                                        item.shipmentVariables || []
+                                      }
+                                      projectId={_id}
+                                      partId={partsList._id}
+                                      itemId={item._id}
+                                      source="partList"
+                                      shipmentUpdate={onUpdatePrts}
                                     />
-                                    <Overheads
+
+                                    {/* <Overheads
                                       partName={item.partName}
                                       overheadsAndProfits={
                                         item.overheadsAndProfits
                                       }
+                                    /> */}
+                                    <Overheads
+                                      partName={item.partName}
+                                      overheadsAndProfits={
+                                        item.overheadsAndProfits || []
+                                      }
+                                      projectId={_id}
+                                      partId={partsList._id}
+                                      itemId={item._id}
+                                      source="partList"
+                                      // onUpdatePrts={onUpdatePrts}
+                                      overHeadsUpdate={onUpdatePrts}
                                     />
                                   </div>
                                 </td>
@@ -646,7 +751,7 @@ const PartsTable = React.memo(
           </Row>
 
           <Modal isOpen={modalAdd} toggle={toggleAddModal}>
-            <ModalHeader toggle={toggleAddModal}>Add Part List</ModalHeader>
+            <ModalHeader toggle={toggleAddModal}>Add Part</ModalHeader>
             <ModalBody>
               <form onSubmit={handleSubmit}>
                 <Autocomplete
@@ -695,7 +800,6 @@ const PartsTable = React.memo(
                   <div className="input-group">
                     <Input
                       className="form-control"
-                      
                       type="number"
                       id="timePerUnit"
                       value={Number(timePerUnit).toFixed(2) || "0.00"}
@@ -704,7 +808,7 @@ const PartsTable = React.memo(
                     />
                     <button
                       className="btn btn-outline-secondary bg-success"
-                      style={{borderRadius: "5px ", color: "white"}}
+                      style={{ borderRadius: "5px ", color: "white" }}
                       type="button"
                       onClick={() => {
                         const currentHours = parseFloat(timePerUnit);
@@ -716,7 +820,7 @@ const PartsTable = React.memo(
                     </button>
                   </div>
                 </div>
-                
+
                 <div className="form-group">
                   <Label for="quantity" className="form-label">
                     Quantity

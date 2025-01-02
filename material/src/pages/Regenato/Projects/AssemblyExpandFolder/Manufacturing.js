@@ -1,18 +1,18 @@
-import React, { useState } from "react";
-import "./Matarials.css";
-import { Button, Modal, ModalBody, ModalFooter, ModalHeader } from "reactstrap";
-import { CiSettings } from "react-icons/ci";
+import React, { useState, useEffect, useCallback } from "react";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import "./Matarials.css";
+import { Button, Modal, ModalBody, ModalFooter, ModalHeader } from "reactstrap";
 
-const RawMaterial = ({
+const Manufacturing = ({
   partName,
-  rmVariables,
+  manufacturingVariables,
   projectId,
   partId,
   itemId,
   source,
-  rawMatarialsUpdate,
+  assemblyId,
+  manufatcuringUpdate,
 }) => {
   const [modal_edit, setModalEdit] = useState(false);
   const [modal_delete, setModalDelete] = useState(false);
@@ -22,17 +22,36 @@ const RawMaterial = ({
   const [deleteId, setDeleteId] = useState(null);
   const [formData, setFormData] = useState({
     name: "",
-    netWeight: "",
-    pricePerKg: "",
+    hours: "",
+    hourlyRate: "",
     totalRate: "",
   });
 
+  const [updatedManufacturingVariables, setUpdatedManufacturingVariables] =
+    useState(
+      manufacturingVariables.map((item) => ({
+        ...item,
+        totalRate: item.totalRate || 0,
+      }))
+    );
+
+  // Sync with new manufacturing variables
+  useEffect(() => {
+    setUpdatedManufacturingVariables(
+      manufacturingVariables.map((item) => ({
+        ...item,
+        totalRate: item.totalRate || 0,
+      }))
+    );
+  }, [manufacturingVariables]);
+
+  // Toggle edit modal
   const tog_edit = (item = null) => {
     if (item) {
       setFormData({
         name: item.name,
-        netWeight: item.netWeight,
-        pricePerKg: item.pricePerKg,
+        hours: item.hours,
+        hourlyRate: item.hourlyRate,
         totalRate: item.totalRate,
       });
       setEditId(item._id);
@@ -47,52 +66,94 @@ const RawMaterial = ({
     setModalDelete(!modal_delete);
   };
 
+  // Reset form data
   const resetForm = () => {
     setFormData({
       name: "",
-      netWeight: "",
-      pricePerKg: "",
+      hours: "",
+      hourlyRate: "",
       totalRate: "",
     });
     setEditId(null);
   };
 
-  const calculateTotalRate = (netWeight, pricePerKg) => {
-    const weight = parseFloat(netWeight) || 0;
-    const price = parseFloat(pricePerKg) || 0;
-    return Math.round(weight * price + 0.5);
-  };
-
+  // Handle input changes
   const handleChange = (e) => {
     const { name, value } = e.target;
-
-    setFormData((prev) => {
-      const newData = { ...prev, [name]: value };
-      if (name === "netWeight" || name === "pricePerKg") {
-        const netWeight = name === "netWeight" ? value : prev.netWeight;
-        const pricePerKg = name === "pricePerKg" ? value : prev.pricePerKg;
-        newData.totalRate = calculateTotalRate(netWeight, pricePerKg);
+    setFormData((prevFormData) => {
+      const updatedFormData = {
+        ...prevFormData,
+        [name]: value,
+      };
+      // Calculate totalRate using the updated hourlyRate and hours
+      if (name === "hourlyRate" || name === "hours") {
+        updatedFormData.totalRate =
+          (parseFloat(updatedFormData.hourlyRate) || 0) *
+          (parseFloat(updatedFormData.hours) || 0);
       }
-      return newData;
+
+      return updatedFormData;
     });
   };
 
+
   const getApiEndpoint = (id) => {
-    if (source === "partList") {
-      return `${process.env.REACT_APP_BASE_URL}/api/projects/${projectId}/partsLists/${partId}/items/${itemId}/rmVariables/${id}`;
-    } else if (source === "subAssemblyListFirst") {
-      return `${process.env.REACT_APP_BASE_URL}/api/projects/${projectId}/subAssemblyListFirst/${partId}/items/${itemId}/rmVariables/${id}`;
+    if (source === "subAssemblyPartsLists") {
+      return `${process.env.REACT_APP_BASE_URL}/api/projects/${projectId}/assemblyPartsLists/${assemblyId}/subAssemblyPartsLists/${partId}/items/${itemId}/manufacturingVariables/${id}`;
+    } else if (source === "assemblyMultyPartsList") {
+      return `${process.env.REACT_APP_BASE_URL}/api/projects/${projectId}/assemblyPartsLists/${assemblyId}/assemblyMultyPartsList/${partId}/items/${itemId}/manufacturingVariables/${id}`;
     }
     throw new Error("Invalid source");
   };
 
+  // Submit edited data
+  // const handleEditSubmit = async (e) => {
+  //   e.preventDefault();
+  //   setPosting(true);
+  //   setError(null);
+
+  //   try {
+  //     const endpoint = getApiEndpoint();
+  //     const response = await fetch(endpoint, {
+  //       method: "PUT",
+  //       headers: {
+  //         "Content-Type": "application/json",
+  //       },
+  //       body: JSON.stringify({
+  //         name: formData.name,
+  //         hours: parseFloat(formData.hours),
+  //         hourlyRate: parseFloat(formData.hourlyRate),
+  //         totalRate: parseFloat(formData.totalRate),
+  //       }),
+  //     });
+
+  //     if (!response.ok) {
+  //       const errorData = await response.json();
+  //       throw new Error(
+  //         errorData.message || "Failed to update manufacturing variable"
+  //       );
+  //     }
+
+  //     const updatedData = await response.json();
+  //     onUpdateVariable(updatedData); // Notify parent about the update
+  //     toast.success("Raw material updated successfully");
+  //     setModalEdit(false);
+  //     resetForm();
+  //   } catch (error) {
+  //     console.error("Error updating manufacturing variable:", error);
+  //     setError(error.message);
+  //     toast.error(error.message);
+  //   } finally {
+  //     setPosting(false);
+  //   }
+  // };
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     setPosting(true);
     setError(null);
-
+  
     try {
-      const endpoint = getApiEndpoint(editId);
+      const endpoint = getApiEndpoint(editId); // Pass editId here
       const response = await fetch(endpoint, {
         method: "PUT",
         headers: {
@@ -100,83 +161,85 @@ const RawMaterial = ({
         },
         body: JSON.stringify({
           name: formData.name,
-          netWeight: parseFloat(formData.netWeight),
-          pricePerKg: parseFloat(formData.pricePerKg),
+          hours: parseFloat(formData.hours),
+          hourlyRate: parseFloat(formData.hourlyRate),
           totalRate: parseFloat(formData.totalRate),
         }),
       });
-
+  
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to update raw material");
+        throw new Error(errorData.message || "Failed to update manufacturing variable");
       }
+  
+      const updatedData = await response.json();
+      manufatcuringUpdate(updatedData); // Notify parent about the update
 
-      const updateData = await response.json()
-
-      rawMatarialsUpdate(updateData)
-      toast.success("Raw material updated successfully");
+      toast.success("Manufacturing variable updated successfully");
       setModalEdit(false);
       resetForm();
     } catch (error) {
-      console.error("Error updating raw material:", error);
+      console.error("Error updating manufacturing variable:", error);
       setError(error.message);
       toast.error(error.message);
     } finally {
       setPosting(false);
     }
   };
+  
 
   const handleDelete = async () => {
     setPosting(true);
     setError(null);
-
+  
     try {
-      const endpoint = getApiEndpoint(deleteId);
+      const endpoint = getApiEndpoint(deleteId); // Pass deleteId here
       const response = await fetch(endpoint, {
         method: "DELETE",
       });
-
+  
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to delete raw material");
+        throw new Error(errorData.message || "Failed to delete manufacturing variable");
       }
 
-      const updateDeleteData = await response.json();
-      rawMatarialsUpdate(updateDeleteData);
-      toast.success("Raw material deleted successfully");
+      const updatedData = await response.json();
+      manufatcuringUpdate(updatedData); // Notify parent about the update
+  
+      toast.success("Manufacturing variable deleted successfully");
       setModalDelete(false);
     } catch (error) {
-      console.error("Error deleting raw material:", error);
+      console.error("Error deleting manufacturing variable:", error);
       setError(error.message);
       toast.error(error.message);
     } finally {
       setPosting(false);
     }
   };
+  
 
   return (
     <div className="manufacturing-container">
       <h5 className="section-title">
-        <CiSettings /> Raw Materials Variables for {partName}
+        🔧 Manufacturing Variables for {partName}
       </h5>
-
       <table className="table align-middle table-nowrap">
         <thead className="table-light">
           <tr>
             <th>Name</th>
-            <th>Net Weight</th>
-            <th>Price per Kg</th>
+            <th>Hours</th>
+            <th>Hourly Rate</th>
             <th>Total Rate</th>
             <th>Actions</th>
           </tr>
         </thead>
         <tbody>
-          {rmVariables.map((item, index) => (
+          {updatedManufacturingVariables.map((item, index) => (
             <tr key={index}>
               <td>{item.name}</td>
-              <td>{item.netWeight}</td>
-              <td>{item.pricePerKg}</td>
-              <td>{Math.round(item.totalRate)}</td>
+              <td>{item.hours}</td>
+              <td>{item.hourlyRate}</td>
+              <td>{item.totalRate}</td>
               <td className="d-flex gap-2">
                 <button
                   className="btn btn-sm btn-success edit-item-btn"
@@ -199,7 +262,7 @@ const RawMaterial = ({
       {/* Edit Modal */}
       <Modal isOpen={modal_edit} toggle={tog_edit}>
         <ModalHeader toggle={tog_edit}>
-          Edit Raw Materials Variables
+          Edit Manufacturing Variables
         </ModalHeader>
         <ModalBody>
           <form onSubmit={handleEditSubmit}>
@@ -218,27 +281,27 @@ const RawMaterial = ({
               />
             </div>
             <div className="mb-3">
-              <label htmlFor="netWeight" className="form-label">
-                Net Weight
+              <label htmlFor="hours" className="form-label">
+                Hours
               </label>
               <input
                 type="number"
                 className="form-control"
-                name="netWeight"
-                value={formData.netWeight}
+                name="hours"
+                value={formData.hours}
                 onChange={handleChange}
                 required
               />
             </div>
             <div className="mb-3">
-              <label htmlFor="pricePerKg" className="form-label">
-                Price per Kg
+              <label htmlFor="hourlyRate" className="form-label">
+                Hourly Rate
               </label>
               <input
                 type="number"
                 className="form-control"
-                name="pricePerKg"
-                value={formData.pricePerKg}
+                name="hourlyRate"
+                value={formData.hourlyRate}
                 onChange={handleChange}
                 required
               />
@@ -253,13 +316,10 @@ const RawMaterial = ({
                 name="totalRate"
                 value={formData.totalRate}
                 readOnly
+                required
               />
             </div>
-            {error && (
-              <div className="alert alert-danger" role="alert">
-                {error}
-              </div>
-            )}
+            {error && <div className="alert alert-danger">{error}</div>}
             <ModalFooter>
               <Button type="submit" color="primary" disabled={posting}>
                 {posting ? "Updating..." : "Update"}
@@ -272,11 +332,11 @@ const RawMaterial = ({
         </ModalBody>
       </Modal>
 
-      {/* Delete Confirmation Modal */}
+      {/* hadndel delete */}
       <Modal isOpen={modal_delete} toggle={tog_delete}>
         <ModalHeader toggle={tog_delete}>Confirm Deletion</ModalHeader>
         <ModalBody>
-          Are you sure you want to delete this raw material?
+          Are you sure you want to delete this manufacturing variable?
         </ModalBody>
         <ModalFooter>
           <Button color="danger" onClick={handleDelete} disabled={posting}>
@@ -291,4 +351,4 @@ const RawMaterial = ({
   );
 };
 
-export default RawMaterial;
+export default Manufacturing;

@@ -442,7 +442,7 @@ const OuterSubAssmebly = React.memo(
 
     const updateManufacturingVariable = (updatedVariable) => {
       setPartDetails((prevData) => {
-        const updatedAllProjects = prevData.allProjects.map((project) => {
+        const updatedAllProjects = prevData.allProjects?.map((project) => {
           if (project._id === updatedVariable.projectId) {
             return {
               ...project,
@@ -465,60 +465,6 @@ const OuterSubAssmebly = React.memo(
       });
     };
 
-    // const handleDelete = async (partId) => {
-    //   setPosting(true);
-    //   setError(null);
-    //   try {
-    //     const response = await fetch(
-    //       `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/delete-part`,
-    //       {
-    //         method: "DELETE",
-    //         headers: { "Content-Type": "application/json" },
-    //         body: JSON.stringify({ partId }),
-    //       }
-    //     );
-    //     if (!response.ok) {
-    //       throw new Error("Network response was not ok");
-    //     }
-    //     await fetchProjectDetails(); // Refetch the data to update the table
-    //     tog_delete(); // Close the modal
-    //   } catch (error) {
-    //     setError(error.message);
-    //   } finally {
-    //     setPosting(false);
-    //   }
-    // };
-
-    // duplicate
-    // const handleDuplicate = async () => {
-    //   setConfirmDuplicateModal(false);
-    //   try {
-    //     const response = await fetch(
-    //       `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/duplicate`,
-    //       {
-    //         method: "POST",
-    //         headers: { "Content-Type": "application/json" },
-    //       }
-    //     );
-
-    //     if (!response.ok) {
-    //       throw new Error("Failed to duplicate project");
-    //     }
-
-    //     const duplicatedProject = await response.json();
-    //     console.log("Duplicated project:", duplicatedProject);
-
-    //     // Refresh the project details
-    //     await fetchProjectDetails();
-
-    //     // Show success message
-    //     toast.success("Project successfully duplicated!");
-    //   } catch (error) {
-    //     console.error("Error duplicating project:", error);
-    //     toast.error("Failed to duplicate project. Please try again.");
-    //   }
-    // };
-
     return (
       <>
         {isLoading && (
@@ -530,28 +476,66 @@ const OuterSubAssmebly = React.memo(
         )}
         <Col
           lg={12}
-          style={{ boxSizing: "border-box", borderTop: "5px solid red" }}
+          style={{
+            boxSizing: "border-box",
+            borderTop: "20px solid rgb(240, 101, 72)",
+            borderRadius: "5px",
+          }}
         >
           <Row>
             <Col lg={12}>
               <Card>
                 <CardBody>
-                  <div className="button-group flex justify-content-between align-items-center">
-                    <h4 style={{ fontWeight: "600" }}>
-                      {subAssemblyItem.subAssemblyListName}
-                    </h4>
+                 
+                  <div
+                    style={{
+                      width: "100%",
+                      padding: "5px 10px 0px 10px",
+                      borderRadius: "3px",
+                    }}
+                    className="button-group flex justify-content-between align-items-center"
+                    // danger primary
+                  >
+                    <ul
+                      style={{
+                        listStyleType: "none",
+                        padding: 0,
+                        fontWeight: "600",
+                      }}
+                    >
+                      <li style={{ fontSize: "25px", marginBottom: "5px" }}>
+                        {subAssemblyItem.subAssemblyListName}
+                      </li>
+
+                      <li style={{fontSize: "19px"}}><span class="badge bg-danger-subtle text-danger">
+                        Sub Assembly
+                      </span></li>
+                    </ul>
+
                     <UncontrolledDropdown direction="left">
                       <DropdownToggle
                         tag="button"
                         className="btn btn-link text-muted p-1 mt-n2 py-0 text-decoration-none fs-15 shadow-none"
                       >
                         <FeatherIcon
+                          style={{ fontWeight: "600"}}
                           icon="more-horizontal"
                           className="icon-sm"
                         />
                       </DropdownToggle>
 
                       <DropdownMenu className="dropdown-menu-start">
+                        {/* <DropdownItem
+                                          href="#"
+                                          onClick={(e) => {
+                                            e.preventDefault();
+                                            toggleEditModal(true, partsList._id);
+                                          }}
+                                        >
+                                          <i className="ri-edit-2-line align-bottom me-2 text-muted"></i>{" "}
+                                          Edit
+                                        </DropdownItem> */}
+
                         <DropdownItem
                           href="#"
                           onClick={() => toggleEditModal(subAssemblyItem)}
@@ -559,12 +543,9 @@ const OuterSubAssmebly = React.memo(
                           <i className="ri-edit-2-line align-bottom me-2 text-muted"></i>{" "}
                           Edit
                         </DropdownItem>
+
                         <DropdownItem
                           href="#"
-                          // onClick={(e) => {
-                          //   e.preventDefault();
-                          //   tog_delete("delete", subAssemblyItem._id);
-                          // }}
                           onClick={() => {
                             setSelectedId(subAssemblyItem._id);
                             tog_delete();
@@ -580,7 +561,7 @@ const OuterSubAssmebly = React.memo(
                   </div>
                   <div className="button-group">
                     <Button
-                      color="success"
+                      color="danger"
                       className="add-btn"
                       onClick={toggleAddModal}
                     >
@@ -614,7 +595,10 @@ const OuterSubAssmebly = React.memo(
                                 expandedRowId === item._id ? "expanded" : ""
                               }
                             >
-                              <td className="parent_partName">
+                              <td
+                                style={{ cursor: "pointer", color: "#64B5F6" }}
+                                className="parent_partName"
+                              >
                                 {item.partName} ({item.Uid || ""})
                               </td>
                               <td>
@@ -669,14 +653,16 @@ const OuterSubAssmebly = React.memo(
                                       />
                                       {item.partName}
                                     </h5>
-                                    
+
                                     {/* Raw Materials Section */}
+
                                     <RawMaterial
                                       partName={item.partName}
                                       rmVariables={item.rmVariables || []}
                                       projectId={_id}
-                                      partId={item._id}
-                                      onUpdatePrts={onUpdatePrts} // Pass the update function from parent
+                                      partId={subAssemblyItem._id}
+                                      itemId={item._id}
+                                      source="subAssemblyListFirst"
                                     />
 
                                     <Manufacturing
@@ -685,11 +671,12 @@ const OuterSubAssmebly = React.memo(
                                         item.manufacturingVariables || []
                                       }
                                       projectId={_id}
-                                      partId={item._id}
+                                      partId={subAssemblyItem._id}
+                                      itemId={item._id}
                                       onUpdateVariable={
                                         updateManufacturingVariable
                                       }
-                                      onTotalCountUpdate={() => {}}
+                                      source="subAssemblyListFirst"
                                     />
 
                                     <Shipment
@@ -698,13 +685,19 @@ const OuterSubAssmebly = React.memo(
                                         item.shipmentVariables || []
                                       }
                                       projectId={_id}
-                                      partId={item._id}
+                                      partId={subAssemblyItem._id}
+                                      itemId={item._id}
+                                      source="subAssemblyListFirst"
                                     />
                                     <Overheads
                                       partName={item.partName}
+                                      projectId={_id}
+                                      partId={subAssemblyItem._id}
+                                      itemId={item._id}
                                       overheadsAndProfits={
                                         item.overheadsAndProfits
                                       }
+                                      source="subAssemblyListFirst"
                                     />
                                   </div>
                                 </td>

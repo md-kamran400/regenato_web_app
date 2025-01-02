@@ -1,18 +1,20 @@
 import React, { useState } from "react";
 import "./Matarials.css";
+import { FaEdit } from "react-icons/fa";
+import { MdDelete } from "react-icons/md";
 import { Button, Modal, ModalBody, ModalFooter, ModalHeader } from "reactstrap";
-import { CiSettings } from "react-icons/ci";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-const RawMaterial = ({
+const Overheads = ({
   partName,
-  rmVariables,
+  overheadsAndProfits,
   projectId,
   partId,
   itemId,
   source,
-  rawMatarialsUpdate,
+  overHeadsUpdate,
+  assemblyId
 }) => {
   const [modal_edit, setModalEdit] = useState(false);
   const [modal_delete, setModalDelete] = useState(false);
@@ -22,17 +24,23 @@ const RawMaterial = ({
   const [deleteId, setDeleteId] = useState(null);
   const [formData, setFormData] = useState({
     name: "",
-    netWeight: "",
-    pricePerKg: "",
+    percentage: "",
     totalRate: "",
   });
 
+  const [updatedOverheads, setUpdatedOverheads] = useState(
+    overheadsAndProfits.map((overhead) => ({
+      ...overhead,
+      totalRate: overhead.totalRate || 0,
+    }))
+  );
+
+  // Toggle edit modal
   const tog_edit = (item = null) => {
     if (item) {
       setFormData({
         name: item.name,
-        netWeight: item.netWeight,
-        pricePerKg: item.pricePerKg,
+        percentage: item.percentage,
         totalRate: item.totalRate,
       });
       setEditId(item._id);
@@ -47,45 +55,42 @@ const RawMaterial = ({
     setModalDelete(!modal_delete);
   };
 
+  // Reset form data
   const resetForm = () => {
     setFormData({
       name: "",
-      netWeight: "",
-      pricePerKg: "",
+      percentage: "",
       totalRate: "",
     });
     setEditId(null);
   };
 
-  const calculateTotalRate = (netWeight, pricePerKg) => {
-    const weight = parseFloat(netWeight) || 0;
-    const price = parseFloat(pricePerKg) || 0;
-    return Math.round(weight * price + 0.5);
-  };
-
+  // Handle input changes
   const handleChange = (e) => {
     const { name, value } = e.target;
-
-    setFormData((prev) => {
-      const newData = { ...prev, [name]: value };
-      if (name === "netWeight" || name === "pricePerKg") {
-        const netWeight = name === "netWeight" ? value : prev.netWeight;
-        const pricePerKg = name === "pricePerKg" ? value : prev.pricePerKg;
-        newData.totalRate = calculateTotalRate(netWeight, pricePerKg);
+    setFormData((prevFormData) => {
+      const updatedFormData = {
+        ...prevFormData,
+        [name]: value,
+      };
+      // Recalculate totalRate based on percentage
+      if (name === "percentage") {
+        updatedFormData.totalRate = parseFloat(value || 0);
       }
-      return newData;
+      return updatedFormData;
     });
   };
 
   const getApiEndpoint = (id) => {
-    if (source === "partList") {
-      return `${process.env.REACT_APP_BASE_URL}/api/projects/${projectId}/partsLists/${partId}/items/${itemId}/rmVariables/${id}`;
-    } else if (source === "subAssemblyListFirst") {
-      return `${process.env.REACT_APP_BASE_URL}/api/projects/${projectId}/subAssemblyListFirst/${partId}/items/${itemId}/rmVariables/${id}`;
+    if (source === "subAssemblyPartsLists") {
+      return `${process.env.REACT_APP_BASE_URL}/api/projects/${projectId}/assemblyPartsLists/${assemblyId}/subAssemblyPartsLists/${partId}/items/${itemId}/overheadsAndProfits/${id}`;
+    } else if (source === "assemblyMultyPartsList") {
+      return `${process.env.REACT_APP_BASE_URL}/api/projects/${projectId}/assemblyPartsLists/${assemblyId}/assemblyMultyPartsList/${partId}/items/${itemId}/overheadsAndProfits/${id}`;
     }
     throw new Error("Invalid source");
   };
 
+  // Submit edited data
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     setPosting(true);
@@ -100,27 +105,25 @@ const RawMaterial = ({
         },
         body: JSON.stringify({
           name: formData.name,
-          netWeight: parseFloat(formData.netWeight),
-          pricePerKg: parseFloat(formData.pricePerKg),
+          percentage: parseFloat(formData.percentage),
           totalRate: parseFloat(formData.totalRate),
         }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to update raw material");
+        throw new Error(errorData.message || "Failed to update overheads");
       }
 
-      const updateData = await response.json()
+      const updatedData = await response.json();
+      overHeadsUpdate(updatedData)
 
-      rawMatarialsUpdate(updateData)
-      toast.success("Raw material updated successfully");
+      toast.success("Overheads updated successfully");
       setModalEdit(false);
       resetForm();
     } catch (error) {
-      console.error("Error updating raw material:", error);
+      console.error("Error updating overheads:", error);
       setError(error.message);
-      toast.error(error.message);
     } finally {
       setPosting(false);
     }
@@ -141,8 +144,9 @@ const RawMaterial = ({
         throw new Error(errorData.message || "Failed to delete raw material");
       }
 
-      const updateDeleteData = await response.json();
-      rawMatarialsUpdate(updateDeleteData);
+      const updatedData = await response.json();
+      overHeadsUpdate(updatedData)
+
       toast.success("Raw material deleted successfully");
       setModalDelete(false);
     } catch (error) {
@@ -155,38 +159,35 @@ const RawMaterial = ({
   };
 
   return (
-    <div className="manufacturing-container">
+    <div className="overheads-container">
       <h5 className="section-title">
-        <CiSettings /> Raw Materials Variables for {partName}
+        💰 Overheads and Profits for {partName}
       </h5>
-
       <table className="table align-middle table-nowrap">
         <thead className="table-light">
           <tr>
             <th>Name</th>
-            <th>Net Weight</th>
-            <th>Price per Kg</th>
+            <th>Percentage</th>
             <th>Total Rate</th>
-            <th>Actions</th>
+            <th>Action</th>
           </tr>
         </thead>
         <tbody>
-          {rmVariables.map((item, index) => (
+          {updatedOverheads.map((overhead, index) => (
             <tr key={index}>
-              <td>{item.name}</td>
-              <td>{item.netWeight}</td>
-              <td>{item.pricePerKg}</td>
-              <td>{Math.round(item.totalRate)}</td>
+              <td>{overhead.name}</td>
+              <td>{overhead.percentage}%</td>
+              <td>{overhead.totalRate}</td>
               <td className="d-flex gap-2">
                 <button
                   className="btn btn-sm btn-success edit-item-btn"
-                  onClick={() => tog_edit(item)}
+                  onClick={() => tog_edit(overhead)}
                 >
-                  Edit
+                  <FaEdit /> Edit
                 </button>
                 {/* <button
                   className="btn btn-sm btn-danger remove-item-btn"
-                  onClick={() => tog_delete(item._id)}
+                  onClick={() => tog_delete(overhead._id)}
                 >
                   Remove
                 </button> */}
@@ -198,9 +199,7 @@ const RawMaterial = ({
 
       {/* Edit Modal */}
       <Modal isOpen={modal_edit} toggle={tog_edit}>
-        <ModalHeader toggle={tog_edit}>
-          Edit Raw Materials Variables
-        </ModalHeader>
+        <ModalHeader toggle={tog_edit}>Edit Overheads and Profits</ModalHeader>
         <ModalBody>
           <form onSubmit={handleEditSubmit}>
             <div className="mb-3">
@@ -218,27 +217,14 @@ const RawMaterial = ({
               />
             </div>
             <div className="mb-3">
-              <label htmlFor="netWeight" className="form-label">
-                Net Weight
+              <label htmlFor="percentage" className="form-label">
+                Percentage
               </label>
               <input
                 type="number"
                 className="form-control"
-                name="netWeight"
-                value={formData.netWeight}
-                onChange={handleChange}
-                required
-              />
-            </div>
-            <div className="mb-3">
-              <label htmlFor="pricePerKg" className="form-label">
-                Price per Kg
-              </label>
-              <input
-                type="number"
-                className="form-control"
-                name="pricePerKg"
-                value={formData.pricePerKg}
+                name="percentage"
+                value={formData.percentage}
                 onChange={handleChange}
                 required
               />
@@ -255,11 +241,7 @@ const RawMaterial = ({
                 readOnly
               />
             </div>
-            {error && (
-              <div className="alert alert-danger" role="alert">
-                {error}
-              </div>
-            )}
+            {error && <div className="alert alert-danger">{error}</div>}
             <ModalFooter>
               <Button type="submit" color="primary" disabled={posting}>
                 {posting ? "Updating..." : "Update"}
@@ -289,6 +271,7 @@ const RawMaterial = ({
       </Modal>
     </div>
   );
+
 };
 
-export default RawMaterial;
+export default Overheads;

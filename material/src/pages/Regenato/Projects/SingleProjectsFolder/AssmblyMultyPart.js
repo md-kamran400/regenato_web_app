@@ -22,12 +22,12 @@ import { FiEdit } from "react-icons/fi";
 import Autocomplete from "@mui/material/Autocomplete";
 import TextField from "@mui/material/TextField";
 import { FiSettings } from "react-icons/fi";
-import RawMaterial from "../ExpandFolders/RawMaterial";
-import Shipment from "../ExpandFolders/Shipment";
-import Overheads from "../ExpandFolders/Overheads";
+import RawMaterial from "../AssemblyExpandFolder/RawMaterial";
+import Shipment from "../AssemblyExpandFolder/Shipment";
+import Overheads from "../AssemblyExpandFolder/Overheads";
 import { useParams } from "react-router-dom";
 import { MdOutlineDelete } from "react-icons/md";
-import Manufacturing from "../ExpandFolders/Manufacturing";
+import Manufacturing from "../AssemblyExpandFolder/Manufacturing";
 import PropTypes from "prop-types";
 
 const AssmblyMultyPart = React.memo(
@@ -458,7 +458,7 @@ const AssmblyMultyPart = React.memo(
                                 expandedRowId === item._id ? "expanded" : ""
                               }
                             >
-                              <td className="parent_partName">
+                              <td style={{cursor: "pointer", color: "#64B5F6"}}  className="parent_partName">
                                 {item.partName} ({item.Uid || ""})
                               </td>
                               <td>
@@ -514,38 +514,57 @@ const AssmblyMultyPart = React.memo(
                                       {item.partName}
                                     </h5>
                                     {/* Raw Materials Section */}
-                                    <RawMaterial
+                                    {/* <RawMaterial
                                       partName={item.partName}
                                       rmVariables={item.rmVariables || {}}
                                       projectId={_id}
                                       partId={item._id}
+                                    /> */}
+{/* partsAssmeblyItems */}
+                                    <RawMaterial
+                                      partName={item.partName}
+                                      rmVariables={item.rmVariables}
+                                      projectId={_id}
+                                      partId={partsAssmeblyItems._id}
+                                      assemblyId={assemblyId}
+                                      itemId={item._id}
+                                      source="assemblyMultyPartsList"
+                                      rawMatarialsUpdate = {onUpdatePrts}
                                     />
+
                                     <Manufacturing
                                       partName={item.partName}
-                                      manufacturingVariables={
-                                        item.manufacturingVariables || []
-                                      }
+                                      manufacturingVariables={item.manufacturingVariables || []}
                                       projectId={_id}
-                                      partId={item._id}
-                                      onUpdateVariable={
-                                        updateManufacturingVariable
-                                      }
-                                      onTotalCountUpdate={() => {}}
+                                      partId={partsAssmeblyItems._id}
+                                      itemId={item._id}
+                                      assemblyId={assemblyId}
+                                      source="assemblyMultyPartsList"
+                                      manufatcuringUpdate={onUpdatePrts}
                                     />
 
                                     <Shipment
-                                      partName={item.partName}
-                                      shipmentVariables={
-                                        item.shipmentVariables || []
-                                      }
-                                      projectId={_id}
-                                      partId={item._id}
+                                       partName={item.partName}
+                                       shipmentVariables={
+                                         item.shipmentVariables || []
+                                       }
+                                       projectId={_id}
+                                       partId={partsAssmeblyItems._id}
+                                       itemId={item._id}
+                                       assemblyId={assemblyId}
+                                       source="assemblyMultyPartsList"
+                                       shipmentUpdate={onUpdatePrts}
                                     />
                                     <Overheads
                                       partName={item.partName}
                                       overheadsAndProfits={
-                                        item.overheadsAndProfits
-                                      }
+                                        item.overheadsAndProfits}
+                                      projectId={_id}
+                                      partId={partsAssmeblyItems._id}
+                                      itemId={item._id}
+                                      assemblyId={assemblyId}
+                                      source="assemblyMultyPartsList"
+                                      overHeadsUpdate={onUpdatePrts}
                                     />
                                   </div>
                                 </td>

@@ -1,18 +1,20 @@
 import React, { useState } from "react";
 import "./Matarials.css";
+import { FaEdit } from "react-icons/fa";
+import { MdDelete } from "react-icons/md";
+import { TbTruckDelivery } from "react-icons/tb";
 import { Button, Modal, ModalBody, ModalFooter, ModalHeader } from "reactstrap";
-import { CiSettings } from "react-icons/ci";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-
-const RawMaterial = ({
+const Shipment = ({
   partName,
-  rmVariables,
+  shipmentVariables,
   projectId,
   partId,
   itemId,
+  assemblyId,
   source,
-  rawMatarialsUpdate,
+  shipmentUpdate,
 }) => {
   const [modal_edit, setModalEdit] = useState(false);
   const [modal_delete, setModalDelete] = useState(false);
@@ -22,17 +24,23 @@ const RawMaterial = ({
   const [deleteId, setDeleteId] = useState(null);
   const [formData, setFormData] = useState({
     name: "",
-    netWeight: "",
-    pricePerKg: "",
+    hourlyRate: "",
     totalRate: "",
   });
 
+  const [updatedShipmentVariables, setUpdatedShipmentVariables] = useState(
+    shipmentVariables.map((ship) => ({
+      ...ship,
+      totalRate: ship.totalRate || 0,
+    }))
+  );
+
+  // Toggle edit modal
   const tog_edit = (item = null) => {
     if (item) {
       setFormData({
         name: item.name,
-        netWeight: item.netWeight,
-        pricePerKg: item.pricePerKg,
+        hourlyRate: item.hourlyRate,
         totalRate: item.totalRate,
       });
       setEditId(item._id);
@@ -47,52 +55,50 @@ const RawMaterial = ({
     setModalDelete(!modal_delete);
   };
 
+  // Reset form data
   const resetForm = () => {
     setFormData({
       name: "",
-      netWeight: "",
-      pricePerKg: "",
+      hourlyRate: "",
       totalRate: "",
     });
     setEditId(null);
   };
 
-  const calculateTotalRate = (netWeight, pricePerKg) => {
-    const weight = parseFloat(netWeight) || 0;
-    const price = parseFloat(pricePerKg) || 0;
-    return Math.round(weight * price + 0.5);
-  };
-
+  // Handle input changes
   const handleChange = (e) => {
     const { name, value } = e.target;
-
-    setFormData((prev) => {
-      const newData = { ...prev, [name]: value };
-      if (name === "netWeight" || name === "pricePerKg") {
-        const netWeight = name === "netWeight" ? value : prev.netWeight;
-        const pricePerKg = name === "pricePerKg" ? value : prev.pricePerKg;
-        newData.totalRate = calculateTotalRate(netWeight, pricePerKg);
+    setFormData((prevFormData) => {
+      const updatedFormData = {
+        ...prevFormData,
+        [name]: value,
+      };
+      // Calculate totalRate using hourlyRate
+      if (name === "hourlyRate") {
+        updatedFormData.totalRate = parseFloat(value || 0);
       }
-      return newData;
+      return updatedFormData;
     });
   };
 
+
   const getApiEndpoint = (id) => {
-    if (source === "partList") {
-      return `${process.env.REACT_APP_BASE_URL}/api/projects/${projectId}/partsLists/${partId}/items/${itemId}/rmVariables/${id}`;
-    } else if (source === "subAssemblyListFirst") {
-      return `${process.env.REACT_APP_BASE_URL}/api/projects/${projectId}/subAssemblyListFirst/${partId}/items/${itemId}/rmVariables/${id}`;
+    if (source === "subAssemblyPartsLists") {
+      return `${process.env.REACT_APP_BASE_URL}/api/projects/${projectId}/assemblyPartsLists/${assemblyId}/subAssemblyPartsLists/${partId}/items/${itemId}/shipmentVariables/${id}`;
+    } else if (source === "assemblyMultyPartsList") {
+      return `${process.env.REACT_APP_BASE_URL}/api/projects/${projectId}/assemblyPartsLists/${assemblyId}/assemblyMultyPartsList/${partId}/items/${itemId}/shipmentVariables/${id}`;
     }
     throw new Error("Invalid source");
   };
 
+  
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     setPosting(true);
     setError(null);
-
+  
     try {
-      const endpoint = getApiEndpoint(editId);
+      const endpoint = getApiEndpoint(editId); // Pass editId here
       const response = await fetch(endpoint, {
         method: "PUT",
         headers: {
@@ -100,95 +106,99 @@ const RawMaterial = ({
         },
         body: JSON.stringify({
           name: formData.name,
-          netWeight: parseFloat(formData.netWeight),
-          pricePerKg: parseFloat(formData.pricePerKg),
+          hourlyRate: parseFloat(formData.hourlyRate),
           totalRate: parseFloat(formData.totalRate),
         }),
       });
-
+  
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to update raw material");
+        throw new Error(errorData.message || "Failed to update shipment variable");
       }
-
-      const updateData = await response.json()
-
-      rawMatarialsUpdate(updateData)
-      toast.success("Raw material updated successfully");
+  
+      const updatedData = await response.json();
+      setUpdatedShipmentVariables((prevVariables) =>
+        prevVariables.map((ship) =>
+          ship._id === updatedData._id ? updatedData : ship
+        )
+      );
+      shipmentUpdate(updatedData)
+      toast.success("Shipment variable updated successfully");
       setModalEdit(false);
       resetForm();
     } catch (error) {
-      console.error("Error updating raw material:", error);
+      console.error("Error updating shipment variable:", error);
       setError(error.message);
-      toast.error(error.message);
     } finally {
       setPosting(false);
     }
   };
+  
 
   const handleDelete = async () => {
     setPosting(true);
     setError(null);
-
+  
     try {
-      const endpoint = getApiEndpoint(deleteId);
+      const endpoint = getApiEndpoint(deleteId); // Pass deleteId here
       const response = await fetch(endpoint, {
         method: "DELETE",
       });
-
+  
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to delete raw material");
+        throw new Error(errorData.message || "Failed to delete shipment variable");
       }
+  
+      // Update the local state to remove the deleted item
+      setUpdatedShipmentVariables((prevVariables) =>
+        prevVariables.filter((ship) => ship._id !== deleteId)
+      );
 
-      const updateDeleteData = await response.json();
-      rawMatarialsUpdate(updateDeleteData);
-      toast.success("Raw material deleted successfully");
+      const updateData = await response.json();
+      shipmentUpdate(updateData)
+  
+      toast.success("Shipment variable deleted successfully");
       setModalDelete(false);
     } catch (error) {
-      console.error("Error deleting raw material:", error);
+      console.error("Error deleting shipment variable:", error);
       setError(error.message);
       toast.error(error.message);
     } finally {
       setPosting(false);
     }
   };
+  
 
   return (
-    <div className="manufacturing-container">
+    <div className="shipment-container">
       <h5 className="section-title">
-        <CiSettings /> Raw Materials Variables for {partName}
+        <TbTruckDelivery /> Shipment Variables for {partName}
       </h5>
-
       <table className="table align-middle table-nowrap">
         <thead className="table-light">
           <tr>
             <th>Name</th>
-            <th>Net Weight</th>
-            <th>Price per Kg</th>
+            <th>Hourly Rate</th>
             <th>Total Rate</th>
-            <th>Actions</th>
+            <th>Action</th>
           </tr>
         </thead>
         <tbody>
-          {rmVariables.map((item, index) => (
+          {updatedShipmentVariables.map((ship, index) => (
             <tr key={index}>
-              <td>{item.name}</td>
-              <td>{item.netWeight}</td>
-              <td>{item.pricePerKg}</td>
-              <td>{Math.round(item.totalRate)}</td>
+              <td>{ship.name}</td>
+              <td>{ship.hourlyRate}</td>
+              <td>{ship.totalRate}</td>
               <td className="d-flex gap-2">
                 <button
                   className="btn btn-sm btn-success edit-item-btn"
-                  onClick={() => tog_edit(item)}
+                  onClick={() => tog_edit(ship)}
                 >
-                  Edit
+                  <FaEdit /> Edit
                 </button>
-                {/* <button
-                  className="btn btn-sm btn-danger remove-item-btn"
-                  onClick={() => tog_delete(item._id)}
-                >
-                  Remove
+                {/* <button className="btn btn-sm btn-danger remove-item-btn"  onClick={() => tog_delete(ship._id)}>
+                  <MdDelete /> Remove
                 </button> */}
               </td>
             </tr>
@@ -198,9 +208,7 @@ const RawMaterial = ({
 
       {/* Edit Modal */}
       <Modal isOpen={modal_edit} toggle={tog_edit}>
-        <ModalHeader toggle={tog_edit}>
-          Edit Raw Materials Variables
-        </ModalHeader>
+        <ModalHeader toggle={tog_edit}>Edit Shipment Variables</ModalHeader>
         <ModalBody>
           <form onSubmit={handleEditSubmit}>
             <div className="mb-3">
@@ -218,27 +226,14 @@ const RawMaterial = ({
               />
             </div>
             <div className="mb-3">
-              <label htmlFor="netWeight" className="form-label">
-                Net Weight
+              <label htmlFor="hourlyRate" className="form-label">
+                Hourly Rate
               </label>
               <input
                 type="number"
                 className="form-control"
-                name="netWeight"
-                value={formData.netWeight}
-                onChange={handleChange}
-                required
-              />
-            </div>
-            <div className="mb-3">
-              <label htmlFor="pricePerKg" className="form-label">
-                Price per Kg
-              </label>
-              <input
-                type="number"
-                className="form-control"
-                name="pricePerKg"
-                value={formData.pricePerKg}
+                name="hourlyRate"
+                value={formData.hourlyRate}
                 onChange={handleChange}
                 required
               />
@@ -255,11 +250,7 @@ const RawMaterial = ({
                 readOnly
               />
             </div>
-            {error && (
-              <div className="alert alert-danger" role="alert">
-                {error}
-              </div>
-            )}
+            {error && <div className="alert alert-danger">{error}</div>}
             <ModalFooter>
               <Button type="submit" color="primary" disabled={posting}>
                 {posting ? "Updating..." : "Update"}
@@ -271,24 +262,23 @@ const RawMaterial = ({
           </form>
         </ModalBody>
       </Modal>
-
       {/* Delete Confirmation Modal */}
-      <Modal isOpen={modal_delete} toggle={tog_delete}>
-        <ModalHeader toggle={tog_delete}>Confirm Deletion</ModalHeader>
-        <ModalBody>
-          Are you sure you want to delete this raw material?
-        </ModalBody>
-        <ModalFooter>
-          <Button color="danger" onClick={handleDelete} disabled={posting}>
-            {posting ? "Deleting..." : "Delete"}
-          </Button>
-          <Button color="secondary" onClick={tog_delete}>
-            Cancel
-          </Button>
-        </ModalFooter>
-      </Modal>
+            <Modal isOpen={modal_delete} toggle={tog_delete}>
+              <ModalHeader toggle={tog_delete}>Confirm Deletion</ModalHeader>
+              <ModalBody>
+                Are you sure you want to delete this raw material?
+              </ModalBody>
+              <ModalFooter>
+                <Button color="danger" onClick={handleDelete} disabled={posting}>
+                  {posting ? "Deleting..." : "Delete"}
+                </Button>
+                <Button color="secondary" onClick={tog_delete}>
+                  Cancel
+                </Button>
+              </ModalFooter>
+            </Modal>
     </div>
   );
 };
 
-export default RawMaterial;
+export default Shipment;

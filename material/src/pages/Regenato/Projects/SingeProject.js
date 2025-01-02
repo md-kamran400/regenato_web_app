@@ -702,7 +702,7 @@ const SingeProject = () => {
               color="success"
               onClick={toggleAddModal}
             >
-              <i className="ri-add-line align-bottom me-1"></i> Add Part List
+              <i className="ri-add-line align-bottom me-1"></i> Add Parts
             </Button>
             <Button
               color="primary"

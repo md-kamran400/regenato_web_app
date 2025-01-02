@@ -562,8 +562,7 @@ const AssemblyTable = React.memo(
     const handleEdit = async (e) => {
       e.preventDefault();
       // const assemblyListName = e.target.assemblyListName.value;
-      const assemblyListName = assemblyListName;
-
+      // const assemblyListName = assemblyListName;
       try {
         const response = await fetch(
           `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/assemblyPartsLists/${assemblypartsList._id}`,
@@ -776,28 +775,69 @@ const AssemblyTable = React.memo(
     return (
       <Col
         lg={12}
-        style={{ boxSizing: "border-box", borderTop: "5px solid blue" }}
+        style={{
+          boxSizing: "border-box",
+          borderTop: "20px solid rgb(75, 56, 179)",
+          borderRadius: "5px",
+        }}
       >
         <Row>
           <Col lg={12}>
             <Card>
               <CardBody>
-                <div className="button-group flex justify-content-between align-items-center">
-                  <h4 style={{ fontWeight: "600" }}>
-                    {assemblypartsList.assemblyListName}
-                  </h4>
+                <div
+                  style={{
+                    width: "100%",
+                    padding: "5px 10px 0px 10px",
+                    borderRadius: "3px",
+                  }}
+                  className="button-group flex justify-content-between align-items-center "
+                >
+                  <ul
+                    style={{
+                      listStyleType: "none",
+                      padding: 0,
+                      fontWeight: "600",
+                    }}
+                  >
+                    <li style={{ fontSize: "25px", marginBottom: "10px" }}>
+                      {assemblypartsList.assemblyListName}
+                    </li>
+
+                    <li style={{ fontSize: "19px" }}>
+                      <span class="badge bg-primary-subtle text-primary">
+                        Assembly
+                      </span>
+                    </li>
+                  </ul>
+
                   <UncontrolledDropdown direction="left">
                     <DropdownToggle
                       tag="button"
                       className="btn btn-link text-muted p-1 mt-n2 py-0 text-decoration-none fs-15 shadow-none"
                     >
-                      <FeatherIcon icon="more-horizontal" className="icon-sm" />
+                      <FeatherIcon
+                        style={{ fontWeight: "600" }}
+                        icon="more-horizontal"
+                        className="icon-sm"
+                      />
                     </DropdownToggle>
 
                     <DropdownMenu className="dropdown-menu-start">
+                      {/* <DropdownItem
+                                                          href="#"
+                                                          onClick={(e) => {
+                                                            e.preventDefault();
+                                                            toggleEditModal(true, partsList._id);
+                                                          }}
+                                                        >
+                                                          <i className="ri-edit-2-line align-bottom me-2 text-muted"></i>{" "}
+                                                          Edit
+                                                        </DropdownItem> */}
+
                       <DropdownItem
                         href="#"
-                        onClick={() => toggleEditModal(assemblypartsList)}
+                        onClick={() => toggleEditModal(subAssemblyItem)}
                       >
                         <i className="ri-edit-2-line align-bottom me-2 text-muted"></i>{" "}
                         Edit
@@ -805,9 +845,9 @@ const AssemblyTable = React.memo(
 
                       <DropdownItem
                         href="#"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          tog_delete("delete", assemblypartsList._id);
+                        onClick={() => {
+                          setSelectedId(subAssemblyItem._id);
+                          tog_delete();
                         }}
                       >
                         <i className="ri-delete-bin-6-line align-bottom me-2 text-muted"></i>{" "}

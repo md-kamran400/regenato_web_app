@@ -11,6 +11,7 @@ const RawMaterial = ({
   projectId,
   partId,
   itemId,
+  assemblyId,
   source,
   rawMatarialsUpdate,
 }) => {
@@ -62,7 +63,6 @@ const RawMaterial = ({
     const price = parseFloat(pricePerKg) || 0;
     return Math.round(weight * price + 0.5);
   };
-
   const handleChange = (e) => {
     const { name, value } = e.target;
 
@@ -78,10 +78,10 @@ const RawMaterial = ({
   };
 
   const getApiEndpoint = (id) => {
-    if (source === "partList") {
-      return `${process.env.REACT_APP_BASE_URL}/api/projects/${projectId}/partsLists/${partId}/items/${itemId}/rmVariables/${id}`;
-    } else if (source === "subAssemblyListFirst") {
-      return `${process.env.REACT_APP_BASE_URL}/api/projects/${projectId}/subAssemblyListFirst/${partId}/items/${itemId}/rmVariables/${id}`;
+    if (source === "subAssemblyPartsLists") {
+      return `${process.env.REACT_APP_BASE_URL}/api/projects/${projectId}/assemblyPartsLists/${assemblyId}/subAssemblyPartsLists/${partId}/items/${itemId}/rmVariables/${id}`;
+    } else if (source === "assemblyMultyPartsList") {
+      return `${process.env.REACT_APP_BASE_URL}/api/projects/${projectId}/assemblyPartsLists/${assemblyId}/assemblyMultyPartsList/${partId}/items/${itemId}/rmVariables/${id}`;
     }
     throw new Error("Invalid source");
   };
@@ -111,9 +111,9 @@ const RawMaterial = ({
         throw new Error(errorData.message || "Failed to update raw material");
       }
 
-      const updateData = await response.json()
+      const updateData = await response.json();
 
-      rawMatarialsUpdate(updateData)
+      rawMatarialsUpdate(updateData);
       toast.success("Raw material updated successfully");
       setModalEdit(false);
       resetForm();
