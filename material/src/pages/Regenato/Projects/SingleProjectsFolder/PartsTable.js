@@ -800,7 +800,7 @@ const PartsTable = React.memo(
                       onChange={(e) => setTimePerUnit(e.target.value)}
                       required
                     />
-                    <button
+                    {/* <button
                       className="btn btn-outline-secondary bg-success"
                       style={{ borderRadius: "5px ", color: "white" }}
                       type="button"
@@ -811,7 +811,7 @@ const PartsTable = React.memo(
                       }}
                     >
                       To Min
-                    </button>
+                    </button> */}
                   </div>
                 </div>
 

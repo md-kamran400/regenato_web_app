@@ -15,7 +15,11 @@ import Flatpickr from "react-flatpickr";
 import Autocomplete from "@mui/material/Autocomplete";
 import TextField from "@mui/material/TextField";
 
-const ManufacturingVariable = ({ partDetails, onTotalCountUpdate, onTotalCountUpdateHours }) => {
+const ManufacturingVariable = ({
+  partDetails,
+  onTotalCountUpdate,
+  onTotalCountUpdateHours,
+}) => {
   const [modal_add, setModalList] = useState(false);
   const [modal_edit, setModalEdit] = useState(false);
   const [modal_delete, setModalDelete] = useState(false);
@@ -27,12 +31,13 @@ const ManufacturingVariable = ({ partDetails, onTotalCountUpdate, onTotalCountUp
   const [manufacturingVariables, setmanufacturingVariables] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [shipmentvars, setshipmentvars] = useState([]);
-  const [ manufacturingCounthour, setmanufacturingCounthours] = useState(0)
+  const [manufacturingCounthour, setmanufacturingCounthours] = useState(0);
   const [manufacturingCount, setmanufacturingCount] = useState(null);
   const [selectedShipment, setselectedShipment] = useState(null);
   const [SelectedManufacuturingVariable, setSelectedManufacuturingVariable] =
     useState(null);
   const [editId, setEditId] = useState(null);
+  const [unit, setUnit] = useState("minutes");
 
   // Form state
   const [formData, setFormData] = useState({
@@ -155,7 +160,6 @@ const ManufacturingVariable = ({ partDetails, onTotalCountUpdate, onTotalCountUp
     }
   }, [partDetails, fetchManufacturingData]);
 
-
   useEffect(() => {
     const total = manufacturingData.reduce(
       (sum, item) => sum + Number(item.totalRate || 0),
@@ -180,7 +184,6 @@ const ManufacturingVariable = ({ partDetails, onTotalCountUpdate, onTotalCountUp
     onTotalCountUpdateHours(total);
   }, [manufacturingData]);
 
-
   const totalRate = formData.hourlyRate * formData.hours;
 
   const handleAutocompleteChange = (event, newValue) => {
@@ -193,18 +196,20 @@ const ManufacturingVariable = ({ partDetails, onTotalCountUpdate, onTotalCountUp
           name: newValue.name,
           hourlyRate: newValue.hourlyrate,
           // Calculate totalRate based on hours and selected hourlyRate
-          totalRate: (newValue.hourlyrate || 0) * (parseFloat(prevFormData.hours) || 0),
+          totalRate:
+            (newValue.hourlyrate || 0) * (parseFloat(prevFormData.hours) || 0),
         };
         return updatedFormData;
       });
     }
   };
-  
 
   useEffect(() => {
     const fetchRmVariables = async () => {
       try {
-        const response = await fetch(`${process.env.REACT_APP_BASE_URL}/api/manufacturing`);
+        const response = await fetch(
+          `${process.env.REACT_APP_BASE_URL}/api/manufacturing`
+        );
         if (!response.ok) {
           throw new Error(`Error: ${response.statusText}`);
         }
@@ -222,7 +227,9 @@ const ManufacturingVariable = ({ partDetails, onTotalCountUpdate, onTotalCountUp
   useEffect(() => {
     const fetchShipment = async () => {
       try {
-        const response = await fetch(`${process.env.REACT_APP_BASE_URL}/api/manufacturing`);
+        const response = await fetch(
+          `${process.env.REACT_APP_BASE_URL}/api/manufacturing`
+        );
         if (!response.ok) {
           throw new Error(`Error: ${response.statusText}`);
         }
@@ -273,10 +280,13 @@ const ManufacturingVariable = ({ partDetails, onTotalCountUpdate, onTotalCountUp
         ...prevFormData,
         [name]: value,
       };
-      // Calculate totalRate using the updated hourlyRate and hours
-      updatedFormData.totalRate =
-        (parseFloat(updatedFormData.hourlyRate) || 0) *
-        (parseFloat(updatedFormData.hours) || 0);
+
+      if (name === "hours" || name === "hourlyRate") {
+        updatedFormData.totalRate = calculateTotalRate(
+          updatedFormData.hours,
+          updatedFormData.hourlyRate
+        );
+      }
 
       return updatedFormData;
     });
@@ -405,6 +415,33 @@ const ManufacturingVariable = ({ partDetails, onTotalCountUpdate, onTotalCountUp
     (total, item) => total + Number(item.totalRate),
     0
   );
+
+  // Handle unit change (Hours to Minutes or vice-versa)
+  const handleUnitChange = (e) => {
+    const newUnit = e.target.value;
+    let convertedHours = parseFloat(formData.hours) || 0;
+
+    if (newUnit === "minutes" && unit === "hours") {
+      convertedHours *= 60; // Convert Hours to Minutes
+    } else if (newUnit === "hours" && unit === "minutes") {
+      convertedHours /= 60; // Convert Minutes to Hours
+    }
+
+    setUnit(newUnit);
+
+    setFormData((prevFormData) => ({
+      ...prevFormData,
+      hours: convertedHours.toFixed(2),
+      totalRate: calculateTotalRate(convertedHours, prevFormData.hourlyRate),
+    }));
+  };
+
+  // Calculate Total Rate
+  const calculateTotalRate = (hours, hourlyRate) => {
+    const validHours = parseFloat(hours) || 0;
+    const validHourlyRate = parseFloat(hourlyRate) || 0;
+    return (validHours * validHourlyRate).toFixed(2); // Multiply and return
+  };
 
   return (
     <React.Fragment>
@@ -553,14 +590,24 @@ const ManufacturingVariable = ({ partDetails, onTotalCountUpdate, onTotalCountUp
               <label htmlFor="hours" className="form-label">
                 Hours
               </label>
-              <input
-                type="number"
-                className="form-control"
-                name="hours"
-                value={formData.hours}
-                onChange={handleChange}
-                required
-              />
+              <div className="input-group">
+                <input
+                  type="number"
+                  className="form-control"
+                  name="hours"
+                  value={formData.hours}
+                  onChange={handleChange}
+                  required
+                />
+                <select
+                  className="form-select"
+                  value={unit}
+                  onChange={handleUnitChange}
+                >
+                  <option value="minutes">Minutes</option>
+                  <option value="hours">Hours</option>
+                </select>
+              </div>
             </div>
             <div className="mb-3">
               <label htmlFor="hourlyRate" className="form-label">
@@ -603,9 +650,7 @@ const ManufacturingVariable = ({ partDetails, onTotalCountUpdate, onTotalCountUp
       {/* static modal add */}
       <Modal isOpen={modal_static_add} toggle={tog_static_vairbale} centered>
         <ModalHeader className="bg-light p-3" toggle={tog_static_vairbale}>
-          {formData.id
-            ? "Edit Unit Cost"
-            : "Add Unit Cost"}
+          {formData.id ? "Edit Unit Cost" : "Add Unit Cost"}
         </ModalHeader>
         <ModalBody>
           <form className="tablelist-form" onSubmit={handleSubmit}>
