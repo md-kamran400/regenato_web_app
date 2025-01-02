@@ -1538,7 +1538,7 @@ ProjectRouter.post(
     }
   }
 );
-// 
+//
 ProjectRouter.get(
   "/:_id/assemblyPartsLists/:assemblyId/assemblyMultyPartsList",
   async (req, res) => {
@@ -1685,18 +1685,14 @@ ProjectRouter.delete("/:_id/assemblyPartsLists/:listId", async (req, res) => {
         .status(404)
         .json({ message: "Project or Parts List not found" });
     }
-    res
-      .status(200)
-      .json({
-        message: "Assmebly List deleted successfully",
-        project: updatedProject,
-      });
+    res.status(200).json({
+      message: "Assmebly List deleted successfully",
+      project: updatedProject,
+    });
   } catch (error) {
     res.status(500).json({ message: "Server Error", error: error.message });
   }
 });
-
-
 
 //subassebmlyfirstlist edit code
 ProjectRouter.put("/:_id/subAssemblyListFirst/:listId", async (req, res) => {
@@ -1773,7 +1769,7 @@ ProjectRouter.put("/:_id/assemblyPartsLists/:listId", async (req, res) => {
 
     // Save the updated project
     await project.save();
- 
+
     // Update the sub-assembly list name
     subAssemblyList.assemblyListName = assemblyListName;
 
@@ -1793,8 +1789,6 @@ ProjectRouter.put("/:_id/assemblyPartsLists/:listId", async (req, res) => {
     });
   }
 });
-
-
 
 //edit part list code
 ProjectRouter.put("/:_id/partsLists/:listId", async (req, res) => {
@@ -1826,12 +1820,6 @@ ProjectRouter.put("/:_id/partsLists/:listId", async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
-
-
-
-
-
-
 
 // ===================== RM varible code
 // ProjectRouter.put(
@@ -1879,7 +1867,6 @@ ProjectRouter.put("/:_id/partsLists/:listId", async (req, res) => {
 //     }
 //   }
 // );
-
 
 // ProjectRouter.put(
 //   "/:_id/subAssemblyListFirst/:listId/items/:itemId/rmVariables/:rmId",
@@ -1931,15 +1918,55 @@ ProjectRouter.put("/:_id/partsLists/:listId", async (req, res) => {
 
 
 
+// delete partsListItems
+// Add this new route after the existing ones
+ProjectRouter.delete("/:_id/partsLists/:listId/items/:itemId",  async (req, res) => {
+      try {
+        const project = await ProjectModal.findById(req.params._id);
+        if (!project) {
+          return res.status(404).json({ message: "Project not found" });
+        }
+  
+        const partsList = project.partsLists.id(req.params.listId);
+        if (!partsList) {
+          return res.status(404).json({ message: "Parts list not found" });
+        }
+  
+        const part = partsList.partsListItems.id(req.params.itemId);
+        if (!part) {
+          return res.status(404).json({ message: "Part not found" });
+        }
+  
+        part.remove();
+  
+        const updatedProject = await project.save();
+        res.status(200).json(updatedProject);
+      } catch (error) {
+        res.status(500).json({ message: error.message });
+      }
+    }
+  );
+
+
+
+
+
+
 //============= subAssemblylistfirst daynamic put request do not touch ======================
 ProjectRouter.put(
   "/:projectId/subAssemblyListFirst/:subAssemblyId/items/:itemId/:variableType/:variableId",
   async (req, res) => {
-    const { projectId, subAssemblyId, itemId, variableType, variableId } = req.params;
+    const { projectId, subAssemblyId, itemId, variableType, variableId } =
+      req.params;
     const updateData = req.body;
-//manufacturingVariables
+    //manufacturingVariables
     // Allowed variable types for safety
-    const allowedTypes = ["rmVariables", "manufacturingVariables", "shipmentVariables", "overheadsAndProfits"];
+    const allowedTypes = [
+      "rmVariables",
+      "manufacturingVariables",
+      "shipmentVariables",
+      "overheadsAndProfits",
+    ];
 
     // Check if the provided variableType is valid
     if (!allowedTypes.includes(variableType)) {
@@ -1954,7 +1981,9 @@ ProjectRouter.put(
       });
 
       if (!project) {
-        return res.status(404).json({ message: "Project or SubAssembly not found" });
+        return res
+          .status(404)
+          .json({ message: "Project or SubAssembly not found" });
       }
 
       // Locate the subAssembly
@@ -1967,17 +1996,23 @@ ProjectRouter.put(
       }
 
       // Locate the item within the subAssembly
-      const item = subAssembly.partsListItems.find((part) => part._id.toString() === itemId);
+      const item = subAssembly.partsListItems.find(
+        (part) => part._id.toString() === itemId
+      );
 
       if (!item) {
         return res.status(404).json({ message: "Item not found" });
       }
 
       // Locate the variable within the item
-      const variable = item[variableType].find((v) => v._id.toString() === variableId);
+      const variable = item[variableType].find(
+        (v) => v._id.toString() === variableId
+      );
 
       if (!variable) {
-        return res.status(404).json({ message: `${variableType} entry not found` });
+        return res
+          .status(404)
+          .json({ message: `${variableType} entry not found` });
       }
 
       // Update the fields dynamically
@@ -1999,20 +2034,104 @@ ProjectRouter.put(
     }
   }
 );
+// ===========subAssemblylistfirst daynamic put request do not touch =======================
+
+// ========== subAssemblylistfirst daynamic delete request do not touch ======================
+ProjectRouter.delete(
+  "/:projectId/subAssemblyListFirst/:subAssemblyId/items/:itemId/:variableType/:variableId",
+  async (req, res) => {
+    const { projectId, subAssemblyId, itemId, variableType, variableId } =
+      req.params;
+
+    // Allowed variable types for safety
+    const allowedTypes = [
+      "rmVariables",
+      "manufacturingVariables",
+      "shipmentVariables",
+      "overheadsAndProfits",
+    ];
+
+    // Check if the provided variableType is valid
+    if (!allowedTypes.includes(variableType)) {
+      return res.status(400).json({ message: "Invalid variable type" });
+    }
+
+    try {
+      // Find the project and required subAssembly
+      const project = await ProjectModal.findOne({
+        _id: projectId,
+        "subAssemblyListFirst._id": subAssemblyId,
+      });
+
+      if (!project) {
+        return res
+          .status(404)
+          .json({ message: "Project or SubAssembly not found" });
+      }
+
+      // Locate the subAssembly
+      const subAssembly = project.subAssemblyListFirst.find(
+        (list) => list._id.toString() === subAssemblyId
+      );
+
+      if (!subAssembly) {
+        return res.status(404).json({ message: "SubAssembly not found" });
+      }
+
+      // Locate the item within the subAssembly
+      const item = subAssembly.partsListItems.find(
+        (part) => part._id.toString() === itemId
+      );
+
+      if (!item) {
+        return res.status(404).json({ message: "Item not found" });
+      }
+
+      // Locate the variable within the item
+      const variableIndex = item[variableType].findIndex(
+        (v) => v._id.toString() === variableId
+      );
+
+      if (variableIndex === -1) {
+        return res
+          .status(404)
+          .json({ message: `${variableType} entry not found` });
+      }
+
+      // Remove the variable
+      item[variableType].splice(variableIndex, 1);
+
+      // Save the updated project
+      await project.save();
+
+      res.status(200).json({
+        message: `${variableType} deleted successfully`,
+      });
+    } catch (error) {
+      res.status(500).json({ message: "An error occurred", error });
+    }
+  }
+);
+// ========== subAssemblylistfirst daynamic delete request do not touch =======================
 
 
 
 
-
-// ============== partlist daynamic put request do not touch =======================
+// ============== partlist dynamic put request do not touch =======================
 ProjectRouter.put(
   "/:projectId/partsLists/:partsListId/items/:itemId/:variableType/:variableId",
   async (req, res) => {
-    const { projectId, partsListId, itemId, variableType, variableId } = req.params;
+    const { projectId, partsListId, itemId, variableType, variableId } =
+      req.params;
     const updateData = req.body;
 
     // Allowed variable types for safety
-    const allowedTypes = ["rmVariables", "manufacturingVariables", "shipmentVariables", "overheadsAndProfits"];
+    const allowedTypes = [
+      "rmVariables",
+      "manufacturingVariables",
+      "shipmentVariables",
+      "overheadsAndProfits",
+    ];
 
     // Check if the provided variableType is valid
     if (!allowedTypes.includes(variableType)) {
@@ -2027,7 +2146,9 @@ ProjectRouter.put(
       });
 
       if (!project) {
-        return res.status(404).json({ message: "Project or PartsList not found" });
+        return res
+          .status(404)
+          .json({ message: "Project or PartsList not found" });
       }
 
       // Locate the partsList
@@ -2040,17 +2161,23 @@ ProjectRouter.put(
       }
 
       // Locate the item within the partsList
-      const item = partsList.partsListItems.find((part) => part._id.toString() === itemId);
+      const item = partsList.partsListItems.find(
+        (part) => part._id.toString() === itemId
+      );
 
       if (!item) {
         return res.status(404).json({ message: "Item not found" });
       }
 
       // Locate the variable within the item
-      const variable = item[variableType].find((v) => v._id.toString() === variableId);
+      const variable = item[variableType].find(
+        (v) => v._id.toString() === variableId
+      );
 
       if (!variable) {
-        return res.status(404).json({ message: `${variableType} entry not found` });
+        return res
+          .status(404)
+          .json({ message: `${variableType} entry not found` });
       }
 
       // Update the fields dynamically
@@ -2072,6 +2199,302 @@ ProjectRouter.put(
     }
   }
 );
+//  ====================== partlist dynamic put request do not touch  =============
 
+// ================ partlist dynamic delete request do not touch ==========
+ProjectRouter.delete(
+  "/:projectId/partsLists/:partsListId/items/:itemId/:variableType/:variableId",
+  async (req, res) => {
+    const { projectId, partsListId, itemId, variableType, variableId } =
+      req.params;
+
+    // Allowed variable types for safety
+    const allowedTypes = [
+      "rmVariables",
+      "manufacturingVariables",
+      "shipmentVariables",
+      "overheadsAndProfits",
+    ];
+
+    // Check if the provided variableType is valid
+    if (!allowedTypes.includes(variableType)) {
+      return res.status(400).json({ message: "Invalid variable type" });
+    }
+
+    try {
+      // Find the project and required partsList
+      const project = await ProjectModal.findOne({
+        _id: projectId,
+        "partsLists._id": partsListId,
+      });
+
+      if (!project) {
+        return res
+          .status(404)
+          .json({ message: "Project or PartsList not found" });
+      }
+
+      // Locate the partsList
+      const partsList = project.partsLists.find(
+        (list) => list._id.toString() === partsListId
+      );
+
+      if (!partsList) {
+        return res.status(404).json({ message: "PartsList not found" });
+      }
+
+      // Locate the item within the partsList
+      const item = partsList.partsListItems.find(
+        (part) => part._id.toString() === itemId
+      );
+
+      if (!item) {
+        return res.status(404).json({ message: "Item not found" });
+      }
+
+      // Locate the variable within the item
+      const variableIndex = item[variableType].findIndex(
+        (v) => v._id.toString() === variableId
+      );
+
+      if (variableIndex === -1) {
+        return res
+          .status(404)
+          .json({ message: `${variableType} entry not found` });
+      }
+
+      // Remove the variable
+      item[variableType].splice(variableIndex, 1);
+
+      // Save the updated project
+      await project.save();
+
+      res.status(200).json({
+        message: `${variableType} deleted successfully`,
+      });
+    } catch (error) {
+      res.status(500).json({ message: "An error occurred", error });
+    }
+  }
+);
+// ================ partlist dynamic delete request do not touch ==========
+
+
+
+// ================== assmebly List dynamic put requets do not touch
+// PUT route for updating nested variables in assemblyPartsLists
+ProjectRouter.put(
+  "/:projectId/assemblyPartsLists/:assemblyListId/:subAssemblyOrMulty/:listId/items/:itemId/:variableType/:variableId",
+  async (req, res) => {
+    const {
+      projectId,
+      assemblyListId,
+      subAssemblyOrMulty,
+      listId,
+      itemId,
+      variableType,
+      variableId,
+    } = req.params;
+    const updateData = req.body;
+
+    // Allowed variable types for safety
+    const allowedTypes = [
+      "rmVariables",
+      "manufacturingVariables",
+      "shipmentVariables",
+      "overheadsAndProfits",
+    ];
+
+    // Check if the provided variableType is valid
+    if (!allowedTypes.includes(variableType)) {
+      return res.status(400).json({ message: "Invalid variable type" });
+    }
+
+    try {
+      // Find the project and required assemblyPartsList
+      const project = await ProjectModal.findOne({
+        _id: projectId,
+        "assemblyPartsLists._id": assemblyListId,
+      });
+
+      if (!project) {
+        return res
+          .status(404)
+          .json({ message: "Project or AssemblyPartsList not found" });
+      }
+
+      // Locate the assemblyPartsList
+      const assemblyList = project.assemblyPartsLists.find(
+        (list) => list._id.toString() === assemblyListId
+      );
+
+      if (!assemblyList) {
+        return res.status(404).json({ message: "AssemblyPartsList not found" });
+      }
+
+      // Determine if the target is subAssemblyPartsLists or assemblyMultyPartsList
+      const targetList =
+        subAssemblyOrMulty === "subAssemblyPartsLists"
+          ? assemblyList.subAssemblyPartsLists
+          : assemblyList.assemblyMultyPartsList;
+
+      if (!targetList) {
+        return res
+          .status(404)
+          .json({ message: `Invalid list type: ${subAssemblyOrMulty}` });
+      }
+
+      // Locate the specific list
+      const list = targetList.find((l) => l._id.toString() === listId);
+
+      if (!list) {
+        return res.status(404).json({ message: "List not found" });
+      }
+
+      // Locate the item within the list
+      const item = list.partsListItems.find(
+        (part) => part._id.toString() === itemId
+      );
+
+      if (!item) {
+        return res.status(404).json({ message: "Item not found" });
+      }
+
+      // Locate the variable within the item
+      const variable = item[variableType].find(
+        (v) => v._id.toString() === variableId
+      );
+
+      if (!variable) {
+        return res
+          .status(404)
+          .json({ message: `${variableType} entry not found` });
+      }
+
+      // Update the fields dynamically
+      Object.keys(updateData).forEach((key) => {
+        if (updateData[key] !== undefined) {
+          variable[key] = updateData[key];
+        }
+      });
+
+      // Save the updated project
+      await project.save();
+
+      res.status(200).json({
+        message: `${variableType} updated successfully`,
+        updatedVariable: variable,
+      });
+    } catch (error) {
+      res.status(500).json({ message: "An error occurred", error });
+    }
+  }
+);
+// ============== End here ======================
+
+// =============== assmebly List dynamic put requets do not touch
+// DELETE route for deleting nested variables in assemblyPartsLists
+ProjectRouter.delete(
+  "/:projectId/assemblyPartsLists/:assemblyListId/:subAssemblyOrMulty/:listId/items/:itemId/:variableType/:variableId",
+  async (req, res) => {
+    const {
+      projectId,
+      assemblyListId,
+      subAssemblyOrMulty,
+      listId,
+      itemId,
+      variableType,
+      variableId,
+    } = req.params;
+
+    // Allowed variable types for safety
+    const allowedTypes = [
+      "rmVariables",
+      "manufacturingVariables",
+      "shipmentVariables",
+      "overheadsAndProfits",
+    ];
+
+    // Check if the provided variableType is valid
+    if (!allowedTypes.includes(variableType)) {
+      return res.status(400).json({ message: "Invalid variable type" });
+    }
+
+    try {
+      // Find the project and required assemblyPartsList
+      const project = await ProjectModal.findOne({
+        _id: projectId,
+        "assemblyPartsLists._id": assemblyListId,
+      });
+
+      if (!project) {
+        return res
+          .status(404)
+          .json({ message: "Project or AssemblyPartsList not found" });
+      }
+
+      // Locate the assemblyPartsList
+      const assemblyList = project.assemblyPartsLists.find(
+        (list) => list._id.toString() === assemblyListId
+      );
+
+      if (!assemblyList) {
+        return res.status(404).json({ message: "AssemblyPartsList not found" });
+      }
+
+      // Determine if the target is subAssemblyPartsLists or assemblyMultyPartsList
+      const targetList =
+        subAssemblyOrMulty === "subAssemblyPartsLists"
+          ? assemblyList.subAssemblyPartsLists
+          : assemblyList.assemblyMultyPartsList;
+
+      if (!targetList) {
+        return res
+          .status(404)
+          .json({ message: `Invalid list type: ${subAssemblyOrMulty}` });
+      }
+
+      // Locate the specific list
+      const list = targetList.find((l) => l._id.toString() === listId);
+
+      if (!list) {
+        return res.status(404).json({ message: "List not found" });
+      }
+
+      // Locate the item within the list
+      const item = list.partsListItems.find((part) => part._id.toString() === itemId);
+
+      if (!item) {
+        return res.status(404).json({ message: "Item not found" });
+      }
+
+      // Locate the variable within the item
+      const variableIndex = item[variableType].findIndex(
+        (v) => v._id.toString() === variableId
+      );
+
+      if (variableIndex === -1) {
+        return res
+          .status(404)
+          .json({ message: `${variableType} entry not found` });
+      }
+
+      // Remove the variable
+      item[variableType].splice(variableIndex, 1);
+
+      // Save the updated project
+      await project.save();
+
+      res.status(200).json({
+        message: `${variableType} deleted successfully`,
+      });
+    } catch (error) {
+      res.status(500).json({ message: "An error occurred", error });
+    }
+  }
+);
+
+// =============== assmebly List dynamic put requets do not touch
+// DELETE route for deleting nested variables in assemblyPartsLists
 
 module.exports = { ProjectRouter };
