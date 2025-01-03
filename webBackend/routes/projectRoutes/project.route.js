@@ -598,56 +598,6 @@ ProjectRouter.post("/:_id/assemblyPartsLists", async (req, res) => {
   }
 });
 
-// PUT Route: Update a parts list in the assemblyPartsLists array
-// ProjectRouter.put("/:_id/assemblyPartsLists/:index", async (req, res) => {
-//   const { index } = req.params;
-//   const { assemblyListName, partsListItems } = req.body;
-
-//   try {
-//     const project = await ProjectModal.findById(req.params._id);
-//     if (!project) {
-//       return res.status(404).json({ message: "Project not found" });
-//     }
-
-//     if (index >= project.assemblyPartsLists.length) {
-//       return res.status(404).json({ message: "Parts list not found" });
-//     }
-
-//     project.assemblyPartsLists[index] = {
-//       assemblyListName,
-//       partsListItems,
-//     };
-
-//     const updatedProject = await project.save();
-//     res.status(200).json(updatedProject);
-//   } catch (error) {
-//     res.status(500).json({ message: error.message });
-//   }
-// });
-
-// DELETE Route: Remove a parts list from the assemblyPartsLists array
-// ProjectRouter.delete("/:_id/assemblyPartsLists/:index", async (req, res) => {
-//   const { index } = req.params;
-
-//   try {
-//     const project = await ProjectModal.findById(req.params._id);
-//     if (!project) {
-//       return res.status(404).json({ message: "Project not found" });
-//     }
-
-//     if (index >= project.assemblyPartsLists.length) {
-//       return res.status(404).json({ message: "Parts list not found" });
-//     }
-
-//     project.assemblyPartsLists.splice(index, 1);
-
-//     const updatedProject = await project.save();
-//     res.status(200).json(updatedProject);
-//   } catch (error) {
-//     res.status(500).json({ message: error.message });
-//   }
-// });
-
 // POST Route: Add a new part to a specific parts list
 ProjectRouter.post(
   "/:_id/assemblyPartsLists/:listId/items",
@@ -685,37 +635,7 @@ ProjectRouter.post(
   }
 );
 
-// PUT Route: Update a part in a parts list by its _id
-// ProjectRouter.put(
-//   "/:_id/assemblyPartsLists/:listId/items/:itemId",
-//   async (req, res) => {
-//     try {
-//       const project = await ProjectModal.findById(req.params._id);
-//       if (!project) {
-//         return res.status(404).json({ message: "Project not found" });
-//       }
 
-//       const partsList = project.assemblyPartsLists.id(req.params.listId);
-//       if (!partsList) {
-//         return res.status(404).json({ message: "Parts list not found" });
-//       }
-
-//       const part = partsList.partsListItems.id(req.params.itemId);
-//       if (!part) {
-//         return res.status(404).json({ message: "Part not found" });
-//       }
-
-//       Object.assign(part, req.body);
-
-//       const updatedProject = await project.save();
-//       res.status(200).json(updatedProject);
-//     } catch (error) {
-//       res.status(500).json({ message: error.message });
-//     }
-//   }
-// );
-
-// DELETE Route: Remove a part from a parts list by its _id
 ProjectRouter.delete(
   "/:_id/assemblyPartsLists/:listId/items/:itemId",
   async (req, res) => {
@@ -896,79 +816,7 @@ ProjectRouter.get(
   }
 );
 
-// POST Route: Duplicate an assembly list
-// POST Route: Duplicate an assembly list
-// ProjectRouter.post("/:_id/assemblyPartsLists/:listId/duplicate", async (req, res) => {
-//   const { _id, listId } = req.params;
 
-//   try {
-//     const project = await ProjectModal.findById(_id);
-//     if (!project) {
-//       return res.status(404).json({ message: "Project not found" });
-//     }
-
-//     const assemblyList = project.assemblyPartsLists.id(listId);
-//     if (!assemblyList) {
-//       return res.status(404).json({ message: "Assembly list not found" });
-//     }
-
-//     const newAssemblyList = {
-//       assemblyListName: `${assemblyList.assemblyListName} (Copy)`,
-//       subAssemblyPartsLists: [...assemblyList.subAssemblyPartsLists],
-//       assemblyMultyPartsList: [...assemblyList.assemblyMultyPartsList]
-//     };
-
-//     project.assemblyPartsLists.push(newAssemblyList);
-//     const updatedProject = await project.save();
-//     res.status(200).json(newAssemblyList);
-//   } catch (error) {
-//     console.error("Error duplicating assembly list:", error);
-//     res.status(500).json({ message: error.message });
-//   }
-// })
-//
-// ;
-
-// project.route.js
-
-// POST Route: Duplicate an assembly list
-// ProjectRouter.post(
-//   "/:_id/assemblyPartsLists/:listId/duplicate",
-//   async (req, res) => {
-//     const { _id, listId } = req.params;
-
-//     try {
-//       const project = await ProjectModal.findById(_id);
-//       if (!project) {
-//         return res.status(404).json({ message: "Project not found" });
-//       }
-
-//       const assemblyList = project.assemblyPartsLists.id(listId);
-//       if (!assemblyList) {
-//         return res.status(404).json({ message: "Assembly list not found" });
-//       }
-
-//       const newAssemblyList = {
-//         assemblyListName: `${assemblyList.assemblyListName} (Copy)`,
-//         partsListItems: [...assemblyList.partsListItems],
-//         subAssemblyPartsLists: [...assemblyList.subAssemblyPartsLists],
-//         assemblyMultyPartsList: [...assemblyList.assemblyMultyPartsList],
-//       };
-
-//       project.assemblyPartsLists.push(newAssemblyList);
-//       const updatedProject = await project.save();
-//       res.status(200).json(newAssemblyList);
-//     } catch (error) {
-//       console.error("Error duplicating assembly list:", error);
-//       res
-//         .status(500)
-//         .json({
-//           message: "Failed to duplicate assembly list",
-//           error: error.message,
-//         });
-//     }
-//   }
-// );
 
 ProjectRouter.post(
   "/:_id/assemblyPartsLists/:listId/duplicate",
@@ -1821,134 +1669,6 @@ ProjectRouter.put("/:_id/partsLists/:listId", async (req, res) => {
   }
 });
 
-// ===================== RM varible code
-// ProjectRouter.put(
-//   "/:_id/partsLists/:listId/items/:itemId/rmVariables/:rmId",
-//   async (req, res) => {
-//     const { _id, listId, itemId, rmId } = req.params;
-//     const { name, netWeight, pricePerKg, totalRate } = req.body;
-
-//     try {
-//       const project = await ProjectModal.findById(_id);
-//       if (!project) {
-//         return res.status(404).json({ message: "Project not found" });
-//       }
-
-//       const partsList = project.partsLists.id(listId);
-//       if (!partsList) {
-//         return res.status(404).json({ message: "Parts list not found" });
-//       }
-
-//       const part = partsList.partsListItems.id(itemId);
-//       if (!part) {
-//         return res.status(404).json({ message: "Part not found" });
-//       }
-
-//       const rmVariable = part.rmVariables.id(rmId);
-//       if (!rmVariable) {
-//         return res.status(404).json({ message: "Raw material not found" });
-//       }
-
-//       // Update the raw material fields
-//       if (name !== undefined) rmVariable.name = name;
-//       if (netWeight !== undefined) rmVariable.netWeight = netWeight;
-//       if (pricePerKg !== undefined) rmVariable.pricePerKg = pricePerKg;
-//       if (totalRate !== undefined) rmVariable.totalRate = totalRate;
-
-//       // Save the updated project
-//       const updatedProject = await project.save();
-//       res.status(200).json({
-//         message: "Raw material updated successfully",
-//         updatedRawMaterial: rmVariable,
-//       });
-//     } catch (error) {
-//       console.error("Error updating raw material:", error);
-//       res.status(500).json({ message: "Internal Server Error" });
-//     }
-//   }
-// );
-
-// ProjectRouter.put(
-//   "/:_id/subAssemblyListFirst/:listId/items/:itemId/rmVariables/:rmId",
-//   async (req, res) => {
-//     const { _id, listId, itemId, rmId } = req.params;
-//     const { name, netWeight, pricePerKg, totalRate } = req.body;
-
-//     try {
-//       const project = await ProjectModal.findById(_id);
-//       if (!project) {
-//         return res.status(404).json({ message: "Project not found" });
-//       }
-
-//       const partsList = project.subAssemblyListFirst.id(listId);
-//       if (!partsList) {
-//         return res.status(404).json({ message: "Parts list not found" });
-//       }
-
-//       const part = partsList.partsListItems.id(itemId);
-//       if (!part) {
-//         return res.status(404).json({ message: "Part not found" });
-//       }
-
-//       const rmVariable = part.rmVariables.id(rmId);
-//       if (!rmVariable) {
-//         return res.status(404).json({ message: "Raw material not found" });
-//       }
-
-//       // Update the raw material fields
-//       if (name !== undefined) rmVariable.name = name;
-//       if (netWeight !== undefined) rmVariable.netWeight = netWeight;
-//       if (pricePerKg !== undefined) rmVariable.pricePerKg = pricePerKg;
-//       if (totalRate !== undefined) rmVariable.totalRate = totalRate;
-
-//       // Save the updated project
-//       const updatedProject = await project.save();
-//       res.status(200).json({
-//         message: "Raw material updated successfully",
-//         updatedRawMaterial: rmVariable,
-//       });
-//     } catch (error) {
-//       console.error("Error updating raw material:", error);
-//       res.status(500).json({ message: "Internal Server Error" });
-//     }
-//   }
-// );
-
-
-
-
-
-// delete partsListItems
-// Add this new route after the existing ones
-// ProjectRouter.delete("/:_id/partsLists/:listId/items/:itemId",  async (req, res) => {
-//       try {
-//         const project = await ProjectModal.findById(req.params._id);
-//         if (!project) {
-//           return res.status(404).json({ message: "Project not found" });
-//         }
-  
-//         const partsList = project.partsLists.id(req.params.listId);
-//         if (!partsList) {
-//           return res.status(404).json({ message: "Parts list not found" });
-//         }
-  
-//         const part = partsList.partsListItems.id(req.params.itemId);
-//         if (!part) {
-//           return res.status(404).json({ message: "Part not found" });
-//         }
-  
-//         part.remove();
-  
-//         const updatedProject = await project.save();
-//         res.status(200).json(updatedProject);
-//       } catch (error) {
-//         res.status(500).json({ message: error.message });
-//       }
-//     }
-//   );
-
-
-// DELETE Route: Remove a specific item from a parts list
 ProjectRouter.delete(
   "/:_id/partsLists/:listId/items/:itemId",
   async (req, res) => {
@@ -1967,13 +1687,15 @@ ProjectRouter.delete(
         return res.status(404).json({ message: "Parts list not found" });
       }
 
-      // Find the specific item in the parts list and remove it
-      const item = partsList.partsListItems.id(itemId);
-      if (!item) {
+      // Remove the specific item in the parts list
+      const itemIndex = partsList.partsListItems.findIndex(
+        (item) => item._id.toString() === itemId
+      );
+      if (itemIndex === -1) {
         return res.status(404).json({ message: "Part not found in the list" });
       }
 
-      item.remove();
+      partsList.partsListItems.splice(itemIndex, 1);
 
       // Save the updated project
       const updatedProject = await project.save();
@@ -1989,8 +1711,145 @@ ProjectRouter.delete(
 );
 
 
+// DELETE Route: Remove a part from a sub-assembly parts list by its _id
+ProjectRouter.delete(
+  "/:_id/subAssemblyListFirst/:listId/items/:itemId",
+  async (req, res) => {
+    try {
+      const { _id, listId, itemId } = req.params;
 
-  
+      // Find the project by ID
+      const project = await ProjectModal.findById(_id);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+
+      // Find the specific sub-assembly list by ID
+      const subAssemblyList = project.subAssemblyListFirst.id(listId);
+      if (!subAssemblyList) {
+        return res.status(404).json({ message: "Sub-assembly list not found" });
+      }
+
+      // Remove the specific item in the sub-assembly list
+      const itemIndex = subAssemblyList.partsListItems.findIndex(
+        (item) => item._id.toString() === itemId
+      );
+      if (itemIndex === -1) {
+        return res.status(404).json({ message: "Part not found in the sub-assembly list" });
+      }
+
+      subAssemblyList.partsListItems.splice(itemIndex, 1);
+
+      // Save the updated project
+      const updatedProject = await project.save();
+
+      res.status(200).json({
+        message: "Sub-assembly part removed successfully",
+        project: updatedProject,
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Server error", error: error.message });
+    }
+  }
+);
+
+
+// DELETE Route: Remove a part from a sub-assembly parts list by its _id
+ProjectRouter.delete(
+  "/:_id/assemblyPartsLists/:listId/subAssemblyPartsLists/:subListId/items/:itemId",
+  async (req, res) => {
+    try {
+      const { _id, listId, subListId, itemId } = req.params;
+
+      // Find the project by ID
+      const project = await ProjectModal.findById(_id);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+
+      // Find the specific assembly parts list by ID
+      const assemblyPartsList = project.assemblyPartsLists.id(listId);
+      if (!assemblyPartsList) {
+        return res.status(404).json({ message: "Assembly parts list not found" });
+      }
+
+      // Find the specific sub-assembly parts list by ID
+      const subAssemblyPartsList = assemblyPartsList.subAssemblyPartsLists.id(subListId);
+      if (!subAssemblyPartsList) {
+        return res.status(404).json({ message: "Sub-assembly parts list not found" });
+      }
+
+      // Remove the specific item in the sub-assembly parts list
+      const itemIndex = subAssemblyPartsList.partsListItems.findIndex(
+        (item) => item._id.toString() === itemId
+      );
+      if (itemIndex === -1) {
+        return res.status(404).json({ message: "Part not found in the sub-assembly list" });
+      }
+
+      subAssemblyPartsList.partsListItems.splice(itemIndex, 1);
+
+      // Save the updated project
+      const updatedProject = await project.save();
+
+      res.status(200).json({
+        message: "Sub-assembly part removed successfully",
+        project: updatedProject,
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Server error", error: error.message });
+    }
+  }
+);
+
+// DELETE Route: Remove a part from an assembly multi-parts list by its _id
+ProjectRouter.delete(
+  "/:_id/assemblyPartsLists/:listId/assemblyMultyPartsList/:multiPartId/items/:itemId",
+  async (req, res) => {
+    try {
+      const { _id, listId, multiPartId, itemId } = req.params;
+
+      // Find the project by ID
+      const project = await ProjectModal.findById(_id);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+
+      // Find the specific assembly parts list by ID
+      const assemblyPartsList = project.assemblyPartsLists.id(listId);
+      if (!assemblyPartsList) {
+        return res.status(404).json({ message: "Assembly parts list not found" });
+      }
+
+      // Find the specific assembly multi-parts list by ID
+      const assemblyMultyPartList = assemblyPartsList.assemblyMultyPartsList.id(multiPartId);
+      if (!assemblyMultyPartList) {
+        return res.status(404).json({ message: "Assembly multi-parts list not found" });
+      }
+
+      // Remove the specific item in the assembly multi-parts list
+      const itemIndex = assemblyMultyPartList.partsListItems.findIndex(
+        (item) => item._id.toString() === itemId
+      );
+      if (itemIndex === -1) {
+        return res.status(404).json({ message: "Part not found in the assembly multi-parts list" });
+      }
+
+      assemblyMultyPartList.partsListItems.splice(itemIndex, 1);
+
+      // Save the updated project
+      const updatedProject = await project.save();
+
+      res.status(200).json({
+        message: "Assembly multi-part removed successfully",
+        project: updatedProject,
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Server error", error: error.message });
+    }
+  }
+);
+
 
 
 
