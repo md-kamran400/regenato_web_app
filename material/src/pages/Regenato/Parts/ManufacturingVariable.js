@@ -14,6 +14,7 @@ import {
 import Flatpickr from "react-flatpickr";
 import Autocomplete from "@mui/material/Autocomplete";
 import TextField from "@mui/material/TextField";
+import "./project.css";
 
 const ManufacturingVariable = ({
   partDetails,
@@ -43,6 +44,8 @@ const ManufacturingVariable = ({
   const [formData, setFormData] = useState({
     categoryId: "",
     name: "",
+    "time-hours": "",
+    "time-minutes": "",
     hours: "",
     hourlyRate: "",
     totalRate: "",
@@ -275,18 +278,32 @@ const ManufacturingVariable = ({
   // Handle form input changes
   const handleChange = (e) => {
     const { name, value } = e.target;
+
     setFormData((prevFormData) => {
       const updatedFormData = {
         ...prevFormData,
         [name]: value,
       };
 
-      if (name === "hours" || name === "hourlyRate") {
-        updatedFormData.totalRate = calculateTotalRate(
-          updatedFormData.hours,
-          updatedFormData.hourlyRate
-        );
+      if (name === "time-hours" || name === "time-minutes") {
+        const hours = parseFloat(updatedFormData["time-hours"] || 0);
+        const minutes = parseFloat(updatedFormData["time-minutes"] || 0);
+        const totalHours = hours + minutes / 60;
+
+        updatedFormData.hours = totalHours.toFixed(2);
+
+        // Calculate totalRate using the newly calculated hours and the current hourlyRate
+        const validHourlyRate = parseFloat(updatedFormData.hourlyRate) || 0;
+        updatedFormData.totalRate = (totalHours * validHourlyRate).toFixed(2);
       }
+
+      if (name === "hourlyRate") {
+        const validHours = parseFloat(updatedFormData.hours) || 0;
+        const validHourlyRate = parseFloat(updatedFormData.hourlyRate) || 0;
+        updatedFormData.totalRate = (validHours * validHourlyRate).toFixed(2);
+      }
+
+      console.log(`Updated formData:`, updatedFormData);
 
       return updatedFormData;
     });
@@ -417,24 +434,24 @@ const ManufacturingVariable = ({
   );
 
   // Handle unit change (Hours to Minutes or vice-versa)
-  const handleUnitChange = (e) => {
-    const newUnit = e.target.value;
-    let convertedHours = parseFloat(formData.hours) || 0;
+  // const handleUnitChange = (e) => {
+  //   const newUnit = e.target.value;
+  //   let convertedHours = parseFloat(formData.hours) || 0;
 
-    if (newUnit === "minutes" && unit === "hours") {
-      convertedHours *= 60; // Convert Hours to Minutes
-    } else if (newUnit === "hours" && unit === "minutes") {
-      convertedHours /= 60; // Convert Minutes to Hours
-    }
+  //   if (newUnit === "minutes" && unit === "hours") {
+  //     convertedHours *= 60; // Convert Hours to Minutes
+  //   } else if (newUnit === "hours" && unit === "minutes") {
+  //     convertedHours /= 60; // Convert Minutes to Hours
+  //   }
 
-    setUnit(newUnit);
+  //   setUnit(newUnit);
 
-    setFormData((prevFormData) => ({
-      ...prevFormData,
-      hours: convertedHours.toFixed(2),
-      totalRate: calculateTotalRate(convertedHours, prevFormData.hourlyRate),
-    }));
-  };
+  //   setFormData((prevFormData) => ({
+  //     ...prevFormData,
+  //     hours: convertedHours.toFixed(2),
+  //     totalRate: calculateTotalRate(convertedHours, prevFormData.hourlyRate),
+  //   }));
+  // };
 
   // Calculate Total Rate
   const calculateTotalRate = (hours, hourlyRate) => {
@@ -556,19 +573,6 @@ const ManufacturingVariable = ({
         <ModalHeader toggle={tog_add}>Add Manufacturing Variables</ModalHeader>
         <ModalBody>
           <form onSubmit={handleSubmit}>
-            {/* <div className="mb-3">
-              <label htmlFor="categoryId" className="form-label">
-                Category ID
-              </label>
-              <input
-                type="text"
-                className="form-control"
-                name="categoryId"
-                value={formData.categoryId}
-                onChange={handleChange}
-                required
-              />
-            </div> */}
             <div className="mb-3">
               <label htmlFor="name" className="form-label">
                 Name
@@ -587,6 +591,39 @@ const ManufacturingVariable = ({
               />
             </div>
             <div className="mb-3">
+              <label htmlFor="time-hours" className="form-label">
+                Enter Time
+              </label>
+              <div class="time-input">
+                <input
+                  type="number"
+                  min="0"
+                  max="24"
+                  placeholder="00"
+                  name="time-hours"
+                  value={formData["time-hours"]}
+                  onChange={handleChange}
+                  required
+                />
+                <h2>:</h2>
+                <input
+                  type="number"
+                  min="0"
+                  max="59"
+                  placeholder="00"
+                  name="time-minutes"
+                  value={formData["time-minutes"]}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+              <div class="time-labels">
+                <span>Hour</span>
+                <span>Minute</span>
+              </div>
+            </div>
+
+            <div className="mb-3">
               <label htmlFor="hours" className="form-label">
                 Hours
               </label>
@@ -596,17 +633,9 @@ const ManufacturingVariable = ({
                   className="form-control"
                   name="hours"
                   value={formData.hours}
-                  onChange={handleChange}
+                  readOnly
                   required
                 />
-                <select
-                  className="form-select"
-                  value={unit}
-                  onChange={handleUnitChange}
-                >
-                  <option value="minutes">Minutes</option>
-                  <option value="hours">Hours</option>
-                </select>
               </div>
             </div>
             <div className="mb-3">
@@ -626,14 +655,16 @@ const ManufacturingVariable = ({
               <label htmlFor="totalRate" className="form-label">
                 Total Rate
               </label>
-              <input
-                type="number"
-                className="form-control"
-                name="totalRate"
-                value={formData.totalRate || ""} // Ensure it reflects updated calculation
-                readOnly
-                required
-              />
+              <div className="input-group">
+                <input
+                  type="number"
+                  className="form-control"
+                  name="totalRate"
+                  value={formData.totalRate}
+                  readOnly
+                  required
+                />
+              </div>
             </div>
             <ModalFooter>
               <Button type="submit" color="primary" disabled={posting}>

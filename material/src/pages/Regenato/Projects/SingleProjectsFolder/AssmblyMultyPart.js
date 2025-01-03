@@ -29,6 +29,8 @@ import { useParams } from "react-router-dom";
 import { MdOutlineDelete } from "react-icons/md";
 import Manufacturing from "../AssemblyExpandFolder/Manufacturing";
 import PropTypes from "prop-types";
+import { ToastContainer, toast } from "react-toastify";
+
 
 const AssmblyMultyPart = React.memo(
   ({
@@ -63,7 +65,8 @@ const AssmblyMultyPart = React.memo(
     const [isLoading, setIsLoading] = useState(false);
     const [machinesTBU, setMachinesTBU] = useState({});
     const [partsListItemsUpdated, setPartsListItemsUpdated] = useState(false);
-
+    const [deleteModal, setDeleteModal] = useState(false);
+    const [itemToDelete, setItemToDelete] = useState(null);
     // ... other state declarations ...
 
     // fetching
@@ -113,7 +116,6 @@ const AssmblyMultyPart = React.memo(
     useEffect(() => {
       // console.log("Received partsAssmeblyItems:", partsAssmeblyItems);
       // console.log("Received Id:", assemblyId);
-
       // Access the subAssemblyListName
       // const subAssemblyListName = partsAssmeblyItems.subAssemblyListName;
       // console.log('SubAssembly List Name:', subAssemblyListName);
@@ -152,6 +154,15 @@ const AssmblyMultyPart = React.memo(
     const tog_delete = (_id) => {
       setModalDelete(!modal_delete);
       setSelectedId(_id);
+    };
+
+
+  
+    // ... other functions ...
+  
+    const toggleDeleteModal = (item) => {
+      setDeleteModal(!deleteModal);
+      setItemToDelete(item);
     };
 
     // const [projectName, setProjectName] = useState('');
@@ -401,6 +412,32 @@ const AssmblyMultyPart = React.memo(
       }
     };
 
+    const handleAssemblyMultyPartDelete = async () => {
+      if (!itemToDelete) return;
+      
+      try {
+        const response = await fetch(`${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/assemblyPartsLists/${assemblyId}/assemblyMultyPartsList/${partsAssmeblyItems._id}/items/${itemToDelete._id}`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+  
+        if (!response.ok) {
+          throw new Error('Failed to delete assembly multi-part');
+        }
+  
+        const updatedProject = await response.json();
+        onUpdatePrts(updatedProject);
+        setDeleteModal(false);
+        setItemToDelete(null);
+        toast.success('Assembly multi-part deleted successfully');
+      } catch (error) {
+        console.error('Error deleting assembly multi-part:', error);
+        toast.error('Failed to delete assembly multi-part. Please try again.');
+      }
+    };
+
     return (
       <>
         {isLoading && (
@@ -458,7 +495,10 @@ const AssmblyMultyPart = React.memo(
                                 expandedRowId === item._id ? "expanded" : ""
                               }
                             >
-                              <td style={{cursor: "pointer", color: "#64B5F6"}}  className="parent_partName">
+                              <td
+                                style={{ cursor: "pointer", color: "#64B5F6" }}
+                                className="parent_partName"
+                              >
                                 {item.partName} ({item.Uid || ""})
                               </td>
                               <td>
@@ -483,11 +523,14 @@ const AssmblyMultyPart = React.memo(
 
                               <td className="action-cell">
                                 <div className="action-buttons">
-                                  <span>
+                                  {/* <span>
                                     <FiEdit size={20} />
-                                  </span>
-                                  <span onClick={() => tog_delete(item._id)}>
-                                    <MdOutlineDelete size={25} />
+                                  </span> */}
+                                  <span style={{color: "red", cursor: "pointer"}}>
+                                    <MdOutlineDelete
+                                      size={25}
+                                      onClick={() => toggleDeleteModal(item)}
+                                    />
                                   </span>
                                 </div>
                               </td>
@@ -520,7 +563,7 @@ const AssmblyMultyPart = React.memo(
                                       projectId={_id}
                                       partId={item._id}
                                     /> */}
-{/* partsAssmeblyItems */}
+                                    {/* partsAssmeblyItems */}
                                     <RawMaterial
                                       partName={item.partName}
                                       rmVariables={item.rmVariables}
@@ -529,12 +572,14 @@ const AssmblyMultyPart = React.memo(
                                       assemblyId={assemblyId}
                                       itemId={item._id}
                                       source="assemblyMultyPartsList"
-                                      rawMatarialsUpdate = {onUpdatePrts}
+                                      rawMatarialsUpdate={onUpdatePrts}
                                     />
 
                                     <Manufacturing
                                       partName={item.partName}
-                                      manufacturingVariables={item.manufacturingVariables || []}
+                                      manufacturingVariables={
+                                        item.manufacturingVariables || []
+                                      }
                                       projectId={_id}
                                       partId={partsAssmeblyItems._id}
                                       itemId={item._id}
@@ -544,21 +589,22 @@ const AssmblyMultyPart = React.memo(
                                     />
 
                                     <Shipment
-                                       partName={item.partName}
-                                       shipmentVariables={
-                                         item.shipmentVariables || []
-                                       }
-                                       projectId={_id}
-                                       partId={partsAssmeblyItems._id}
-                                       itemId={item._id}
-                                       assemblyId={assemblyId}
-                                       source="assemblyMultyPartsList"
-                                       shipmentUpdate={onUpdatePrts}
+                                      partName={item.partName}
+                                      shipmentVariables={
+                                        item.shipmentVariables || []
+                                      }
+                                      projectId={_id}
+                                      partId={partsAssmeblyItems._id}
+                                      itemId={item._id}
+                                      assemblyId={assemblyId}
+                                      source="assemblyMultyPartsList"
+                                      shipmentUpdate={onUpdatePrts}
                                     />
                                     <Overheads
                                       partName={item.partName}
                                       overheadsAndProfits={
-                                        item.overheadsAndProfits}
+                                        item.overheadsAndProfits
+                                      }
                                       projectId={_id}
                                       partId={partsAssmeblyItems._id}
                                       itemId={item._id}
@@ -914,6 +960,24 @@ const AssmblyMultyPart = React.memo(
                 {posting ? "Deleting..." : "Yes! Delete It"}
               </Button>
               <Button color="secondary" onClick={tog_delete} disabled={posting}>
+                Cancel
+              </Button>
+            </ModalFooter>
+          </Modal>
+
+          <Modal isOpen={deleteModal} toggle={() => toggleDeleteModal(null)}>
+            <ModalHeader toggle={() => toggleDeleteModal(null)}>
+              Confirm Deletion
+            </ModalHeader>
+            <ModalBody>
+              Are you sure you want to delete "{itemToDelete?.partName}" from
+              the assembly multi-parts list?
+            </ModalBody>
+            <ModalFooter>
+              <Button color="danger" onClick={handleAssemblyMultyPartDelete}>
+                Delete
+              </Button>
+              <Button color="secondary" onClick={() => toggleDeleteModal(null)}>
                 Cancel
               </Button>
             </ModalFooter>

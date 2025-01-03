@@ -29,6 +29,7 @@ import { useParams } from "react-router-dom";
 import { MdOutlineDelete } from "react-icons/md";
 import Manufacturing from "../AssemblyExpandFolder/Manufacturing";
 import PropTypes from "prop-types";
+import { ToastContainer, toast } from "react-toastify";
 
 const SubAssemblyTable = React.memo(
   ({ subAssemblyItems, assemblyId, onAddAssembly, onUpdatePrts }) => {
@@ -58,6 +59,9 @@ const SubAssemblyTable = React.memo(
     const [isLoading, setIsLoading] = useState(false);
     const [machinesTBU, setMachinesTBU] = useState({});
     const [partsListItemsUpdated, setPartsListItemsUpdated] = useState(false);
+
+    const [deleteModal, setDeleteModal] = useState(false);
+    const [itemToDelete, setItemToDelete] = useState(null);
 
     const [showTable, setShowTable] = useState(() => {
       const storedValue = localStorage.getItem("showTable");
@@ -158,9 +162,10 @@ const SubAssemblyTable = React.memo(
       setSelectedId(_id);
     };
 
-    // const [projectName, setProjectName] = useState('');
-
-    // ... (other state declarations)
+    const toggleDeleteModal = (item) => {
+      setDeleteModal(!deleteModal);
+      setItemToDelete(item);
+    };
 
     // for parts
     const fetchData = useCallback(async () => {
@@ -357,8 +362,6 @@ const SubAssemblyTable = React.memo(
       }
     };
 
-    // onUpdateSubAssembly={handleSubAssemblyUpdate}
-    // onAddAssembly={handleAddAssembly}
 
     const updateManufacturingVariable = (updatedVariable) => {
       setPartDetails((prevData) => {
@@ -409,6 +412,34 @@ const SubAssemblyTable = React.memo(
       }
     };
 
+    const handleSubAssemblyPartDelete = async () => {
+      if (!itemToDelete) return;
+
+      try {
+        const response = await fetch(
+          `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/assemblyPartsLists/${assemblyId}/subAssemblyPartsLists/${subAssemblyItems._id}/items/${itemToDelete._id}`,
+          {
+            method: "DELETE",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error("Failed to delete sub-assembly part");
+        }
+
+        const updatedProject = await response.json();
+        onUpdatePrts(updatedProject);
+        setDeleteModal(false);
+        setItemToDelete(null);
+        toast.success("Sub-assembly part deleted successfully");
+      } catch (error) {
+        console.error("Error deleting sub-assembly part:", error);
+        toast.error("Failed to delete sub-assembly part. Please try again.");
+      }
+    };
     return (
       <>
         {isLoading && (
@@ -466,7 +497,10 @@ const SubAssemblyTable = React.memo(
                                 expandedRowId === item._id ? "expanded" : ""
                               }
                             >
-                              <td style={{cursor: "pointer", color: "#64B5F6"}}  className="parent_partName">
+                              <td
+                                style={{ cursor: "pointer", color: "#64B5F6" }}
+                                className="parent_partName"
+                              >
                                 {item.partName} ({item.Uid || ""})
                               </td>
                               <td>
@@ -491,11 +525,14 @@ const SubAssemblyTable = React.memo(
 
                               <td className="action-cell">
                                 <div className="action-buttons">
-                                  <span>
+                                  {/* <span>
                                     <FiEdit size={20} />
-                                  </span>
-                                  <span onClick={() => tog_delete(item._id)}>
-                                    <MdOutlineDelete size={25} />
+                                  </span> */}
+                                  <span style={{color: "red", cursor: "pointer"}}>
+                                    <MdOutlineDelete
+                                      size={25}
+                                      onClick={() => toggleDeleteModal(item)}
+                                    />
                                   </span>
                                 </div>
                               </td>
@@ -521,13 +558,6 @@ const SubAssemblyTable = React.memo(
                                       />
                                       {item.partName}
                                     </h5>
-                                    {/* Raw Materials Section */}
-                                    {/* <RawMaterial
-                                      partName={item.partName}
-                                      rmVariables={item.rmVariables || {}}
-                                      projectId={_id}
-                                      partId={item._id}
-                                    /> */}
 
                                     <RawMaterial
                                       partName={item.partName}
@@ -538,11 +568,12 @@ const SubAssemblyTable = React.memo(
                                       itemId={item._id}
                                       source="subAssemblyPartsLists"
                                       rawMatarialsUpdate={onUpdatePrts}
-                                      
                                     />
                                     <Manufacturing
                                       partName={item.partName}
-                                      manufacturingVariables={item.manufacturingVariables || []}
+                                      manufacturingVariables={
+                                        item.manufacturingVariables || []
+                                      }
                                       projectId={_id}
                                       partId={subAssemblyItems._id}
                                       itemId={item._id}
@@ -562,12 +593,12 @@ const SubAssemblyTable = React.memo(
                                       assemblyId={assemblyId}
                                       source="subAssemblyPartsLists"
                                       shipmentUpdate={onUpdatePrts}
-
                                     />
                                     <Overheads
                                       partName={item.partName}
                                       overheadsAndProfits={
-                                        item.overheadsAndProfits}
+                                        item.overheadsAndProfits
+                                      }
                                       projectId={_id}
                                       partId={subAssemblyItems._id}
                                       itemId={item._id}
@@ -923,6 +954,24 @@ const SubAssemblyTable = React.memo(
                 {posting ? "Deleting..." : "Yes! Delete It"}
               </Button>
               <Button color="secondary" onClick={tog_delete} disabled={posting}>
+                Cancel
+              </Button>
+            </ModalFooter>
+          </Modal>
+
+          <Modal isOpen={deleteModal} toggle={() => toggleDeleteModal(null)}>
+            <ModalHeader toggle={() => toggleDeleteModal(null)}>
+              Confirm Deletion
+            </ModalHeader>
+            <ModalBody>
+              Are you sure you want to delete "{itemToDelete?.partName}" from
+              the sub-assembly parts list?
+            </ModalBody>
+            <ModalFooter>
+              <Button color="danger" onClick={handleSubAssemblyPartDelete}>
+                Delete
+              </Button>
+              <Button color="secondary" onClick={() => toggleDeleteModal(null)}>
                 Cancel
               </Button>
             </ModalFooter>

@@ -64,6 +64,9 @@ const PartsTable = React.memo(
     const [partsDisplay, setPartsDisplay] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
 
+    const [deleteModal, setDeleteModal] = useState(false);
+    const [itemToDelete, setItemToDelete] = useState(null);
+
     const [partsListItemsUpdated, setPartsListItemsUpdated] = useState(false);
 
     const [editModal, setEditModal] = useState(false);
@@ -128,9 +131,15 @@ const PartsTable = React.memo(
       fetchParts();
       fetchManufacturingVariables();
     }, []);
-
+    // deleting the part list items
     const tog_delete = () => {
       setModalDelete(!modal_delete);
+    };
+
+    // second function for deleteing the parts
+    const toggleDeleteModal = (item) => {
+      setDeleteModal(!deleteModal);
+      setItemToDelete(item);
     };
 
     // Function to toggle the edit modal
@@ -428,6 +437,35 @@ const PartsTable = React.memo(
       }
     };
 
+    const handlePartDelete = async () => {
+      if (!itemToDelete) return;
+
+      try {
+        const response = await fetch(
+          `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/partsLists/${partsList._id}/items/${itemToDelete._id}`,
+          {
+            method: "DELETE",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error("Failed to delete part");
+        }
+
+        const updatedProject = await response.json();
+        onUpdatePrts(updatedProject);
+        setDeleteModal(false);
+        setItemToDelete(null);
+        toast.success("Part deleted successfully");
+      } catch (error) {
+        console.error("Error deleting part:", error);
+        toast.error("Failed to delete part. Please try again.");
+      }
+    };
+
     //edit
     //  `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/partsLists/${partsList._id}`,
     const handleEdit = async (e) => {
@@ -477,7 +515,7 @@ const PartsTable = React.memo(
           style={{
             boxSizing: "border-box",
             borderTop: "20px solid rgb(69, 203, 133)",
-            borderRadius: "5px"
+            borderRadius: "5px",
           }}
         >
           <Row>
@@ -503,9 +541,11 @@ const PartsTable = React.memo(
                         {partsList.partsListName}
                       </li>
 
-                      <li style={{fontSize: "19px"}}><span class="badge bg-success-subtle text-success">
-                        Parts
-                      </span></li>
+                      <li style={{ fontSize: "19px" }}>
+                        <span class="badge bg-success-subtle text-success">
+                          Parts
+                        </span>
+                      </li>
                     </ul>
 
                     <UncontrolledDropdown direction="left">
@@ -620,11 +660,14 @@ const PartsTable = React.memo(
 
                               <td className="action-cell">
                                 <div className="action-buttons">
-                                  <span>
+                                  {/* <span>
                                     <FiEdit size={20} />
-                                  </span>
-                                  <span onClick={() => tog_delete(item._id)}>
-                                    <MdOutlineDelete size={25} />
+                                  </span> */}
+                                  <span style={{color: "red", cursor: "pointer"}}>
+                                    <MdOutlineDelete
+                                      size={25}
+                                      onClick={() => toggleDeleteModal(item)}
+                                    />
                                   </span>
                                 </div>
                               </td>
@@ -717,7 +760,6 @@ const PartsTable = React.memo(
                                       }
                                     />
 
-                                    
                                     <Overheads
                                       partName={item.partName}
                                       overheadsAndProfits={
@@ -1066,6 +1108,23 @@ const PartsTable = React.memo(
                 Delete
               </Button>
               <Button color="secondary" onClick={tog_delete}>
+                Cancel
+              </Button>
+            </ModalFooter>
+          </Modal>
+
+          <Modal isOpen={deleteModal} toggle={() => toggleDeleteModal(null)}>
+            <ModalHeader toggle={() => toggleDeleteModal(null)}>
+              Confirm Deletion
+            </ModalHeader>
+            <ModalBody>
+              Are you sure you want to delete "{itemToDelete?.partName}"?
+            </ModalBody>
+            <ModalFooter>
+              <Button color="danger" onClick={handlePartDelete}>
+                Delete
+              </Button>
+              <Button color="secondary" onClick={() => toggleDeleteModal(null)}>
                 Cancel
               </Button>
             </ModalFooter>

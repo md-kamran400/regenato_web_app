@@ -77,8 +77,17 @@ const OuterSubAssmebly = React.memo(
     // const [editModal, setEditModal] = useState(false);
     const [subAssemblyListName, setsubAssemblyListName] = useState("");
     const [selectedPartsList, setSelectedPartsList] = useState(null);
+
+    const [deleteModal, setDeleteModal] = useState(false);
+    const [itemToDelete, setItemToDelete] = useState(null);
+
     const tog_delete = () => {
       setModalDelete(!modal_delete);
+    };
+
+    const toggleDeleteModal = (item) => {
+      setDeleteModal(!deleteModal);
+      setItemToDelete(item);
     };
 
     const toggleEditModal = (partsList) => {
@@ -115,36 +124,35 @@ const OuterSubAssmebly = React.memo(
         toast.error("Failed to delete part. Please try again.");
       }
     };
-    // `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/subAssemblyListFirst/${subAssemblyItem._id}`,
 
-    // Update the handleEditSubmit function
-    // const handleEditSubmit = async (event) => {
-    //   event.preventDefault();
-    //   try {
-    //     const response = await fetch(
-    //       `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/subAssemblyListFirst/${subAssemblyItem._id}`,
-    //       {
-    //         method: "PUT",
-    //         headers: { "Content-Type": "application/json" },
-    //         body: JSON.stringify(editData),
-    //       }
-    //     );
-    //     if (!response.ok) {
-    //       throw new Error("Failed to update sub-assembly list");
-    //     }
-    //     const updatedData = await response.json();
-    //     setSubAssemblyItems((prevItems) =>
-    //       prevItems.map((item) =>
-    //         item._id === subAssemblyItem._id ? updatedData : item
-    //       )
-    //     );
-    //     setEditModal(false);
-    //     toast.success("Sub-assembly updated successfully!");
-    //   } catch (error) {
-    //     console.error("Error updating sub-assembly:", error);
-    //     toast.error("Failed to update sub-assembly. Please try again.");
-    //   }
-    // };
+    const handleSubAssemblyPartDelete = async () => {
+      if (!itemToDelete) return;
+
+      try {
+        const response = await fetch(
+          `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/subAssemblyListFirst/${subAssemblyItem._id}/items/${itemToDelete._id}`,
+          {
+            method: "DELETE",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error("Failed to delete sub-assembly part");
+        }
+
+        const updatedProject = await response.json();
+        onUpdatePrts(updatedProject);
+        setDeleteModal(false);
+        setItemToDelete(null);
+        toast.success("Sub-assembly part deleted successfully");
+      } catch (error) {
+        console.error("Error deleting sub-assembly part:", error);
+        toast.error("Failed to delete sub-assembly part. Please try again.");
+      }
+    };
 
     const handleEdit = async (e) => {
       e.preventDefault();
@@ -168,7 +176,7 @@ const OuterSubAssmebly = React.memo(
 
         const data = await response.json();
         onUpdatePrts(data);
-         toast.success('Sub-Assembly Updated Successfully')
+        toast.success("Sub-Assembly Updated Successfully");
         toggleEditModal(false);
       } catch (error) {
         console.error("Error updating parts list:", error);
@@ -350,7 +358,6 @@ const OuterSubAssmebly = React.memo(
         );
         const data = await response.json();
         setPartsDisplay(data.partsListItems || []);
-       
       } catch (error) {
         setError(error.message);
       } finally {
@@ -484,7 +491,6 @@ const OuterSubAssmebly = React.memo(
             <Col lg={12}>
               <Card>
                 <CardBody>
-                 
                   <div
                     style={{
                       width: "100%",
@@ -505,9 +511,11 @@ const OuterSubAssmebly = React.memo(
                         {subAssemblyItem.subAssemblyListName}
                       </li>
 
-                      <li style={{fontSize: "19px"}}><span class="badge bg-danger-subtle text-danger">
-                        Sub Assembly
-                      </span></li>
+                      <li style={{ fontSize: "19px" }}>
+                        <span class="badge bg-danger-subtle text-danger">
+                          Sub Assembly
+                        </span>
+                      </li>
                     </ul>
 
                     <UncontrolledDropdown direction="left">
@@ -516,7 +524,7 @@ const OuterSubAssmebly = React.memo(
                         className="btn btn-link text-muted p-1 mt-n2 py-0 text-decoration-none fs-15 shadow-none"
                       >
                         <FeatherIcon
-                          style={{ fontWeight: "600"}}
+                          style={{ fontWeight: "600" }}
                           icon="more-horizontal"
                           className="icon-sm"
                         />
@@ -621,11 +629,14 @@ const OuterSubAssmebly = React.memo(
 
                               <td className="action-cell">
                                 <div className="action-buttons">
-                                  <span>
+                                  {/* <span>
                                     <FiEdit size={20} />
-                                  </span>
-                                  <span onClick={() => tog_delete(item._id)}>
-                                    <MdOutlineDelete size={25} />
+                                  </span> */}
+                                  <span style={{color: "red", cursor: "pointer"}}>
+                                    <MdOutlineDelete
+                                      size={25}
+                                      onClick={() => toggleDeleteModal(item)}
+                                    />
                                   </span>
                                 </div>
                               </td>
@@ -1053,6 +1064,24 @@ const OuterSubAssmebly = React.memo(
                 Delete
               </Button>
               <Button color="secondary" onClick={tog_delete}>
+                Cancel
+              </Button>
+            </ModalFooter>
+          </Modal>
+
+          <Modal isOpen={deleteModal} toggle={() => toggleDeleteModal(null)}>
+            <ModalHeader toggle={() => toggleDeleteModal(null)}>
+              Confirm Deletion
+            </ModalHeader>
+            <ModalBody>
+              Are you sure you want to delete "{itemToDelete?.partName}" from
+              the sub-assembly list?
+            </ModalBody>
+            <ModalFooter>
+              <Button color="danger" onClick={handleSubAssemblyPartDelete}>
+                Delete
+              </Button>
+              <Button color="secondary" onClick={() => toggleDeleteModal(null)}>
                 Cancel
               </Button>
             </ModalFooter>
