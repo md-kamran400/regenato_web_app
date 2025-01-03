@@ -443,7 +443,7 @@ const AssmblyMultyPart = React.memo(
                 style={{
                   boxSizing: "border-box",
                   boxSizing: "border-box",
-                  borderTop: "20px solid rgb(69, 203, 133)",
+                  borderTop: "5px solid rgb(69, 203, 133)",
                   borderRadius: "5px",
                 }}
               >

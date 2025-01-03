@@ -461,7 +461,7 @@ const SubAssemblyTable = React.memo(
               <Card
                 style={{
                   boxSizing: "border-box",
-                  borderTop: "20px solid rgb(240, 101, 72)",
+                  borderTop: "5px solid rgb(240, 101, 72)",
                   borderRadius: "5px",
                 }}
               >

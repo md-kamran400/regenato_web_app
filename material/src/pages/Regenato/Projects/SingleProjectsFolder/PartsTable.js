@@ -602,6 +602,7 @@ const PartsTable = React.memo(
                               </td>
                               <td>
                                 {parseFloat(item.costPerUnit || 0).toFixed(2)}
+                                
                               </td>
                               <td>
                                 {parseFloat(item.timePerUnit || 0).toFixed(2)}
