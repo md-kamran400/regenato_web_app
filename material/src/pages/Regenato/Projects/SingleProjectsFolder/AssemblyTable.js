@@ -581,6 +581,7 @@ const AssemblyTable = React.memo(
 
         const data = await response.json();
         onUpdatePrts(data);
+        toast.success('Assembly Updated Successfully')
         toggleEditModal(false);
       } catch (error) {
         console.error("Error updating parts list:", error);
@@ -837,7 +838,7 @@ const AssemblyTable = React.memo(
 
                       <DropdownItem
                         href="#"
-                        onClick={() => toggleEditModal(subAssemblyItem)}
+                        onClick={() => toggleEditModal(assemblypartsList)}
                       >
                         <i className="ri-edit-2-line align-bottom me-2 text-muted"></i>{" "}
                         Edit
@@ -846,7 +847,7 @@ const AssemblyTable = React.memo(
                       <DropdownItem
                         href="#"
                         onClick={() => {
-                          setSelectedId(subAssemblyItem._id);
+                          setSelectedId(assemblypartsList._id);
                           tog_delete();
                         }}
                       >

@@ -168,6 +168,7 @@ const OuterSubAssmebly = React.memo(
 
         const data = await response.json();
         onUpdatePrts(data);
+         toast.success('Sub-Assembly Updated Successfully')
         toggleEditModal(false);
       } catch (error) {
         console.error("Error updating parts list:", error);
