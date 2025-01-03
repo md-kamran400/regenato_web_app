@@ -310,6 +310,7 @@ ProjectRouter.post("/:_id/partsLists", async (req, res) => {
 // });
 
 // POST Route: Add a new part to a specific parts list
+// In project.route.js
 ProjectRouter.post("/:_id/partsLists/:listId/items", async (req, res) => {
   try {
     const project = await ProjectModal.findById(req.params._id);
@@ -325,6 +326,7 @@ ProjectRouter.post("/:_id/partsLists/:listId/items", async (req, res) => {
     const newPart = {
       Uid: req.body.partId,
       partName: req.body.partName,
+      codeName: req.body.codeName, // Add this line
       costPerUnit: req.body.costPerUnit,
       timePerUnit: req.body.timePerUnit,
       quantity: req.body.quantity,
@@ -335,7 +337,6 @@ ProjectRouter.post("/:_id/partsLists/:listId/items", async (req, res) => {
     };
 
     partsList.partsListItems.push(newPart);
-
     const updatedProject = await project.save();
     res.status(200).json(updatedProject);
   } catch (error) {
@@ -498,6 +499,7 @@ ProjectRouter.post(
       const newPart = {
         Uid: req.body.partId,
         partName: req.body.partName,
+        codeName: req.body.codeName, // Add this line
         costPerUnit: req.body.costPerUnit,
         timePerUnit: req.body.timePerUnit,
         quantity: req.body.quantity,
@@ -616,6 +618,7 @@ ProjectRouter.post(
       const newPart = {
         Uid: req.body.partId,
         partName: req.body.partName,
+        codeName: req.body.codeName, // Add this line
         costPerUnit: req.body.costPerUnit,
         timePerUnit: req.body.timePerUnit,
         quantity: req.body.quantity,
@@ -770,6 +773,7 @@ ProjectRouter.post(
       const newPart = {
         Uid: req.body.partId,
         partName: req.body.partName,
+        codeName: req.body.codeName, // Add this line
         costPerUnit: req.body.costPerUnit,
         timePerUnit: req.body.timePerUnit,
         quantity: req.body.quantity,
@@ -902,6 +906,7 @@ ProjectRouter.post(
       const newPart = {
         Uid: req.body.partId,
         partName: req.body.partName,
+        codeName: req.body.codeName, // Add this line
         costPerUnit: req.body.costPerUnit,
         timePerUnit: req.body.timePerUnit,
         quantity: req.body.quantity,
@@ -1040,6 +1045,7 @@ ProjectRouter.post(
       const newPart = {
         Uid: req.body.partId,
         partName: req.body.partName,
+        codeName: req.body.codeName, // Add this line
         costPerUnit: req.body.costPerUnit,
         timePerUnit: req.body.timePerUnit,
         quantity: req.body.quantity,
@@ -1252,6 +1258,7 @@ ProjectRouter.post(
       const newPart = {
         Uid: req.body.partId,
         partName: req.body.partName,
+        codeName: req.body.codeName,
         costPerUnit: req.body.costPerUnit,
         timePerUnit: req.body.timePerUnit,
         quantity: req.body.quantity,

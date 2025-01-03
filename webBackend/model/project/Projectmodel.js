@@ -4,6 +4,7 @@ const mongoose = require("mongoose");
 const partSchema = new mongoose.Schema({
   Uid: String,
   partName: String,
+  codeName: String,
   costPerUnit: Number,
   timePerUnit: Number,
   quantity: Number,

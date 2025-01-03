@@ -68,6 +68,7 @@ const PartsTable = React.memo(
     const [itemToDelete, setItemToDelete] = useState(null);
 
     const [partsListItemsUpdated, setPartsListItemsUpdated] = useState(false);
+    const [codeName, setCodeName] = useState("");
 
     const [editModal, setEditModal] = useState(false);
     // const [editModal, setEditModal] = useState(false);
@@ -227,6 +228,7 @@ const PartsTable = React.memo(
           );
           setQuantity(1);
           setPartId(selectedPart.id || "");
+          setCodeName(selectedPart.codeName || ""); // Set codeName
         } else {
           setSelectedPartData(null);
           setDetailedPartData({});
@@ -234,6 +236,7 @@ const PartsTable = React.memo(
           setTimePerUnit("");
           setQuantity(0);
           setPartId("");
+          setCodeName(""); // Reset codeName
         }
       } else {
         setSelectedPartData(null);
@@ -242,27 +245,9 @@ const PartsTable = React.memo(
         setTimePerUnit("");
         setQuantity(0);
         setPartId("");
+        setCodeName(""); // Reset codeName
       }
     };
-
-    // const fetchProjectDetails = useCallback(async () => {
-    //   try {
-    //     const response = await fetch(
-    //       `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}`
-    //     );
-    //     const data = await response.json();
-    //     setProjectName(data.projectName || "");
-    //     setprojectType(data.projectType || "");
-    //   } catch (error) {
-    //     setError(error.message);
-    //   } finally {
-    //     setLoading(false);
-    //   }
-    // }, [_id]);
-
-    // useEffect(() => {
-    //   fetchProjectDetails();
-    // }, [fetchProjectDetails]);
 
     const PartsTableFetch = useCallback(async () => {
       try {
@@ -289,6 +274,7 @@ const PartsTable = React.memo(
       const payload = {
         partId: selectedPartData.id,
         partName: selectedPartData.partName,
+        codeName: codeName,
         costPerUnit: Number(costPerUnit),
         timePerUnit: Number(timePerUnit),
         quantity: Number(quantity),
@@ -364,30 +350,6 @@ const PartsTable = React.memo(
       }
     };
 
-    // const updateManufacturingVariable = (updatedVariable) => {
-    //   setPartDetails((prevData) => {
-    //     const updatedAllProjects = prevData.allProjects.map((project) => {
-    //       if (project._id === updatedVariable.projectId) {
-    //         return {
-    //           ...project,
-    //           manufacturingVariables: project.manufacturingVariables.map(
-    //             (variable) => {
-    //               if (variable._id === updatedVariable._id) {
-    //                 return updatedVariable;
-    //               }
-    //               return variable;
-    //             }
-    //           ),
-    //         };
-    //       }
-    //       return project;
-    //     });
-    //     return {
-    //       ...prevData,
-    //       allProjects: updatedAllProjects,
-    //     };
-    //   });
-    // };
     const updateManufacturingVariable = (updatedVariable) => {
       setPartDetails((prevData) => {
         const updatedAllProjects = prevData.allProjects?.map((project) => {
@@ -636,7 +598,7 @@ const PartsTable = React.memo(
                                 style={{ cursor: "pointer", color: "#64B5F6" }}
                                 className="parent_partName"
                               >
-                                {item.partName} ({item.Uid || ""})
+                                {item.partName} ({item.Uid || ""}) {item.codeName || ""}
                               </td>
                               <td>
                                 {parseFloat(item.costPerUnit || 0).toFixed(2)}
@@ -663,7 +625,9 @@ const PartsTable = React.memo(
                                   {/* <span>
                                     <FiEdit size={20} />
                                   </span> */}
-                                  <span style={{color: "red", cursor: "pointer"}}>
+                                  <span
+                                    style={{ color: "red", cursor: "pointer" }}
+                                  >
                                     <MdOutlineDelete
                                       size={25}
                                       onClick={() => toggleDeleteModal(item)}
@@ -814,6 +778,19 @@ const PartsTable = React.memo(
                     value={partId}
                     onChange={(e) => setPartId(e.target.value)}
                     required
+                  />
+                </div>
+                <div className="form-group">
+                  <Label for="codeName" className="form-label">
+                    Code Name
+                  </Label>
+                  <Input
+                    className="form-control"
+                    type="text"
+                    id="codeName"
+                    value={codeName}
+                    onChange={(e) => setCodeName(e.target.value)}
+                    // required
                   />
                 </div>
                 <div className="form-group">

@@ -72,7 +72,7 @@ const OuterSubAssmebly = React.memo(
     const [subAssemblyItems, setSubAssemblyItems] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [partsListItemsUpdated, setPartsListItemsUpdated] = useState(false);
-
+    const [codeName, setCodeName] = useState("");
     const [editModal, setEditModal] = useState(false);
     // const [editModal, setEditModal] = useState(false);
     const [subAssemblyListName, setsubAssemblyListName] = useState("");
@@ -314,6 +314,7 @@ const OuterSubAssmebly = React.memo(
           );
           setQuantity(1);
           setPartId(selectedPart.id || "");
+          setCodeName(selectedPart.codeName || ""); // Set codeName
         } else {
           setSelectedPartData(null);
           setDetailedPartData({});
@@ -321,6 +322,7 @@ const OuterSubAssmebly = React.memo(
           setTimePerUnit("");
           setQuantity(0);
           setPartId("");
+          setCodeName(""); // Reset codeName
         }
       } else {
         setSelectedPartData(null);
@@ -329,6 +331,7 @@ const OuterSubAssmebly = React.memo(
         setTimePerUnit("");
         setQuantity(0);
         setPartId("");
+        setCodeName(""); // Reset codeName
       }
     };
 
@@ -376,6 +379,7 @@ const OuterSubAssmebly = React.memo(
       const payload = {
         partId: selectedPartData.id,
         partName: selectedPartData.partName,
+        codeName: codeName,
         costPerUnit: Number(costPerUnit),
         timePerUnit: Number(timePerUnit),
         quantity: Number(quantity),
@@ -605,7 +609,7 @@ const OuterSubAssmebly = React.memo(
                                 style={{ cursor: "pointer", color: "#64B5F6" }}
                                 className="parent_partName"
                               >
-                                {item.partName} ({item.Uid || ""})
+                                {item.partName} ({item.Uid || ""}) {item.codeName || ""}
                               </td>
                               <td>
                                 {parseFloat(item.costPerUnit || 0).toFixed(2)}
@@ -632,7 +636,9 @@ const OuterSubAssmebly = React.memo(
                                   {/* <span>
                                     <FiEdit size={20} />
                                   </span> */}
-                                  <span style={{color: "red", cursor: "pointer"}}>
+                                  <span
+                                    style={{ color: "red", cursor: "pointer" }}
+                                  >
                                     <MdOutlineDelete
                                       size={25}
                                       onClick={() => toggleDeleteModal(item)}
@@ -781,6 +787,20 @@ const OuterSubAssmebly = React.memo(
                     value={partId}
                     onChange={(e) => setPartId(e.target.value)}
                     required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <Label for="codeName" className="form-label">
+                    Code Name
+                  </Label>
+                  <Input
+                    className="form-control"
+                    type="text"
+                    id="codeName"
+                    value={codeName}
+                    onChange={(e) => setCodeName(e.target.value)}
+                    // required
                   />
                 </div>
 
