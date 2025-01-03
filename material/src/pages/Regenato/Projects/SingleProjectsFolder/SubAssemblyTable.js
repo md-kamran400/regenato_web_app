@@ -329,7 +329,7 @@ const SubAssemblyTable = React.memo(
         setPartsListItemsUpdated(true);
 
         setModalAdd(false);
-        toast.success("New Sub-Assembly Created Successfully");
+        toast.success("New Records Created Successfully");
         setIsLoading(false);
 
         // Reset form
@@ -440,10 +440,10 @@ const SubAssemblyTable = React.memo(
         onUpdatePrts(updatedProject);
         setDeleteModal(false);
         setItemToDelete(null);
-        toast.success("Sub-assembly part deleted successfully");
+        toast.success("Records deleted successfully");
       } catch (error) {
         console.error("Error deleting sub-assembly part:", error);
-        toast.error("Failed to delete sub-assembly part. Please try again.");
+        toast.error("Failed to delete Records. Please try again.");
       }
     };
     return (

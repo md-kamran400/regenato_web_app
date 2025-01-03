@@ -307,7 +307,7 @@ const PartsTable = React.memo(
 
         setModalAdd(false);
         setIsLoading(false);
-        toast.success("New Part List Added successfully");
+        toast.success("New Records Added successfully");
         // Reset form
         setSelectedPartData(null);
         setCostPerUnit("");
@@ -320,7 +320,7 @@ const PartsTable = React.memo(
       } catch (error) {
         console.error("Error:", error);
         setError("Failed to add part. Please try again.");
-        toast.error("Failed to add part. Please try again.");
+        toast.error("Failed to add Records. Please try again.");
       } finally {
         setIsLoading(false);
       }
@@ -392,10 +392,10 @@ const PartsTable = React.memo(
         // updatePartsLists(updatedProject);
         setModalDelete(false);
 
-        toast.success("Part deleted successfully");
+        toast.success("Records deleted successfully");
       } catch (error) {
         console.error("Error deleting part:", error);
-        toast.error("Failed to delete part. Please try again.");
+        toast.error("Failed to delete Records. Please try again.");
       }
     };
 
@@ -421,10 +421,10 @@ const PartsTable = React.memo(
         onUpdatePrts(updatedProject);
         setDeleteModal(false);
         setItemToDelete(null);
-        toast.success("Part deleted successfully");
+        toast.success("Records deleted successfully");
       } catch (error) {
         console.error("Error deleting part:", error);
-        toast.error("Failed to delete part. Please try again.");
+        toast.error("Failed to delete Records. Please try again.");
       }
     };
 
@@ -453,11 +453,11 @@ const PartsTable = React.memo(
         const data = await response.json();
         onUpdatePrts(data);
         toggleEditModal(false);
-        toast.success("Part Edited successfully");
+        toast.success("Records Edited successfully");
       } catch (error) {
         console.error("Error updating parts list:", error);
         // Handle the error (e.g., show an error message to the user)
-        toast.error("Failed to Edited part. Please try again.");
+        toast.error("Failed to Edited Records. Please try again.");
       }
     };
 

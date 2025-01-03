@@ -551,7 +551,7 @@ const AssemblyTable = React.memo(
         // updatePartsLists(updatedProject);
         onUpdatePrts(updatedProject);
         setModalDelete(false);
-        toast.success("Part deleted successfully");
+        toast.success("Records deleted successfully");
       } catch (error) {
         console.error("Error deleting part:", error);
         toast.error("Failed to delete part. Please try again.");
@@ -1133,7 +1133,6 @@ const AssemblyTable = React.memo(
             </Button>
           </ModalFooter>
         </Modal>
-        {/* <ToastContainer /> */}
 
         <Modal isOpen={editModal} toggle={() => toggleEditModal(false)}>
           <ModalHeader toggle={() => toggleEditModal(false)}>

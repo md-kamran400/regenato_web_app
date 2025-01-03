@@ -175,7 +175,7 @@ const Manufacturing = ({
       const updatedData = await response.json();
       manufatcuringUpdate(updatedData); // Notify parent about the update
 
-      toast.success("Manufacturing variable updated successfully");
+      toast.success("Records updated successfully");
       setModalEdit(false);
       resetForm();
     } catch (error) {
@@ -206,7 +206,7 @@ const Manufacturing = ({
       const updatedData = await response.json();
       manufatcuringUpdate(updatedData); // Notify parent about the update
   
-      toast.success("Manufacturing variable deleted successfully");
+      toast.success("Records deleted successfully");
       setModalDelete(false);
     } catch (error) {
       console.error("Error deleting manufacturing variable:", error);

@@ -130,7 +130,7 @@ const Overheads = ({
       );
       overHeadsUpdate(updatedData);
 
-      toast.success("Overheads updated successfully");
+      toast.success("Records updated successfully");
       setModalEdit(false);
       resetForm();
     } catch (error) {
@@ -159,7 +159,7 @@ const Overheads = ({
       const updatedData = await response.json();
       overHeadsUpdate(updatedData);
 
-      toast.success("Raw material deleted successfully");
+      toast.success("Records deleted successfully");
       setModalDelete(false);
     } catch (error) {
       console.error("Error deleting raw material:", error);

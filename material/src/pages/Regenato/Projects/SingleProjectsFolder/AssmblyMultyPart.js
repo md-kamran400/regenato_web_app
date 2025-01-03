@@ -309,7 +309,7 @@ const AssmblyMultyPart = React.memo(
         setPartsListItemsUpdated(true);
 
         setModalAdd(false);
-        toast.success("New Part Created Successfully");
+        toast.success("Records Created Successfully");
         setIsLoading(false);
 
         // Reset form
@@ -420,10 +420,10 @@ const AssmblyMultyPart = React.memo(
         onUpdatePrts(updatedProject);
         setDeleteModal(false);
         setItemToDelete(null);
-        toast.success("Assembly multi-part deleted successfully");
+        toast.success("Records deleted successfully");
       } catch (error) {
         console.error("Error deleting assembly multi-part:", error);
-        toast.error("Failed to delete assembly multi-part. Please try again.");
+        toast.error("Failed to delete Records. Please try again.");
       }
     };
 

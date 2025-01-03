@@ -171,7 +171,7 @@ const Shipment = ({
         prevVariables.map((ship) => (ship._id === updatedData._id ? updatedData : ship))
       );
       shipmentUpdate(updatedData);
-      toast.success("Shipment variable updated successfully");
+      toast.success("Records updated successfully");
       setModalEdit(false);
       resetForm();
     } catch (error) {
@@ -207,7 +207,7 @@ const Shipment = ({
       const updateData = await response.json();
       shipmentUpdate(updateData);
 
-      toast.success("Shipment variable deleted successfully");
+      toast.success("Records deleted successfully");
       setModalDelete(false);
     } catch (error) {
       console.error("Error deleting shipment variable:", error);

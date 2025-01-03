@@ -179,7 +179,7 @@ const List = () => {
 
         const addedPart = await response.json();
         setprojectListsData((prevData) => [...prevData, addedPart]);
-        toast.success("Part added successfully!");
+        toast.success("Records added Successfully!");
       } catch (error) {
         toast.error(`Error: ${error.message}`);
       } finally {
@@ -240,6 +240,7 @@ const List = () => {
       if (!response.ok) {
         throw new Error("Network response was not ok");
       }
+      toast.success("Records Deleted Successfully!");
       await fetchData(); // Refetch the data to update the table
       tog_delete(); // Close the modal
     } catch (error) {

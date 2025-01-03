@@ -114,7 +114,7 @@ const RawMaterial = ({
       const updateData = await response.json();
 
       rawMatarialsUpdate(updateData);
-      toast.success("Raw material updated successfully");
+      toast.success("Records updated successfully");
       setModalEdit(false);
       resetForm();
     } catch (error) {
@@ -143,7 +143,7 @@ const RawMaterial = ({
 
       const updateDeleteData = await response.json();
       rawMatarialsUpdate(updateDeleteData);
-      toast.success("Raw material deleted successfully");
+      toast.success("Records deleted successfully");
       setModalDelete(false);
     } catch (error) {
       console.error("Error deleting raw material:", error);

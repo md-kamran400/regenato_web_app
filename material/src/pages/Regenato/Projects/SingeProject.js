@@ -510,7 +510,7 @@ const SingeProject = () => {
         ]);
         setAssemblyListName("");
         setModalAddassembly(false);
-        toast.success('New Assembly created successfully')
+        toast.success('New Records created successfully')
         await fetchProjectDetails();
       } catch (error) {
         console.error("Error adding new assembly list:", error);
@@ -541,11 +541,11 @@ const SingeProject = () => {
         ]);
         setSubAssemblyListName("");
         setModalAddSubassembly(false);
-        toast.success('New Sub-Assembly created successfully')
+        toast.success('New Records created successfully')
         await fetchProjectDetails();
       } catch (error) {
         console.error("Error adding new sub-assembly list:", error);
-        setError("Failed to add new sub-assembly list. Please try again.");
+        setError("Failed to add new Records. Please try again.");
       }
     },
     [_id]
@@ -573,11 +573,11 @@ const SingeProject = () => {
           duplicatedSubAssemblyList,
         ]);
         setModalAddSubassembly(false); // Close the sub-assembly modal
-        toast.success('Duplicate Sub-Assembly Created Successfully')
+        toast.success('Records Created Successfully')
         await fetchProjectDetails();
       } catch (error) {
         console.error("Error duplicating sub-assembly list:", error);
-        setError("Failed to duplicate sub-assembly list. Please try again.");
+        setError("Failed to duplicate Records. Please try again.");
       }
     },
     [_id, subAssemblyItems]
@@ -615,11 +615,11 @@ const SingeProject = () => {
         ]);
         setPartsListName("");
         setModalAdd(false);
-        toast.success('Duplicate Part Created Successfully')
+        toast.success('Records Created Successfully')
         await fetchProjectDetails();
       } catch (error) {
         console.error("Error duplicating parts list:", error);
-        setError("Failed to duplicate parts list. Please try again.");
+        setError("Failed to Records. Please try again.");
       }
     },
     [_id, partsLists]
@@ -647,11 +647,11 @@ const SingeProject = () => {
           duplicatedAssemblyList,
         ]);
         setModalAddassembly(false); // Close modal
-        toast.success('Duplicate Assembly Created Successfully')
+        toast.success('Duplicate Records Created Successfully')
         await fetchProjectDetails(); // Refresh the UI with updated data
       } catch (error) {
         console.error("Error duplicating assembly list:", error);
-        setError("Failed to duplicate assembly list. Please try again.");
+        setError("Failed to duplicate Records. Please try again.");
       }
     },
     [_id, assemblyLists]

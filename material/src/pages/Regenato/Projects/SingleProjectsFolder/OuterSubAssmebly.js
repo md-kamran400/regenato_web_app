@@ -118,10 +118,10 @@ const OuterSubAssmebly = React.memo(
         // updatePartsLists(updatedProject);
         onUpdatePrts(updatedProject);
         setModalDelete(false);
-        toast.success("Part deleted successfully");
+        toast.success("Records Deleted Successfully");
       } catch (error) {
         console.error("Error deleting part:", error);
-        toast.error("Failed to delete part. Please try again.");
+        toast.error("Failed to delete Records. Please try again.");
       }
     };
 
@@ -147,10 +147,10 @@ const OuterSubAssmebly = React.memo(
         onUpdatePrts(updatedProject);
         setDeleteModal(false);
         setItemToDelete(null);
-        toast.success("Sub-assembly part deleted successfully");
+        toast.success("Records Deleted Duccessfully");
       } catch (error) {
         console.error("Error deleting sub-assembly part:", error);
-        toast.error("Failed to delete sub-assembly part. Please try again.");
+        toast.error("Failed to delete Records. Please try again.");
       }
     };
 
@@ -176,7 +176,7 @@ const OuterSubAssmebly = React.memo(
 
         const data = await response.json();
         onUpdatePrts(data);
-        toast.success("Sub-Assembly Updated Successfully");
+        toast.success("Records Updated Successfully");
         toggleEditModal(false);
       } catch (error) {
         console.error("Error updating parts list:", error);
@@ -609,7 +609,8 @@ const OuterSubAssmebly = React.memo(
                                 style={{ cursor: "pointer", color: "#64B5F6" }}
                                 className="parent_partName"
                               >
-                                {item.partName} ({item.Uid || ""}) {item.codeName || ""}
+                                {item.partName} ({item.Uid || ""}){" "}
+                                {item.codeName || ""}
                               </td>
                               <td>
                                 {parseFloat(item.costPerUnit || 0).toFixed(2)}

@@ -174,7 +174,7 @@ const Manufacturing = ({
       const updatedData = await response.json();
       manufatcuringUpdate(updatedData); // Notify parent about the update
 
-      toast.success("Manufacturing variable updated successfully");
+      toast.success("Records updated successfully");
       setModalEdit(false);
       resetForm();
     } catch (error) {
@@ -209,7 +209,7 @@ const Manufacturing = ({
       //   prevVariables.filter((item) => item._id !== deleteId)
       // );
   
-      toast.success("Manufacturing variable deleted successfully");
+      toast.success("Records deleted successfully");
       setModalDelete(false);
     } catch (error) {
       console.error("Error deleting manufacturing variable:", error);
@@ -220,30 +220,9 @@ const Manufacturing = ({
     }
   };
   
-  //   setPosting(true);
-  //   setError(null);
 
-  //   try {
-  //     const endpoint = getApiEndpoint(deleteId);
-  //     const response = await fetch(endpoint, {
-  //       method: "DELETE",
-  //     });
 
-  //     if (!response.ok) {
-  //       const errorData = await response.json();
-  //       throw new Error(errorData.message || "Failed to delete Manfacturing");
-  //     }
 
-  //     toast.success("Manfacturing deleted successfully");
-  //     setModalDelete(false);
-  //   } catch (error) {
-  //     console.error("Error deleting manfacturing:", error);
-  //     setError(error.message);
-  //     toast.error(error.message);
-  //   } finally {
-  //     setPosting(false);
-  //   }
-  // };
 
   return (
     <div className="manufacturing-container">

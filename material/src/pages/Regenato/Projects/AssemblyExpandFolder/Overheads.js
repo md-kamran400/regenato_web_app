@@ -130,7 +130,7 @@ const Overheads = ({
       );
       overHeadsUpdate(updatedData);
 
-      toast.success("Overheads updated successfully");
+      toast.success("Records updated successfully");
       setModalEdit(false);
       resetForm();
     } catch (error) {
