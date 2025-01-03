@@ -433,6 +433,8 @@ const ManufacturingVariable = ({
     0
   );
 
+
+
   // Handle unit change (Hours to Minutes or vice-versa)
   // const handleUnitChange = (e) => {
   //   const newUnit = e.target.value;
@@ -748,7 +750,7 @@ const ManufacturingVariable = ({
       </Modal>
 
       {/* Edit modal */}
-      <Modal isOpen={modal_edit} toggle={tog_edit}>
+      {/* <Modal isOpen={modal_edit} toggle={tog_edit}>
         <ModalHeader toggle={tog_edit}>
           Edit Manufacturing Variables
         </ModalHeader>
@@ -771,19 +773,7 @@ const ManufacturingVariable = ({
               <label htmlFor="name" className="form-label">
                 Name
               </label>
-              {/* <Autocomplete
-                options={manufacturingVariables}
-                getOptionLabel={(option) => option.name}
-                value={SelectedManufacuturingVariable}
-                onChange={handleAutocompleteChange}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label="Select Material"
-                    variant="outlined"
-                  />
-                )}
-              /> */}
+              
               <input
                 type="number "
                 className="form-control"
@@ -815,6 +805,133 @@ const ManufacturingVariable = ({
                 className="form-control"
                 name="hourlyRate"
                 value={formData.hourlyRate}
+                onChange={handleChange}
+                required
+              />
+            </div>
+            <div className="mb-3">
+              <label htmlFor="totalRate" className="form-label">
+                Total Rate
+              </label>
+              <input
+                type="number"
+                className="form-control"
+                name="totalRate"
+                value={formData.totalRate}
+                readOnly
+                required
+              />
+            </div>
+            <ModalFooter>
+              <Button type="submit" color="primary" disabled={posting}>
+                Update
+              </Button>
+              <Button type="button" color="secondary" onClick={tog_edit}>
+                Cancel
+              </Button>
+            </ModalFooter>
+          </form>
+        </ModalBody>
+      </Modal> */}
+      <Modal isOpen={modal_edit} toggle={tog_edit}>
+        <ModalHeader toggle={tog_edit}>
+          Edit Manufacturing Variables
+        </ModalHeader>
+        <ModalBody>
+          <form onSubmit={handleEditSubmit}>
+            <div className="mb-3">
+              <label htmlFor="categoryId" className="form-label">
+                Category ID
+              </label>
+              <input
+                type="text"
+                className="form-control"
+                name="categoryId"
+                value={formData.categoryId}
+                onChange={handleChange}
+                required
+              />
+            </div>
+            <div className="mb-3">
+              <label htmlFor="name" className="form-label">
+                Name
+              </label>
+              {/* <Autocomplete
+          options={manufacturingVariables}
+          getOptionLabel={(option) => option.name}
+          value={SelectedManufacuturingVariable}
+          onChange={handleAutocompleteChange}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              label="Select Material"
+              variant="outlined"
+            />
+          )}
+        /> */}
+              <input
+                type="number "
+                className="form-control"
+                id="name"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+              />
+            </div>
+            <div className="mb-3">
+              <label htmlFor="hours" className="form-label">
+                Enter Time
+              </label>
+              <div class="time-input">
+                <input
+                  type="number"
+                  min="0"
+                  max="24"
+                  placeholder="00"
+                  name="time-hours"
+                  value={formData["time-hours"]}
+                  onChange={handleChange}
+                  required
+                />
+                <h2>:</h2>
+                <input
+                  type="number"
+                  min="0"
+                  max="59"
+                  placeholder="00"
+                  name="time-minutes"
+                  value={formData["time-minutes"]}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+              <div class="time-labels">
+                <span>Hour</span>
+                <span>Minute</span>
+              </div>
+            </div>
+            <div className="mb-3">
+              <label htmlFor="hours" className="form-label">
+                Hours
+              </label>
+              <input
+                type="number"
+                className="form-control"
+                name="hours"
+                value={formData.hours}
+                readOnly
+                required
+              />
+            </div>
+            <div className="mb-3">
+              <label htmlFor="hourlyRate" className="form-label">
+                Hourly Rate
+              </label>
+              <input
+                type="number"
+                className="form-control"
+                name="hourlyRate"
+                value={formData.hourlyRate || ""}
                 onChange={handleChange}
                 required
               />

@@ -609,25 +609,43 @@ h5 i.icon {
   gap: 8px;
 }
 
-.time-input input[type="number"] {
+/* .time-input input[type="number"] {
   width: 100px;
   height: 50px;
-  border: 2px solid #8e44ad;
+  border: 1px solid rgb(207, 206, 206);
   border-radius: 4px;
   font-size: 20px;
   text-align: center;
-  line-height: 50px; /* Ensures vertical alignment of the placeholder */
+  line-height: 50px; 
+  outline: none;
+  
+} */
+.time-input input[type="number"] {
+  width: 100px;
+  height: 50px;
+  border: 1px solid rgb(207, 206, 206);
+  border-radius: 4px;
+  font-size: 20px;
+  text-align: center;
+  line-height: 50px;
   outline: none;
 }
-
+/* 
 .time-input input[type="number"]::placeholder {
   color: #aaa;
   font-size: 18px;
+  margin-right: 50px;
+} */
+.time-input input[type="number"]::placeholder {
+  color: #aaa;
+  font-size: 18px;
+  text-align: center;
+  padding-left: 10px; /* Add some left padding */
 }
 
 .time-input input[type="number"]:focus {
-  border-color: #8e44ad;
-  box-shadow: 0 0 5px rgba(142, 68, 173, 0.5);
+  border-color: rgb(95, 179, 228);
+  box-shadow: 0 0 5px rgb(95, 179, 228);
 }
 
 .time-input .static-minute {
