@@ -59,7 +59,8 @@ const SubAssemblyTable = React.memo(
     const [isLoading, setIsLoading] = useState(false);
     const [machinesTBU, setMachinesTBU] = useState({});
     const [partsListItemsUpdated, setPartsListItemsUpdated] = useState(false);
-
+    const [codeName, setCodeName] = useState("");
+    
     const [deleteModal, setDeleteModal] = useState(false);
     const [itemToDelete, setItemToDelete] = useState(null);
 
@@ -242,6 +243,8 @@ const SubAssemblyTable = React.memo(
           );
           setQuantity(1);
           setPartId(selectedPart.id || "");
+          setCodeName(selectedPart.codeName || ""); // Set codeName
+
         } else {
           setSelectedPartData(null);
           setDetailedPartData({});
@@ -249,6 +252,7 @@ const SubAssemblyTable = React.memo(
           setTimePerUnit("");
           setQuantity(0);
           setPartId("");
+          setCodeName(""); // Reset codeName
         }
       } else {
         setSelectedPartData(null);
@@ -257,6 +261,7 @@ const SubAssemblyTable = React.memo(
         setTimePerUnit("");
         setQuantity(0);
         setPartId("");
+        setCodeName(""); // Reset codeName
       }
     };
 
@@ -287,6 +292,7 @@ const SubAssemblyTable = React.memo(
       const payload = {
         partId: selectedPartData.id,
         partName: selectedPartData.partName,
+        codeName: codeName,
         costPerUnit: Number(costPerUnit),
         timePerUnit: Number(timePerUnit),
         quantity: Number(quantity),
@@ -323,7 +329,7 @@ const SubAssemblyTable = React.memo(
         setPartsListItemsUpdated(true);
 
         setModalAdd(false);
-        toast.success('New Sub-Assembly Created Successfully')
+        toast.success("New Sub-Assembly Created Successfully");
         setIsLoading(false);
 
         // Reset form
@@ -362,7 +368,6 @@ const SubAssemblyTable = React.memo(
         setDetailedPartData({}); // Clear data if not found
       }
     };
-
 
     const updateManufacturingVariable = (updatedVariable) => {
       setPartDetails((prevData) => {
@@ -503,7 +508,7 @@ const SubAssemblyTable = React.memo(
                                 style={{ cursor: "pointer", color: "#64B5F6" }}
                                 className="parent_partName"
                               >
-                                {item.partName} ({item.Uid || ""})
+                                {item.partName} ({item.Uid || ""}) {item.codeName || ""}
                               </td>
                               <td>
                                 {parseFloat(item.costPerUnit || 0).toFixed(2)}
@@ -530,7 +535,9 @@ const SubAssemblyTable = React.memo(
                                   {/* <span>
                                     <FiEdit size={20} />
                                   </span> */}
-                                  <span style={{color: "red", cursor: "pointer"}}>
+                                  <span
+                                    style={{ color: "red", cursor: "pointer" }}
+                                  >
                                     <MdOutlineDelete
                                       size={25}
                                       onClick={() => toggleDeleteModal(item)}
@@ -652,6 +659,20 @@ const SubAssemblyTable = React.memo(
                     value={partId}
                     onChange={(e) => setPartId(e.target.value)}
                     required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <Label for="codeName" className="form-label">
+                    Code Name
+                  </Label>
+                  <Input
+                    className="form-control"
+                    type="text"
+                    id="codeName"
+                    value={codeName}
+                    onChange={(e) => setCodeName(e.target.value)}
+                    // required
                   />
                 </div>
 
