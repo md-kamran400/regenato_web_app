@@ -36,6 +36,7 @@ import AssemblyTable from "./SingleProjectsFolder/AssemblyTable";
 import SubAssemblyTable from "./SingleProjectsFolder/SubAssemblyTable";
 import PartsTable from "./SingleProjectsFolder/PartsTable";
 import OuterSubAssmebly from "./SingleProjectsFolder/OuterSubAssmebly";
+import { toast } from "react-toastify";
 
 const SingeProject = () => {
   const { _id } = useParams();
@@ -410,6 +411,7 @@ const SingeProject = () => {
         setPartsLists((prevPartsLists) => [...prevPartsLists, addedPartsList]);
         setPartsListName("");
         setModalAdd(false);
+        toast.success('New Part Added Successfully')
         await fetchProjectDetails(); // Call fetchProjectDetails here
       } catch (error) {
         console.error("Error adding new parts list:", error);
@@ -508,6 +510,7 @@ const SingeProject = () => {
         ]);
         setAssemblyListName("");
         setModalAddassembly(false);
+        toast.success('New Assembly created successfully')
         await fetchProjectDetails();
       } catch (error) {
         console.error("Error adding new assembly list:", error);
@@ -538,6 +541,7 @@ const SingeProject = () => {
         ]);
         setSubAssemblyListName("");
         setModalAddSubassembly(false);
+        toast.success('New Sub-Assembly created successfully')
         await fetchProjectDetails();
       } catch (error) {
         console.error("Error adding new sub-assembly list:", error);
@@ -569,6 +573,7 @@ const SingeProject = () => {
           duplicatedSubAssemblyList,
         ]);
         setModalAddSubassembly(false); // Close the sub-assembly modal
+        toast.success('Duplicate Sub-Assembly Created Successfully')
         await fetchProjectDetails();
       } catch (error) {
         console.error("Error duplicating sub-assembly list:", error);
@@ -610,6 +615,7 @@ const SingeProject = () => {
         ]);
         setPartsListName("");
         setModalAdd(false);
+        toast.success('Duplicate Part Created Successfully')
         await fetchProjectDetails();
       } catch (error) {
         console.error("Error duplicating parts list:", error);
@@ -641,6 +647,7 @@ const SingeProject = () => {
           duplicatedAssemblyList,
         ]);
         setModalAddassembly(false); // Close modal
+        toast.success('Duplicate Assembly Created Successfully')
         await fetchProjectDetails(); // Refresh the UI with updated data
       } catch (error) {
         console.error("Error duplicating assembly list:", error);

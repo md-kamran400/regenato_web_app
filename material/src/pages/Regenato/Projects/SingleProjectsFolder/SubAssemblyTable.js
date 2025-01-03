@@ -323,6 +323,7 @@ const SubAssemblyTable = React.memo(
         setPartsListItemsUpdated(true);
 
         setModalAdd(false);
+        toast.success('New Sub-Assembly Created Successfully')
         setIsLoading(false);
 
         // Reset form
@@ -455,7 +456,8 @@ const SubAssemblyTable = React.memo(
               <Card
                 style={{
                   boxSizing: "border-box",
-                  borderTop: "5px solid #0097A7",
+                  borderTop: "20px solid rgb(240, 101, 72)",
+                  borderRadius: "5px",
                 }}
               >
                 {/* {subAssemblyItems.map((item) => ( */}
@@ -463,7 +465,7 @@ const SubAssemblyTable = React.memo(
                   <h5>{subAssemblyItems.subAssemblyListName}</h5>
                   <div className="button-group">
                     <Button
-                      color="success"
+                      color="danger"
                       className="add-btn"
                       onClick={toggleAddModal}
                     >

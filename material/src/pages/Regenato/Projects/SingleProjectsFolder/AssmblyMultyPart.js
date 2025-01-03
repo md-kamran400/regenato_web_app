@@ -31,7 +31,6 @@ import Manufacturing from "../AssemblyExpandFolder/Manufacturing";
 import PropTypes from "prop-types";
 import { ToastContainer, toast } from "react-toastify";
 
-
 const AssmblyMultyPart = React.memo(
   ({
     partsAssmeblyItems,
@@ -71,25 +70,7 @@ const AssmblyMultyPart = React.memo(
 
     // fetching
     useEffect(() => {
-      // const fetchPartsListItems = async () => {
-      //   try {
-      //     if (!partsAssmeblyItems || !partsAssmeblyItems._id) {
-      //       console.error("partsAssmeblyItems or its _id is undefined");
-      //       return;
-      //     }
-      //     const response = await fetch(
-      //       `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/assemblyPartsLists/${assemblyId}/assemblyMultyPartsList/${partsAssmeblyItems._id}/items`
-      //     );
-      //     // if (response.ok) {
-      //     //   throw new Error("Network response was not ok");
-      //     // }
-      //     const data = await response.json();
-      //     setPartsListsItems(data);
-      //   } catch (error) {
-      //     console.error("Error fetching parts list items:", error);
-      //     setError("Failed to fetch parts list items. Please try again.");
-      //   }
-      // };
+
       const fetchPartsListItems = async () => {
         try {
           if (!partsAssmeblyItems || !partsAssmeblyItems._id) {
@@ -156,10 +137,8 @@ const AssmblyMultyPart = React.memo(
       setSelectedId(_id);
     };
 
-
-  
     // ... other functions ...
-  
+
     const toggleDeleteModal = (item) => {
       setDeleteModal(!deleteModal);
       setItemToDelete(item);
@@ -324,6 +303,7 @@ const AssmblyMultyPart = React.memo(
         setPartsListItemsUpdated(true);
 
         setModalAdd(false);
+        toast.success('New Part Created Successfully')
         setIsLoading(false);
 
         // Reset form
@@ -414,27 +394,30 @@ const AssmblyMultyPart = React.memo(
 
     const handleAssemblyMultyPartDelete = async () => {
       if (!itemToDelete) return;
-      
+
       try {
-        const response = await fetch(`${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/assemblyPartsLists/${assemblyId}/assemblyMultyPartsList/${partsAssmeblyItems._id}/items/${itemToDelete._id}`, {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
-  
+        const response = await fetch(
+          `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/assemblyPartsLists/${assemblyId}/assemblyMultyPartsList/${partsAssmeblyItems._id}/items/${itemToDelete._id}`,
+          {
+            method: "DELETE",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
         if (!response.ok) {
-          throw new Error('Failed to delete assembly multi-part');
+          throw new Error("Failed to delete assembly multi-part");
         }
-  
+
         const updatedProject = await response.json();
         onUpdatePrts(updatedProject);
         setDeleteModal(false);
         setItemToDelete(null);
-        toast.success('Assembly multi-part deleted successfully');
+        toast.success("Assembly multi-part deleted successfully");
       } catch (error) {
-        console.error('Error deleting assembly multi-part:', error);
-        toast.error('Failed to delete assembly multi-part. Please try again.');
+        console.error("Error deleting assembly multi-part:", error);
+        toast.error("Failed to delete assembly multi-part. Please try again.");
       }
     };
 
@@ -453,7 +436,9 @@ const AssmblyMultyPart = React.memo(
               <Card
                 style={{
                   boxSizing: "border-box",
-                  borderTop: "5px solid #8E24AA",
+                  boxSizing: "border-box",
+                  borderTop: "20px solid rgb(69, 203, 133)",
+                  borderRadius: "5px",
                 }}
               >
                 {/* {subAssemblyItems.map((item) => ( */}
@@ -526,7 +511,9 @@ const AssmblyMultyPart = React.memo(
                                   {/* <span>
                                     <FiEdit size={20} />
                                   </span> */}
-                                  <span style={{color: "red", cursor: "pointer"}}>
+                                  <span
+                                    style={{ color: "red", cursor: "pointer" }}
+                                  >
                                     <MdOutlineDelete
                                       size={25}
                                       onClick={() => toggleDeleteModal(item)}
