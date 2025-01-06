@@ -9,6 +9,7 @@ import rootReducer from "./slices";
 import "@fortawesome/fontawesome-free/css/all.min.css";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { PartDataProvider } from "./Components/context/PartDataContext";
 const store = configureStore({ reducer: rootReducer, devTools: true });
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
@@ -17,7 +18,9 @@ root.render(
   <Provider store={store}>
     <React.Fragment>
       <BrowserRouter basename={process.env.PUBLIC_URL}>
-        <App />
+        <PartDataProvider>
+          <App />
+        </PartDataProvider>
         <ToastContainer
           position="top-right"
           autoClose={5000}

@@ -196,6 +196,7 @@ const publicRoutes = [
   { path: "/regenato-bom", component: <BomNav /> },
   { path: "/regenato-variables", component: <Variables /> },
   { path: "/singlepart/:_id", component: <SinglePart /> },
+
   { path: "/singleproject/:_id", component: <SingeProject /> },
   { path: "/projectSection/:_id", component: <ProjectSection /> },
   { path: "/projectinvoice", component: <ProjectInvoice /> },

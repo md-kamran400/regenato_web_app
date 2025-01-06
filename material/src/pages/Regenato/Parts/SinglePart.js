@@ -166,22 +166,7 @@ const SinglePart = () => {
   // Final cost per unit including profit
   const costPerUnitAvg = totalCost + overheadCount;
 
-  const calculateValues = () => {
-    // Your existing calculations...
-    const costPerUnitAvg = totalCost + overheadsTotalCount;
-    const manufacturingTotalCountHours =
-      partDetails?.manufacturingVariables?.reduce(
-        (total, item) => total + Number(item.hours || 0),
-        0
-      );
 
-    // Pass the calculated values back to the parent component
-    props.onCalculateValues(costPerUnitAvg, manufacturingTotalCountHours);
-  };
-
-  console.log(costPerUnitAvg);
-  console.log(manufacturingTotalCountHours);
-  console.log(partDetails.stockPOQty);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -230,14 +215,14 @@ const SinglePart = () => {
   };
 
 
-  console.log(typeof costPerUnitAvg)
+  // console.log(typeof costPerUnitAvg)
   return (
     <React.Fragment>
       <div className="page-content">
         <Container fluid>
           <BreadCrumb
-            title={`Part (${partDetails.partName})`}
-            pageTitle={`Part (${partDetails.partName})`}
+            title={`Part ${partDetails.partName} (${partDetails.id})`}
+            pageTitle={`Part ${partDetails.partName}`}
           />
           <div className="page-title-box d-sm-flex align-items-center justify-content-between">
             <Button
@@ -272,10 +257,11 @@ const SinglePart = () => {
                   <div className="d-flex justify-content-between align-items-center">
                     <h6 className="fs-15 fw-bold mb-0">Part Name</h6>
                     <span className="text-muted fs-13">
-                      {partDetails.partName}
+                      {partDetails.partName} ({partDetails.id})
                     </span>{" "}
                     {/* Display part name */}
                   </div>
+                  
                 </CardBody>
               </Card>
             </Col>
@@ -394,7 +380,7 @@ const SinglePart = () => {
               <Col lg={12}>
                 <Card>
                   <CardBody>
-                    <h4 className="card-title mb-0">RM Variables</h4>
+                    <h4 className="card-title mb-0">Raw Matarial</h4>
                     <hr
                       style={{
                         height: "2px",

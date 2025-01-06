@@ -2,9 +2,9 @@
 
 import React, { createContext, useState } from 'react';
 
-const PartDataContext = createContext();
+export const PartDataContext = createContext();
 
-const PartDataProvider = ({ children }) => {
+export const PartDataProvider = ({ children }) => {
   const [sharedPartData, setSharedPartData] = useState(null);
 
   return (
@@ -14,4 +14,4 @@ const PartDataProvider = ({ children }) => {
   );
 };
 
-export { PartDataProvider, PartDataContext };
+// export { PartDataProvider, PartDataContext };

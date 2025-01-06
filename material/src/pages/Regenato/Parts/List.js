@@ -45,6 +45,7 @@ const List = () => {
 
   const [newPartName, setNewPartName] = useState(""); // For storing new part name
   const [newCodeName, setnewCodeName] = useState(""); // For storing new part name
+  const [newclientNumber, setnewclientNumber] = useState(""); // For storing new part name
 
   const [listData, setListData] = useState([]); // Local state to store project list
   const [loading, setLoading] = useState(true); // State to manage loading state
@@ -76,6 +77,8 @@ const List = () => {
     setModalList(!modal_list);
   };
 
+  
+
   // Function to toggle 'Delete' modal
   const tog_delete = () => {
     setModalDelete(!modal_delete);
@@ -88,6 +91,8 @@ const List = () => {
         partName: `${item.partName}2`, // Append '2' to the part name
         id: "", // Leave the new ID empty for user input
         costPerUnit: item.costPerUnit,
+        clientNumber: item.clientNumber,
+        codeName: item.codeName,
         timePerUnit: item.timePerUnit,
         stockPOQty: item.stockPOQty,
         generalVariables: [...item.generalVariables],
@@ -174,6 +179,7 @@ const List = () => {
     const newPart = {
       id: parseInt(numericId),
       partName: newPartName,
+      clientNumber: newclientNumber,
       codeName: newCodeName,
       costPerUnit: costPerUnit || 0,
       timePerUnit: timePerUnit || 0,
@@ -203,6 +209,7 @@ const List = () => {
       setNewPartId("");
       setNewPartName("");
       setnewCodeName("")
+      setnewclientNumber("")
       setCostPerUnit(0);
       setTimePerUnit(0);
       setStockPOQty(0);
@@ -232,6 +239,7 @@ const List = () => {
           body: JSON.stringify({
             id: duplicatePartData.id,
             partName: duplicatePartData.partName,
+            clientNumber: duplicatePartData.clientNumber,
             codeName: duplicatePartData.codeName,  //code name new added here
             costPerUnit: duplicatePartData.costPerUnit,
             timePerUnit: duplicatePartData.timePerUnit,
@@ -389,6 +397,8 @@ const List = () => {
         <thead>
           <tr>
             <th>Name</th>
+            <th>Drawing Number</th>
+            <th>Client Number</th>
             <th>Cost per Unit</th>
             <th>Total Hours</th>
             <th>On Hand</th>
@@ -400,9 +410,12 @@ const List = () => {
             <tr key={index}>
               <td>
                 <Link to={`/singlepart/${item._id}`} className="text-body">
-                  {item.partName} ({item.id}) {item.codeName}
+                  {/* {item.partName} ({item.id}) {item.codeName} */}
+                  {item.partName} {item.codeName}
                 </Link>
               </td>
+              <td>{item.id}</td>
+              <td>{item.clientNumber}</td>
               <td>
                 {item.partsCalculations && item.partsCalculations.length > 0
                   ? item.partsCalculations[0].AvgragecostPerUnit.toFixed(2)
@@ -495,6 +508,21 @@ const List = () => {
                 placeholder="Enter Name"
                 value={newPartName}
                 onChange={(e) => setNewPartName(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="mb-3">
+              <label htmlFor="client-number" className="form-label">
+                Client Number
+              </label>
+              <input
+                type="text"
+                id="client-number"
+                className="form-control"
+                placeholder="Enter Client Number"
+                value={newclientNumber}
+                onChange={(e) => setnewclientNumber(e.target.value)}
                 required
               />
             </div>

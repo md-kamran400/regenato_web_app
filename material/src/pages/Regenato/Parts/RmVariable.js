@@ -423,7 +423,7 @@ const RmVariable = ({ partDetails, onTotalCountUpdate }) => {
             className="add-btn me-1"
             id="create-btn"
           >
-            <i className="ri-add-line align-bottom me-1"></i> Add
+            <i className="ri-add-line align-bottom me-1"></i> Add 
           </Button>
 
           <Button
@@ -485,7 +485,7 @@ const RmVariable = ({ partDetails, onTotalCountUpdate }) => {
 
       {/* Add modal */}
       <Modal isOpen={modal_add} toggle={tog_add}>
-        <ModalHeader toggle={tog_add}>Add RM Variable</ModalHeader>
+        <ModalHeader toggle={tog_add}>Add Raw Matarial</ModalHeader>
         <ModalBody>
           <form onSubmit={handleSubmit}>
             {/* <div className="mb-3">
@@ -644,7 +644,7 @@ const RmVariable = ({ partDetails, onTotalCountUpdate }) => {
 
       {/* Edit modal */}
       <Modal isOpen={modal_edit} toggle={tog_edit}>
-        <ModalHeader toggle={tog_edit}>Edit RM Variable</ModalHeader>
+        <ModalHeader toggle={tog_edit}>Edit Raw Matarial</ModalHeader>
         <ModalBody>
           <form onSubmit={handleEditSubmit}>
             <div className="mb-3">
