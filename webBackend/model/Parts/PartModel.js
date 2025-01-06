@@ -49,6 +49,7 @@ const partsCalculationsSchema = new mongoose.Schema({
 const partSchema = new mongoose.Schema({
   id: { type: String, unique: true },  // add unique: true to ensure no duplicates
   partName: { type: String },
+  clientNumber: { type: String },
   codeName: { type: String },
   costPerUnit: { type: Number },
   timePerUnit: { type: Number },
