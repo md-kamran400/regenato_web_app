@@ -183,7 +183,7 @@ const Shipment = ({
           <tr>
             <th>Name</th>
             <th>Hourly Rate</th>
-            <th>Total Rate</th>
+            {/* <th>Total Rate</th> */}
             <th>Action</th>
           </tr>
         </thead>
@@ -192,7 +192,7 @@ const Shipment = ({
             <tr key={index}>
               <td>{ship.name}</td>
               <td>{ship.hourlyRate}</td>
-              <td>{ship.totalRate}</td>
+              {/* <td>{ship.totalRate}</td> */}
               <td className="d-flex gap-2">
                 <button
                   className="btn btn-sm btn-success edit-item-btn"
@@ -241,7 +241,7 @@ const Shipment = ({
                 required
               />
             </div>
-            <div className="mb-3">
+            {/* <div className="mb-3">
               <label htmlFor="totalRate" className="form-label">
                 Total Rate
               </label>
@@ -252,7 +252,7 @@ const Shipment = ({
                 value={formData.totalRate}
                 readOnly
               />
-            </div>
+            </div> */}
             {error && <div className="alert alert-danger">{error}</div>}
             <ModalFooter>
               <Button type="submit" color="primary" disabled={posting}>

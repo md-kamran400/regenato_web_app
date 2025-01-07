@@ -25,6 +25,7 @@ import { useParams } from "react-router-dom";
 import GeneralVariable from "./GeneralVariable";
 import ManufacuringStatic from "./ManufacuringStatic";
 import List from "./List";
+import { toast } from "react-toastify";
 
 const SinglePart = () => {
   const [modal_category, setModal_category] = useState(false);
@@ -202,7 +203,8 @@ const SinglePart = () => {
 
         // Reset editId after successful update
         setEditId(null);
-        alert("Calculation saved successfully!");
+        // alert("Calculation saved successfully!");
+        toast.success('Calculation saved successfully ')
       } else {
         const errorResponse = await response.json();
         throw new Error(errorResponse.message || "Failed to save calculation.");

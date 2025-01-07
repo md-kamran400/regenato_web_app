@@ -743,6 +743,7 @@ const AssemblyTable = React.memo(
         style={{
           boxSizing: "border-box",
           borderTop: "20px solid rgb(75, 56, 179)",
+          
           borderRadius: "5px",
         }}
       >

@@ -227,7 +227,7 @@ const RawMaterial = ({
                 name="netWeight"
                 value={formData.netWeight}
                 onChange={handleChange}
-                required
+                readOnly
               />
             </div>
             <div className="mb-3">

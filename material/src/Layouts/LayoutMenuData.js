@@ -18,7 +18,27 @@ const navdata = () => {
           id: "parts",
           label: "Parts",
           link: "/regenato-parts",
-          icon: "fa fa-cogs", // Example FontAwesome icon class
+          icon: "fa fa-cogs",
+          children: [
+            {
+              id: "assemblyList",
+              label: "Assembly List",
+              link: "/regenato-assembly-list",
+              icon: "fa fa-list",
+            },
+            {
+              id: "subAssemblyList",
+              label: "Sub Assembly List",
+              link: "/regenato-sub-assembly-list",
+              icon: "fa fa-list",
+            },
+            {
+              id: "partsList",
+              label: "Parts List",
+              link: "/regenato-parts-list",
+              icon: "fa fa-list",
+            },
+          ],
         },
         // {
         //   id: "bom",

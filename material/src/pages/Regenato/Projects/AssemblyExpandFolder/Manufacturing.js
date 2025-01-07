@@ -290,7 +290,7 @@ const Manufacturing = ({
                 name="hours"
                 value={formData.hours}
                 onChange={handleChange}
-                required
+                readOnly
               />
             </div>
             <div className="mb-3">

@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
+// import Autocomplete from '@mui/material/Autocomplete';
+// import TextField from '@mui/material/TextField';
 import {
   Card,
   Button,
@@ -76,6 +78,16 @@ const SingeProject = () => {
   const [subAssemblyListName, setSubAssemblyListName] = useState("");
   const [existingSubAssemblyLists, setExistingSubAssemblyLists] = useState([]);
 
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  // Filter lists based on the search term
+  const SubAssemblyfilteredLists = existingSubAssemblyLists.filter((list) =>
+    list.subAssemblyListName.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const filteredLists = existingAssemblyLists.filter((list) =>
+    list.assemblyListName.toLowerCase().includes(searchTerm.toLowerCase())
+  );
   const toggleAddModal = () => {
     setModalAdd(!modalAdd);
   };
@@ -127,6 +139,44 @@ const SingeProject = () => {
     };
     fetchExistingSubAssemblyLists();
   }, [_id]);
+
+  // all data in one dropdown for subassemblylistfirst
+  useEffect(() => {
+    const fetchAllProjects = async () => {
+      try {
+        const response = await fetch(
+          `${process.env.REACT_APP_BASE_URL}/api/projects`
+        );
+        const data = await response.json();
+        const allSubAssemblyLists = data.reduce((acc, project) => {
+          return acc.concat(project.subAssemblyListFirst || []);
+        }, []);
+        setExistingSubAssemblyLists(allSubAssemblyLists);
+      } catch (error) {
+        console.error("Error fetching all projects:", error);
+      }
+    };
+    fetchAllProjects();
+  }, []);
+
+  //all data in dropdown for assemblypartlist
+  useEffect(() => {
+    const fetchAllAssemblyLists = async () => {
+      try {
+        const response = await fetch(
+          `${process.env.REACT_APP_BASE_URL}/api/projects`
+        );
+        const data = await response.json();
+        const allAssemblyLists = data.reduce((acc, project) => {
+          return acc.concat(project.assemblyPartsLists || []);
+        }, []);
+        setExistingAssemblyLists(allAssemblyLists);
+      } catch (error) {
+        console.error("Error fetching all assembly lists:", error);
+      }
+    };
+    fetchAllAssemblyLists();
+  }, []);
 
   // For Parts Lists
   useEffect(() => {
@@ -346,7 +396,6 @@ const SingeProject = () => {
               subAssemblyId={subAssemblyItem._id}
               onAddPart={handleAddPart}
               onUpdatePrts={fetchProjectDetails}
-
             />
           </div>
         ))}
@@ -388,7 +437,7 @@ const SingeProject = () => {
           </div>
         ))}
       </div>
-    )
+    );
   }, [assemblyLists, handleUpdateAssemblyLists, handleAddAssembly]);
 
   //================= for add assmebly code end here
@@ -411,7 +460,7 @@ const SingeProject = () => {
         setPartsLists((prevPartsLists) => [...prevPartsLists, addedPartsList]);
         setPartsListName("");
         setModalAdd(false);
-        toast.success('New Part Added Successfully')
+        toast.success("New Part Added Successfully");
         await fetchProjectDetails(); // Call fetchProjectDetails here
       } catch (error) {
         console.error("Error adding new parts list:", error);
@@ -510,7 +559,7 @@ const SingeProject = () => {
         ]);
         setAssemblyListName("");
         setModalAddassembly(false);
-        toast.success('New Records created successfully')
+        toast.success("New Records created successfully");
         await fetchProjectDetails();
       } catch (error) {
         console.error("Error adding new assembly list:", error);
@@ -541,7 +590,7 @@ const SingeProject = () => {
         ]);
         setSubAssemblyListName("");
         setModalAddSubassembly(false);
-        toast.success('New Records created successfully')
+        toast.success("New Records created successfully");
         await fetchProjectDetails();
       } catch (error) {
         console.error("Error adding new sub-assembly list:", error);
@@ -551,36 +600,96 @@ const SingeProject = () => {
     [_id]
   );
 
+  // const handleDuplicateSubAssemblyList = useCallback(
+  //   async (subAssemblyListId) => {
+  //     try {
+  //       const response = await fetch(
+  //         `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/subAssemblyListFirst/${subAssemblyListId}/duplicate`,
+  //         {
+  //           method: "POST",
+  //           headers: { "Content-Type": "application/json" },
+  //         }
+  //       );
+  //       if (!response.ok) {
+  //         const errorData = await response.json();
+  //         throw new Error(
+  //           errorData.message || "Failed to duplicate sub-assembly list"
+  //         );
+  //       }
+  //       const duplicatedSubAssemblyList = await response.json();
+  //       setSubAssemblyItems((prevItems) => [
+  //         ...prevItems,
+  //         duplicatedSubAssemblyList,
+  //       ]);
+  //       setModalAddSubassembly(false); // Close the sub-assembly modal
+  //       toast.success("Records Created Successfully");
+  //       await fetchProjectDetails();
+  //     } catch (error) {
+  //       console.error("Error duplicating sub-assembly list:", error);
+  //       setError("Failed to duplicate Records. Please try again.");
+  //     }
+  //   },
+  //   [_id, subAssemblyItems]
+  // );
+
   const handleDuplicateSubAssemblyList = useCallback(
     async (subAssemblyListId) => {
       try {
+        // Find the sub-assembly list to duplicate
+        const listToDuplicate = existingSubAssemblyLists.find(
+          (list) => list._id === subAssemblyListId
+        );
+
+        if (!listToDuplicate) {
+          throw new Error("Sub-assembly list not found");
+        }
+
+        // Create a new sub-assembly list with the same properties
+        const newSubAssemblyList = {
+          ...listToDuplicate,
+          _id: null, // Generate a new ID
+          subAssemblyListName: `${listToDuplicate.subAssemblyListName} (Duplicated)`,
+          // Add any other properties that need to be updated
+        };
+
+        // Send the new sub-assembly list to the backend
         const response = await fetch(
-          `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/subAssemblyListFirst/${subAssemblyListId}/duplicate`,
+          `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/subAssemblyListFirst`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(newSubAssemblyList),
           }
         );
+
         if (!response.ok) {
           const errorData = await response.json();
           throw new Error(
             errorData.message || "Failed to duplicate sub-assembly list"
           );
         }
+
         const duplicatedSubAssemblyList = await response.json();
         setSubAssemblyItems((prevItems) => [
           ...prevItems,
           duplicatedSubAssemblyList,
         ]);
         setModalAddSubassembly(false); // Close the sub-assembly modal
-        toast.success('Records Created Successfully')
+        toast.success("Records Created Successfully");
         await fetchProjectDetails();
       } catch (error) {
         console.error("Error duplicating sub-assembly list:", error);
         setError("Failed to duplicate Records. Please try again.");
       }
     },
-    [_id, subAssemblyItems]
+    [
+      _id,
+      existingSubAssemblyLists,
+      setSubAssemblyItems,
+      setModalAddSubassembly,
+      toast,
+      fetchProjectDetails,
+    ]
   );
 
   const handleSubmitSubAsssmebly = async (event) => {
@@ -615,7 +724,7 @@ const SingeProject = () => {
         ]);
         setPartsListName("");
         setModalAdd(false);
-        toast.success('Records Created Successfully')
+        toast.success("Records Created Successfully");
         await fetchProjectDetails();
       } catch (error) {
         console.error("Error duplicating parts list:", error);
@@ -625,36 +734,93 @@ const SingeProject = () => {
     [_id, partsLists]
   );
 
+  // const handleDuplicateAssemblyList = useCallback(
+  //   async (assemblyListId) => {
+  //     try {
+  //       const response = await fetch(
+  //         `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/assemblyPartsLists/${assemblyListId}/duplicate`,
+  //         {
+  //           method: "POST",
+  //           headers: { "Content-Type": "application/json" },
+  //         }
+  //       );
+  //       if (!response.ok) {
+  //         const errorData = await response.json();
+  //         throw new Error(
+  //           errorData.message || "Failed to duplicate assembly list"
+  //         );
+  //       }
+  //       const duplicatedAssemblyList = await response.json();
+  //       setassemblyLists((prevAssemblyLists) => [
+  //         ...prevAssemblyLists,
+  //         duplicatedAssemblyList,
+  //       ]);
+  //       setModalAddassembly(false); // Close modal
+  //       toast.success("Duplicate Records Created Successfully");
+  //       await fetchProjectDetails(); // Refresh the UI with updated data
+  //     } catch (error) {
+  //       console.error("Error duplicating assembly list:", error);
+  //       setError("Failed to duplicate Records. Please try again.");
+  //     }
+  //   },
+  //   [_id, assemblyLists]
+  // );
+
   const handleDuplicateAssemblyList = useCallback(
     async (assemblyListId) => {
       try {
+        // Find the assembly list to duplicate
+        const listToDuplicate = existingAssemblyLists.find(
+          (list) => list._id === assemblyListId
+        );
+
+        if (!listToDuplicate) {
+          throw new Error("Assembly list not found");
+        }
+
+        // Create a new assembly list with the same properties
+        const newAssemblyList = {
+          ...listToDuplicate,
+          _id: null, // Generate a new ID
+          assemblyListName: `${listToDuplicate.assemblyListName} (Duplicated)`,
+          // Add any other properties that need to be updated
+        };
+
+        // Send the new assembly list to the backend
         const response = await fetch(
-          `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/assemblyPartsLists/${assemblyListId}/duplicate`,
+          `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/assemblyPartsLists`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(newAssemblyList),
           }
         );
+
         if (!response.ok) {
           const errorData = await response.json();
           throw new Error(
             errorData.message || "Failed to duplicate assembly list"
           );
         }
+
         const duplicatedAssemblyList = await response.json();
-        setassemblyLists((prevAssemblyLists) => [
-          ...prevAssemblyLists,
-          duplicatedAssemblyList,
-        ]);
-        setModalAddassembly(false); // Close modal
-        toast.success('Duplicate Records Created Successfully')
-        await fetchProjectDetails(); // Refresh the UI with updated data
+        setassemblyLists((prevLists) => [...prevLists, duplicatedAssemblyList]);
+        setModalAddassembly(false); // Close the assembly modal
+        toast.success("Assembly List Duplicated Successfully");
+        await fetchProjectDetails();
       } catch (error) {
         console.error("Error duplicating assembly list:", error);
-        setError("Failed to duplicate Records. Please try again.");
+        setError("Failed to duplicate Assembly List. Please try again.");
       }
     },
-    [_id, assemblyLists]
+    [
+      _id,
+      existingAssemblyLists,
+      setassemblyLists,
+      setModalAddassembly,
+      toast,
+      fetchProjectDetails,
+    ]
   );
 
   // fetching and hadleing the fetching and post crud operations for assembly list
@@ -836,6 +1002,7 @@ const SingeProject = () => {
       </Modal>
 
       {/* modle for assembly */}
+      {/* Modal for assembly */}
       <Modal isOpen={modalAddassembly} toggle={toggleAddModalAssembly}>
         <ModalHeader toggle={toggleAddModalAssembly}>
           Add Assembly List
@@ -869,25 +1036,76 @@ const SingeProject = () => {
                 </Button>
                 <h3 className="text-center mt-3 mb-3">OR</h3>
 
-                <Label for="partsListName">Duplicate From Existing List</Label>
-                <div className="mt-1">
-                  <select
-                    style={{ width: "410px" }}
-                    className="form-select"
-                    value={selectedAssemblyList}
+                {/* Search and select existing assembly */}
+                <div style={{ position: "relative", width: "410px" }}>
+                  <input
+                    type="text"
+                    value={
+                      searchTerm ||
+                      (selectedAssemblyList &&
+                        filteredLists.find(
+                          (list) => list._id === selectedAssemblyList
+                        )?.assemblyListName)
+                    }
                     onChange={(e) => {
-                      setSelectedAssemblyList(e.target.value);
-                      setIsAddingNewAssembly(false);
+                      setSearchTerm(e.target.value);
+                      setSelectedAssemblyList(null);
                     }}
-                  >
-                    <option value="">Select Existing Assembly List</option>
-                    {assemblyLists.map((list) => (
-                      <option key={list._id} value={list._id}>
-                        {list.assemblyListName}
-                      </option>
-                    ))}
-                  </select>
+                    placeholder="Select or search an assembly"
+                    className="form-control"
+                    style={{ width: "100%", cursor: "pointer" }}
+                    onClick={() => setIsDropdownOpen(true)}
+                    onBlur={() => {
+                      setTimeout(() => setIsDropdownOpen(false), 200);
+                    }}
+                  />
+                  {isDropdownOpen && (
+                    <ul
+                      style={{
+                        position: "absolute",
+                        top: "100%",
+                        left: 0,
+                        width: "100%",
+                        maxHeight: "300px",
+                        overflowY: "auto",
+                        backgroundColor: "white",
+                        border: "1px solid #ccc",
+                        listStyle: "none",
+                        margin: 0,
+                        padding: 0,
+                        zIndex: 1000,
+                      }}
+                    >
+                      {filteredLists.map((list) => (
+                        <li
+                          key={list._id}
+                          style={{
+                            padding: "8px",
+                            cursor: "pointer",
+                            borderBottom: "1px solid #ddd",
+                            backgroundColor:
+                              selectedAssemblyList === list._id
+                                ? "#f0f0f0"
+                                : "white",
+                          }}
+                          onMouseDown={() => {
+                            setSelectedAssemblyList(list._id);
+                            setSearchTerm(list.assemblyListName);
+                            setIsDropdownOpen(false);
+                          }}
+                        >
+                          {list.assemblyListName}
+                        </li>
+                      ))}
+                      {filteredLists.length === 0 && (
+                        <li style={{ padding: "8px", color: "#888" }}>
+                          No results found
+                        </li>
+                      )}
+                    </ul>
+                  )}
                 </div>
+
                 <Button
                   color="success"
                   className="mt-3"
@@ -943,7 +1161,7 @@ const SingeProject = () => {
                 <h3 className="text-center mt-3 mb-3">OR</h3>
 
                 <Label for="partsListName">Duplicate From Existing List</Label>
-                <div className="mt-1">
+                {/* <div className="mt-1">
                   <select
                     style={{ width: "410px" }}
                     className="form-select"
@@ -954,12 +1172,82 @@ const SingeProject = () => {
                     }}
                   >
                     <option value="">Select Existing Sub Assembly List</option>
-                    {subAssemblyItems.map((list) => (
+                    {existingSubAssemblyLists.map((list) => (
                       <option key={list._id} value={list._id}>
                         {list.subAssemblyListName}
                       </option>
                     ))}
                   </select>
+                  
+                </div> */}
+                <div style={{ position: "relative", width: "410px" }}>
+                  <input
+                    type="text"
+                    value={
+                      searchTerm ||
+                      (selectedSubAssemblyList &&
+                        SubAssemblyfilteredLists.find(
+                          (list) => list._id === selectedSubAssemblyList
+                        )?.subAssemblyListName)
+                    }
+                    onChange={(e) => {
+                      setSearchTerm(e.target.value);
+                      setSelectedSubAssemblyList(null);
+                    }}
+                    placeholder="Select or search a sub-assembly"
+                    className="form-control"
+                    style={{ width: "100%", cursor: "pointer" }}
+                    onClick={() => setIsDropdownOpen(true)}
+                    onBlur={() => {
+                      // Close dropdown when losing focus
+                      setTimeout(() => setIsDropdownOpen(false), 200); // Delay to allow click selection
+                    }}
+                  />
+                  {isDropdownOpen && (
+                    <ul
+                      style={{
+                        position: "absolute",
+                        top: "100%",
+                        left: 0,
+                        width: "100%",
+                        maxHeight: "300px",
+                        overflowY: "auto",
+                        backgroundColor: "white",
+                        border: "1px solid #ccc",
+                        listStyle: "none",
+                        margin: 0,
+                        padding: 0,
+                        zIndex: 1000,
+                      }}
+                    >
+                      {SubAssemblyfilteredLists.map((list) => (
+                        <li
+                          key={list._id}
+                          style={{
+                            padding: "8px",
+                            cursor: "pointer",
+                            borderBottom: "1px solid #ddd",
+                            backgroundColor:
+                              selectedSubAssemblyList === list._id
+                                ? "#f0f0f0"
+                                : "white",
+                          }}
+                          onMouseDown={() => {
+                            setSelectedSubAssemblyList(list._id);
+                            setSearchTerm(list.subAssemblyListName);
+                            setIsDropdownOpen(false);
+                          }}
+                        >
+                          {list.subAssemblyListName}
+                        </li>
+                      ))}
+                      {SubAssemblyfilteredLists.length === 0 && (
+                        <li style={{ padding: "8px", color: "#888" }}>
+                          No results found
+                        </li>
+                      )}
+                    </ul>
+                  )}
                 </div>
                 <Button
                   color="success"
@@ -982,7 +1270,21 @@ const SingeProject = () => {
         </ModalBody>
       </Modal>
     </React.Fragment>
-  )
+  );
 };
 
 export default SingeProject;
+{
+  /* <Autocomplete
+                  options={existingSubAssemblyLists}
+                  getOptionLabel={(option) => option.subAssemblyListName || ''}
+                  renderInput={(params) => (
+                    <TextField {...params} label="Select Existing Sub Assembly List" />
+                  )}
+                  onChange={(event, newValue) => {
+                    setSelectedSubAssemblyList(newValue);
+                    setIsAddingNewSubAssembly(false);
+                  }}
+                  value={selectedSubAssemblyList}
+                /> */
+}

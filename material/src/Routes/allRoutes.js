@@ -164,6 +164,13 @@ import Register from "../pages/Authentication/Register";
 
 // User Profile
 import UserProfile from "../pages/Authentication/user-profile";
+import NewAssmebliy from "../pages/Regenato/MultyUseAssmebly/Assmeblies";
+import NewSubAssmebly from "../pages/Regenato/MultyUseAssmebly/SubAssmeblies";
+import NewPartsLists from "../pages/Regenato/MultyUseAssmebly/Parts-Lists";
+import { components } from "react-select";
+import SingleSubAssembly from "../pages/Regenato/MultyUseAssmebly/SubAssmeblies/SingleSubAssembly";
+import SinglePartsList from "../pages/Regenato/MultyUseAssmebly/Parts-Lists/SinglePartsList";
+import SingleAssmeblyList from "../pages/Regenato/MultyUseAssmebly/Assmeblies/SingleAssmeblyList";
 // import ProjectSection from "../pages/Regenato/Projects/ProjectSection";
 
 // Section
@@ -200,6 +207,14 @@ const publicRoutes = [
   { path: "/singleproject/:_id", component: <SingeProject /> },
   { path: "/projectSection/:_id", component: <ProjectSection /> },
   { path: "/projectinvoice", component: <ProjectInvoice /> },
+
+  { path: "/regenato-assembly-list", component: <NewAssmebliy /> }, // New route
+  { path: "/regenato-sub-assembly-list", component: <NewSubAssmebly /> }, // New route
+  { path: "/regenato-parts-list", component: <NewPartsLists /> }, // New route
+
+  {path: "/regenato-single-subAssmebly", component: <SingleSubAssembly/>},
+  {path: "/regenato-single-parts", component: <SinglePartsList/>},
+  {path: "/regenato-single-assmebly", component: <SingleAssmeblyList/>},
 
   {
     path: "/",
