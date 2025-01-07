@@ -92,24 +92,32 @@ const SingleAssmeblyList = () => {
                 }}
                 className="button-group flex justify-content-between align-items-center"
               >
-                <ul
-                  style={{
-                    listStyleType: "none",
-                    padding: 0,
-                    fontWeight: "600",
-                  }}
-                >
-                  <li style={{ fontSize: "25px", marginBottom: "5px" }}>
-                    Part List 1
-                  </li>
+                <div>
+                  <ul
+                    style={{
+                      listStyleType: "none",
+                      padding: 0,
+                      fontWeight: "600",
+                    }}
+                  >
+                    <li style={{ fontSize: "25px", marginBottom: "5px" }}>
+                      Part List 1
+                    </li>
 
-                  <li style={{ fontSize: "19px" }}>
-                    <span class="badge bg-success-subtle text-success">
-                      Parts
-                    </span>
-                  </li>
-                </ul>
-
+                    <li style={{ fontSize: "19px" }}>
+                      <span class="badge bg-success-subtle text-success mb-3">
+                        Parts
+                      </span>
+                    </li>
+                    <Button
+                      color="success"
+                      className="add-btn"
+                      // onClick={toggleAddModal}
+                    >
+                      <i className="ri-add-line align-bottom me-1"></i> Add Parts
+                    </Button>
+                  </ul>
+                </div>
                 <UncontrolledDropdown direction="left">
                   <DropdownToggle
                     tag="button"
@@ -180,23 +188,33 @@ const SingleAssmeblyList = () => {
                 }}
                 className="button-group flex justify-content-between align-items-center"
               >
-                <ul
-                  style={{
-                    listStyleType: "none",
-                    padding: 0,
-                    fontWeight: "600",
-                  }}
-                >
-                  <li style={{ fontSize: "25px", marginBottom: "5px" }}>
-                    Sub Assembly List 1
-                  </li>
+                <div>
+                  <ul
+                    style={{
+                      listStyleType: "none",
+                      padding: 0,
+                      fontWeight: "600",
+                    }}
+                  >
+                    <li style={{ fontSize: "25px", marginBottom: "5px" }}>
+                      Sub Assembly List 1
+                    </li>
 
-                  <li style={{ fontSize: "19px" }}>
-                    <span class="badge bg-danger-subtle text-danger">
-                      Sub Assmebly
-                    </span>
-                  </li>
-                </ul>
+                    <li style={{ fontSize: "19px" }}>
+                      <span class="badge bg-danger-subtle text-danger">
+                        Sub Assmebly
+                      </span>
+                    </li>
+                  </ul>
+                  <Button
+                    color="danger"
+                    className="add-btn"
+                    // onClick={toggleAddModal}
+                  >
+                    <i className="ri-add-line align-bottom me-1"></i> Add Sub
+                    Assembly
+                  </Button>
+                </div>
 
                 <UncontrolledDropdown direction="left">
                   <DropdownToggle
