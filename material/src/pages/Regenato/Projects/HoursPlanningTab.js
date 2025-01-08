@@ -20,6 +20,7 @@ const HoursPlanningTab = () => {
   const [machineHoursPerDay, setMachineHoursPerDay] = useState({});
   const [numberOfMachines, setNumberOfMachines] = useState({});
   const [daysToWork, setDaysToWork] = useState({});
+
   console.log("partDetails", partDetails);
 
   const fetchProjectDetails = useCallback(async () => {
@@ -328,20 +329,20 @@ const HoursPlanningTab = () => {
       .toFixed(2);
   };
 
-  const calculateMonthsRequiredForPartsList = (processName, partsList) => {
-    const totalHours = partsList.partsListItems.reduce(
-      (sum, item) =>
+  const calculateMonthsRequiredForPartsList = (partsList) => {
+    const totalHours = calculateTotalHoursForPartsList(partsList);
+    if (totalHours === 0) {
+      return "--";
+    }
+
+    const availableMachineHoursPerMonth = manufacturingVariables.reduce(
+      (sum, variable) =>
         sum +
-        (processPartsMap[processName]?.find(
-          (part) => part.partName === item.partName
-        )?.hours || 0) *
-          item.quantity,
+        (machineHoursPerDay[`${variable.name}_${partsList._id}`] || 0) *
+          (numberOfMachines[`${variable.name}_${partsList._id}`] || 0) *
+          (daysToWork[`${variable.name}_${partsList._id}`] || 0),
       0
     );
-    const availableMachineHoursPerMonth =
-      (machineHoursPerDay[`${processName}_${partsList._id}`] || 0) *
-      (numberOfMachines[`${processName}_${partsList._id}`] || 0) *
-      (daysToWork[`${processName}_${partsList._id}`] || 0);
 
     if (availableMachineHoursPerMonth === 0) {
       return "--";
@@ -391,18 +392,20 @@ const HoursPlanningTab = () => {
       .toFixed(2);
   };
 
-  const calculateTotalHoursForPartsList = (processName, partsList) => {
-    return partsList.partsListItems
-      .reduce(
-        (sum, item) =>
-          sum +
-          (processPartsMap[processName]?.find(
-            (part) => part.partName === item.partName
-          )?.hours || 0) *
-            item.quantity,
-        0
-      )
-      .toFixed(2);
+  const calculateTotalHoursForPartsList = (partsList) => {
+    if (!partsList || !partsList.partsListItems) {
+      return 0;
+    }
+
+    return partsList.partsListItems.reduce(
+      (sum, item) =>
+        sum +
+        (manufacturingVariables.find(
+          (part) => part.name === item.manufacturingVariables[0].name
+        )?.hours || 0) *
+          item.quantity,
+      0
+    );
   };
   const getHoursForPartListItems = (
     column,
@@ -457,23 +460,7 @@ const HoursPlanningTab = () => {
     return monthsRequired.toFixed(2);
   };
 
-  const columnNames = [
-    "VMC Imported",
-    "VMC Local",
-    "Milling Manual",
-    "Grinding Final",
-    "CNC Lathe",
-    "Drill/Tap",
-    "Wire Cut Local",
-    "Wire Cut Rough",
-    "Wire Cut Imported",
-    "EDM",
-    "Black Oxide",
-    "Laser Marking",
-    "Lapping/Polishing",
-    "Grinding Blank/Rough",
-    "Gauges & Fixtures",
-  ];
+  const columnNames = manufacturingVariables.map((variable) => variable.name);
 
   if (loading)
     return (
@@ -600,23 +587,7 @@ const HoursPlanningTab = () => {
                                 >
                                   Required Machinewise Total Hours
                                 </td>
-                                {[
-                                  "VMC Imported",
-                                  "VMC Local",
-                                  "Milling Manual",
-                                  "Grinding Final",
-                                  "CNC Lathe",
-                                  "Drill/Tap",
-                                  "Wire Cut Local",
-                                  "Wire Cut Rough",
-                                  "Wire Cut Imported",
-                                  "EDM",
-                                  "Black Oxide",
-                                  "Laser Marking",
-                                  "Lapping/Polishing",
-                                  "Grinding Blank/Rough",
-                                  "Gauges & Fixtures",
-                                ].map((processName) => (
+                                {columnNames.map((processName) => (
                                   <td key={processName}>
                                     {calculateTotalHoursForPartsList(
                                       processName,
@@ -635,23 +606,7 @@ const HoursPlanningTab = () => {
                                 >
                                   Available machine hours per day
                                 </td>
-                                {[
-                                  "VMC Imported",
-                                  "VMC Local",
-                                  "Milling Manual",
-                                  "Grinding Final",
-                                  "CNC Lathe",
-                                  "Drill/Tap",
-                                  "Wire Cut Local",
-                                  "Wire Cut Rough",
-                                  "Wire Cut Imported",
-                                  "EDM",
-                                  "Black Oxide",
-                                  "Laser Marking",
-                                  "Lapping/Polishing",
-                                  "Grinding Blank/Rough",
-                                  "Gauges & Fixtures",
-                                ].map((processName) => (
+                                {columnNames.map((processName) => (
                                   <td key={processName}>
                                     <input
                                       className="input-field"
@@ -682,23 +637,7 @@ const HoursPlanningTab = () => {
                                 >
                                   Number of Machines TBU
                                 </td>
-                                {[
-                                  "VMC Imported",
-                                  "VMC Local",
-                                  "Milling Manual",
-                                  "Grinding Final",
-                                  "CNC Lathe",
-                                  "Drill/Tap",
-                                  "Wire Cut Local",
-                                  "Wire Cut Rough",
-                                  "Wire Cut Imported",
-                                  "EDM",
-                                  "Black Oxide",
-                                  "Laser Marking",
-                                  "Lapping/Polishing",
-                                  "Grinding Blank/Rough",
-                                  "Gauges & Fixtures",
-                                ].map((processName) => (
+                                {columnNames.map((processName) => (
                                   <td key={processName}>
                                     <input
                                       className="input-field"
@@ -729,23 +668,7 @@ const HoursPlanningTab = () => {
                                 >
                                   Number of Days to be worked
                                 </td>
-                                {[
-                                  "VMC Imported",
-                                  "VMC Local",
-                                  "Milling Manual",
-                                  "Grinding Final",
-                                  "CNC Lathe",
-                                  "Drill/Tap",
-                                  "Wire Cut Local",
-                                  "Wire Cut Rough",
-                                  "Wire Cut Imported",
-                                  "EDM",
-                                  "Black Oxide",
-                                  "Laser Marking",
-                                  "Lapping/Polishing",
-                                  "Grinding Blank/Rough",
-                                  "Gauges & Fixtures",
-                                ].map((processName) => (
+                                {columnNames.map((processName) => (
                                   <td key={processName}>
                                     <input
                                       className="input-field"
@@ -776,23 +699,7 @@ const HoursPlanningTab = () => {
                                 >
                                   Available machine hours per month
                                 </td>
-                                {[
-                                  "VMC Imported",
-                                  "VMC Local",
-                                  "Milling Manual",
-                                  "Grinding Final",
-                                  "CNC Lathe",
-                                  "Drill/Tap",
-                                  "Wire Cut Local",
-                                  "Wire Cut Rough",
-                                  "Wire Cut Imported",
-                                  "EDM",
-                                  "Black Oxide",
-                                  "Laser Marking",
-                                  "Lapping/Polishing",
-                                  "Grinding Blank/Rough",
-                                  "Gauges & Fixtures",
-                                ].map((processName) => (
+                                {columnNames.map((processName) => (
                                   <td key={processName}>
                                     {(
                                       (machineHoursPerDay[
@@ -818,23 +725,7 @@ const HoursPlanningTab = () => {
                                 >
                                   Months Required to complete
                                 </td>
-                                {[
-                                  "VMC Imported",
-                                  "VMC Local",
-                                  "Milling Manual",
-                                  "Grinding Final",
-                                  "CNC Lathe",
-                                  "Drill/Tap",
-                                  "Wire Cut Local",
-                                  "Wire Cut Rough",
-                                  "Wire Cut Imported",
-                                  "EDM",
-                                  "Black Oxide",
-                                  "Laser Marking",
-                                  "Lapping/Polishing",
-                                  "Grinding Blank/Rough",
-                                  "Gauges & Fixtures",
-                                ].map((processName) => (
+                                {columnNames.map((processName) => (
                                   <td key={processName}>
                                     {calculateMonthsRequiredForPartsList(
                                       processName,
@@ -965,23 +856,7 @@ const HoursPlanningTab = () => {
                     {calculateTotalHoursForSubAssemblyFirst(processName, subAssemblyListFirst)}
                   </td>
                 ))} */}
-                                  {[
-                                    "VMC Imported",
-                                    "VMC Local",
-                                    "Milling Manual",
-                                    "Grinding Final",
-                                    "CNC Lathe",
-                                    "Drill/Tap",
-                                    "Wire Cut Local",
-                                    "Wire Cut Rough",
-                                    "Wire Cut Imported",
-                                    "EDM",
-                                    "Black Oxide",
-                                    "Laser Marking",
-                                    "Lapping/Polishing",
-                                    "Grinding Blank/Rough",
-                                    "Gauges & Fixtures",
-                                  ].map((processName) => (
+                                  {columnNames.map((processName) => (
                                     <td key={processName}>
                                       {calculateTotalHoursForSubAssemblyFirst(
                                         processName,
@@ -1336,23 +1211,7 @@ const HoursPlanningTab = () => {
                                             >
                                               Required Machinewise Total Hours
                                             </td>
-                                            {[
-                                              "VMC Imported",
-                                              "VMC Local",
-                                              "Milling Manual",
-                                              "Grinding Final",
-                                              "CNC Lathe",
-                                              "Drill/Tap",
-                                              "Wire Cut Local",
-                                              "Wire Cut Rough",
-                                              "Wire Cut Imported",
-                                              "EDM",
-                                              "Black Oxide",
-                                              "Laser Marking",
-                                              "Lapping/Polishing",
-                                              "Grinding Blank/Rough",
-                                              "Gauges & Fixtures",
-                                            ].map((processName) => (
+                                            {columnNames.map((processName) => (
                                               <td key={processName}>
                                                 {calculateTotalHoursForSubAssembly(
                                                   processName,
@@ -1371,23 +1230,7 @@ const HoursPlanningTab = () => {
                                             >
                                               Available machine hours per day
                                             </td>
-                                            {[
-                                              "VMC Imported",
-                                              "VMC Local",
-                                              "Milling Manual",
-                                              "Grinding Final",
-                                              "CNC Lathe",
-                                              "Drill/Tap",
-                                              "Wire Cut Local",
-                                              "Wire Cut Rough",
-                                              "Wire Cut Imported",
-                                              "EDM",
-                                              "Black Oxide",
-                                              "Laser Marking",
-                                              "Lapping/Polishing",
-                                              "Grinding Blank/Rough",
-                                              "Gauges & Fixtures",
-                                            ].map((processName) => (
+                                            {columnNames.map((processName) => (
                                               <td key={processName}>
                                                 <input
                                                   className="input-field"
@@ -1418,23 +1261,7 @@ const HoursPlanningTab = () => {
                                             >
                                               Number of Machines TBU
                                             </td>
-                                            {[
-                                              "VMC Imported",
-                                              "VMC Local",
-                                              "Milling Manual",
-                                              "Grinding Final",
-                                              "CNC Lathe",
-                                              "Drill/Tap",
-                                              "Wire Cut Local",
-                                              "Wire Cut Rough",
-                                              "Wire Cut Imported",
-                                              "EDM",
-                                              "Black Oxide",
-                                              "Laser Marking",
-                                              "Lapping/Polishing",
-                                              "Grinding Blank/Rough",
-                                              "Gauges & Fixtures",
-                                            ].map((processName) => (
+                                            {columnNames.map((processName) => (
                                               <td key={processName}>
                                                 <input
                                                   className="input-field"
@@ -1465,23 +1292,7 @@ const HoursPlanningTab = () => {
                                             >
                                               Number of Days to be worked
                                             </td>
-                                            {[
-                                              "VMC Imported",
-                                              "VMC Local",
-                                              "Milling Manual",
-                                              "Grinding Final",
-                                              "CNC Lathe",
-                                              "Drill/Tap",
-                                              "Wire Cut Local",
-                                              "Wire Cut Rough",
-                                              "Wire Cut Imported",
-                                              "EDM",
-                                              "Black Oxide",
-                                              "Laser Marking",
-                                              "Lapping/Polishing",
-                                              "Grinding Blank/Rough",
-                                              "Gauges & Fixtures",
-                                            ].map((processName) => (
+                                            {columnNames.map((processName) => (
                                               <td key={processName}>
                                                 <input
                                                   className="input-field"
@@ -1512,23 +1323,7 @@ const HoursPlanningTab = () => {
                                             >
                                               Available machine hours per month
                                             </td>
-                                            {[
-                                              "VMC Imported",
-                                              "VMC Local",
-                                              "Milling Manual",
-                                              "Grinding Final",
-                                              "CNC Lathe",
-                                              "Drill/Tap",
-                                              "Wire Cut Local",
-                                              "Wire Cut Rough",
-                                              "Wire Cut Imported",
-                                              "EDM",
-                                              "Black Oxide",
-                                              "Laser Marking",
-                                              "Lapping/Polishing",
-                                              "Grinding Blank/Rough",
-                                              "Gauges & Fixtures",
-                                            ].map((processName) => (
+                                            {columnNames.map((processName) => (
                                               <td key={processName}>
                                                 {(
                                                   (machineHoursPerDay[
@@ -1554,23 +1349,7 @@ const HoursPlanningTab = () => {
                                             >
                                               Months Required to complete
                                             </td>
-                                            {[
-                                              "VMC Imported",
-                                              "VMC Local",
-                                              "Milling Manual",
-                                              "Grinding Final",
-                                              "CNC Lathe",
-                                              "Drill/Tap",
-                                              "Wire Cut Local",
-                                              "Wire Cut Rough",
-                                              "Wire Cut Imported",
-                                              "EDM",
-                                              "Black Oxide",
-                                              "Laser Marking",
-                                              "Lapping/Polishing",
-                                              "Grinding Blank/Rough",
-                                              "Gauges & Fixtures",
-                                            ].map((processName) => (
+                                            {columnNames.map((processName) => (
                                               <td key={processName}>
                                                 {calculateMonthsRequiredForSubAssembly(
                                                   processName,
@@ -1713,30 +1492,16 @@ const HoursPlanningTab = () => {
                                               >
                                                 Required Machinewise Total Hours
                                               </td>
-                                              {[
-                                                "VMC Imported",
-                                                "VMC Local",
-                                                "Milling Manual",
-                                                "Grinding Final",
-                                                "CNC Lathe",
-                                                "Drill/Tap",
-                                                "Wire Cut Local",
-                                                "Wire Cut Rough",
-                                                "Wire Cut Imported",
-                                                "EDM",
-                                                "Black Oxide",
-                                                "Laser Marking",
-                                                "Lapping/Polishing",
-                                                "Grinding Blank/Rough",
-                                                "Gauges & Fixtures",
-                                              ].map((processName) => (
-                                                <td key={processName}>
-                                                  {calculateTotalHoursForSubAssembly(
-                                                    processName,
-                                                    subAssemblyList
-                                                  )}
-                                                </td>
-                                              ))}
+                                              {columnNames.map(
+                                                (processName) => (
+                                                  <td key={processName}>
+                                                    {calculateTotalHoursForSubAssembly(
+                                                      processName,
+                                                      subAssemblyList
+                                                    )}
+                                                  </td>
+                                                )
+                                              )}
                                             </tr>
                                             <tr className="table-row-main">
                                               <td
@@ -1748,42 +1513,28 @@ const HoursPlanningTab = () => {
                                               >
                                                 Available machine hours per day
                                               </td>
-                                              {[
-                                                "VMC Imported",
-                                                "VMC Local",
-                                                "Milling Manual",
-                                                "Grinding Final",
-                                                "CNC Lathe",
-                                                "Drill/Tap",
-                                                "Wire Cut Local",
-                                                "Wire Cut Rough",
-                                                "Wire Cut Imported",
-                                                "EDM",
-                                                "Black Oxide",
-                                                "Laser Marking",
-                                                "Lapping/Polishing",
-                                                "Grinding Blank/Rough",
-                                                "Gauges & Fixtures",
-                                              ].map((processName) => (
-                                                <td key={processName}>
-                                                  <input
-                                                    className="input-field"
-                                                    type="number"
-                                                    value={
-                                                      machineHoursPerDay[
-                                                        `${processName}_${subAssemblyList._id}`
-                                                      ] || 0
-                                                    }
-                                                    onChange={(e) =>
-                                                      handleInputChange(
-                                                        e,
-                                                        "machineHoursPerDay",
-                                                        `${processName}_${subAssemblyList._id}`
-                                                      )
-                                                    }
-                                                  />
-                                                </td>
-                                              ))}
+                                              {columnNames.map(
+                                                (processName) => (
+                                                  <td key={processName}>
+                                                    <input
+                                                      className="input-field"
+                                                      type="number"
+                                                      value={
+                                                        machineHoursPerDay[
+                                                          `${processName}_${subAssemblyList._id}`
+                                                        ] || 0
+                                                      }
+                                                      onChange={(e) =>
+                                                        handleInputChange(
+                                                          e,
+                                                          "machineHoursPerDay",
+                                                          `${processName}_${subAssemblyList._id}`
+                                                        )
+                                                      }
+                                                    />
+                                                  </td>
+                                                )
+                                              )}
                                             </tr>
                                             <tr className="table-row-main">
                                               <td
@@ -1795,42 +1546,28 @@ const HoursPlanningTab = () => {
                                               >
                                                 Number of Machines TBU
                                               </td>
-                                              {[
-                                                "VMC Imported",
-                                                "VMC Local",
-                                                "Milling Manual",
-                                                "Grinding Final",
-                                                "CNC Lathe",
-                                                "Drill/Tap",
-                                                "Wire Cut Local",
-                                                "Wire Cut Rough",
-                                                "Wire Cut Imported",
-                                                "EDM",
-                                                "Black Oxide",
-                                                "Laser Marking",
-                                                "Lapping/Polishing",
-                                                "Grinding Blank/Rough",
-                                                "Gauges & Fixtures",
-                                              ].map((processName) => (
-                                                <td key={processName}>
-                                                  <input
-                                                    className="input-field"
-                                                    type="number"
-                                                    value={
-                                                      numberOfMachines[
-                                                        `${processName}_${subAssemblyList._id}`
-                                                      ] || 0
-                                                    }
-                                                    onChange={(e) =>
-                                                      handleInputChange(
-                                                        e,
-                                                        "numberOfMachines",
-                                                        `${processName}_${subAssemblyList._id}`
-                                                      )
-                                                    }
-                                                  />
-                                                </td>
-                                              ))}
+                                              {columnNames.map(
+                                                (processName) => (
+                                                  <td key={processName}>
+                                                    <input
+                                                      className="input-field"
+                                                      type="number"
+                                                      value={
+                                                        numberOfMachines[
+                                                          `${processName}_${subAssemblyList._id}`
+                                                        ] || 0
+                                                      }
+                                                      onChange={(e) =>
+                                                        handleInputChange(
+                                                          e,
+                                                          "numberOfMachines",
+                                                          `${processName}_${subAssemblyList._id}`
+                                                        )
+                                                      }
+                                                    />
+                                                  </td>
+                                                )
+                                              )}
                                             </tr>
                                             <tr className="table-row-main">
                                               <td
@@ -1842,42 +1579,28 @@ const HoursPlanningTab = () => {
                                               >
                                                 Number of Days to be worked
                                               </td>
-                                              {[
-                                                "VMC Imported",
-                                                "VMC Local",
-                                                "Milling Manual",
-                                                "Grinding Final",
-                                                "CNC Lathe",
-                                                "Drill/Tap",
-                                                "Wire Cut Local",
-                                                "Wire Cut Rough",
-                                                "Wire Cut Imported",
-                                                "EDM",
-                                                "Black Oxide",
-                                                "Laser Marking",
-                                                "Lapping/Polishing",
-                                                "Grinding Blank/Rough",
-                                                "Gauges & Fixtures",
-                                              ].map((processName) => (
-                                                <td key={processName}>
-                                                  <input
-                                                    className="input-field"
-                                                    type="number"
-                                                    value={
-                                                      daysToWork[
-                                                        `${processName}_${subAssemblyList._id}`
-                                                      ] || 0
-                                                    }
-                                                    onChange={(e) =>
-                                                      handleInputChange(
-                                                        e,
-                                                        "daysToWork",
-                                                        `${processName}_${subAssemblyList._id}`
-                                                      )
-                                                    }
-                                                  />
-                                                </td>
-                                              ))}
+                                              {columnNames.map(
+                                                (processName) => (
+                                                  <td key={processName}>
+                                                    <input
+                                                      className="input-field"
+                                                      type="number"
+                                                      value={
+                                                        daysToWork[
+                                                          `${processName}_${subAssemblyList._id}`
+                                                        ] || 0
+                                                      }
+                                                      onChange={(e) =>
+                                                        handleInputChange(
+                                                          e,
+                                                          "daysToWork",
+                                                          `${processName}_${subAssemblyList._id}`
+                                                        )
+                                                      }
+                                                    />
+                                                  </td>
+                                                )
+                                              )}
                                             </tr>
                                             <tr className="table-row-main">
                                               <td
@@ -1890,37 +1613,23 @@ const HoursPlanningTab = () => {
                                                 Available machine hours per
                                                 month
                                               </td>
-                                              {[
-                                                "VMC Imported",
-                                                "VMC Local",
-                                                "Milling Manual",
-                                                "Grinding Final",
-                                                "CNC Lathe",
-                                                "Drill/Tap",
-                                                "Wire Cut Local",
-                                                "Wire Cut Rough",
-                                                "Wire Cut Imported",
-                                                "EDM",
-                                                "Black Oxide",
-                                                "Laser Marking",
-                                                "Lapping/Polishing",
-                                                "Grinding Blank/Rough",
-                                                "Gauges & Fixtures",
-                                              ].map((processName) => (
-                                                <td key={processName}>
-                                                  {(
-                                                    (machineHoursPerDay[
-                                                      `${processName}_${subAssemblyList._id}`
-                                                    ] || 0) *
-                                                    (numberOfMachines[
-                                                      `${processName}_${subAssemblyList._id}`
-                                                    ] || 0) *
-                                                    (daysToWork[
-                                                      `${processName}_${subAssemblyList._id}`
-                                                    ] || 0)
-                                                  ).toFixed(2)}
-                                                </td>
-                                              ))}
+                                              {columnNames.map(
+                                                (processName) => (
+                                                  <td key={processName}>
+                                                    {(
+                                                      (machineHoursPerDay[
+                                                        `${processName}_${subAssemblyList._id}`
+                                                      ] || 0) *
+                                                      (numberOfMachines[
+                                                        `${processName}_${subAssemblyList._id}`
+                                                      ] || 0) *
+                                                      (daysToWork[
+                                                        `${processName}_${subAssemblyList._id}`
+                                                      ] || 0)
+                                                    ).toFixed(2)}
+                                                  </td>
+                                                )
+                                              )}
                                             </tr>
                                             <tr className="table-row-main">
                                               <td
@@ -1932,30 +1641,16 @@ const HoursPlanningTab = () => {
                                               >
                                                 Months Required to complete
                                               </td>
-                                              {[
-                                                "VMC Imported",
-                                                "VMC Local",
-                                                "Milling Manual",
-                                                "Grinding Final",
-                                                "CNC Lathe",
-                                                "Drill/Tap",
-                                                "Wire Cut Local",
-                                                "Wire Cut Rough",
-                                                "Wire Cut Imported",
-                                                "EDM",
-                                                "Black Oxide",
-                                                "Laser Marking",
-                                                "Lapping/Polishing",
-                                                "Grinding Blank/Rough",
-                                                "Gauges & Fixtures",
-                                              ].map((processName) => (
-                                                <td key={processName}>
-                                                  {calculateMonthsRequiredForSubAssembly(
-                                                    processName,
-                                                    subAssemblyList
-                                                  )}
-                                                </td>
-                                              ))}
+                                              {columnNames.map(
+                                                (processName) => (
+                                                  <td key={processName}>
+                                                    {calculateMonthsRequiredForSubAssembly(
+                                                      processName,
+                                                      subAssemblyList
+                                                    )}
+                                                  </td>
+                                                )
+                                              )}
                                             </tr>
                                           </tbody>
                                         </table>
