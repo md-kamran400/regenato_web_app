@@ -368,7 +368,7 @@ const ManufacturingVariable = () => {
       }
 
       await fatchManufacturing(); // Refetch the data to update the table
-      toast.success("Subcategory deleted successfully!");
+      toast.success("Machines Deleted successfully!");
       closeSubDeleteModal();
     } catch (error) {
       console.error("Error deleting subcategory:", error);
@@ -548,7 +548,7 @@ const ManufacturingVariable = () => {
                                   <table className="table align-middle table-nowrap">
                                     <thead className="table-light">
                                       <tr>
-                                        <th>Subcategory ID</th>
+                                        <th>Machines ID</th>
                                         <th>Name</th>
                                         <th>Hourly Rate</th>
                                         <th>Action</th>
