@@ -15,6 +15,7 @@ import Flatpickr from "react-flatpickr";
 import Autocomplete from "@mui/material/Autocomplete";
 import TextField from "@mui/material/TextField";
 import "./project.css";
+import { toast } from "react-toastify";
 
 const ManufacturingVariable = ({
   partDetails,
@@ -544,6 +545,7 @@ const ManufacturingVariable = ({
           hourlyRate: "",
           totalRate: "",
         });
+        toast.success('Records Added Successfully')
         setModalList(false); // Close the normal add modal
         setModalstatic_add(false); // Close the static add modal
       } else {
@@ -584,6 +586,7 @@ const ManufacturingVariable = ({
           hourlyRate: "",
           totalRate: "",
         });
+        toast.success('Records Edited Successfully')
         setModalEdit(false); // Close the edit modal
       } else {
         throw new Error("Network response was not ok");
@@ -609,6 +612,7 @@ const ManufacturingVariable = ({
         throw new Error("Network response was not ok");
       }
       await fetchManufacturingData(); // Refetch the data to update the table
+      toast.success('Records Deleted Successfully')
       tog_delete(); // Close the modal
     } catch (error) {
       setError(error.message);
@@ -898,6 +902,15 @@ const ManufacturingVariable = ({
             <div className="mb-3">
               <label htmlFor="time-select">Time</label>
               <div className="input-group">
+                <input
+                  type="number"
+                  className="form-control"
+                  id="time-input"
+                  value={inputValue}
+                  onChange={handleInputChange}
+                  placeholder={`Enter ${selectedOption} value`}
+                  // disabled={!selectedOption}
+                />
                 <select
                   id="time-select"
                   onChange={(e) => {
@@ -912,14 +925,6 @@ const ManufacturingVariable = ({
                   <option value="hours">Hours</option>
                   <option value="minutes">Minutes</option>
                 </select>
-                <input
-                  type="number"
-                  className="form-control"
-                  id="time-input"
-                  value={inputValue}
-                  onChange={handleInputChange}
-                  placeholder={`Enter ${selectedOption} value`}
-                />
               </div>
             </div>
 
@@ -1116,6 +1121,15 @@ const ManufacturingVariable = ({
             <div className="mb-3">
               <label htmlFor="time-select">Time</label>
               <div className="input-group">
+                <input
+                  type="number"
+                  className="form-control"
+                  id="time-input-edit"
+                  value={inputValueEdit}
+                  onChange={handleInputChangeEdit}
+                  placeholder={`Enter ${selectedOptionEdit} value`}
+                />
+
                 <select
                   id="time-select-edit"
                   onChange={(e) => {
@@ -1130,14 +1144,6 @@ const ManufacturingVariable = ({
                   <option value="hours">Hours</option>
                   <option value="minutes">Minutes</option>
                 </select>
-                <input
-                  type="number"
-                  className="form-control"
-                  id="time-input-edit"
-                  value={inputValueEdit}
-                  onChange={handleInputChangeEdit}
-                  placeholder={`Enter ${selectedOptionEdit} value`}
-                />
               </div>
             </div>
 
