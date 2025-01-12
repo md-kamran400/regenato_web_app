@@ -94,13 +94,14 @@ const Manufacturing = ({
       return updatedFormData;
     });
   };
+ // "/projects/:projectId/partsLists/:partsListId/items/:itemId/:variableType/:variableId",
 
   // Construct API endpoint based on the source
   const getApiEndpoint = (id) => {
     if (source === "partList") {
-      return `${process.env.REACT_APP_BASE_URL}/api/projects/${projectId}/partsLists/${partId}/items/${itemId}/manufacturingVariables/${id}`;
+      return `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${projectId}/partsLists/${partId}/items/${itemId}/manufacturingVariables/${id}`;
     } else if (source === "subAssemblyListFirst") {
-      return `${process.env.REACT_APP_BASE_URL}/api/projects/${projectId}/subAssemblyListFirst/${partId}/items/${itemId}/manufacturingVariables/${id}`;
+      return `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${projectId}/subAssemblyListFirst/${partId}/items/${itemId}/manufacturingVariables/${id}`;
     }
     throw new Error("Invalid source");
   };
@@ -150,7 +151,7 @@ const Manufacturing = ({
     e.preventDefault();
     setPosting(true);
     setError(null);
-  
+
     try {
       const endpoint = getApiEndpoint(editId); // Pass editId here
       const response = await fetch(endpoint, {
@@ -165,12 +166,14 @@ const Manufacturing = ({
           totalRate: parseFloat(formData.totalRate),
         }),
       });
-  
+
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to update manufacturing variable");
+        throw new Error(
+          errorData.message || "Failed to update manufacturing variable"
+        );
       }
-  
+
       const updatedData = await response.json();
       manufatcuringUpdate(updatedData); // Notify parent about the update
 
@@ -185,21 +188,22 @@ const Manufacturing = ({
       setPosting(false);
     }
   };
-  
 
   const handleDelete = async () => {
     setPosting(true);
     setError(null);
-  
+
     try {
       const endpoint = getApiEndpoint(deleteId); // Pass deleteId here
       const response = await fetch(endpoint, {
         method: "DELETE",
       });
-  
+
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to delete manufacturing variable");
+        throw new Error(
+          errorData.message || "Failed to delete manufacturing variable"
+        );
       }
 
       const updatedData = await response.json();
@@ -208,7 +212,7 @@ const Manufacturing = ({
       // setUpdatedManufacturingVariables((prevVariables) =>
       //   prevVariables.filter((item) => item._id !== deleteId)
       // );
-  
+
       toast.success("Records deleted successfully");
       setModalDelete(false);
     } catch (error) {
@@ -219,10 +223,6 @@ const Manufacturing = ({
       setPosting(false);
     }
   };
-  
-
-
-
 
   return (
     <div className="manufacturing-container">
@@ -233,7 +233,8 @@ const Manufacturing = ({
         <thead className="table-light">
           <tr>
             <th>Name</th>
-            <th>Hours</th>
+            {/* <th>Hours</th> */}
+            <th>Minutes</th>
             <th>Hourly Rate</th>
             <th>Total Rate</th>
             <th>Actions</th>
@@ -243,7 +244,11 @@ const Manufacturing = ({
           {updatedManufacturingVariables.map((item, index) => (
             <tr key={index}>
               <td>{item.name}</td>
-              <td>{item.hours}</td>
+              {/* <td>{item.hours * 60} Min</td> */}
+              <td>{item.hours * 60 >= 0 ? `${Math.floor(item.hours * 60)} Min` : '--'}</td>
+              {/* <td>
+                {Math.floor(item.hours)} hours {(item.hours % 1) * 60} minutes
+              </td> */}
               <td>{item.hourlyRate}</td>
               <td>{item.totalRate}</td>
               <td className="d-flex gap-2">
@@ -288,13 +293,14 @@ const Manufacturing = ({
             </div>
             <div className="mb-3">
               <label htmlFor="hours" className="form-label">
-                Hours
+                Minutes
               </label>
               <input
                 type="number"
                 className="form-control"
                 name="hours"
-                value={formData.hours}
+                // value={formData.hours}
+                value={(formData.hours * 60).toFixed(0)}
                 onChange={handleChange}
                 readOnly
               />

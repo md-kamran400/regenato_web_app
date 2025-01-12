@@ -21,7 +21,7 @@ export const SubAssmeblies = () => {
     setIsModalOpen(false);
     setNewPartName("");
   };
-
+//${process.env.REACT_APP_BASE_URL}
   return (
     <React.Fragment>
       <div className="p-3">

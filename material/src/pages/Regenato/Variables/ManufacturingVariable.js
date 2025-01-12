@@ -12,19 +12,38 @@ import {
   ModalHeader,
 } from "reactstrap";
 import Flatpickr from "react-flatpickr";
+import { toast } from "react-toastify";
 
 const ManufacturingVariable = () => {
   const [modal_add, setModalList] = useState(false);
   const [modal_edit, setModalEdit] = useState(false);
   const [modal_delete, setModalDelete] = useState(false);
+  const [Sub_modal_delete, setSub_ModalDelete] = useState(false);
+
+  const [subDeleteModalOpen, setSubDeleteModalOpen] = useState(false);
+  const [subToDelete, setSubToDelete] = useState(null); // Tracks the subcategory being deleted
+
   const [posting, setPosting] = useState(false);
   const [error, setError] = useState(null);
   const [shipmentvars, setshipmentvars] = useState([]);
+  const [expandedRowId, setExpandedRowId] = useState(null);
   const [selectedId, setSelectedId] = useState(null);
   const [selectedShipment, setselectedShipment] = useState(null);
   const [editId, setEditId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [manufacturingData, setManufacturingData] = useState([]);
+
+  //sub categroy
+  const [modal_add_sub, setModalAddSub] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingSubId, setEditingSubId] = useState(null);
+  const [selectedManufacturingId, setSelectedManufacturingId] = useState(null);
+  const [subFormData, setSubFormData] = useState({
+    subcategoryId: "",
+    name: "",
+    hourlyRate: "",
+  });
+
   // Toggles for modals
   const [formData, setFormData] = useState({
     categoryId: "",
@@ -37,9 +56,44 @@ const ManufacturingVariable = () => {
     setModalList(!modal_add); // Open the modal
   };
 
+  const Sub_tog_edit = (item = null) => {
+    if (item) {
+      setSubFormData({
+        subcategoryId: item.subcategoryId,
+        name: item.name,
+        hourlyRate: item.hourlyRate,
+      });
+      setEditingSubId(item._id); // Set the ID of the item being edited
+    } else {
+      setSubFormData({
+        subcategoryId: "",
+        name: "",
+        hourlyRate: "",
+      });
+      setEditingSubId(null); // Reset the ID if no item is selected
+    }
+    setIsEditModalOpen(!isEditModalOpen); // Correct toggle state for edit modal
+  };
+
   // Function to toggle 'Delete' modal
   const tog_delete = () => {
     setModalDelete(!modal_delete);
+  };
+  // const Sub_tog_delete = () => {
+  //   setSub_ModalDelete(!Sub_modal_delete);
+
+  // };
+  const handleDeleteSub = (subCategoryId, parentId) => {
+    openSubDeleteModal({ _id: subCategoryId, parentId });
+  };
+  const openSubDeleteModal = (subCategory) => {
+    setSubToDelete(subCategory);
+    setSubDeleteModalOpen(true);
+  };
+
+  const closeSubDeleteModal = () => {
+    setSubToDelete(null);
+    setSubDeleteModalOpen(false);
   };
 
   // Function to toggle 'Edit' modal
@@ -61,7 +115,6 @@ const ManufacturingVariable = () => {
     }
     setModalEdit(!modal_edit);
   };
-
 
   const fatchManufacturing = useCallback(async () => {
     setLoading(true);
@@ -86,11 +139,90 @@ const ManufacturingVariable = () => {
     fatchManufacturing();
   }, [fatchManufacturing]);
 
-
   // Handle form input changes
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
+  };
+
+  const handleSubChange = (e) => {
+    const { name, value } = e.target;
+    setSubFormData({ ...subFormData, [name]: value });
+  };
+
+  const handleAddSub = async (e) => {
+    e.preventDefault();
+    setPosting(true);
+    setError(null);
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_BASE_URL}/api/manufacturing/${selectedManufacturingId}/subcategories`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(subFormData),
+        }
+      );
+      if (!response.ok) {
+        throw new Error("Network response was not ok");
+      }
+      await fatchManufacturing();
+      setSubFormData({
+        subcategoryId: "",
+        name: "",
+        hourlyRate: "",
+      });
+      toast.success("Machines Added");
+      setModalAddSub(false);
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      setPosting(false);
+    }
+  };
+
+  const handleSubEditSubmit = async (e) => {
+    e.preventDefault();
+    setPosting(true);
+    setError(null);
+
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_BASE_URL}/api/manufacturing/${selectedManufacturingId}/subcategories/${editingSubId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(subFormData),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Network response was not ok");
+      }
+
+      // Refresh the manufacturing data after successful PUT request
+      await fatchManufacturing();
+
+      // Reset form data
+      setSubFormData({
+        subcategoryId: "",
+        name: "",
+        hourlyRate: "",
+      });
+
+      // Close the edit modal
+      setIsEditModalOpen(false);
+
+      toast.success("Machines updated successfully!");
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      setPosting(false);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -98,14 +230,14 @@ const ManufacturingVariable = () => {
     setPosting(true);
     setError(null);
     // Check if all fields are filled
-    const hasEmptyFields = Object.values(formData).some(value => !value);
-  
+    const hasEmptyFields = Object.values(formData).some((value) => !value);
+
     if (hasEmptyFields) {
       setError("Please fill all fields before submitting.");
       setPosting(false);
       return;
     }
-  
+
     try {
       const response = await fetch(
         `${process.env.REACT_APP_BASE_URL}/api/manufacturing`,
@@ -117,11 +249,11 @@ const ManufacturingVariable = () => {
           body: JSON.stringify(formData),
         }
       );
-  
+
       if (!response.ok) {
         throw new Error("Network response was not ok");
       }
-  
+
       await fatchManufacturing();
       setFormData({
         categoryId: "",
@@ -190,6 +322,7 @@ const ManufacturingVariable = () => {
         throw new Error("Network response was not ok");
       }
       await fatchManufacturing(); // Refetch the data to update the table
+      toast.success("Manufacturing Deleted Successfully");
       tog_delete(); // Close the modal
     } catch (error) {
       setError(error.message);
@@ -198,6 +331,55 @@ const ManufacturingVariable = () => {
     }
   };
 
+  // const handleDeleteSub = async (subCategoryId, parentId) => {
+  //   try {
+  //     const response = await fetch(
+  //       `${process.env.REACT_APP_BASE_URL}/api/manufacturing/${parentId}/subcategories/${subCategoryId}`,
+  //       {
+  //         method: "DELETE",
+  //       }
+  //     );
+
+  //     if (!response.ok) {
+  //       throw new Error("Failed to delete subcategory");
+  //     }
+
+  //     await fatchManufacturing(); // Refetch the data to update the table
+  //     toast.success("Machines deleted successfully!");
+  //   } catch (error) {
+  //     console.error("Error deleting subcategory:", error);
+  //     toast.error("Failed to delete subcategory");
+  //   }
+  // };
+
+  const confirmDeleteSub = async () => {
+    try {
+      const { _id, parentId } = subToDelete;
+
+      const response = await fetch(
+        `${process.env.REACT_APP_BASE_URL}/api/manufacturing/${parentId}/subcategories/${_id}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to delete subcategory");
+      }
+
+      await fatchManufacturing(); // Refetch the data to update the table
+      toast.success("Subcategory deleted successfully!");
+      closeSubDeleteModal();
+    } catch (error) {
+      console.error("Error deleting subcategory:", error);
+      toast.error("Failed to delete subcategory");
+      closeSubDeleteModal();
+    }
+  };
+
+  const handleRowClick = (rowId) => {
+    setExpandedRowId(expandedRowId === rowId ? null : rowId);
+  };
 
   return (
     <React.Fragment>
@@ -245,44 +427,174 @@ const ManufacturingVariable = () => {
                       <tr>
                         <th>ID</th>
                         <th>Name</th>
-                        {/* <th>Hours (h)</th> */}
                         <th>Hourly Rate (INR)</th>
-                        {/* <th>Total Rate</th> */}
                         <th>Action</th>
                       </tr>
                     </thead>
                     <tbody>
                       {manufacturingData.map((item) => (
-                        <tr key={item.id}>
-                          <td>{item.categoryId}</td>
-                          <td>{item.name}</td>
-                          {/* <td>{item.hours}</td> */}
-                          <td>{item.hourlyrate}</td>
-                          {/* <td>{item.totalrate}</td> */}
-                          <td>
-                            <div className="d-flex gap-2">
-                              <button
-                                className="btn btn-sm btn-success edit-item-btn"
-                                data-bs-toggle="modal"
-                                data-bs-target="#showModal"
-                                onClick={() => tog_edit(item)}
-                              >
-                                Edit
-                              </button>
-                              <button
-                                className="btn btn-sm btn-danger remove-item-btn"
-                                data-bs-toggle="modal"
-                                data-bs-target="#deleteRecordModal"
-                                onClick={() => {
-                                  setSelectedId(item._id);
-                                  tog_delete();
+                        <React.Fragment key={item._id}>
+                          <tr>
+                            <td>{item.categoryId}</td>
+                            <td>
+                              <a
+                                href="#"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  handleRowClick(item._id);
+                                }}
+                                style={{
+                                  color: "#007bff",
+                                  textDecoration: "none",
                                 }}
                               >
-                                Remove
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
+                                {item.name}
+                              </a>
+                            </td>
+                            <td>{item.hourlyrate}</td>
+                            <td>
+                              <div className="d-flex gap-2">
+                                <button
+                                  className="btn btn-sm btn-success edit-item-btn"
+                                  onClick={() => tog_edit(item)}
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  className="btn btn-sm btn-danger remove-item-btn"
+                                  onClick={() => {
+                                    setSelectedId(item._id);
+                                    tog_delete();
+                                  }}
+                                >
+                                  Remove
+                                </button>
+                                <button
+                                  className="btn btn-sm btn-primary add-sub-btn"
+                                  onClick={() => {
+                                    setSelectedManufacturingId(item._id);
+                                    setModalAddSub(true);
+                                  }}
+                                >
+                                  Add Machines
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                          {/* {expandedRowId === item._id && (
+                            <tr className="details-row">
+                              <td colSpan={4}>
+                                <div className="details-box">
+                                  <h5 className="mb-3 d-flex align-items-center">
+                                    Machines
+                                  </h5>
+                                  <Col className="col-sm-auto"></Col>
+
+                                  <table className="table align-middle table-nowrap">
+                                    <thead className="table-light">
+                                      <tr>
+                                        <th>Subcategory ID</th>
+                                        <th>Name</th>
+                                        <th>Hourly Rate</th>
+                                        <th>Action</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {item.subCategories.map((subCategory) => (
+                                        <tr key={subCategory.subcategoryId}>
+                                          <td>{subCategory.subcategoryId}</td>
+                                          <td>{subCategory.name}</td>
+                                          <td>{subCategory.hourlyRate}</td>
+                                          <td>
+                                            <button
+                                              color="success"
+                                              onClick={() => {
+                                                Sub_tog_edit(subCategory),
+                                                  setSelectedManufacturingId(
+                                                    item._id
+                                                  );
+                                              }}
+                                            >
+                                              Edit
+                                            </button>
+                                            <button
+                                              className="btn btn-sm btn-danger remove-item-btn"
+                                              onClick={() => {
+                                                setSelectedId(item._id);
+                                                tog_delete();
+                                              }}
+                                            >
+                                              Remove
+                                            </button>
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </td>
+                            </tr>
+                          )} */}
+
+                          {expandedRowId === item._id && (
+                            <tr className="details-row">
+                              <td colSpan={4}>
+                                <div className="details-box">
+                                  <h5 className="mb-3 d-flex align-items-center">
+                                    Machines
+                                  </h5>
+                                  <Col className="col-sm-auto"></Col>
+
+                                  <table className="table align-middle table-nowrap">
+                                    <thead className="table-light">
+                                      <tr>
+                                        <th>Subcategory ID</th>
+                                        <th>Name</th>
+                                        <th>Hourly Rate</th>
+                                        <th>Action</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {item.subCategories.map((subCategory) => (
+                                        <tr key={subCategory._id}>
+                                          <td>{subCategory.subcategoryId}</td>
+                                          <td>{subCategory.name}</td>
+                                          <td>{subCategory.hourlyRate}</td>
+                                          <td className="d-flex gap-2">
+                                            <button
+                                              className="btn btn-sm btn-success"
+                                              
+                                              onClick={() => {
+                                                Sub_tog_edit(subCategory);
+                                                setSelectedManufacturingId(
+                                                  item._id
+                                                );
+                                              }}
+                                            >
+                                              Edit
+                                            </button>
+                                            
+                                            <button
+                                              className="btn btn-sm btn-danger"
+                                              onClick={() =>
+                                                handleDeleteSub(
+                                                  subCategory._id,
+                                                  item._id
+                                                )
+                                              }
+                                            >
+                                              Remove
+                                            </button>
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
                       ))}
                     </tbody>
                   </table>
@@ -459,6 +771,169 @@ const ManufacturingVariable = () => {
             {posting ? "Deleting..." : "Yes! Delete It"}
           </Button>
           <Button color="secondary" onClick={tog_delete} disabled={posting}>
+            Cancel
+          </Button>
+        </ModalFooter>
+      </Modal>
+
+      {/* Add Sub Modal */}
+      <Modal isOpen={modal_add_sub} toggle={() => setModalAddSub(false)}>
+        <ModalHeader toggle={() => setModalAddSub(false)}>
+          Add Machines
+        </ModalHeader>
+        <ModalBody>
+          <form className="tablelist-form" onSubmit={handleAddSub}>
+            <div className="mb-3">
+              <label
+                for="subcategoryId"
+                htmlFor="id-field"
+                className="form-label"
+              >
+                {" "}
+                Machines ID
+              </label>
+              <input
+                type="text"
+                id="subcategoryId"
+                className="form-control"
+                name="subcategoryId"
+                value={subFormData.subcategoryId}
+                onChange={handleSubChange}
+                placeholder="Enter Machines ID"
+                required
+              />
+            </div>
+
+            {/* </FormGroup> */}
+            <div className="mb-3">
+              <label for="name" htmlFor="id-field" className="form-label">
+                Machines Name
+              </label>
+              <input
+                type="text"
+                id="name"
+                className="form-control"
+                name="name"
+                value={subFormData.name}
+                placeholder="Enter Machines Name"
+                onChange={handleSubChange}
+                required
+              />
+            </div>
+
+            <div className="mb-3">
+              <label for="hourlyRate" htmlFor="id-field" className="form-label">
+                Machines Hourly Rate
+              </label>
+              <input
+                type="number"
+                id="hourlyRate"
+                name="hourlyRate"
+                className="form-control"
+                value={subFormData.hourlyRate}
+                placeholder="Enter Machines Hourly Rate"
+                onChange={handleSubChange}
+                required
+              />
+            </div>
+          </form>
+        </ModalBody>
+        <ModalFooter>
+          <Button color="secondary" onClick={() => setModalAddSub(false)}>
+            Cancel
+          </Button>
+          <Button color="primary" type="submit" onClick={handleAddSub}>
+            Add Machines
+          </Button>
+        </ModalFooter>
+      </Modal>
+
+      {/* sub edit modal */}
+      <Modal isOpen={isEditModalOpen} toggle={Sub_tog_edit}>
+        <ModalHeader toggle={Sub_tog_edit}>Edit Machines</ModalHeader>
+        <ModalBody>
+          <form onSubmit={handleSubEditSubmit}>
+            <div className="mb-3">
+              <label htmlFor="id" className="form-label">
+                Machines ID
+              </label>
+              <input
+                type="text"
+                className="form-control"
+                name="subcategoryId"
+                value={subFormData.subcategoryId}
+                onChange={handleSubChange}
+                required
+              />
+            </div>
+            <div className="mb-3">
+              <label htmlFor="name" className="form-label">
+                Machines Name
+              </label>
+              <input
+                type="text"
+                className="form-control"
+                name="name"
+                value={subFormData.name}
+                onChange={handleSubChange}
+                required
+              />
+            </div>
+            <div className="mb-3">
+              <label htmlFor="hourlyrate" className="form-label">
+                Machines Hourly Rate
+              </label>
+              <input
+                type="number"
+                className="form-control"
+                name="hourlyRate"
+                value={subFormData.hourlyRate}
+                onChange={handleSubChange}
+                required
+              />
+            </div>
+            <ModalFooter>
+              <Button color="success" type="submit" disabled={posting}>
+                {posting ? "Saving..." : "Save "}
+              </Button>
+              <Button
+                color="secondary"
+                onClick={() => Sub_tog_edit(null)}
+                disabled={posting}
+              >
+                Cancel
+              </Button>
+            </ModalFooter>
+          </form>
+        </ModalBody>
+      </Modal>
+
+      <Modal isOpen={subDeleteModalOpen} toggle={closeSubDeleteModal} centered>
+        <ModalHeader toggle={closeSubDeleteModal}>
+          Delete Machines
+        </ModalHeader>
+        <ModalBody>
+          <div className="mt-2 text-center">
+            <lord-icon
+              src="https://cdn.lordicon.com/gsqxdxog.json"
+              trigger="loop"
+              colors="primary:#f7b84b,secondary:#f06548"
+              style={{ width: "100px", height: "100px" }}
+            ></lord-icon>
+            <div className="mt-4 pt-2 fs-15 mx-4 mx-sm-5">
+              <h4>Are you sure?</h4>
+              <p className="text-muted mx-4 mb-0">
+                Are you sure you want to delete the Machines
+                <strong>{subToDelete?.name}</strong>?
+              </p>
+            </div>
+          </div>
+        </ModalBody>
+        <ModalFooter>
+          <Button color="danger" onClick={confirmDeleteSub}>
+            Yes, Delete It!
+          </Button>
+          <Button color="secondary" onClick={closeSubDeleteModal}>
             Cancel
           </Button>
         </ModalFooter>

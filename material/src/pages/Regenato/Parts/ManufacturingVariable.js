@@ -37,6 +37,10 @@ const ManufacturingVariable = ({
   const [selectedShipment, setselectedShipment] = useState(null);
   const [SelectedManufacuturingVariable, setSelectedManufacuturingVariable] =
     useState(null);
+  const [selectedOptionEdit, setSelectedOptionEdit] = useState("");
+  const [inputValueEdit, setInputValueEdit] = useState("");
+  const [selectedOption, setSelectedOption] = useState("");
+  const [inputValue, setInputValue] = useState("");
   const [editId, setEditId] = useState(null);
   const [unit, setUnit] = useState("minutes");
 
@@ -112,15 +116,51 @@ const ManufacturingVariable = ({
     setModalDelete(!modal_delete);
   };
 
+  // const tog_edit = (item = null) => {
+  //   if (item) {
+  //     setFormData({
+  //       categoryId: item.categoryId,
+  //       name: item.name,
+  //       hours: item.hours,
+  //       hourlyRate: item.hourlyRate,
+  //       totalRate: item.totalRate,
+  //     });
+  //     setEditId(item._id);
+  //   } else {
+  //     setFormData({
+  //       categoryId: "",
+  //       name: "",
+  //       hours: "",
+  //       hourlyRate: "",
+  //       totalRate: "",
+  //     });
+  //     setEditId(null);
+  //   }
+  //   setModalEdit(!modal_edit);
+  // };
+
+  //   useEffect(() => {
+
   const tog_edit = (item = null) => {
     if (item) {
+      const hours = parseFloat(item.hours);
+      let selectedOption = "hours";
+      let inputValue = hours.toString();
+
+      if (hours >= 24) {
+        selectedOption = "days";
+        inputValue = (hours / 24).toString();
+      } else if (hours < 1) {
+        selectedOption = "minutes";
+        inputValue = (hours * 60).toString();
+      }
+
       setFormData({
-        categoryId: item.categoryId,
-        name: item.name,
-        hours: item.hours,
-        hourlyRate: item.hourlyRate,
-        totalRate: item.totalRate,
+        ...item,
+        hours: hours.toFixed(2),
       });
+      setSelectedOptionEdit(selectedOption);
+      setInputValueEdit(inputValue);
       setEditId(item._id);
     } else {
       setFormData({
@@ -135,7 +175,6 @@ const ManufacturingVariable = ({
     setModalEdit(!modal_edit);
   };
 
-  //   useEffect(() => {
   const fetchManufacturingData = useCallback(async () => {
     setLoading(true);
     try {
@@ -276,6 +315,109 @@ const ManufacturingVariable = ({
   };
 
   // Handle form input changes
+  // const handleChange = (e) => {
+  //   const { name, value } = e.target;
+
+  //   setFormData((prevFormData) => {
+  //     const updatedFormData = {
+  //       ...prevFormData,
+  //       [name]: value,
+  //     };
+
+  //     if (name === "time-hours" || name === "time-minutes") {
+  //       const hours = parseFloat(updatedFormData["time-hours"] || 0);
+  //       const minutes = parseFloat(updatedFormData["time-minutes"] || 0);
+  //       const totalHours = hours + minutes / 60;
+
+  //       updatedFormData.hours = totalHours.toFixed(2);
+
+  //       // Calculate totalRate using the newly calculated hours and the current hourlyRate
+  //       const validHourlyRate = parseFloat(updatedFormData.hourlyRate) || 0;
+  //       updatedFormData.totalRate = (totalHours * validHourlyRate).toFixed(2);
+  //     }
+
+  //     if (name === "hourlyRate") {
+  //       const validHours = parseFloat(updatedFormData.hours) || 0;
+  //       const validHourlyRate = parseFloat(updatedFormData.hourlyRate) || 0;
+  //       updatedFormData.totalRate = (validHours * validHourlyRate).toFixed(2);
+  //     }
+
+  //     console.log(`Updated formData:`, updatedFormData);
+
+  //     return updatedFormData;
+  //   });
+  // };
+
+  // const handleInputChange = (e) => {
+  //   const inputValue = e.target.value;
+  //   const selectedOption = document.getElementById("time-select").value;
+
+  //   if (selectedOption === "days") {
+  //     const hours = parseFloat(inputValue) * 24;
+  //     setFormData((prevFormData) => ({
+  //       ...prevFormData,
+  //       hours: hours.toFixed(2),
+  //       totalRate: (hours * parseFloat(prevFormData.hourlyRate || 0)).toFixed(
+  //         2
+  //       ),
+  //     }));
+  //   } else if (selectedOption === "hours") {
+  //     setFormData((prevFormData) => ({
+  //       ...prevFormData,
+  //       hours: inputValue,
+  //       totalRate: (
+  //         parseFloat(inputValue) * parseFloat(prevFormData.hourlyRate || 0)
+  //       ).toFixed(2),
+  //     }));
+  //   } else if (selectedOption === "minutes") {
+  //     const hours = parseFloat(inputValue) / 60;
+  //     setFormData((prevFormData) => ({
+  //       ...prevFormData,
+  //       hours: hours.toFixed(2),
+  //       totalRate: (hours * parseFloat(prevFormData.hourlyRate || 0)).toFixed(
+  //         2
+  //       ),
+  //     }));
+  //   }
+
+  //   setInputValue(inputValue);
+  // };
+
+  const handleInputChange = (e) => {
+    const inputValue = e.target.value;
+    const selectedOption = document.getElementById("time-select").value;
+
+    if (selectedOption === "day") {
+      const hours = parseFloat(inputValue) * 24;
+      setFormData((prevFormData) => ({
+        ...prevFormData,
+        hours: hours.toFixed(2),
+        totalRate: (hours * parseFloat(prevFormData.hourlyRate || 0)).toFixed(
+          2
+        ),
+      }));
+    } else if (selectedOption === "hours") {
+      setFormData((prevFormData) => ({
+        ...prevFormData,
+        hours: inputValue,
+        totalRate: (
+          parseFloat(inputValue) * parseFloat(prevFormData.hourlyRate || 0)
+        ).toFixed(2),
+      }));
+    } else if (selectedOption === "minutes") {
+      const hours = parseFloat(inputValue) / 60;
+      setFormData((prevFormData) => ({
+        ...prevFormData,
+        hours: hours.toFixed(2),
+        totalRate: (hours * parseFloat(prevFormData.hourlyRate || 0)).toFixed(
+          2
+        ),
+      }));
+    }
+
+    setInputValue(inputValue);
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
 
@@ -285,28 +427,85 @@ const ManufacturingVariable = ({
         [name]: value,
       };
 
-      if (name === "time-hours" || name === "time-minutes") {
-        const hours = parseFloat(updatedFormData["time-hours"] || 0);
-        const minutes = parseFloat(updatedFormData["time-minutes"] || 0);
-        const totalHours = hours + minutes / 60;
-
-        updatedFormData.hours = totalHours.toFixed(2);
-
-        // Calculate totalRate using the newly calculated hours and the current hourlyRate
-        const validHourlyRate = parseFloat(updatedFormData.hourlyRate) || 0;
-        updatedFormData.totalRate = (totalHours * validHourlyRate).toFixed(2);
-      }
-
       if (name === "hourlyRate") {
         const validHours = parseFloat(updatedFormData.hours) || 0;
-        const validHourlyRate = parseFloat(updatedFormData.hourlyRate) || 0;
+        const validHourlyRate = parseFloat(value) || 0;
         updatedFormData.totalRate = (validHours * validHourlyRate).toFixed(2);
+      } else if (name === "totalRate") {
+        const validTotalRate = parseFloat(value) || 0;
+        const validHours = parseFloat(updatedFormData.hours) || 0;
+        updatedFormData.hourlyRate = (validTotalRate / validHours).toFixed(2);
       }
-
-      console.log(`Updated formData:`, updatedFormData);
 
       return updatedFormData;
     });
+  };
+
+  const handleSelectChangeEdit = (e) => {
+    const selectedOption = e.target.value;
+    setInputValueEdit("");
+    setFormData((prevFormData) => ({
+      ...prevFormData,
+      hours: "",
+    }));
+
+    if (selectedOption !== "") {
+      setFormData((prevFormData) => ({
+        ...prevFormData,
+        hours: "0.00",
+      }));
+    }
+  };
+
+  const handleInputChangeEdit = (e) => {
+    const inputValue = e.target.value;
+    const selectedOption = document.getElementById("time-select-edit").value;
+
+    if (selectedOption === "days") {
+      const hours = parseFloat(inputValue) * 24;
+      setFormData((prevFormData) => ({
+        ...prevFormData,
+        hours: hours.toFixed(2),
+        totalRate: (hours * parseFloat(prevFormData.hourlyRate || 0)).toFixed(
+          2
+        ),
+      }));
+    } else if (selectedOption === "hours") {
+      setFormData((prevFormData) => ({
+        ...prevFormData,
+        hours: inputValue,
+        totalRate: (
+          parseFloat(inputValue) * parseFloat(prevFormData.hourlyRate || 0)
+        ).toFixed(2),
+      }));
+    } else if (selectedOption === "minutes") {
+      const hours = parseFloat(inputValue) / 60;
+      setFormData((prevFormData) => ({
+        ...prevFormData,
+        hours: hours.toFixed(2),
+        totalRate: (hours * parseFloat(prevFormData.hourlyRate || 0)).toFixed(
+          2
+        ),
+      }));
+    }
+
+    setInputValueEdit(inputValue);
+  };
+
+  const handleSelectChange = (e) => {
+    const selectedOption = e.target.value;
+    setInputValue("");
+    setFormData((prevFormData) => ({
+      ...prevFormData,
+      hours: "",
+    }));
+
+    if (selectedOption !== "") {
+      setFormData((prevFormData) => ({
+        ...prevFormData,
+        hours: "0.00",
+      }));
+    }
   };
 
   const handleChangeStatic = (e) => {
@@ -432,8 +631,6 @@ const ManufacturingVariable = ({
     (total, item) => total + Number(item.totalRate),
     0
   );
-
-
 
   // Handle unit change (Hours to Minutes or vice-versa)
   // const handleUnitChange = (e) => {
@@ -570,7 +767,112 @@ const ManufacturingVariable = ({
         </div>
       </div>
 
-      {/* Add modal */}
+      {/* previous Add modal */}
+      {/* <Modal isOpen={modal_add} toggle={tog_add}>
+        <ModalHeader toggle={tog_add}>Add Manufacturing Variables</ModalHeader>
+        <ModalBody>
+          <form onSubmit={handleSubmit}>
+            <div className="mb-3">
+              <label htmlFor="name" className="form-label">
+                Name
+              </label>
+              <Autocomplete
+                options={manufacturingVariables}
+                getOptionLabel={(option) => option.name}
+                onChange={handleAutocompleteChange}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Select Manufacturing Variables"
+                    variant="outlined"
+                  />
+                )}
+              />
+            </div>
+            <div>
+              <label htmlFor="time-select">Select Time Unit:</label>
+              <select
+                id="time-select"
+                onChange={handleSelectChange}
+                value={selectedOption}
+              >
+                <option value="">-- Select --</option>
+                <option value="day">Day</option>
+                <option value="hours">Hours</option>
+                <option value="minutes">Minutes</option>
+              </select>
+
+              {selectedOption && (
+                <div>
+                  <label htmlFor="time-input">
+                    Enter Value for {selectedOption}:
+                  </label>
+                  <input
+                    type="number"
+                    id="time-input"
+                    value={inputValue}
+                    onChange={handleInputChange}
+                    placeholder={`Enter ${selectedOption} value`}
+                  />
+                </div>
+              )}
+          </div>
+
+            <div className="mb-3">
+              <label htmlFor="hours" className="form-label">
+                Hours
+              </label>
+              <div className="input-group">
+                <input
+                  type="number"
+                  className="form-control"
+                  name="hours"
+                  value={formData.hours}
+                  readOnly
+                  required
+                />
+              </div>
+            </div>
+            <div className="mb-3">
+              <label htmlFor="hourlyRate" className="form-label">
+                Hourly Rate
+              </label>
+              <input
+                type="number"
+                className="form-control"
+                name="hourlyRate"
+                value={formData.hourlyRate || ""}
+                onChange={handleChange}
+                required
+              />
+            </div>
+            <div className="mb-3">
+              <label htmlFor="totalRate" className="form-label">
+                Total Rate
+              </label>
+              <div className="input-group">
+                <input
+                  type="number"
+                  className="form-control"
+                  name="totalRate"
+                  value={formData.totalRate}
+                  readOnly
+                  required
+                />
+              </div>
+            </div>
+            <ModalFooter>
+              <Button type="submit" color="primary" disabled={posting}>
+                Add
+              </Button>
+              <Button type="button" color="secondary" onClick={tog_add}>
+                Cancel
+              </Button>
+            </ModalFooter>
+          </form>
+        </ModalBody>
+      </Modal> */}
+
       <Modal isOpen={modal_add} toggle={tog_add}>
         <ModalHeader toggle={tog_add}>Add Manufacturing Variables</ModalHeader>
         <ModalBody>
@@ -592,36 +894,32 @@ const ManufacturingVariable = ({
                 )}
               />
             </div>
+
             <div className="mb-3">
-              <label htmlFor="time-hours" className="form-label">
-                Enter Time
-              </label>
-              <div class="time-input">
+              <label htmlFor="time-select">Time</label>
+              <div className="input-group">
+                <select
+                  id="time-select"
+                  onChange={(e) => {
+                    handleSelectChange(e);
+                    setSelectedOption(e.target.value);
+                  }}
+                  value={selectedOption}
+                  className="form-select"
+                >
+                  <option value="">-- Select --</option>
+                  <option value="day">Days</option>
+                  <option value="hours">Hours</option>
+                  <option value="minutes">Minutes</option>
+                </select>
                 <input
                   type="number"
-                  min="0"
-                  max="24"
-                  placeholder="00"
-                  name="time-hours"
-                  value={formData["time-hours"]}
-                  onChange={handleChange}
-                  required
+                  className="form-control"
+                  id="time-input"
+                  value={inputValue}
+                  onChange={handleInputChange}
+                  placeholder={`Enter ${selectedOption} value`}
                 />
-                <h2>:</h2>
-                <input
-                  type="number"
-                  min="0"
-                  max="59"
-                  placeholder="00"
-                  name="time-minutes"
-                  value={formData["time-minutes"]}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-              <div class="time-labels">
-                <span>Hour</span>
-                <span>Minute</span>
               </div>
             </div>
 
@@ -663,7 +961,7 @@ const ManufacturingVariable = ({
                   className="form-control"
                   name="totalRate"
                   value={formData.totalRate}
-                  readOnly
+                  onChange={handleChange}
                   required
                 />
               </div>
@@ -749,90 +1047,6 @@ const ManufacturingVariable = ({
         </ModalBody>
       </Modal>
 
-      {/* Edit modal */}
-      {/* <Modal isOpen={modal_edit} toggle={tog_edit}>
-        <ModalHeader toggle={tog_edit}>
-          Edit Manufacturing Variables
-        </ModalHeader>
-        <ModalBody>
-          <form onSubmit={handleEditSubmit}>
-            <div className="mb-3">
-              <label htmlFor="categoryId" className="form-label">
-                Category ID
-              </label>
-              <input
-                type="text"
-                className="form-control"
-                name="categoryId"
-                value={formData.categoryId}
-                onChange={handleChange}
-                required
-              />
-            </div>
-            <div className="mb-3">
-              <label htmlFor="name" className="form-label">
-                Name
-              </label>
-              
-              <input
-                type="number "
-                className="form-control"
-                id="name"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-              />
-            </div>
-            <div className="mb-3">
-              <label htmlFor="hours" className="form-label">
-                Hours
-              </label>
-              <input
-                type="number"
-                className="form-control"
-                name="hours"
-                value={formData.hours}
-                onChange={handleChange}
-                required
-              />
-            </div>
-            <div className="mb-3">
-              <label htmlFor="hourlyRate" className="form-label">
-                Hourly Rate
-              </label>
-              <input
-                type="number"
-                className="form-control"
-                name="hourlyRate"
-                value={formData.hourlyRate}
-                onChange={handleChange}
-                required
-              />
-            </div>
-            <div className="mb-3">
-              <label htmlFor="totalRate" className="form-label">
-                Total Rate
-              </label>
-              <input
-                type="number"
-                className="form-control"
-                name="totalRate"
-                value={formData.totalRate}
-                readOnly
-                required
-              />
-            </div>
-            <ModalFooter>
-              <Button type="submit" color="primary" disabled={posting}>
-                Update
-              </Button>
-              <Button type="button" color="secondary" onClick={tog_edit}>
-                Cancel
-              </Button>
-            </ModalFooter>
-          </form>
-        </ModalBody>
-      </Modal> */}
       <Modal isOpen={modal_edit} toggle={tog_edit}>
         <ModalHeader toggle={tog_edit}>
           Edit Manufacturing Variables
@@ -856,19 +1070,7 @@ const ManufacturingVariable = ({
               <label htmlFor="name" className="form-label">
                 Name
               </label>
-              {/* <Autocomplete
-          options={manufacturingVariables}
-          getOptionLabel={(option) => option.name}
-          value={SelectedManufacuturingVariable}
-          onChange={handleAutocompleteChange}
-          renderInput={(params) => (
-            <TextField
-              {...params}
-              label="Select Material"
-              variant="outlined"
-            />
-          )}
-        /> */}
+
               <input
                 type="number "
                 className="form-control"
@@ -878,7 +1080,8 @@ const ManufacturingVariable = ({
                 onChange={handleChange}
               />
             </div>
-            <div className="mb-3">
+
+            {/* <div className="mb-3">
               <label htmlFor="hours" className="form-label">
                 Enter Time
               </label>
@@ -909,7 +1112,35 @@ const ManufacturingVariable = ({
                 <span>Hour</span>
                 <span>Minute</span>
               </div>
+            </div> */}
+            <div className="mb-3">
+              <label htmlFor="time-select">Time</label>
+              <div className="input-group">
+                <select
+                  id="time-select-edit"
+                  onChange={(e) => {
+                    handleSelectChangeEdit(e);
+                    setSelectedOptionEdit(e.target.value);
+                  }}
+                  value={selectedOptionEdit}
+                  className="form-select"
+                >
+                  <option value="">-- Select --</option>
+                  <option value="days">Days</option>
+                  <option value="hours">Hours</option>
+                  <option value="minutes">Minutes</option>
+                </select>
+                <input
+                  type="number"
+                  className="form-control"
+                  id="time-input-edit"
+                  value={inputValueEdit}
+                  onChange={handleInputChangeEdit}
+                  placeholder={`Enter ${selectedOptionEdit} value`}
+                />
+              </div>
             </div>
+
             <div className="mb-3">
               <label htmlFor="hours" className="form-label">
                 Hours

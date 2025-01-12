@@ -382,7 +382,7 @@ const SinglePart = () => {
               <Col lg={12}>
                 <Card>
                   <CardBody>
-                    <h4 className="card-title mb-0">Raw Matarial</h4>
+                    <h4 className="card-title mb-0">Raw Material</h4>
                     <hr
                       style={{
                         height: "2px",

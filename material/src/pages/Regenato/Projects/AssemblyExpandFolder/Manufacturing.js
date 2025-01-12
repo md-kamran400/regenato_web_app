@@ -227,7 +227,7 @@ const Manufacturing = ({
         <thead className="table-light">
           <tr>
             <th>Name</th>
-            <th>Hours</th>
+            <th>Minutes</th>
             <th>Hourly Rate</th>
             <th>Total Rate</th>
             <th>Actions</th>
@@ -237,7 +237,7 @@ const Manufacturing = ({
           {updatedManufacturingVariables.map((item, index) => (
             <tr key={index}>
               <td>{item.name}</td>
-              <td>{item.hours}</td>
+              <td>{item.hours * 60} Min</td>
               <td>{item.hourlyRate}</td>
               <td>{item.totalRate}</td>
               <td className="d-flex gap-2">
@@ -282,13 +282,14 @@ const Manufacturing = ({
             </div>
             <div className="mb-3">
               <label htmlFor="hours" className="form-label">
-                Hours
+                Minutes
               </label>
               <input
                 type="number"
                 className="form-control"
                 name="hours"
-                value={formData.hours}
+                // value={formData.hours}
+                value={(formData.hours * 60).toFixed(0)}
                 onChange={handleChange}
                 readOnly
               />

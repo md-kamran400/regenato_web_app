@@ -21,7 +21,7 @@ const HoursPlanningTab = () => {
   const [numberOfMachines, setNumberOfMachines] = useState({});
   const [daysToWork, setDaysToWork] = useState({});
 
-  console.log("partDetails", partDetails);
+  // console.log("partDetails", partDetails);
 
   const fetchProjectDetails = useCallback(async () => {
     setLoading(true);
@@ -70,6 +70,8 @@ const HoursPlanningTab = () => {
     fetchParts();
     fetchManufacturingVariables();
   }, []);
+
+  // console.log(manufacturingVariables)
 
   const processPartsMap = parts.reduce((acc, part) => {
     let isMatchingPart = false;
@@ -151,8 +153,8 @@ const HoursPlanningTab = () => {
 
     return acc;
   }, {});
-  console.log("processPartsMap", processPartsMap);
-  console.log("subAssemblyListFirst:", partDetails.subAssemblyListFirst);
+  // console.log("processPartsMap", processPartsMap);
+  // console.log("subAssemblyListFirst:", partDetails.subAssemblyListFirst);
 
   const getHoursForProcess = (partName, processName) => {
     const processData = processPartsMap[processName]?.find(
@@ -393,19 +395,19 @@ const HoursPlanningTab = () => {
   };
 
   const calculateTotalHoursForPartsList = (partsList) => {
-    if (!partsList || !partsList.partsListItems) {
+    if (!partsList || !partsList.partsListItems || !manufacturingVariables.length) {
       return 0;
     }
-
+  
     return partsList.partsListItems.reduce(
       (sum, item) =>
         sum +
         (manufacturingVariables.find(
-          (part) => part.name === item.manufacturingVariables[0].name
+          (part) => part.name === item.manufacturingVariables[0]?.name
         )?.hours || 0) *
-          item.quantity,
+          (item.quantity || 0),
       0
-    );
+    ).toFixed(2);
   };
   const getHoursForPartListItems = (
     column,
@@ -531,6 +533,25 @@ const HoursPlanningTab = () => {
                                   </th>
                                 ))}
                               </tr>
+                              <tr className="table-row-main">
+                                <td
+                                  className="part-name-header"
+                                  style={{
+                                    backgroundColor: "#C8E6C9",
+                                    color: "black",
+                                  }}
+                                >
+                                  Months Required to complete
+                                </td>
+                                {columnNames.map((processName) => (
+                                  <td key={processName}>
+                                    {calculateMonthsRequiredForPartsList(
+                                      processName,
+                                      partsList
+                                    )}
+                                  </td>
+                                ))}
+                              </tr>
                             </thead>
                             <tbody>
                               {!loading &&
@@ -589,10 +610,7 @@ const HoursPlanningTab = () => {
                                 </td>
                                 {columnNames.map((processName) => (
                                   <td key={processName}>
-                                    {calculateTotalHoursForPartsList(
-                                      processName,
-                                      partsList
-                                    )}
+                                    {calculateTotalHoursForPartsList(partsList)}
                                   </td>
                                 ))}
                               </tr>
@@ -715,25 +733,7 @@ const HoursPlanningTab = () => {
                                   </td>
                                 ))}
                               </tr>
-                              <tr className="table-row-main">
-                                <td
-                                  className="part-name-header"
-                                  style={{
-                                    backgroundColor: "#C8E6C9",
-                                    color: "black",
-                                  }}
-                                >
-                                  Months Required to complete
-                                </td>
-                                {columnNames.map((processName) => (
-                                  <td key={processName}>
-                                    {calculateMonthsRequiredForPartsList(
-                                      processName,
-                                      partsList
-                                    )}
-                                  </td>
-                                ))}
-                              </tr>
+                              
                             </tbody>
                           </table>
                         </div>

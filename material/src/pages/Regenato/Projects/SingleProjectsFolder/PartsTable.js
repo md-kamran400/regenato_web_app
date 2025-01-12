@@ -86,14 +86,15 @@ const PartsTable = React.memo(
       const fetchPartsListItems = async () => {
         try {
           const response = await fetch(
-            `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/partsLists/${partsList._id}/items`
+            // `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/partsLists/${partsList._id}/items`
+            `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${_id}/partsLists/${partsList._id}/items`
           );
           if (!response.ok) {
             throw new Error("Network response was not ok");
           }
           const data = await response.json();
-          setPartsListsItems(data);
-          // console.log("items data of parts lists", data);
+          setPartsListsItems(data.data);
+          console.log("items data of parts lists", data);
         } catch (error) {
           console.error("Error fetching parts list items:", error);
           // You might want to handle the error, e.g., show an error message to the user
@@ -248,11 +249,12 @@ const PartsTable = React.memo(
         setCodeName(""); // Reset codeName
       }
     };
-
+    ///projects/:projectId/partsLists/:listId/items
     const PartsTableFetch = useCallback(async () => {
       try {
         const response = await fetch(
-          `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/partsLists`
+          // `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/partsLists`
+          `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${_id}/partsLists`
         );
         const data = await response.json();
         setPartsDisplay(data.partsListItems || []);
@@ -286,7 +288,10 @@ const PartsTable = React.memo(
 
       try {
         const response = await fetch(
-          `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/partsLists/${partsList._id}/items`,
+          // `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/partsLists/${partsList._id}/items`,
+          `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${_id}/partsLists/${partsList._id}/items`,
+
+          // /projects/:_id/partsLists/:listId/items
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -398,13 +403,13 @@ const PartsTable = React.memo(
         toast.error("Failed to delete Records. Please try again.");
       }
     };
-
+    ///projects/:projectId/partsLists/:listId/items/:itemId
     const handlePartDelete = async () => {
       if (!itemToDelete) return;
 
       try {
         const response = await fetch(
-          `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/partsLists/${partsList._id}/items/${itemToDelete._id}`,
+          `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${_id}/partsLists/${partsList._id}/items/${itemToDelete._id}`,
           {
             method: "DELETE",
             headers: {
@@ -433,10 +438,10 @@ const PartsTable = React.memo(
     const handleEdit = async (e) => {
       e.preventDefault();
       const partsListName = e.target.partsListName.value;
-
       try {
         const response = await fetch(
-          `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/partsLists/${partsList._id}`,
+          // `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/partsLists/${partsList._id}`,
+          `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${_id}/partsLists/${partsList._id}`,
           {
             method: "PUT",
             headers: {
@@ -472,6 +477,11 @@ const PartsTable = React.memo(
             </div>
           </div>
         )}
+        <div className="button-group" style={{marginTop:'-3.6rem'}}>
+          <Button color="success" className="add-btn" onClick={toggleAddModal}>
+            <i className="ri-add-line align-bottom me-1"></i> Add Part
+          </Button>
+        </div>
         <Col
           lg={12}
           style={{
@@ -503,11 +513,11 @@ const PartsTable = React.memo(
                         {partsList.partsListName}
                       </li>
 
-                      <li style={{ fontSize: "19px" }}>
+                      {/* <li style={{ fontSize: "19px" }}>
                         <span class="badge bg-success-subtle text-success">
                           Parts
                         </span>
-                      </li>
+                      </li> */}
                     </ul>
 
                     <UncontrolledDropdown direction="left">
@@ -542,7 +552,7 @@ const PartsTable = React.memo(
                           Edit
                         </DropdownItem>
 
-                        <DropdownItem
+                        {/* <DropdownItem
                           href="#"
                           onClick={() => {
                             setSelectedId(partsList._id);
@@ -551,14 +561,14 @@ const PartsTable = React.memo(
                         >
                           <i className="ri-delete-bin-6-line align-bottom me-2 text-muted"></i>{" "}
                           Delete
-                        </DropdownItem>
+                        </DropdownItem> */}
 
                         <div className="dropdown-divider"></div>
                       </DropdownMenu>
                     </UncontrolledDropdown>
                   </div>
 
-                  <div className="button-group">
+                  {/* <div className="button-group">
                     <Button
                       color="success"
                       className="add-btn"
@@ -566,7 +576,7 @@ const PartsTable = React.memo(
                     >
                       <i className="ri-add-line align-bottom me-1"></i> Add Part
                     </Button>
-                  </div>
+                  </div> */}
 
                   <div className="table-wrapper">
                     <table className="project-table">
@@ -584,7 +594,7 @@ const PartsTable = React.memo(
                         </tr>
                       </thead>
                       <tbody>
-                        {partsListItems.map((item) => (
+                        {partsListItems?.map((item) => (
                           <React.Fragment key={item._id}>
                             <tr
                               onClick={() =>
@@ -598,11 +608,11 @@ const PartsTable = React.memo(
                                 style={{ cursor: "pointer", color: "#64B5F6" }}
                                 className="parent_partName"
                               >
-                                {item.partName} ({item.Uid || ""}) {item.codeName || ""}
+                                {item.partName} ({item.Uid || ""}){" "}
+                                {item.codeName || ""}
                               </td>
                               <td>
                                 {parseFloat(item.costPerUnit || 0).toFixed(2)}
-                                
                               </td>
                               <td>
                                 {parseFloat(item.timePerUnit || 0).toFixed(2)}

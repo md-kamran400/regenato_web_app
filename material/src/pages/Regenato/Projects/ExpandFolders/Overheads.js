@@ -89,9 +89,9 @@ const Overheads = ({
   // Construct API endpoint based on the source
   const getApiEndpoint = (id) => {
     if (source === "partList") {
-      return `${process.env.REACT_APP_BASE_URL}/api/projects/${projectId}/partsLists/${partId}/items/${itemId}/overheadsAndProfits/${id}`;
+      return `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${projectId}/partsLists/${partId}/items/${itemId}/overheadsAndProfits/${id}`;
     } else if (source === "subAssemblyListFirst") {
-      return `${process.env.REACT_APP_BASE_URL}/api/projects/${projectId}/subAssemblyListFirst/${partId}/items/${itemId}/overheadsAndProfits/${id}`;
+      return `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${projectId}/subAssemblyListFirst/${partId}/items/${itemId}/overheadsAndProfits/${id}`;
     }
     throw new Error("Invalid source");
   };

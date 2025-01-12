@@ -172,15 +172,21 @@ const List = () => {
     setCurrentPage(page);
   };
 
+  const handleInputChange = (e) => {
+    const inputValue = e.target.value;
+    setnewCodeName(inputValue === '' ? '-' : inputValue);
+  };
+
   const handleAddPart = async () => {
     // Extract only the numeric part of the ID
-    const numericId = newPartId.replace(/[^\d]/g, "");
+    // const numericId = newPartId.replace(/[^\d]/g, "");
+    const numericId = newPartId.replace(/[^-\d]/g, "");
 
     const newPart = {
-      id: parseInt(numericId),
+      id: numericId,
       partName: newPartName,
       clientNumber: newclientNumber,
-      codeName: newCodeName,
+      codeName: newCodeName || 0,
       costPerUnit: costPerUnit || 0,
       timePerUnit: timePerUnit || 0,
       stockPOQty: stockPOQty || 0,
@@ -217,7 +223,7 @@ const List = () => {
       // Close the modal
       toggleModal();
 
-      toast.success("Part added successfully!");
+      toast.success("Records added successfully!");
     } catch (error) {
       console.error("Error adding part:", error);
       toast.error("Failed to add part. Please try again.");
@@ -339,6 +345,7 @@ const List = () => {
         throw new Error("Network response was not ok");
       }
       await fetchData(); // Refetch the data to update the table
+      toast.success('Records Deleted Successfully')
       tog_delete(); // Close the modal
     } catch (error) {
       setError(error.message);
@@ -346,6 +353,8 @@ const List = () => {
       setPosting(false);
     }
   };
+
+  
 
   return (
     <React.Fragment>
@@ -378,6 +387,10 @@ const List = () => {
                 value={searchTerm}
                 onChange={handleSearch}
               />
+              <i
+                className="ri-search-line search-icon ml-2"
+                style={{ marginTop: "-1px" }}
+              ></i>
             </div>
           </div>
         </div>
@@ -419,12 +432,12 @@ const List = () => {
               <td>
                 {item.partsCalculations && item.partsCalculations.length > 0
                   ? item.partsCalculations[0].AvgragecostPerUnit.toFixed(2)
-                  : "N/A"}
+                  : "-"}
               </td>
               <td>
                 {item.partsCalculations && item.partsCalculations.length > 0
                   ? item.partsCalculations[0].AvgragetimePerUnit.toFixed(2)
-                  : "N/A"}
+                  : "-"}
               </td>
               <td></td> {/* On Hand column */}
               <td>
@@ -537,8 +550,7 @@ const List = () => {
                 className="form-control"
                 placeholder="Enter Code Name"
                 value={newCodeName}
-                onChange={(e) => setnewCodeName(e.target.value)}
-                required
+                onChange={handleInputChange}
               />
             </div>
 

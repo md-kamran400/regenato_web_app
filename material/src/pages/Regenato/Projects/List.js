@@ -2,6 +2,14 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useSelector, useDispatch } from "react-redux";
 
+import OutlinedInput from "@mui/material/OutlinedInput";
+import InputLabel from "@mui/material/InputLabel";
+import MenuItem from "@mui/material/MenuItem";
+import FormControl from "@mui/material/FormControl";
+import ListItemText from "@mui/material/ListItemText";
+import Select from "@mui/material/Select";
+import Checkbox from "@mui/material/Checkbox";
+
 // third party impprts
 import { Link } from "react-router-dom";
 // import { ToastContainer } from "react-toastify";
@@ -60,6 +68,7 @@ const List = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [projectType, setProjectType] = useState("");
+  const [filterType, setFilterType] = useState("");
   const itemsPerPage = 25;
   const [formData, setFormData] = useState({
     projectName: "",
@@ -67,6 +76,60 @@ const List = () => {
     timePerUnit: "",
     stockPOQty: "",
   });
+
+  //calulation
+  const [machineHoursPerDay, setMachineHoursPerDay] = useState({});
+  const [numberOfMachines, setNumberOfMachines] = useState({});
+  const [daysToWork, setDaysToWork] = useState({});
+  const [manufacturingData, setManufacturingData] = useState([]);
+
+  const fetchManufacturingData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_BASE_URL}/api/manufacturing`
+      );
+      const data = await response.json();
+      setManufacturingData(data);
+    } catch (error) {
+      console.error("Error fetching manufacturing data:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchManufacturingData();
+  }, [fetchManufacturingData]);
+
+ 
+
+  const handleDuplicateProject = async (item) => {
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${item._id}/duplicate`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      if (!response.ok) {
+        throw new Error("Failed to duplicate project");
+      }
+      const duplicatedProject = await response.json();
+      setprojectListsData((prevData) => [...prevData, duplicatedProject]);
+      toast.success("Project duplicated successfully!");
+    } catch (error) {
+      toast.error(`Error duplicating project: ${error.message}`);
+    }
+  };
+
+  //filter
+  const handleFilterChange = (e) => {
+    setFilterType(e.target.value);
+  };
 
   const handleSingleProjectTotalCount = (newTotal) => {
     setTotalCostCount(newTotal);
@@ -108,12 +171,14 @@ const List = () => {
   const toggleModalCategory = () => {
     setModal_category(!modal_category);
   };
+
+
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
       const response = await fetch(
-        `${process.env.REACT_APP_BASE_URL}/api/projects`
+        `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects?filterType=${filterType}`
       );
       if (!response.ok) {
         throw new Error("Failed to fetch projects");
@@ -125,15 +190,23 @@ const List = () => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [filterType]);
+
+
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
   // Filtered and Paginated Data
-  const filteredData = projectListsData.filter((item) =>
-    item.projectName.toLowerCase().includes(searchTerm.toLowerCase())
+  // const filteredData = projectListsData.filter((item) =>
+  //   item.projectName.toLowerCase().includes(searchTerm.toLowerCase())
+  // );
+  // Modify the filteredData calculation:
+  const filteredData = projectListsData.filter(
+    (item) =>
+      item?.projectName?.toLowerCase().includes(searchTerm.toLowerCase()) &&
+      (filterType === "" || item.projectType === filterType)
   );
 
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
@@ -163,7 +236,8 @@ const List = () => {
       };
       try {
         const response = await fetch(
-          `${process.env.REACT_APP_BASE_URL}/api/projects`,
+          // `${process.env.REACT_APP_BASE_URL}/api/projects`,
+          `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects`,
           {
             method: "POST",
             headers: {
@@ -189,6 +263,7 @@ const List = () => {
       }
     }
   };
+
 
   const handleEditSubmit = async (e) => {
     e.preventDefault();
@@ -232,7 +307,7 @@ const List = () => {
     setError(null);
     try {
       const response = await fetch(
-        `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}`,
+        `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${_id}`,
         {
           method: "DELETE",
         }
@@ -257,6 +332,46 @@ const List = () => {
       ele.closest("button").classList.add("active");
     }
   };
+
+  const getHoursForPartListItems = (
+    column,
+    quantity,
+    manufacturingVariables
+  ) => {
+    if (!manufacturingVariables || manufacturingVariables.length === 0) {
+      return "-"; // Handle missing data gracefully
+    }
+    const target = manufacturingVariables.find(
+      (a) => a.name.toLowerCase() === column.toLowerCase()
+    );
+    if (target) {
+      return quantity * target.hours;
+    } else {
+      return "-";
+    }
+  };
+
+  const calculateTotalHoursForProcess = (processName, item) => {
+    const totalHours = item[processName] || 0;
+    const quantity = item.quantity || 0;
+    return (totalHours * quantity).toFixed(2);
+  };
+
+  const calculateMonthsRequired = (processName, item) => {
+    const totalHours = calculateTotalHoursForProcess(processName, item);
+    const availableMachineHoursPerMonth =
+      (machineHoursPerDay[processName] || 0) *
+      (numberOfMachines[processName] || 0) *
+      (daysToWork[processName] || 0);
+
+    if (availableMachineHoursPerMonth === 0) {
+      return "--";
+    }
+
+    const monthsRequired = totalHours / availableMachineHoursPerMonth;
+    return monthsRequired.toFixed(2);
+  };
+
   return (
     <React.Fragment>
       <ToastContainer closeButton={false} />
@@ -273,16 +388,45 @@ const List = () => {
             </Button>
           </div>
         </div>
+        
         <div className="col-sm-7 ms-auto">
-          <div className="d-flex justify-content-sm-end gap-2">
-            <div className="search-box ms-2 col-sm-7">
+          <div className="d-flex justify-content-sm-end gap-2 align-items-center">
+            <div className="search-box ms-2 col-sm-5 d-flex align-items-center">
               <Input
                 type="text"
                 placeholder="Search..."
                 value={searchTerm}
                 onChange={handleSearch}
+                style={{ width: "20rem", height: "40px" }}
               />
-              <i className="ri-search-line search-icon"></i>
+              <i
+                className="ri-search-line search-icon ml-2"
+                style={{ marginTop: "-1px" }}
+              ></i>
+            </div>
+            <div className="col-sm-auto">
+              <FormControl style={{ width: "15rem", height: "40px" }}>
+                <InputLabel
+                  id="demo-simple-select-label"
+                  style={{ marginTop: "-6px" }}
+                >
+                  Filter by PO Type
+                </InputLabel>
+                <Select
+                  labelId="demo-simple-select-label"
+                  id="demo-simple-select"
+                  value={filterType}
+                  onChange={handleFilterChange}
+                  label="Filter by PO Type"
+                  style={{ height: "40px" }}
+                >
+                  <MenuItem value="">All Types</MenuItem>
+                  <MenuItem value="External PO">External PO</MenuItem>
+                  <MenuItem value="Internal PO">Internal PO</MenuItem>
+                  <MenuItem value="PO Type 1">PO Type 1</MenuItem>
+                  <MenuItem value="PO Type 2">PO Type 2</MenuItem>
+                </Select>
+              </FormControl>
             </div>
           </div>
         </div>
@@ -296,62 +440,107 @@ const List = () => {
             </div>
           </div>
         )}
-        <table className="table table-striped">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>PO Type</th>
-              <th>Total Cost</th>
-              <th>Total Hours</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {paginatedData.map((item, index) => (
-              <tr key={index}>
-                <td style={{ color: "blue", textDecoration: "underline" }}>
-                  <Link
-                    to={`/projectSection/${item._id}`}
-                    className="text-body"
-                  >
-                    {item.projectName}
-                  </Link>
-                </td>
-                <td>0</td>
-                <td>0</td>
-                <td>0</td>
-                <td>
-                  <UncontrolledDropdown direction="start">
-                    <DropdownToggle
-                      tag="button"
-                      className="btn btn-link text-muted p-1 mt-n2 py-0 text-decoration-none fs-15 shadow-none"
-                    >
-                      <FeatherIcon icon="more-horizontal" className="icon-sm" />
-                    </DropdownToggle>
 
-                    <DropdownMenu className="dropdown-menu-end">
-                      <DropdownItem onClick={() => toggleEditModal(item)}>
-                        <i className="ri-pencil-fill align-bottom me-2 text-muted"></i>{" "}
-                        Edit
-                      </DropdownItem>
-                      <div className="dropdown-divider"></div>
-                      <DropdownItem
-                        href="#"
-                        onClick={() => {
-                          setSelectedId(item._id);
-                          tog_delete();
-                        }}
+        <div className="table-container">
+          <div className="table-responsive">
+            <table className="table table-striped">
+              <thead>
+                <tr>
+                  <th
+                    className="sticky-col"
+                    style={{
+                      backgroundColor: "rgb(228, 228, 228)",
+                      width: "250rem",
+                    }}
+                  >
+                    Name
+                  </th>
+                  <th className="child_parts">PO-Types</th>
+                  {manufacturingData.map((item) => (
+                    <th key={item._id} className="child_parts">
+                      {item.name}
+                    </th>
+                  ))}
+                  <th className="sticky-col">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paginatedData.map((item, index) => (
+                  <tr key={index}>
+                    <td
+                      className="sticky-col"
+                      style={{
+                        color: "blue",
+                        textDecoration: "underline",
+                        backgroundColor: "rgb(231, 229, 229)",
+                      }}
+                    >
+                      <Link
+                        to={`/projectSection/${item._id}`}
+                        // style={{
+                        //   color: "#007bff",
+                        //   textDecoration: "none",
+                        // }}
                       >
-                        <i className="ri-delete-bin-fill align-bottom me-2 text-muted"></i>{" "}
-                        Remove
-                      </DropdownItem>
-                    </DropdownMenu>
-                  </UncontrolledDropdown>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                        {item.projectName}
+                      </Link>
+                    </td>
+                    <td>{item.projectType}</td>
+                    {manufacturingData.map((column) => (
+                      <td key={column._id}>
+                        {getHoursForPartListItems(
+                          column.name,
+                          item.quantity || 1,
+                          item.manufacturingVariables || manufacturingData
+                        )}
+                      </td>
+                    ))}
+
+                    <td className="sticky-col">
+                      <UncontrolledDropdown direction="start">
+                        <DropdownToggle
+                          tag="button"
+                          className="btn btn-link text-muted p-1 mt-n2 py-0 text-decoration-none fs-15 shadow-none"
+                        >
+                          <FeatherIcon
+                            icon="more-horizontal"
+                            className="icon-sm"
+                          />
+                        </DropdownToggle>
+
+                        <DropdownMenu className="dropdown-menu-end">
+                          {/* <DropdownItem onClick={() => toggleEditModal(item)}>
+                            <i className="ri-pencil-fill align-bottom me-2 text-muted"></i>{" "}
+                            Edit
+                          </DropdownItem>
+                          <div className="dropdown-divider"></div> */}
+                          <DropdownItem
+                            href="#"
+                            onClick={() => {
+                              setSelectedId(item._id);
+                              tog_delete();
+                            }}
+                          >
+                            <i className="ri-delete-bin-fill align-bottom me-2 text-muted"></i>{" "}
+                            Remove
+                          </DropdownItem>
+                          <div className="dropdown-divider"></div>
+                          <DropdownItem
+                            href="#"
+                            onClick={() => handleDuplicateProject(item)}
+                          >
+                            <i className="ri-file-copy-line align-bottom me-2 text-muted"></i>{" "}
+                            Duplicate
+                          </DropdownItem>
+                        </DropdownMenu>
+                      </UncontrolledDropdown>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
 
         <PaginatedList
           totalPages={totalPages}

@@ -623,3 +623,35 @@ h5 i.icon {
   width: 3rem;
   height: 3rem;
 }
+
+
+
+
+/* list page code */
+.table-container {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.table-responsive {
+  min-width: 100%;
+  overflow-x: auto;
+}
+
+.sticky-col {
+  position: sticky;
+  left: 0;
+  background-color: rgb(132, 131, 131);
+  z-index: 1;
+  min-width: 180px;
+}
+
+.sticky-col:nth-child(2) {
+  left: 300px; /* Adjust this value based on the width of the first column */
+}
+
+.child_parts {
+  min-width: 180px; /* Adjust this value based on your needs */
+}
+
+
