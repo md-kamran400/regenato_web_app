@@ -45,6 +45,33 @@ ProjectRouter.post("/", async (req, res) => {
   }
 });
 
+
+// POST Route: Duplicate a project
+ProjectRouter.post("/:_id/duplicate", async (req, res) => {
+  const { _id } = req.params;
+
+  try {
+    const project = await ProjectModal.findById(_id);
+    if (!project) {
+      return res.status(404).json({ message: "Project not found" });
+    }
+
+    const newProject = new ProjectModal({
+      projectName: `${project.projectName} (Copy)`,
+      costPerUnit: project.costPerUnit,
+      timePerUnit: project.timePerUnit,
+      stockPoQty: project.stockPoQty,
+      projectType: project.projectType,
+      partsLists: project.partsLists,
+    });
+
+    const savedProject = await newProject.save();
+    res.status(201).json(savedProject);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // DELETE - Delete a part
 ProjectRouter.delete("/:_id", async (req, res) => {
   try {
@@ -71,10 +98,11 @@ ProjectRouter.get("/:_id", async (req, res) => {
   }
 });
 
+
 // POST Route: Add a part to an existing project's allProjects array
 ProjectRouter.post("/:_id/allProjects", async (req, res) => {
-  console.log("Received data:", req.body);
-  console.log("Project ID:", req.params._id);
+  // console.log("Received data:", req.body);
+  // console.log("Project ID:", req.params._id);
 
   try {
     const project = await ProjectModal.findById(req.params._id);
@@ -311,6 +339,7 @@ ProjectRouter.post("/:_id/partsLists", async (req, res) => {
 
 // POST Route: Add a new part to a specific parts list
 // In project.route.js
+
 ProjectRouter.post("/:_id/partsLists/:listId/items", async (req, res) => {
   try {
     const project = await ProjectModal.findById(req.params._id);

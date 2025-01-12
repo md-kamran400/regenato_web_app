@@ -16,6 +16,7 @@ const { GeneralRouter } = require("./routes/variableRoutes/general.route");
 const { PartRoutes } = require("./routes/partsRoutes/parts.route"); // Part Routes
 const { ProjectRouter } = require("./routes/projectRoutes/project.route"); // Project Routes
 const {manufacturingStaticRouter} = require("./routes/variableRoutes/manufacturingStatic.route");
+const partproject = require("./routes/defaultpartproject");
 
 // MongoDB connection
 const connect = async () => {
@@ -42,6 +43,8 @@ app.use("/api/parts", PartRoutes);  // Corrected the route
 
 // Use ProjectRouter for handling project-related routes
 app.use("/api/projects", ProjectRouter);
+
+app.use('/api/defpartproject', partproject)
 
 const PORT = 4040;
 app.listen(PORT, () => {

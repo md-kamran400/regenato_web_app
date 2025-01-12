@@ -46,43 +46,27 @@ const partsListSchema = new mongoose.Schema({
   partsListItems: [partSchema],
 });
 
-const AssemblyListSchema = new mongoose.Schema({
-  assemblyListName: String,
-  partsListItems: [partSchema],
-});
-
 const SubAssemblyListSchema = new mongoose.Schema({
   subAssemblyListName: String,
-  partsListItems: [partSchema],
-});
+})
+
+const AssemblyPartListSchema = new mongoose.Schema({
+  assemblyListName: String,
+})
+
 
 // Modified projectSchema
-const projectSchema = new mongoose.Schema({
+const partprojectSchema = new mongoose.Schema({
   projectName: String,
   costPerUnit: Number,
   timePerUnit: Number,
   stockPoQty: Number,
   projectType: String,
   partsLists: [partsListSchema],
-  subAssemblyListFirst: [SubAssemblyListSchema], //
-  assemblyPartsLists: [
-    {
-      assemblyListName: String,
-      subAssemblyPartsLists: [
-        {
-          subAssemblyListName: String,
-          partsListItems: [partSchema],
-        },
-      ],
-      assemblyMultyPartsList: [
-        {
-          assemblyMultyPartsListName: String,
-          partsListItems: [partSchema],
-        },
-      ],
-    },
-  ],
+  subAssemblyListFirst:[SubAssemblyListSchema],
+  assemblyPartsLists:[AssemblyPartListSchema]
 });
 
-const ProjectModal = mongoose.model("Project", projectSchema);
-module.exports = ProjectModal;
+const PartListProjectModel = mongoose.model("PartProject", partprojectSchema);
+module.exports = PartListProjectModel;
+
