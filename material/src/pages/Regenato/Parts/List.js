@@ -536,7 +536,6 @@ const List = () => {
                 placeholder="Enter Client Number"
                 value={newclientNumber}
                 onChange={(e) => setnewclientNumber(e.target.value)}
-                required
               />
             </div>
 

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Row,
   Button,
@@ -11,9 +11,36 @@ import {
 import { Link } from "react-router-dom";
 
 export const SubAssmeblies = () => {
+  const [ListData, setListData] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newPartName, setNewPartName] = useState("");
+
+  const FetchAllProjectForList = async () => {
+    try {
+      const data = await fetch(
+        `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects`
+      );
+      const res = await data.json();
+      setListData(res);
+      console.log(res);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  useEffect(() => {
+    FetchAllProjectForList();
+  }, []);
+
+  const getSubAssemblyNames = () => {
+    return ListData.map(
+      (project) =>
+        project.subAssemblyListFirst?.map(
+          (subAssembly) => subAssembly.subAssemblyListName
+        ) || []
+    ).flat();
+  };
 
   const handleAddPart = () => {
     // Here you would typically call an API to add the new part
@@ -21,7 +48,7 @@ export const SubAssmeblies = () => {
     setIsModalOpen(false);
     setNewPartName("");
   };
-//${process.env.REACT_APP_BASE_URL}
+  //${process.env.REACT_APP_BASE_URL}
   return (
     <React.Fragment>
       <div className="p-3">
@@ -132,3 +159,59 @@ export const SubAssmeblies = () => {
     </React.Fragment>
   );
 };
+
+// import React, { useEffect, useState } from "react";
+// // ... other imports
+
+// export const SubAssmeblies = () => {
+//   const [ListData, setListData] = useState([]);
+
+//   const FetchAllProjectForList = async () => {
+//     try {
+//       const data = await fetch(
+//         `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects`
+//       );
+//       const res = await data.json();
+//       setListData(res);
+//       console.log(res);
+//     } catch (error) {
+//       console.log(error);
+//     }
+//   };
+
+//   useEffect(() => {
+//     FetchAllProjectForList();
+//   }, []);
+
+//   // Function to extract subAssemblyListName from ListData
+//   const getSubAssemblyNames = () => {
+//     return ListData.map(project =>
+//       project.subAssemblyListFirst?.map(subAssembly => subAssembly.subAssemblyListName) || []
+//     ).flat();
+//   };
+
+//   // ... rest of your component code
+
+//   return (
+//     <React.Fragment>
+//       {/* ... other JSX */}
+
+//       <table className="table table-striped">
+//         <thead>
+//           <tr>
+//             <th style={{ fontWeight: "bold" }}>Sub-Assembly Name</th>
+//           </tr>
+//         </thead>
+//         <tbody>
+//           {getSubAssemblyNames().map((name, index) => (
+//             <tr key={index}>
+//               <td>{name}</td>
+//             </tr>
+//           ))}
+//         </tbody>
+//       </table>
+
+//       {/* ... rest of your JSX */}
+//     </React.Fragment>
+//   );
+// };

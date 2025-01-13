@@ -1324,7 +1324,8 @@ const HoursSummary = () => {
     setLoading(true);
     try {
       const response = await fetch(
-        `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}`
+        // `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}`
+        `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${_id}`
       );
       const data = await response.json();
       setPartDetails(data);
@@ -1784,7 +1785,7 @@ const HoursSummary = () => {
         <Col>
           <CardBody>
             <div className="table-wrapper">
-              {partDetails.partsLists.map((partsList) => (
+              {partDetails?.partsLists?.map((partsList) => (
                 <React.Fragment key={partsList._id}>
                   <Card
                     className="mb-4"

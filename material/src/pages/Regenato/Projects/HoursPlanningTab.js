@@ -21,16 +21,18 @@ const HoursPlanningTab = () => {
   const [numberOfMachines, setNumberOfMachines] = useState({});
   const [daysToWork, setDaysToWork] = useState({});
 
-  // console.log("partDetails", partDetails);
+  console.log(_id);
 
   const fetchProjectDetails = useCallback(async () => {
     setLoading(true);
     try {
       const response = await fetch(
-        `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}`
+        // `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}`
+        `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${_id}`
       );
       const data = await response.json();
       setPartDetails(data);
+      console.log(partDetails);
     } catch (error) {
       setError(error.message);
     } finally {
@@ -40,7 +42,7 @@ const HoursPlanningTab = () => {
 
   useEffect(() => {
     fetchProjectDetails();
-  }, [fetchProjectDetails]);
+  }, []);
 
   useEffect(() => {
     const fetchParts = async () => {
@@ -395,19 +397,25 @@ const HoursPlanningTab = () => {
   };
 
   const calculateTotalHoursForPartsList = (partsList) => {
-    if (!partsList || !partsList.partsListItems || !manufacturingVariables.length) {
+    if (
+      !partsList ||
+      !partsList.partsListItems ||
+      !manufacturingVariables.length
+    ) {
       return 0;
     }
-  
-    return partsList.partsListItems.reduce(
-      (sum, item) =>
-        sum +
-        (manufacturingVariables.find(
-          (part) => part.name === item.manufacturingVariables[0]?.name
-        )?.hours || 0) *
-          (item.quantity || 0),
-      0
-    ).toFixed(2);
+
+    return partsList.partsListItems
+      .reduce(
+        (sum, item) =>
+          sum +
+          (manufacturingVariables.find(
+            (part) => part.name === item.manufacturingVariables[0]?.name
+          )?.hours || 0) *
+            (item.quantity || 0),
+        0
+      )
+      .toFixed(2);
   };
   const getHoursForPartListItems = (
     column,
@@ -733,7 +741,6 @@ const HoursPlanningTab = () => {
                                   </td>
                                 ))}
                               </tr>
-                              
                             </tbody>
                           </table>
                         </div>

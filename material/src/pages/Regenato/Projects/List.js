@@ -455,7 +455,7 @@ const List = () => {
                   >
                     Name
                   </th>
-                  <th className="child_parts">PO-Types</th>
+                  <th className="child_parts">Production Order-Types</th>
                   {manufacturingData.map((item) => (
                     <th key={item._id} className="child_parts">
                       {item.name}
@@ -490,8 +490,8 @@ const List = () => {
                       <td key={column._id}>
                         {getHoursForPartListItems(
                           column.name,
-                          item.quantity || 1,
-                          item.manufacturingVariables || manufacturingData
+                          item.quantity || 0,
+                          item.manufacturingVariables || 0
                         )}
                       </td>
                     ))}

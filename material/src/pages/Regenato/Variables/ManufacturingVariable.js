@@ -174,7 +174,7 @@ const ManufacturingVariable = () => {
         name: "",
         hourlyRate: "",
       });
-      toast.success("Machines Added");
+      toast.success("Machine Added");
       setModalAddSub(false);
     } catch (error) {
       setError(error.message);
@@ -217,7 +217,7 @@ const ManufacturingVariable = () => {
       // Close the edit modal
       setIsEditModalOpen(false);
 
-      toast.success("Machines updated successfully!");
+      toast.success("Machine updated successfully!");
     } catch (error) {
       setError(error.message);
     } finally {
@@ -368,7 +368,7 @@ const ManufacturingVariable = () => {
       }
 
       await fatchManufacturing(); // Refetch the data to update the table
-      toast.success("Machines Deleted successfully!");
+      toast.success("Machine Deleted successfully!");
       closeSubDeleteModal();
     } catch (error) {
       console.error("Error deleting subcategory:", error);
@@ -476,7 +476,7 @@ const ManufacturingVariable = () => {
                                     setModalAddSub(true);
                                   }}
                                 >
-                                  Add Machines
+                                  Add Machine
                                 </button>
                               </div>
                             </td>
@@ -548,8 +548,8 @@ const ManufacturingVariable = () => {
                                   <table className="table align-middle table-nowrap">
                                     <thead className="table-light">
                                       <tr>
-                                        <th>Machines ID</th>
-                                        <th>Name</th>
+                                        <th>Machine ID</th>
+                                        <th>Machine Name</th>
                                         <th>Hourly Rate</th>
                                         <th>Action</th>
                                       </tr>
@@ -779,7 +779,7 @@ const ManufacturingVariable = () => {
       {/* Add Sub Modal */}
       <Modal isOpen={modal_add_sub} toggle={() => setModalAddSub(false)}>
         <ModalHeader toggle={() => setModalAddSub(false)}>
-          Add Machines
+          Add Machine
         </ModalHeader>
         <ModalBody>
           <form className="tablelist-form" onSubmit={handleAddSub}>
@@ -790,7 +790,7 @@ const ManufacturingVariable = () => {
                 className="form-label"
               >
                 {" "}
-                Machines ID
+                Machine ID
               </label>
               <input
                 type="text"
@@ -807,7 +807,7 @@ const ManufacturingVariable = () => {
             {/* </FormGroup> */}
             <div className="mb-3">
               <label for="name" htmlFor="id-field" className="form-label">
-                Machines Name
+                Machine Name
               </label>
               <input
                 type="text"
@@ -823,7 +823,7 @@ const ManufacturingVariable = () => {
 
             <div className="mb-3">
               <label for="hourlyRate" htmlFor="id-field" className="form-label">
-                Machines Hourly Rate
+                Machine Hourly Rate
               </label>
               <input
                 type="number"
@@ -843,19 +843,19 @@ const ManufacturingVariable = () => {
             Cancel
           </Button>
           <Button color="primary" type="submit" onClick={handleAddSub}>
-            Add Machines
+            Add Machine
           </Button>
         </ModalFooter>
       </Modal>
 
       {/* sub edit modal */}
       <Modal isOpen={isEditModalOpen} toggle={Sub_tog_edit}>
-        <ModalHeader toggle={Sub_tog_edit}>Edit Machines</ModalHeader>
+        <ModalHeader toggle={Sub_tog_edit}>Edit Machine</ModalHeader>
         <ModalBody>
           <form onSubmit={handleSubEditSubmit}>
             <div className="mb-3">
               <label htmlFor="id" className="form-label">
-                Machines ID
+                Machine ID
               </label>
               <input
                 type="text"
@@ -868,7 +868,7 @@ const ManufacturingVariable = () => {
             </div>
             <div className="mb-3">
               <label htmlFor="name" className="form-label">
-                Machines Name
+                Machine Name
               </label>
               <input
                 type="text"
@@ -881,7 +881,7 @@ const ManufacturingVariable = () => {
             </div>
             <div className="mb-3">
               <label htmlFor="hourlyrate" className="form-label">
-                Machines Hourly Rate
+                Machine Hourly Rate
               </label>
               <input
                 type="number"
@@ -910,7 +910,7 @@ const ManufacturingVariable = () => {
 
       <Modal isOpen={subDeleteModalOpen} toggle={closeSubDeleteModal} centered>
         <ModalHeader toggle={closeSubDeleteModal}>
-          Delete Machines
+          Delete Machine
         </ModalHeader>
         <ModalBody>
           <div className="mt-2 text-center">
@@ -923,7 +923,7 @@ const ManufacturingVariable = () => {
             <div className="mt-4 pt-2 fs-15 mx-4 mx-sm-5">
               <h4>Are you sure?</h4>
               <p className="text-muted mx-4 mb-0">
-                Are you sure you want to delete the Machines
+                Are you sure you want to delete the Machine
                 <strong>{subToDelete?.name}</strong>?
               </p>
             </div>

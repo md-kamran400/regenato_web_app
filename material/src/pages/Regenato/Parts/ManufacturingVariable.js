@@ -17,6 +17,14 @@ import TextField from "@mui/material/TextField";
 import "./project.css";
 import { toast } from "react-toastify";
 
+const ProcessId = [
+  { name: "C1" },
+  { name: "C2" },
+  { name: "C3" },
+  { name: "C4" },
+  { name: "C5" },
+];
+
 const ManufacturingVariable = ({
   partDetails,
   onTotalCountUpdate,
@@ -545,7 +553,7 @@ const ManufacturingVariable = ({
           hourlyRate: "",
           totalRate: "",
         });
-        toast.success('Records Added Successfully')
+        toast.success("Records Added Successfully");
         setModalList(false); // Close the normal add modal
         setModalstatic_add(false); // Close the static add modal
       } else {
@@ -586,7 +594,7 @@ const ManufacturingVariable = ({
           hourlyRate: "",
           totalRate: "",
         });
-        toast.success('Records Edited Successfully')
+        toast.success("Records Edited Successfully");
         setModalEdit(false); // Close the edit modal
       } else {
         throw new Error("Network response was not ok");
@@ -612,7 +620,7 @@ const ManufacturingVariable = ({
         throw new Error("Network response was not ok");
       }
       await fetchManufacturingData(); // Refetch the data to update the table
-      toast.success('Records Deleted Successfully')
+      toast.success("Records Deleted Successfully");
       tog_delete(); // Close the modal
     } catch (error) {
       setError(error.message);
@@ -707,7 +715,7 @@ const ManufacturingVariable = ({
                     <input className="form-check-input" type="checkbox" />
                   </div>
                 </th> */}
-                <th>ID</th>
+                <th>Process IDs</th>
                 <th>Name</th>
                 <th>Hours (h)</th>
                 <th>Hourly Rate (INR)</th>
@@ -881,6 +889,23 @@ const ManufacturingVariable = ({
         <ModalHeader toggle={tog_add}>Add Manufacturing Variables</ModalHeader>
         <ModalBody>
           <form onSubmit={handleSubmit}>
+            <div className="mb-3">
+              <label htmlFor="name" className="form-label">
+                Process ID
+              </label>
+              <Autocomplete
+                options={ProcessId}
+                getOptionLabel={(option) => option.name}
+                onChange={handleAutocompleteChange}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Process IDs"
+                    variant="outlined"
+                  />
+                )}
+              />
+            </div>
             <div className="mb-3">
               <label htmlFor="name" className="form-label">
                 Name
