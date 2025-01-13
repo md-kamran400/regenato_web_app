@@ -86,7 +86,7 @@ const ProjectSection = () => {
                       Hours Planning
                     </NavLink>
                   </NavItem>
-                  <NavItem>
+                  {/* <NavItem>
                     <NavLink
                       className={classnames(
                         { active: activeTab === "3" },
@@ -99,7 +99,7 @@ const ProjectSection = () => {
                     >
                       Hours Summary
                     </NavLink>
-                  </NavItem>
+                  </NavItem> */}
                   {/* <NavItem>
                     <NavLink
                       className={classnames(
