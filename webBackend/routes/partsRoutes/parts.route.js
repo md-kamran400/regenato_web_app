@@ -4,7 +4,6 @@ const { Router } = require("express");
 const PartsModel = require("../../model/Parts/PartModel");
 const PartRoutes = Router();
 
-
 // parts variable's backend
 
 // POST - Add a new part
@@ -12,7 +11,21 @@ const PartRoutes = Router();
 // POST - Add a new part or duplicate an existing part
 PartRoutes.post("/", async (req, res) => {
   try {
-    const { id, partName, codeName, clientNumber, costPerUnit, timePerUnit, stockPOQty, rmVariables, manufacturingVariables, shipmentVariables, overheadsAndProfits,partsCalculations, originalIndex } = req.body;
+    const {
+      id,
+      partName,
+      codeName,
+      clientNumber,
+      costPerUnit,
+      timePerUnit,
+      stockPOQty,
+      rmVariables,
+      manufacturingVariables,
+      shipmentVariables,
+      overheadsAndProfits,
+      partsCalculations,
+      originalIndex,
+    } = req.body;
 
     // Check if this is a duplicate request
     if (id && partName && costPerUnit && timePerUnit && stockPOQty) {
@@ -39,10 +52,12 @@ PartRoutes.post("/", async (req, res) => {
       allParts.splice(originalIndex + 1, 0, newPart);
 
       // Update the database with the new order
-      await Promise.all(allParts.map((part, index) => {
-        part.index = index;
-        return part.save();
-      }));
+      await Promise.all(
+        allParts.map((part, index) => {
+          part.index = index;
+          return part.save();
+        })
+      );
 
       res.status(201).json(newPart);
     } else {
@@ -56,7 +71,7 @@ PartRoutes.post("/", async (req, res) => {
   }
 });
 
-// post for dupliate 
+// post for dupliate
 // Route to duplicate a part
 // PartRoutes.post("/duplicate/:id", async (req, res) => {
 //   try {
@@ -96,7 +111,6 @@ PartRoutes.post("/", async (req, res) => {
 //     res.status(500).json({ message: error.message || "Internal server error" });
 //   }
 // });
-
 
 // GET - Retrieve all parts
 PartRoutes.get("/", async (req, res) => {
@@ -140,29 +154,23 @@ PartRoutes.put("/:_id", async (req, res) => {
 
 // DELETE - Delete a part
 PartRoutes.delete("/:_id", async (req, res) => {
-    try {
-      const deletedPart = await PartsModel.findByIdAndDelete(req.params._id);
-      if (!deletedPart) {
-        return res.status(404).json({ message: "Part not found" });
-      }
-      res.status(200).json({ message: "Part deleted successfully" });
-    } catch (error) {
-      res.status(500).json({ message: error.message });
+  try {
+    const deletedPart = await PartsModel.findByIdAndDelete(req.params._id);
+    if (!deletedPart) {
+      return res.status(404).json({ message: "Part not found" });
     }
-  });
+    res.status(200).json({ message: "Part deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
 
 // parts variable's backend ends here
-
-
-
-
-
-
 
 // general variable routes start from here
 PartRoutes.get("/:_id/generalVariables", async (req, res) => {
   try {
-    const part = await PartsModel.findById(req.params._id, 'generalVariables'); // Fetch RM Variables only
+    const part = await PartsModel.findById(req.params._id, "generalVariables"); // Fetch RM Variables only
     if (!part) {
       return res.status(404).json({ message: "Part not found" });
     }
@@ -172,32 +180,32 @@ PartRoutes.get("/:_id/generalVariables", async (req, res) => {
   }
 });
 
-  // POST - Add a new general Variable to a specific part
-  PartRoutes.post("/:_id/generalVariables", async (req, res) => {
-    try {
-      const newGeneralVariable = {
-        categoryId: req.body.categoryId,
-        name: req.body.name,
-        value: req.body.value
-      };
-  
-      const updatedPart = await PartsModel.findByIdAndUpdate(
-        req.params._id,
-        { $push: { generalVariables: newGeneralVariable } },
-        { new: true }
-      );
-  
-      if (!updatedPart) {
-        return res.status(404).json({ message: "Part not found" });
-      }
-  
-      res.status(201).json(updatedPart);
-    } catch (error) {
-      res.status(400).json({ message: error.message });
-    }
-  });
+// POST - Add a new general Variable to a specific part
+PartRoutes.post("/:_id/generalVariables", async (req, res) => {
+  try {
+    const newGeneralVariable = {
+      categoryId: req.body.categoryId,
+      name: req.body.name,
+      value: req.body.value,
+    };
 
-  // PUT - Update an general Variable within a part
+    const updatedPart = await PartsModel.findByIdAndUpdate(
+      req.params._id,
+      { $push: { generalVariables: newGeneralVariable } },
+      { new: true }
+    );
+
+    if (!updatedPart) {
+      return res.status(404).json({ message: "Part not found" });
+    }
+
+    res.status(201).json(updatedPart);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+// PUT - Update an general Variable within a part
 PartRoutes.put("/:_id/generalVariables/:variableId", async (req, res) => {
   try {
     const updatedPart = await PartsModel.findOneAndUpdate(
@@ -210,14 +218,15 @@ PartRoutes.put("/:_id/generalVariables/:variableId", async (req, res) => {
       { new: true }
     );
     if (!updatedPart) {
-      return res.status(404).json({ message: "Part or General Variable not found" });
+      return res
+        .status(404)
+        .json({ message: "Part or General Variable not found" });
     }
     res.status(200).json(updatedPart);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
 });
-
 
 // DELETE - Delete an general Variable within a part
 PartRoutes.delete("/:_id/generalVariables/:variableId", async (req, res) => {
@@ -230,7 +239,9 @@ PartRoutes.delete("/:_id/generalVariables/:variableId", async (req, res) => {
       { new: true }
     );
     if (!updatedPart) {
-      return res.status(404).json({ message: "Part or General variable not found" });
+      return res
+        .status(404)
+        .json({ message: "Part or General variable not found" });
     }
     res.status(200).json(updatedPart);
   } catch (error) {
@@ -239,55 +250,46 @@ PartRoutes.delete("/:_id/generalVariables/:variableId", async (req, res) => {
 });
 // general variable route end here
 
-
-
-
-
-
-
-
-// start rm variable backend from here 
+// start rm variable backend from here
 // GET - Retrieve RM Variables of a specific part
 PartRoutes.get("/:_id/rmVariables", async (req, res) => {
-    try {
-      const part = await PartsModel.findById(req.params._id, 'rmVariables'); // Fetch RM Variables only
-      if (!part) {
-        return res.status(404).json({ message: "Part not found" });
-      }
-      res.status(200).json(part.rmVariables); // Return RM Variables
-    } catch (error) {
-      res.status(500).json({ message: error.message });
+  try {
+    const part = await PartsModel.findById(req.params._id, "rmVariables"); // Fetch RM Variables only
+    if (!part) {
+      return res.status(404).json({ message: "Part not found" });
     }
-  });
+    res.status(200).json(part.rmVariables); // Return RM Variables
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
 
-  // POST - Add a new RM Variable to a specific part
-  PartRoutes.post("/:_id/rmVariables", async (req, res) => {
-    try {
-      const newRMVariable = {
-        categoryId: req.body.categoryId,
-        name: req.body.name,
-        netWeight: req.body.netWeight,
-        pricePerKg: req.body.pricePerKg,
-        totalRate: req.body.totalRate
-      };
-  
-      const updatedPart = await PartsModel.findByIdAndUpdate(
-        req.params._id,
-        { $push: { rmVariables: newRMVariable } },
-        { new: true }
-      );
-  
-      if (!updatedPart) {
-        return res.status(404).json({ message: "Part not found" });
-      }
-  
-      res.status(201).json(updatedPart);
-    } catch (error) {
-      res.status(400).json({ message: error.message });
+// POST - Add a new RM Variable to a specific part
+PartRoutes.post("/:_id/rmVariables", async (req, res) => {
+  try {
+    const newRMVariable = {
+      categoryId: req.body.categoryId,
+      name: req.body.name,
+      netWeight: req.body.netWeight,
+      pricePerKg: req.body.pricePerKg,
+      totalRate: req.body.totalRate,
+    };
+
+    const updatedPart = await PartsModel.findByIdAndUpdate(
+      req.params._id,
+      { $push: { rmVariables: newRMVariable } },
+      { new: true }
+    );
+
+    if (!updatedPart) {
+      return res.status(404).json({ message: "Part not found" });
     }
-  });
-  
-  
+
+    res.status(201).json(updatedPart);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
 
 // PUT - Update an RM Variable within a part
 PartRoutes.put("/:_id/rmVariables/:variableId", async (req, res) => {
@@ -310,7 +312,6 @@ PartRoutes.put("/:_id/rmVariables/:variableId", async (req, res) => {
   }
 });
 
-
 // DELETE - Delete an RM Variable within a part
 PartRoutes.delete("/:_id/rmVariables/:variableId", async (req, res) => {
   try {
@@ -329,21 +330,15 @@ PartRoutes.delete("/:_id/rmVariables/:variableId", async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
-// end rm variable backend from here 
+// end rm variable backend from here
 
-
-
-
-
-
-
-
-
-
-// start Manufacturing variable backend from here 
+// start Manufacturing variable backend from here
 PartRoutes.get("/:_id/manufacturingVariables", async (req, res) => {
   try {
-    const part = await PartsModel.findById(req.params._id, 'manufacturingVariables');
+    const part = await PartsModel.findById(
+      req.params._id,
+      "manufacturingVariables"
+    );
     if (!part) {
       return res.status(404).json({ message: "Part not found" });
     }
@@ -353,13 +348,39 @@ PartRoutes.get("/:_id/manufacturingVariables", async (req, res) => {
   }
 });
 
-
 // POST - Add a new Manufacturing Variable to a specific part
+// PartRoutes.post("/:_id/manufacturingVariables", async (req, res) => {
+//   try {
+//     const newManufacturingVariable = {
+//       categoryId: req.body.categoryId,
+//       name: req.body.name,
+//       hours: req.body.hours,
+//       hourlyRate: req.body.hourlyRate,
+//       totalRate: req.body.totalRate,
+//     };
+
+//     const updatedPart = await PartsModel.findByIdAndUpdate(
+//       req.params._id,
+//       { $push: { manufacturingVariables: newManufacturingVariable } },
+//       { new: true }
+//     );
+
+//     if (!updatedPart) {
+//       return res.status(404).json({ message: "Part not found" });
+//     }
+
+//     res.status(201).json(updatedPart);
+//   } catch (error) {
+//     res.status(400).json({ message: error.message });
+//   }
+// });
+
 PartRoutes.post("/:_id/manufacturingVariables", async (req, res) => {
   try {
     const newManufacturingVariable = {
-      categoryId: req.body.categoryId,  
+      categoryId: req.body.categoryId,
       name: req.body.name,
+      times: req.body.times,
       hours: req.body.hours,
       hourlyRate: req.body.hourlyRate,
       totalRate: req.body.totalRate,
@@ -381,19 +402,21 @@ PartRoutes.post("/:_id/manufacturingVariables", async (req, res) => {
   }
 });
 
-
-
-
 // PUT - Update an Manufacturing Variable within a part
 PartRoutes.put("/:_id/manufacturingVariables/:variableId", async (req, res) => {
   try {
     const updatedPart = await PartsModel.findOneAndUpdate(
-      { _id: req.params._id, "manufacturingVariables._id": req.params.variableId },
+      {
+        _id: req.params._id,
+        "manufacturingVariables._id": req.params.variableId,
+      },
       { $set: { "manufacturingVariables.$": req.body } },
       { new: true }
     );
     if (!updatedPart) {
-      return res.status(404).json({ message: "Part or manufacturing variable not found" });
+      return res
+        .status(404)
+        .json({ message: "Part or manufacturing variable not found" });
     }
     res.status(200).json(updatedPart);
   } catch (error) {
@@ -401,42 +424,37 @@ PartRoutes.put("/:_id/manufacturingVariables/:variableId", async (req, res) => {
   }
 });
 
-
-
 // DELETE - Delete an Manufacturing Variable within a part
-PartRoutes.delete("/:_id/manufacturingVariables/:variableId", async (req, res) => {
-  try {
-    const updatedPart = await PartsModel.findByIdAndUpdate(
-      req.params._id,
-      { $pull: { manufacturingVariables: { _id: req.params.variableId } } },
-      { new: true }
-    );
-    if (!updatedPart) {
-      return res.status(404).json({ message: "Part or manufacturing variable not found" });
+PartRoutes.delete(
+  "/:_id/manufacturingVariables/:variableId",
+  async (req, res) => {
+    try {
+      const updatedPart = await PartsModel.findByIdAndUpdate(
+        req.params._id,
+        { $pull: { manufacturingVariables: { _id: req.params.variableId } } },
+        { new: true }
+      );
+      if (!updatedPart) {
+        return res
+          .status(404)
+          .json({ message: "Part or manufacturing variable not found" });
+      }
+      res.status(200).json(updatedPart);
+    } catch (error) {
+      res.status(500).json({ message: error.message });
     }
-    res.status(200).json(updatedPart);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
   }
-});
+);
 
-// edn Manufacturing variable backend from here 
+// edn Manufacturing variable backend from here
 
-
-
-
-
-
-
-
-
-
-
-
-// start Manufacturing variable backend from here 
+// start Manufacturing variable backend from here
 PartRoutes.get("/:_id/manufacturingVariablesstactics", async (req, res) => {
   try {
-    const part = await PartsModel.findById(req.params._id, 'manufacturingVariablesstactics');
+    const part = await PartsModel.findById(
+      req.params._id,
+      "manufacturingVariablesstactics"
+    );
     if (!part) {
       return res.status(404).json({ message: "Part not found" });
     }
@@ -446,12 +464,11 @@ PartRoutes.get("/:_id/manufacturingVariablesstactics", async (req, res) => {
   }
 });
 
-
 // POST - Add a new Manufacturing Variable to a specific part
 PartRoutes.post("/:_id/manufacturingVariablesstactics", async (req, res) => {
   try {
     const newManufacturingVariablestactics = {
-      categoryId: req.body.categoryId,  
+      categoryId: req.body.categoryId,
       name: req.body.name,
       hourlyRate: req.body.hourlyRate,
       totalRate: req.body.totalRate,
@@ -459,7 +476,11 @@ PartRoutes.post("/:_id/manufacturingVariablesstactics", async (req, res) => {
 
     const updatedPart = await PartsModel.findByIdAndUpdate(
       req.params._id,
-      { $push: { manufacturingVariablesstactics: newManufacturingVariablestactics } },
+      {
+        $push: {
+          manufacturingVariablesstactics: newManufacturingVariablestactics,
+        },
+      },
       { new: true }
     );
 
@@ -473,64 +494,62 @@ PartRoutes.post("/:_id/manufacturingVariablesstactics", async (req, res) => {
   }
 });
 
-
-
-
 // PUT - Update an Manufacturing Variable within a part
-PartRoutes.put("/:_id/manufacturingVariablesstactics/:variableId", async (req, res) => {
-  try {
-    const updatedPart = await PartsModel.findOneAndUpdate(
-      { _id: req.params._id, "manufacturingVariablesstactics._id": req.params.variableId },
-      { $set: { "manufacturingVariablesstactics.$": req.body } },
-      { new: true }
-    );
-    if (!updatedPart) {
-      return res.status(404).json({ message: "Part or manufacturing variable not found" });
+PartRoutes.put(
+  "/:_id/manufacturingVariablesstactics/:variableId",
+  async (req, res) => {
+    try {
+      const updatedPart = await PartsModel.findOneAndUpdate(
+        {
+          _id: req.params._id,
+          "manufacturingVariablesstactics._id": req.params.variableId,
+        },
+        { $set: { "manufacturingVariablesstactics.$": req.body } },
+        { new: true }
+      );
+      if (!updatedPart) {
+        return res
+          .status(404)
+          .json({ message: "Part or manufacturing variable not found" });
+      }
+      res.status(200).json(updatedPart);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
     }
-    res.status(200).json(updatedPart);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
   }
-});
-
-
+);
 
 // DELETE - Delete an Manufacturing Variable within a part
-PartRoutes.delete("/:_id/manufacturingVariablesstactics/:variableId", async (req, res) => {
-  try {
-    const updatedPart = await PartsModel.findByIdAndUpdate(
-      req.params._id,
-      { $pull: { manufacturingVariablesstactics: { _id: req.params.variableId } } },
-      { new: true }
-    );
-    if (!updatedPart) {
-      return res.status(404).json({ message: "Part or manufacturing variable not found" });
+PartRoutes.delete(
+  "/:_id/manufacturingVariablesstactics/:variableId",
+  async (req, res) => {
+    try {
+      const updatedPart = await PartsModel.findByIdAndUpdate(
+        req.params._id,
+        {
+          $pull: {
+            manufacturingVariablesstactics: { _id: req.params.variableId },
+          },
+        },
+        { new: true }
+      );
+      if (!updatedPart) {
+        return res
+          .status(404)
+          .json({ message: "Part or manufacturing variable not found" });
+      }
+      res.status(200).json(updatedPart);
+    } catch (error) {
+      res.status(500).json({ message: error.message });
     }
-    res.status(200).json(updatedPart);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
   }
-});
+);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// start Shipment variable backend from here 
-// GET for shipment 
+// start Shipment variable backend from here
+// GET for shipment
 PartRoutes.get("/:_id/shipmentVariables", async (req, res) => {
   try {
-    const part = await PartsModel.findById(req.params._id, 'shipmentVariables');
+    const part = await PartsModel.findById(req.params._id, "shipmentVariables");
     if (!part) {
       return res.status(404).json({ message: "Part not found" });
     }
@@ -540,13 +559,13 @@ PartRoutes.get("/:_id/shipmentVariables", async (req, res) => {
   }
 });
 
-// POST for shipment 
+// POST for shipment
 PartRoutes.post("/:_id/shipmentVariables", async (req, res) => {
   try {
     const newShipmentVariable = {
       categoryId: req.body.categoryId,
       name: req.body.name,
-      hourlyRate: req.body.hourlyRate
+      hourlyRate: req.body.hourlyRate,
     };
 
     const updatedPart = await PartsModel.findByIdAndUpdate(
@@ -565,8 +584,7 @@ PartRoutes.post("/:_id/shipmentVariables", async (req, res) => {
   }
 });
 
-
-// UPDATE for shipment 
+// UPDATE for shipment
 PartRoutes.put("/:_id/shipmentVariables/:variableId", async (req, res) => {
   try {
     const updatedPart = await PartsModel.findOneAndUpdate(
@@ -575,7 +593,9 @@ PartRoutes.put("/:_id/shipmentVariables/:variableId", async (req, res) => {
       { new: true }
     );
     if (!updatedPart) {
-      return res.status(404).json({ message: "Part or shipment variable not found" });
+      return res
+        .status(404)
+        .json({ message: "Part or shipment variable not found" });
     }
     res.status(200).json(updatedPart);
   } catch (error) {
@@ -592,7 +612,9 @@ PartRoutes.delete("/:_id/shipmentVariables/:variableId", async (req, res) => {
       { new: true }
     );
     if (!updatedPart) {
-      return res.status(404).json({ message: "Part or shipment variable not found" });
+      return res
+        .status(404)
+        .json({ message: "Part or shipment variable not found" });
     }
     res.status(200).json(updatedPart);
   } catch (error) {
@@ -600,23 +622,15 @@ PartRoutes.delete("/:_id/shipmentVariables/:variableId", async (req, res) => {
   }
 });
 
-// edn Shipment variable backend from here 
+// edn Shipment variable backend from here
 
-
-
-
-
-
-
-
-
-
-
-
-// start overheads and profit variable backend from here 
+// start overheads and profit variable backend from here
 PartRoutes.get("/:_id/overheadsAndProfits", async (req, res) => {
   try {
-    const part = await PartsModel.findById(req.params._id, 'overheadsAndProfits');
+    const part = await PartsModel.findById(
+      req.params._id,
+      "overheadsAndProfits"
+    );
     if (!part) {
       return res.status(404).json({ message: "Part not found" });
     }
@@ -626,14 +640,13 @@ PartRoutes.get("/:_id/overheadsAndProfits", async (req, res) => {
   }
 });
 
-
 PartRoutes.post("/:_id/overheadsAndProfits", async (req, res) => {
   try {
     const newOverhead = {
       categoryId: req.body.categoryId,
       name: req.body.name,
       percentage: req.body.percentage,
-      totalRate: req.body.totalRate
+      totalRate: req.body.totalRate,
     };
 
     const updatedPart = await PartsModel.findByIdAndUpdate(
@@ -652,8 +665,6 @@ PartRoutes.post("/:_id/overheadsAndProfits", async (req, res) => {
   }
 });
 
-
-
 PartRoutes.put("/:_id/overheadsAndProfits/:variableId", async (req, res) => {
   try {
     const updatedPart = await PartsModel.findOneAndUpdate(
@@ -662,14 +673,15 @@ PartRoutes.put("/:_id/overheadsAndProfits/:variableId", async (req, res) => {
       { new: true }
     );
     if (!updatedPart) {
-      return res.status(404).json({ message: "Part or overhead/profit not found" });
+      return res
+        .status(404)
+        .json({ message: "Part or overhead/profit not found" });
     }
     res.status(200).json(updatedPart);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
 });
-
 
 PartRoutes.delete("/:_id/overheadsAndProfits/:variableId", async (req, res) => {
   try {
@@ -679,7 +691,9 @@ PartRoutes.delete("/:_id/overheadsAndProfits/:variableId", async (req, res) => {
       { new: true }
     );
     if (!updatedPart) {
-      return res.status(404).json({ message: "Part or overhead/profit not found" });
+      return res
+        .status(404)
+        .json({ message: "Part or overhead/profit not found" });
     }
     res.status(200).json(updatedPart);
   } catch (error) {
@@ -687,18 +701,14 @@ PartRoutes.delete("/:_id/overheadsAndProfits/:variableId", async (req, res) => {
   }
 });
 
-// edn overheads and profit variable backend from here 
-
-
-
-
-
-
-
+// edn overheads and profit variable backend from here
 
 PartRoutes.get("/:_id/partsCalculations", async (req, res) => {
   try {
-    const calculationAvg = await PartsModel.findById(req.params._id, 'partsCalculations'); // Fetch RM Variables only
+    const calculationAvg = await PartsModel.findById(
+      req.params._id,
+      "partsCalculations"
+    ); // Fetch RM Variables only
     if (!calculationAvg) {
       return res.status(404).json({ message: "calculationAvg not found" });
     }
@@ -716,7 +726,12 @@ PartRoutes.post("/:_id/partsCalculations", async (req, res) => {
     }
 
     if (part.partsCalculations && part.partsCalculations.length > 0) {
-      return res.status(400).json({ message: "partsCalculations already exists for this part. Use PUT to update." });
+      return res
+        .status(400)
+        .json({
+          message:
+            "partsCalculations already exists for this part. Use PUT to update.",
+        });
     }
 
     const newCalculationValue = {
@@ -740,7 +755,6 @@ PartRoutes.post("/:_id/partsCalculations", async (req, res) => {
   }
 });
 
-
 // Update partsCalculations by Part ID and Variable ID
 PartRoutes.put("/:_id/partsCalculations/:variableId", async (req, res) => {
   try {
@@ -756,7 +770,9 @@ PartRoutes.put("/:_id/partsCalculations/:variableId", async (req, res) => {
     );
 
     if (!updatedPart) {
-      return res.status(404).json({ message: "Part or partsCalculations not found" });
+      return res
+        .status(404)
+        .json({ message: "Part or partsCalculations not found" });
     }
 
     res.status(200).json(updatedPart);
@@ -765,5 +781,4 @@ PartRoutes.put("/:_id/partsCalculations/:variableId", async (req, res) => {
   }
 });
 
-
-module.exports = {PartRoutes};
+module.exports = { PartRoutes };

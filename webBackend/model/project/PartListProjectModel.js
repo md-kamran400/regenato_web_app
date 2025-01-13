@@ -20,6 +20,7 @@ const partSchema = new mongoose.Schema({
     {
       name: String,
       hours: Number,
+      times: String,
       hourlyRate: Number,
       totalRate: Number,
     },

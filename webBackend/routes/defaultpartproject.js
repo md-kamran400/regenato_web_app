@@ -3,7 +3,6 @@ const mongoose = require("mongoose");
 const partproject = express.Router();
 const PartListProjectModel = require("../model/project/PartListProjectModel");
 
-
 // ============================================ PART-LIST CODE START ===============================
 // Create a new project with a parts list named after the project
 partproject.post("/projects", async (req, res) => {
@@ -215,6 +214,59 @@ partproject.post(
       });
     } catch (error) {
       res.status(500).json({ status: "error", message: error.message });
+    }
+  }
+);
+
+//put request for quentitiy
+// Route to update part quantity
+partproject.put(
+  "/projects/:projectId/partsLists/:listId/items/:itemId/quantity",
+  async (req, res) => {
+    try {
+      const { projectId, listId, itemId } = req.params;
+
+      // Validate project ID
+      if (!mongoose.Types.ObjectId.isValid(projectId)) {
+        return res.status(400).json({ error: "Invalid project ID format" });
+      }
+
+      // Find the project by ID
+      const project = await PartListProjectModel.findById(projectId);
+      if (!project) {
+        return res.status(404).json({ error: "Project not found" });
+      }
+
+      // Find the parts list by ID
+      const partsList = project.partsLists.id(listId);
+      if (!partsList) {
+        return res.status(404).json({ error: "Parts list not found" });
+      }
+
+      // Find the item in the parts list
+      const item = partsList.partsListItems.id(itemId);
+      if (!item) {
+        return res.status(404).json({ error: "Item not found in parts list" });
+      }
+
+      // Update only the quantity
+      item.quantity = req.body.quantity;
+
+      // Save the updated project
+      const updatedProject = await project.save();
+
+      res.status(200).json({
+        status: "success",
+        message: "Part quantity updated successfully",
+        data: {
+          projectId,
+          listId,
+          itemId,
+          updatedQuantity: item.quantity,
+        },
+      });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
     }
   }
 );
@@ -432,134 +484,137 @@ partproject.put(
 
 // ============================================ PART-LIST CODE START ===============================
 
-
-
-
-
 // ============================================ SUB-ASSEMBLY CODE START ===============================
 // Route to add a new subAssemblyListFirst item
-partproject.post("/projects/:projectId/subAssemblyListFirst", async (req, res) => {
-  try {
-    const { projectId } = req.params;
-    
-    if (!mongoose.Types.ObjectId.isValid(projectId)) {
-      return res.status(400).json({ error: "Invalid project ID format" });
-    }
-
-    const project = await PartListProjectModel.findById(projectId);
-    if (!project) {
-      return res.status(404).json({ error: "Project not found" });
-    }
-
-    // Fix: Using a plain object instead of trying to instantiate a schema
-    const newSubAssemblyList = {
-      subAssemblyListName: req.body.subAssemblyListName || 'Unnamed Sub Assembly List'
-    };
-
-    project.subAssemblyListFirst.push(newSubAssemblyList);
-    await project.save();
-
-    res.status(201).json({
-      status: "success",
-      message: "New sub assembly list added successfully",
-      data: newSubAssemblyList
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-
-// Route to get all subAssemblyListFirst items
-partproject.get("/projects/:projectId/subAssemblyListFirst", async (req, res) => {
-  try {
-    const { projectId } = req.params;
-
-    // Validate project ID
-    if (!mongoose.Types.ObjectId.isValid(projectId)) {
-      return res.status(400).json({ error: "Invalid project ID format" });
-    }
-
-    // Find the project by ID
-    const project = await PartListProjectModel.findById(projectId);
-    if (!project) {
-      return res.status(404).json({ error: "Project not found" });
-    }
-
-    // Send the subAssemblyListFirst items
-    res.status(200).json({
-      status: "success",
-      message: "Sub assembly lists retrieved successfully",
-      data: project.subAssemblyListFirst
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// ============================================ SUB-ASSEMBLY CODE END ===============================
-
-
-
-
-// ============================================ ASSEMBLY CODE START =============================== 
-// Route to add a new assemblyPartsList item
-// Route to add a new Assembly Part List item
-partproject.post("/projects/:projectId/assemblyPartsLists", async (req, res) => {
-  try {
+partproject.post(
+  "/projects/:projectId/subAssemblyListFirst",
+  async (req, res) => {
+    try {
       const { projectId } = req.params;
 
       if (!mongoose.Types.ObjectId.isValid(projectId)) {
-          return res.status(400).json({ error: "Invalid project ID format" });
+        return res.status(400).json({ error: "Invalid project ID format" });
       }
 
       const project = await PartListProjectModel.findById(projectId);
       if (!project) {
-          return res.status(404).json({ error: "Project not found" });
+        return res.status(404).json({ error: "Project not found" });
+      }
+
+      // Fix: Using a plain object instead of trying to instantiate a schema
+      const newSubAssemblyList = {
+        subAssemblyListName:
+          req.body.subAssemblyListName || "Unnamed Sub Assembly List",
+      };
+
+      project.subAssemblyListFirst.push(newSubAssemblyList);
+      await project.save();
+
+      res.status(201).json({
+        status: "success",
+        message: "New sub assembly list added successfully",
+        data: newSubAssemblyList,
+      });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+);
+
+// Route to get all subAssemblyListFirst items
+partproject.get(
+  "/projects/:projectId/subAssemblyListFirst",
+  async (req, res) => {
+    try {
+      const { projectId } = req.params;
+
+      // Validate project ID
+      if (!mongoose.Types.ObjectId.isValid(projectId)) {
+        return res.status(400).json({ error: "Invalid project ID format" });
+      }
+
+      // Find the project by ID
+      const project = await PartListProjectModel.findById(projectId);
+      if (!project) {
+        return res.status(404).json({ error: "Project not found" });
+      }
+
+      // Send the subAssemblyListFirst items
+      res.status(200).json({
+        status: "success",
+        message: "Sub assembly lists retrieved successfully",
+        data: project.subAssemblyListFirst,
+      });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+);
+
+// ============================================ SUB-ASSEMBLY CODE END ===============================
+
+// ============================================ ASSEMBLY CODE START ===============================
+// Route to add a new assemblyPartsList item
+// Route to add a new Assembly Part List item
+partproject.post(
+  "/projects/:projectId/assemblyPartsLists",
+  async (req, res) => {
+    try {
+      const { projectId } = req.params;
+
+      if (!mongoose.Types.ObjectId.isValid(projectId)) {
+        return res.status(400).json({ error: "Invalid project ID format" });
+      }
+
+      const project = await PartListProjectModel.findById(projectId);
+      if (!project) {
+        return res.status(404).json({ error: "Project not found" });
       }
 
       // Fix: Using a plain object instead of schema instantiation
       const newAssemblyPartList = {
-          assemblyListName: req.body.assemblyListName || 'Unnamed Assembly Part List'
+        assemblyListName:
+          req.body.assemblyListName || "Unnamed Assembly Part List",
       };
 
       project.assemblyPartsLists.push(newAssemblyPartList);
       await project.save();
 
       res.status(201).json({
-          status: "success",
-          message: "New assembly part list added successfully",
-          data: newAssemblyPartList
+        status: "success",
+        message: "New assembly part list added successfully",
+        data: newAssemblyPartList,
       });
-  } catch (error) {
+    } catch (error) {
       res.status(500).json({ error: error.message });
+    }
   }
-});
+);
 
 // Route to get all Assembly Part List items
 partproject.get("/projects/:projectId/assemblyPartsLists", async (req, res) => {
   try {
-      const { projectId } = req.params;
+    const { projectId } = req.params;
 
-      if (!mongoose.Types.ObjectId.isValid(projectId)) {
-          return res.status(400).json({ error: "Invalid project ID format" });
-      }
+    if (!mongoose.Types.ObjectId.isValid(projectId)) {
+      return res.status(400).json({ error: "Invalid project ID format" });
+    }
 
-      const project = await PartListProjectModel.findById(projectId);
-      if (!project) {
-          return res.status(404).json({ error: "Project not found" });
-      }
+    const project = await PartListProjectModel.findById(projectId);
+    if (!project) {
+      return res.status(404).json({ error: "Project not found" });
+    }
 
-      res.status(200).json({
-          status: "success",
-          message: "Assembly part lists retrieved successfully",
-          data: project.assemblyPartsLists
-      });
+    res.status(200).json({
+      status: "success",
+      message: "Assembly part lists retrieved successfully",
+      data: project.assemblyPartsLists,
+    });
   } catch (error) {
-      res.status(500).json({ error: error.message });
+    res.status(500).json({ error: error.message });
   }
 });
 
-// ============================================ ASSEMBLY CODE START =============================== 
+// ============================================ ASSEMBLY CODE START ===============================
 
 module.exports = partproject;
