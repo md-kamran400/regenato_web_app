@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect, memo } from "react"; //add parts list
+import { FaEdit } from "react-icons/fa";
 import "../project.css";
 import {
   Card,
@@ -66,6 +67,9 @@ const PartsTable = React.memo(
 
     const [deleteModal, setDeleteModal] = useState(false);
     const [itemToDelete, setItemToDelete] = useState(null);
+
+    const [editQuantityModal, setEditQuantityModal] = useState(false);
+    const [itemToEdit, setItemToEdit] = useState(null);
 
     const [partsListItemsUpdated, setPartsListItemsUpdated] = useState(false);
     const [codeName, setCodeName] = useState("");
@@ -331,6 +335,41 @@ const PartsTable = React.memo(
       }
     };
 
+    const handleEditQuantity = (item) => {
+      setItemToEdit(item);
+      setEditQuantityModal(true);
+    };
+
+    const handleSubmitEditQuantity = async () => {
+      if (!itemToEdit) return;
+    
+      try {
+        const response = await fetch(
+          `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${_id}/partsLists/${partsList._id}/items/${itemToEdit._id}/quantity`,
+          {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ quantity: itemToEdit.quantity }),
+          }
+        );
+    
+        if (!response.ok) {
+          throw new Error('Failed to update quantity');
+        }
+    
+        const data = await response.json();
+        onUpdatePrts(data);
+        toast.success('Quantity updated successfully');
+        setEditQuantityModal(false);
+      } catch (error) {
+        console.error('Error updating quantity:', error);
+        toast.error('Failed to update quantity. Please try again.');
+      }
+    };
+
+
     if (loading)
       return (
         <div className="loader-overlay">
@@ -468,6 +507,8 @@ const PartsTable = React.memo(
 
     // console.log(_id);
 
+    console.log(partsListItems);
+
     return (
       <>
         {isLoading && (
@@ -477,7 +518,7 @@ const PartsTable = React.memo(
             </div>
           </div>
         )}
-        <div className="button-group" style={{marginTop:'-3.6rem'}}>
+        <div className="button-group" style={{ marginTop: "-3.6rem" }}>
           <Button color="success" className="add-btn" onClick={toggleAddModal}>
             <i className="ri-add-line align-bottom me-1"></i> Add Part
           </Button>
@@ -597,16 +638,22 @@ const PartsTable = React.memo(
                         {partsListItems?.map((item) => (
                           <React.Fragment key={item._id}>
                             <tr
-                              onClick={() =>
-                                handleRowClickParts(item._id, item.partName)
-                              }
-                              className={
-                                expandedRowId === item._id ? "expanded" : ""
-                              }
+                            // onClick={() =>
+                            //   handleRowClickParts(item._id, item.partName)
+                            // }
+                            // className={
+                            //   expandedRowId === item._id ? "expanded" : ""
+                            // }
                             >
                               <td
+                                onClick={() =>
+                                  handleRowClickParts(item._id, item.partName)
+                                }
+                                className={
+                                  expandedRowId === item._id ? "expanded" : ""
+                                }
                                 style={{ cursor: "pointer", color: "#64B5F6" }}
-                                className="parent_partName"
+                                // className="parent_partName"
                               >
                                 {item.partName} ({item.Uid || ""}){" "}
                                 {item.codeName || ""}
@@ -617,7 +664,17 @@ const PartsTable = React.memo(
                               <td>
                                 {parseFloat(item.timePerUnit || 0).toFixed(2)}
                               </td>
-                              <td>{parseInt(item.quantity || 0)}</td>
+                              <td>
+                                {parseInt(item.quantity || 0)}{" "}
+                                <button
+                                  className="btn btn-sm btn-success edit-item-btn"
+                                  onClick={() => handleEditQuantity(item)}
+                                >
+                                  <FaEdit />
+                                </button>
+                              </td>
+
+                              {/* <td>{parseInt(0)}</td> */}
                               <td>
                                 {(
                                   parseFloat(item.costPerUnit || 0) *
@@ -702,6 +759,7 @@ const PartsTable = React.memo(
                                     /> */}
                                     <Manufacturing
                                       partName={item.partName}
+                                      // times={item.times}
                                       manufacturingVariables={
                                         item.manufacturingVariables || []
                                       }
@@ -957,6 +1015,24 @@ const PartsTable = React.memo(
                             <Input
                               type="number"
                               className="accordion-input"
+                              value={man.times || ""}
+                              onChange={(e) =>
+                                setDetailedPartData((prev) => ({
+                                  ...prev,
+                                  manufacturingVariables:
+                                    prev.manufacturingVariables.map(
+                                      (item, idx) =>
+                                        idx === index
+                                          ? { ...item, times: e.target.value }
+                                          : item
+                                    ),
+                                }))
+                              }
+                              placeholder="Enter Times"
+                            />
+                            <Input
+                              type="number"
+                              className="accordion-input"
                               value={man.hourlyRate || ""}
                               onChange={(e) =>
                                 setDetailedPartData((prev) => ({
@@ -1147,6 +1223,46 @@ const PartsTable = React.memo(
                 </ModalFooter>
               </form>
             </ModalBody>
+          </Modal>
+
+          {/* quentitiy edit modal */}
+          <Modal
+            isOpen={editQuantityModal}
+            toggle={() => setEditQuantityModal(false)}
+          >
+            <ModalHeader toggle={() => setEditQuantityModal(false)}>
+              Edit Quantity
+            </ModalHeader>
+            <ModalBody>
+              <form onSubmit={(e) => handleSubmitEditQuantity(e)}>
+                <div className="form-group">
+                  <Label for="quantity">New Quantity</Label>
+                  <Input
+                    type="number"
+                    id="quantity"
+                    value={itemToEdit ? itemToEdit.quantity : ""}
+                    onChange={(e) =>
+                      setItemToEdit({
+                        ...itemToEdit,
+                        quantity: parseInt(e.target.value),
+                      })
+                    }
+                    required
+                  />
+                </div>
+              </form>
+            </ModalBody>
+            <ModalFooter>
+              <Button color="primary" onClick={handleSubmitEditQuantity}>
+                Update Quantity
+              </Button>
+              <Button
+                color="secondary"
+                onClick={() => setEditQuantityModal(false)}
+              >
+                Cancel
+              </Button>
+            </ModalFooter>
           </Modal>
         </Col>
       </>

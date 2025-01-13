@@ -6,6 +6,7 @@ import { Button, Modal, ModalBody, ModalFooter, ModalHeader } from "reactstrap";
 
 const Manufacturing = ({
   partName,
+  times,
   manufacturingVariables,
   projectId,
   partId,
@@ -43,6 +44,9 @@ const Manufacturing = ({
       }))
     );
   }, [manufacturingVariables]);
+
+  console.log(manufacturingVariables);
+  
 
   // Toggle edit modal
   const tog_edit = (item = null) => {
@@ -233,8 +237,8 @@ const Manufacturing = ({
         <thead className="table-light">
           <tr>
             <th>Name</th>
-            {/* <th>Hours</th> */}
-            <th>Minutes</th>
+            <th>Times</th>
+            <th>Hours</th>
             <th>Hourly Rate</th>
             <th>Total Rate</th>
             <th>Actions</th>
@@ -244,8 +248,9 @@ const Manufacturing = ({
           {updatedManufacturingVariables.map((item, index) => (
             <tr key={index}>
               <td>{item.name}</td>
-              {/* <td>{item.hours * 60} Min</td> */}
-              <td>{item.hours * 60 >= 0 ? `${Math.floor(item.hours * 60)} Min` : '--'}</td>
+              <td>{item.times || "--"}</td>
+              <td>{item.hours}</td>
+              {/* <td>{item.hours * 60 >= 0 ? `${Math.floor(item.hours * 60)} Min` : '--'}</td> */}
               {/* <td>
                 {Math.floor(item.hours)} hours {(item.hours % 1) * 60} minutes
               </td> */}

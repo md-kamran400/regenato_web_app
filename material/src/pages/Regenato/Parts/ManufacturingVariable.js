@@ -17,14 +17,6 @@ import TextField from "@mui/material/TextField";
 import "./project.css";
 import { toast } from "react-toastify";
 
-const ProcessId = [
-  { name: "C1" },
-  { name: "C2" },
-  { name: "C3" },
-  { name: "C4" },
-  { name: "C5" },
-];
-
 const ManufacturingVariable = ({
   partDetails,
   onTotalCountUpdate,
@@ -54,11 +46,21 @@ const ManufacturingVariable = ({
   const [unit, setUnit] = useState("minutes");
 
   // Form state
+  // const [formData, setFormData] = useState({
+  //   categoryId: "",
+  //   name: "",
+  //   times:"",
+  //   "time-hours": "",
+  //   "time-minutes": "",
+  //   hours: "",
+  //   hourlyRate: "",
+  //   totalRate: "",
+  // });
+
   const [formData, setFormData] = useState({
     categoryId: "",
     name: "",
-    "time-hours": "",
-    "time-minutes": "",
+    times: "",
     hours: "",
     hourlyRate: "",
     totalRate: "",
@@ -404,6 +406,7 @@ const ManufacturingVariable = ({
         totalRate: (hours * parseFloat(prevFormData.hourlyRate || 0)).toFixed(
           2
         ),
+        times: `${inputValue} ${selectedOption}`,
       }));
     } else if (selectedOption === "hours") {
       setFormData((prevFormData) => ({
@@ -412,6 +415,7 @@ const ManufacturingVariable = ({
         totalRate: (
           parseFloat(inputValue) * parseFloat(prevFormData.hourlyRate || 0)
         ).toFixed(2),
+        times: `${inputValue} ${selectedOption}`,
       }));
     } else if (selectedOption === "minutes") {
       const hours = parseFloat(inputValue) / 60;
@@ -421,6 +425,7 @@ const ManufacturingVariable = ({
         totalRate: (hours * parseFloat(prevFormData.hourlyRate || 0)).toFixed(
           2
         ),
+        times: `${inputValue} ${selectedOption}`,
       }));
     }
 
@@ -478,6 +483,7 @@ const ManufacturingVariable = ({
         totalRate: (hours * parseFloat(prevFormData.hourlyRate || 0)).toFixed(
           2
         ),
+        times: `${inputValue} ${selectedOption}`,
       }));
     } else if (selectedOption === "hours") {
       setFormData((prevFormData) => ({
@@ -486,6 +492,7 @@ const ManufacturingVariable = ({
         totalRate: (
           parseFloat(inputValue) * parseFloat(prevFormData.hourlyRate || 0)
         ).toFixed(2),
+        times: `${inputValue} ${selectedOption}`,
       }));
     } else if (selectedOption === "minutes") {
       const hours = parseFloat(inputValue) / 60;
@@ -495,6 +502,7 @@ const ManufacturingVariable = ({
         totalRate: (hours * parseFloat(prevFormData.hourlyRate || 0)).toFixed(
           2
         ),
+        times: `${inputValue} ${selectedOption}`,
       }));
     }
 
@@ -549,6 +557,7 @@ const ManufacturingVariable = ({
         setFormData({
           categoryId: "",
           name: "",
+          times:"",
           hours: 1,
           hourlyRate: "",
           totalRate: "",
@@ -715,8 +724,9 @@ const ManufacturingVariable = ({
                     <input className="form-check-input" type="checkbox" />
                   </div>
                 </th> */}
-                <th>Process IDs</th>
+                <th>ID</th>
                 <th>Name</th>
+                <th>Times</th>
                 <th>Hours (h)</th>
                 <th>Hourly Rate (INR)</th>
                 <th>Total Rate</th>
@@ -733,6 +743,7 @@ const ManufacturingVariable = ({
                   </td> */}
                   <td>{item.categoryId}</td>
                   <td>{item.name}</td>
+                  <td>{item.times || "-"}</td>
                   <td>{item.hours}</td>
                   <td>{item.hourlyRate}</td>
                   <td>{item.totalRate}</td>
@@ -891,28 +902,13 @@ const ManufacturingVariable = ({
           <form onSubmit={handleSubmit}>
             <div className="mb-3">
               <label htmlFor="name" className="form-label">
-                Process ID
-              </label>
-              <Autocomplete
-                options={ProcessId}
-                getOptionLabel={(option) => option.name}
-                onChange={handleAutocompleteChange}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label="Process IDs"
-                    variant="outlined"
-                  />
-                )}
-              />
-            </div>
-            <div className="mb-3">
-              <label htmlFor="name" className="form-label">
                 Name
               </label>
               <Autocomplete
                 options={manufacturingVariables}
-                getOptionLabel={(option) => option.name}
+                getOptionLabel={(option) =>
+                  `${option.categoryId} - ${option.name}`
+                }
                 onChange={handleAutocompleteChange}
                 renderInput={(params) => (
                   <TextField
