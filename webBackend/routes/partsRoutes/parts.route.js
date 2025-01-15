@@ -9,6 +9,67 @@ const PartRoutes = Router();
 // POST - Add a new part
 // POST - Add a new part or duplicate an existing part
 // POST - Add a new part or duplicate an existing part
+// PartRoutes.post("/", async (req, res) => {
+//   try {
+//     const {
+//       id,
+//       partName,
+//       codeName,
+//       clientNumber,
+//       costPerUnit,
+//       timePerUnit,
+//       stockPOQty,
+//       rmVariables,
+//       manufacturingVariables,
+//       shipmentVariables,
+//       overheadsAndProfits,
+//       partsCalculations,
+//       originalIndex,
+//     } = req.body;
+
+//     // Check if this is a duplicate request
+//     if (id && partName && costPerUnit && timePerUnit && stockPOQty) {
+//       // This is a duplicate request, create a new part with the provided data
+//       const newPart = new PartsModel({
+//         id,
+//         partName,
+//         clientNumber,
+//         codeName,
+//         costPerUnit,
+//         timePerUnit,
+//         stockPOQty,
+//         rmVariables,
+//         manufacturingVariables,
+//         shipmentVariables,
+//         overheadsAndProfits,
+//         partsCalculations,
+//       });
+
+//       // Find all parts
+//       const allParts = await PartsModel.find().sort({ id: 1 });
+
+//       // Insert the new part at the correct position
+//       allParts.splice(originalIndex + 1, 0, newPart);
+
+//       // Update the database with the new order
+//       await Promise.all(
+//         allParts.map((part, index) => {
+//           part.index = index;
+//           return part.save();
+//         })
+//       );
+
+//       res.status(201).json(newPart);
+//     } else {
+//       // This is a new part creation request
+//       const newPart = new PartsModel(req.body);
+//       await newPart.save();
+//       res.status(201).json(newPart);
+//     }
+//   } catch (error) {
+//     res.status(400).json({ message: error.message });
+//   }
+// });
 PartRoutes.post("/", async (req, res) => {
   try {
     const {
@@ -16,6 +77,7 @@ PartRoutes.post("/", async (req, res) => {
       partName,
       codeName,
       clientNumber,
+      partType,
       costPerUnit,
       timePerUnit,
       stockPOQty,
@@ -25,6 +87,8 @@ PartRoutes.post("/", async (req, res) => {
       overheadsAndProfits,
       partsCalculations,
       originalIndex,
+      totalCost,
+      totalQuantity,
     } = req.body;
 
     // Check if this is a duplicate request
@@ -35,6 +99,7 @@ PartRoutes.post("/", async (req, res) => {
         partName,
         clientNumber,
         codeName,
+        partType,
         costPerUnit,
         timePerUnit,
         stockPOQty,
@@ -43,6 +108,8 @@ PartRoutes.post("/", async (req, res) => {
         shipmentVariables,
         overheadsAndProfits,
         partsCalculations,
+        totalCost,
+        totalQuantity,
       });
 
       // Find all parts
@@ -62,7 +129,23 @@ PartRoutes.post("/", async (req, res) => {
       res.status(201).json(newPart);
     } else {
       // This is a new part creation request
-      const newPart = new PartsModel(req.body);
+      const newPart = new PartsModel({
+        id: req.body.id,
+        partName: req.body.partName,
+        clientNumber: req.body.clientNumber,
+        codeName: req.body.codeName,
+        partType: req.body.partType,
+        costPerUnit: req.body.costPerUnit,
+        timePerUnit: req.body.timePerUnit,
+        stockPOQty: req.body.stockPOQty,
+        rmVariables: req.body.rmVariables,
+        manufacturingVariables: req.body.manufacturingVariables,
+        shipmentVariables: req.body.shipmentVariables,
+        overheadsAndProfits: req.body.overheadsAndProfits,
+        partsCalculations: req.body.partsCalculations,
+        totalCost: req.body.totalCost,
+        totalQuantity: req.body.totalQuantity,
+      });
       await newPart.save();
       res.status(201).json(newPart);
     }
@@ -396,7 +479,7 @@ PartRoutes.get("/:_id", async (req, res) => {
       rmVariablesTotalCost,
       manufacturingVariablesTotalCost,
       shipmentVariablesTotalCost,
-      
+
       overheadsPercentage,
       overheadsAmount,
       finalCostPerUnit,
@@ -1132,5 +1215,183 @@ PartRoutes.put("/:_id/partsCalculations/:variableId", async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 });
+
+// rm unit cost start
+// POST - Add a new RM Unit Cost to a specific part
+PartRoutes.post("/:_id/rmUnitCost", async (req, res) => {
+  try {
+    const newRMUnitCost = {
+      categoryId: req.body.categoryId,
+      name: req.body.name,
+      totalRate: req.body.totalRate,
+    };
+
+    const updatedPart = await PartsModel.findByIdAndUpdate(
+      req.params._id,
+      { $push: { rmUnitCost: newRMUnitCost } },
+      { new: true }
+    );
+
+    if (!updatedPart) {
+      return res.status(404).json({ message: "Part not found" });
+    }
+
+    res.status(201).json(updatedPart);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+// GET - Retrieve RM Unit Costs of a specific part
+PartRoutes.get("/:_id/rmUnitCost", async (req, res) => {
+  try {
+    const part = await PartsModel.findById(req.params._id, "rmUnitCost");
+    if (!part) {
+      return res.status(404).json({ message: "Part not found" });
+    }
+    res.status(200).json(part.rmUnitCost);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// PUT - Update an RM Unit Cost within a part
+PartRoutes.put("/:_id/rmUnitCost/:variableId", async (req, res) => {
+  try {
+    const updatedPart = await PartsModel.findOneAndUpdate(
+      { _id: req.params._id, "rmUnitCost._id": req.params.variableId },
+      { $set: { "rmUnitCost.$": req.body } },
+      { new: true }
+    );
+
+    if (!updatedPart) {
+      return res
+        .status(404)
+        .json({ message: "Part or RM Unit Cost not found" });
+    }
+
+    res.status(200).json(updatedPart);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+// DELETE - Delete an RM Unit Cost within a part
+PartRoutes.delete("/:_id/rmUnitCost/:variableId", async (req, res) => {
+  try {
+    const updatedPart = await PartsModel.findByIdAndUpdate(
+      req.params._id,
+      { $pull: { rmUnitCost: { _id: req.params.variableId } } },
+      { new: true }
+    );
+
+    if (!updatedPart) {
+      return res
+        .status(404)
+        .json({ message: "Part or RM Unit Cost not found" });
+    }
+
+    res.status(200).json(updatedPart);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+// end rm unit cost here
+
+// start manufacturing unit cost
+// POST - Add a new Manufacturing Unit Cost to a specific part
+PartRoutes.post("/:_id/manufacturingUnitCost", async (req, res) => {
+  try {
+    const newManufacturingUnitCost = {
+      categoryId: req.body.categoryId,
+      name: req.body.name,
+      times: req.body.times,
+      totalRate: req.body.totalRate,
+    };
+
+    const updatedPart = await PartsModel.findByIdAndUpdate(
+      req.params._id,
+      { $push: { manufacturingUnitCost: newManufacturingUnitCost } },
+      { new: true }
+    );
+
+    if (!updatedPart) {
+      return res.status(404).json({ message: "Part not found" });
+    }
+
+    res.status(201).json(updatedPart);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+// GET - Retrieve Manufacturing Unit Costs of a specific part
+PartRoutes.get("/:_id/manufacturingUnitCost", async (req, res) => {
+  try {
+    const part = await PartsModel.findById(
+      req.params._id,
+      "manufacturingUnitCost"
+    );
+    if (!part) {
+      return res.status(404).json({ message: "Part not found" });
+    }
+    res.status(200).json(part.manufacturingUnitCost);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// PUT - Update a Manufacturing Unit Cost within a part
+PartRoutes.put("/:_id/manufacturingUnitCost/:variableId", async (req, res) => {
+  try {
+    const updatedPart = await PartsModel.findOneAndUpdate(
+      {
+        _id: req.params._id,
+        "manufacturingUnitCost._id": req.params.variableId,
+      },
+      { $set: { "manufacturingUnitCost.$": req.body } },
+      { new: true }
+    );
+
+    if (!updatedPart) {
+      return res
+        .status(404)
+        .json({ message: "Part or Manufacturing Unit Cost not found" });
+    }
+
+    res.status(200).json(updatedPart);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+// DELETE - Delete a Manufacturing Unit Cost within a part
+PartRoutes.delete(
+  "/:_id/manufacturingUnitCost/:variableId",
+  async (req, res) => {
+    try {
+      const updatedPart = await PartsModel.findByIdAndUpdate(
+        req.params._id,
+        { $pull: { manufacturingUnitCost: { _id: req.params.variableId } } },
+        { new: true }
+      );
+
+      // console.log("Updated part:", updatedPart);
+
+      if (!updatedPart) {
+        // console.log("Part or Manufacturing Unit Cost not found");
+        return res
+          .status(404)
+          .json({ message: "Part or Manufacturing Unit Cost not found" });
+      }
+
+      res.status(200).json(updatedPart);
+    } catch (error) {
+      console.error("Error during delete operation:", error);
+      res.status(500).json({ message: error.message });
+    }
+  }
+);
+//end here
 
 module.exports = { PartRoutes };
