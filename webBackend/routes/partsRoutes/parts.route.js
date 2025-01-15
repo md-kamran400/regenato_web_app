@@ -71,6 +71,39 @@ PartRoutes.post("/", async (req, res) => {
   }
 });
 
+PartRoutes.put("/:_id", async (req, res) => {
+  try {
+    const { _id } = req.params;
+    const { partName, id, clientNumber } = req.body;
+
+    // Validate the input
+    // if (!partName || !id || !clientNumber) {
+    //   return res
+    //     .status(400)
+    //     .json({ message: "partName, id, and clientNumber are required" });
+    // }
+
+    // Find the part to update
+    const partToUpdate = await PartsModel.findById(_id);
+
+    if (!partToUpdate) {
+      return res.status(404).json({ message: "Part not found" });
+    }
+
+    // Update the part
+    partToUpdate.partName = partName;
+    partToUpdate.id = id;
+    partToUpdate.clientNumber = clientNumber;
+
+    // Save the updated part
+    const updatedPart = await partToUpdate.save();
+
+    res.status(200).json(updatedPart);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
 // post for dupliate
 // Route to duplicate a part
 // PartRoutes.post("/duplicate/:id", async (req, res) => {
@@ -113,6 +146,7 @@ PartRoutes.post("/", async (req, res) => {
 // });
 
 // GET - Retrieve all parts
+
 PartRoutes.get("/", async (req, res) => {
   try {
     const parts = await PartsModel.find();
@@ -123,14 +157,254 @@ PartRoutes.get("/", async (req, res) => {
 });
 
 // GET - Retrieve a specific part
+// PartRoutes.get("/:_id", async (req, res) => {
+//   try {
+//     const part = await PartsModel.findById(req.params._id);
+//     if (!part) {
+//       return res.status(404).json({ message: "Part not found" });
+//     }
+//     res.status(200).json(part);
+//   } catch (error) {
+//     res.status(500).json({ message: error.message });
+//   }
+// });
+
+// PartRoutes.get("/:_id", async (req, res) => {
+//   try {
+//     const part = await PartsModel.findById(req.params._id);
+//     if (!part) {
+//       return res.status(404).json({ message: "Part not found" });
+//     }
+
+//     // Calculate total costs
+//     const rmVariablesTotalCost = part.rmVariables.reduce((sum, item) => sum + item.totalRate, 0);
+//     const manufacturingVariablesTotalCost = part.manufacturingVariables.reduce((sum, item) => sum + item.totalRate, 0);
+//     const shipmentVariablesTotalCost = part.shipmentVariables.reduce((sum, item) => sum + item.totalRate, 0);
+//     const allThreeSum = rmVariablesTotalCost + manufacturingVariablesTotalCost + shipmentVariablesTotalCost;
+
+//     // Check if partsCalculations is available
+//     if (part.partsCalculations.length > 0) {
+//       const finalCostPerUnit = part.partsCalculations[0].AvgragecostPerUnit;
+//       const updatedPart = await PartsModel.findByIdAndUpdate(
+//         req.params._id,
+//         { costPerUnit: finalCostPerUnit },
+//         { new: true }
+//       );
+//       res.status(200).json(updatedPart);
+//     } else {
+//       // If partsCalculations is not available, calculate costPerUnit
+//       // Calculate overheads
+//       const overheadsAndProfits = part.overheadsAndProfits || [];
+//       const overheadsPercentage = overheadsAndProfits.reduce((sum, item) => sum + item.percentage, 0);
+//       const overheadsAmount = (allThreeSum * overheadsPercentage) / 100;
+
+//       // Calculate final costPerUnit
+//       const finalCostPerUnit = allThreeSum + overheadsAmount;
+
+//       // Update costPerUnit in the part document
+//       const updatedPart = await PartsModel.findByIdAndUpdate(
+//         req.params._id,
+//         { costPerUnit: finalCostPerUnit },
+//         { new: true }
+//       );
+
+//       res.status(200).json(updatedPart);
+//     }
+//   } catch (error) {
+//     res.status(500).json({ message: error.message });
+//   }
+// });
+
+// PartRoutes.get("/:_id", async (req, res) => {
+//   try {
+//     const part = await PartsModel.findById(req.params._id);
+//     if (!part) {
+//       return res.status(404).json({ message: "Part not found" });
+//     }
+
+//     // Calculate total costs
+//     const rmVariablesTotalCost = part.rmVariables.reduce((sum, item) => sum + (item.totalRate || 0), 0);
+//     const manufacturingVariablesTotalCost = part.manufacturingVariables.reduce((sum, item) => sum + (item.totalRate || 0), 0);
+//     const shipmentVariablesTotalCost = part.shipmentVariables.reduce((sum, item) => sum + (item.totalRate || 0), 0);
+//     const allThreeSum = rmVariablesTotalCost + manufacturingVariablesTotalCost + shipmentVariablesTotalCost;
+
+//     // Calculate total hours from manufacturingVariables
+//     const totalHours = part.manufacturingVariables.reduce((sum, item) => sum + (item.hours || 0), 0);
+
+//     // Calculate overheads
+//     const overheadsAndProfits = part.overheadsAndProfits || [];
+//     const overheadsPercentage = overheadsAndProfits.reduce((sum, item) => sum + (item.percentage || 0), 0);
+//     const overheadsAmount = (allThreeSum * overheadsPercentage) / 100;
+
+//     // Calculate final costPerUnit
+//     const finalCostPerUnit = allThreeSum + overheadsAmount;
+
+//     // Check if finalCostPerUnit is NaN
+//     if (isNaN(finalCostPerUnit)) {
+//       return res.status(400).json({ message: "Error calculating costPerUnit. Please check your input values." });
+//     }
+
+//     // Update costPerUnit and timePerUnit in the part document
+//     const updatedPart = await PartsModel.findByIdAndUpdate(
+//       req.params._id,
+//       {
+//         costPerUnit: finalCostPerUnit,
+//         timePerUnit: totalHours
+//       },
+//       { new: true }
+//     );
+
+//     res.status(200).json(updatedPart);
+//   } catch (error) {
+//     console.error("Error:", error);
+//     res.status(500).json({ message: error.message });
+//   }
+// });
+
+// PartRoutes.get("/:_id", async (req, res) => {
+//   try {
+//     const part = await PartsModel.findById(req.params._id);
+//     if (!part) {
+//       return res.status(404).json({ message: "Part not found" });
+//     }
+
+//     // Calculate total costs
+//     const rmVariablesTotalCost = part.rmVariables.reduce(
+//       (sum, item) => sum + (item.totalRate || 0),
+//       0
+//     );
+//     const manufacturingVariablesTotalCost = part.manufacturingVariables.reduce(
+//       (sum, item) => sum + (item.totalRate || 0),
+//       0
+//     );
+//     const shipmentVariablesTotalCost = part.shipmentVariables.reduce(
+//       (sum, item) => sum + (item.hourlyRate || 0),
+//       0
+//     );
+//     const allThreeSum =
+//       rmVariablesTotalCost +
+//       manufacturingVariablesTotalCost +
+//       shipmentVariablesTotalCost;
+
+//     // Calculate total hours from manufacturingVariables
+//     const totalHours = part.manufacturingVariables.reduce(
+//       (sum, item) => sum + (item.hours || 0),
+//       0
+//     );
+
+//     // Calculate overheads
+//     const overheadsAndProfits = part.overheadsAndProfits || [];
+//     const overheadsPercentage = overheadsAndProfits.reduce(
+//       (sum, item) => sum + (item.percentage || 0),
+//       0
+//     );
+//     const overheadsAmount = (allThreeSum * overheadsPercentage) / 100;
+
+//     // Calculate final costPerUnit
+//     const finalCostPerUnit = Math.ceil(allThreeSum + overheadsAmount);
+
+//     // Check if finalCostPerUnit is NaN
+//     if (isNaN(finalCostPerUnit)) {
+//       return res
+//         .status(400)
+//         .json({
+//           message:
+//             "Error calculating costPerUnit. Please check your input values.",
+//         });
+//     }
+
+//     // Update costPerUnit and timePerUnit in the part document
+//     const updatedPart = await PartsModel.findByIdAndUpdate(
+//       req.params._id,
+//       {
+//         costPerUnit: finalCostPerUnit,
+//         timePerUnit: totalHours,
+//       },
+//       { new: true }
+//     );
+
+//     res.status(200).json(updatedPart);
+//   } catch (error) {
+//     console.error("Error:", error);
+//     res.status(500).json({ message: error.message });
+//   }
+// });
+
 PartRoutes.get("/:_id", async (req, res) => {
   try {
     const part = await PartsModel.findById(req.params._id);
     if (!part) {
       return res.status(404).json({ message: "Part not found" });
     }
-    res.status(200).json(part);
+
+    // Calculate total costs
+    const rmVariablesTotalCost = part.rmVariables.reduce(
+      (sum, item) => sum + (item.totalRate || 0),
+      0
+    );
+    const manufacturingVariablesTotalCost = part.manufacturingVariables.reduce(
+      (sum, item) => sum + (item.totalRate || 0),
+      0
+    );
+    const shipmentVariablesTotalCost = part.shipmentVariables.reduce(
+      (sum, item) => sum + (item.hourlyRate || 0),
+      0
+    );
+    const allThreeSum =
+      rmVariablesTotalCost +
+      manufacturingVariablesTotalCost +
+      shipmentVariablesTotalCost;
+
+    // Calculate total hours from manufacturingVariables
+    const totalHours = part.manufacturingVariables.reduce(
+      (sum, item) => sum + (item.hours || 0),
+      0
+    );
+
+    // Calculate overheads
+    const overheadsAndProfits = part.overheadsAndProfits || [];
+    const overheadsPercentage = overheadsAndProfits.reduce(
+      (sum, item) => sum + (item.percentage || 0),
+      0
+    );
+    const overheadsAmount = (allThreeSum * overheadsPercentage) / 100;
+
+    // Calculate final costPerUnit
+    const finalCostPerUnit = Math.ceil(allThreeSum + overheadsAmount);
+
+    // Check if finalCostPerUnit is NaN
+    if (isNaN(finalCostPerUnit)) {
+      return res.status(400).json({
+        message:
+          "Error calculating costPerUnit. Please check your input values.",
+      });
+    }
+
+    // Update costPerUnit and timePerUnit in the part document
+    const updatedPart = await PartsModel.findByIdAndUpdate(
+      req.params._id,
+      {
+        costPerUnit: finalCostPerUnit,
+        timePerUnit: totalHours,
+      },
+      { new: true }
+    );
+
+    // Create a response object with all calculated values
+    const response = {
+      ...updatedPart.toObject(),
+      rmVariablesTotalCost,
+      manufacturingVariablesTotalCost,
+      shipmentVariablesTotalCost,
+      
+      overheadsPercentage,
+      overheadsAmount,
+      finalCostPerUnit,
+    };
+
+    res.status(200).json(response);
   } catch (error) {
+    console.error("Error:", error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -265,6 +539,33 @@ PartRoutes.get("/:_id/rmVariables", async (req, res) => {
 });
 
 // POST - Add a new RM Variable to a specific part
+
+// PartRoutes.post("/:_id/rmVariables", async (req, res) => {
+//   try {
+//     const newRMVariable = {
+//       categoryId: req.body.categoryId,
+//       name: req.body.name,
+//       netWeight: req.body.netWeight,
+//       pricePerKg: req.body.pricePerKg,
+//       // totalRate: req.body.totalRate ,
+//       totalRate: req.body.netWeight * req.body.pricePerKg,
+//     };
+
+//     const updatedPart = await PartsModel.findByIdAndUpdate(
+//       req.params._id,
+//       { $push: { rmVariables: newRMVariable } },
+//       { new: true }
+//     );
+
+//     if (!updatedPart) {
+//       return res.status(404).json({ message: "Part not found" });
+//     }
+
+//     res.status(201).json(updatedPart);
+//   } catch (error) {
+//     res.status(400).json({ message: error.message });
+//   }
+// });
 PartRoutes.post("/:_id/rmVariables", async (req, res) => {
   try {
     const newRMVariable = {
@@ -272,7 +573,7 @@ PartRoutes.post("/:_id/rmVariables", async (req, res) => {
       name: req.body.name,
       netWeight: req.body.netWeight,
       pricePerKg: req.body.pricePerKg,
-      totalRate: req.body.totalRate,
+      totalRate: req.body.netWeight * req.body.pricePerKg,
     };
 
     const updatedPart = await PartsModel.findByIdAndUpdate(
@@ -375,6 +676,34 @@ PartRoutes.get("/:_id/manufacturingVariables", async (req, res) => {
 //   }
 // });
 
+// PartRoutes.post("/:_id/manufacturingVariables", async (req, res) => {
+//   try {
+//     const newManufacturingVariable = {
+//       categoryId: req.body.categoryId,
+//       name: req.body.name,
+//       times: req.body.times,
+//       hours: req.body.hours,
+//       hourlyRate: req.body.hourlyRate,
+//       // totalRate: req.body.totalRate,
+//       // totaltime
+//       totalRate: req.body.hours * req.body.hourlyRate,
+//     };
+
+//     const updatedPart = await PartsModel.findByIdAndUpdate(
+//       req.params._id,
+//       { $push: { manufacturingVariables: newManufacturingVariable } },
+//       { new: true }
+//     );
+
+//     if (!updatedPart) {
+//       return res.status(404).json({ message: "Part not found" });
+//     }
+
+//     res.status(201).json(updatedPart);
+//   } catch (error) {
+//     res.status(400).json({ message: error.message });
+//   }
+// });
 PartRoutes.post("/:_id/manufacturingVariables", async (req, res) => {
   try {
     const newManufacturingVariable = {
@@ -383,7 +712,7 @@ PartRoutes.post("/:_id/manufacturingVariables", async (req, res) => {
       times: req.body.times,
       hours: req.body.hours,
       hourlyRate: req.body.hourlyRate,
-      totalRate: req.body.totalRate,
+      totalRate: req.body.hours * req.body.hourlyRate,
     };
 
     const updatedPart = await PartsModel.findByIdAndUpdate(
@@ -560,12 +889,37 @@ PartRoutes.get("/:_id/shipmentVariables", async (req, res) => {
 });
 
 // POST for shipment
+// PartRoutes.post("/:_id/shipmentVariables", async (req, res) => {
+//   try {
+//     const newShipmentVariable = {
+//       categoryId: req.body.categoryId,
+//       name: req.body.name,
+//       hourlyRate: req.body.hourlyRate,
+//       totalRate: req.body.hourlyRate,
+//     };
+
+//     const updatedPart = await PartsModel.findByIdAndUpdate(
+//       req.params._id,
+//       { $push: { shipmentVariables: newShipmentVariable } },
+//       { new: true }
+//     );
+
+//     if (!updatedPart) {
+//       return res.status(404).json({ message: "Part not found" });
+//     }
+
+//     res.status(201).json(updatedPart);
+//   } catch (error) {
+//     res.status(400).json({ message: error.message });
+//   }
+// });
 PartRoutes.post("/:_id/shipmentVariables", async (req, res) => {
   try {
     const newShipmentVariable = {
       categoryId: req.body.categoryId,
       name: req.body.name,
       hourlyRate: req.body.hourlyRate,
+      totalRate: req.body.hourlyRate,
     };
 
     const updatedPart = await PartsModel.findByIdAndUpdate(
@@ -701,7 +1055,7 @@ PartRoutes.delete("/:_id/overheadsAndProfits/:variableId", async (req, res) => {
   }
 });
 
-// edn overheads and profit variable backend from here
+// end overheads and profit variable backend from here
 
 PartRoutes.get("/:_id/partsCalculations", async (req, res) => {
   try {
@@ -726,12 +1080,10 @@ PartRoutes.post("/:_id/partsCalculations", async (req, res) => {
     }
 
     if (part.partsCalculations && part.partsCalculations.length > 0) {
-      return res
-        .status(400)
-        .json({
-          message:
-            "partsCalculations already exists for this part. Use PUT to update.",
-        });
+      return res.status(400).json({
+        message:
+          "partsCalculations already exists for this part. Use PUT to update.",
+      });
     }
 
     const newCalculationValue = {

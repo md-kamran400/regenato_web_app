@@ -9,25 +9,30 @@ app.use(cors());
 
 // Import other routes
 const { RmRouter } = require("./routes/variableRoutes/rmvariable.route");
-const { manufacturRouter } = require("./routes/variableRoutes/manufacturing.route");
+const {
+  manufacturRouter,
+} = require("./routes/variableRoutes/manufacturing.route");
 const { ShipmentRouter } = require("./routes/variableRoutes/shipment.route");
 const { OverheadsRouter } = require("./routes/variableRoutes/overheads.route");
 const { GeneralRouter } = require("./routes/variableRoutes/general.route");
 const { PartRoutes } = require("./routes/partsRoutes/parts.route"); // Part Routes
 const { ProjectRouter } = require("./routes/projectRoutes/project.route"); // Project Routes
-const {manufacturingStaticRouter} = require("./routes/variableRoutes/manufacturingStatic.route");
+const {
+  manufacturingStaticRouter,
+} = require("./routes/variableRoutes/manufacturingStatic.route");
 const partproject = require("./routes/defaultpartproject");
+const subAssemblyRoutes = require("./routes/Sub-Assembly/subAssembly.route");
 
 // MongoDB connection
 const connect = async () => {
-    try {
-        await mongoose.connect(
-            "mongodb+srv://ka5452488:mongodb123@cluster0.10yjjlt.mongodb.net/regenato?retryWrites=true&w=majority"
-        );
-        console.log("Connected to MongoDB");
-    } catch (error) {
-        console.log(error);
-    }
+  try {
+    await mongoose.connect(
+      "mongodb+srv://ka5452488:mongodb123@cluster0.10yjjlt.mongodb.net/regenato?retryWrites=true&w=majority"
+    );
+    console.log("Connected to MongoDB");
+  } catch (error) {
+    console.log(error);
+  }
 };
 
 // Use the routes
@@ -39,18 +44,19 @@ app.use("/api/general", GeneralRouter);
 app.use("/api/manufacturingStatics", manufacturingStaticRouter);
 
 // Use PartRoutes for handling part-related routes
-app.use("/api/parts", PartRoutes);  // Corrected the route
+app.use("/api/parts", PartRoutes); // Corrected the route
 
 // Use ProjectRouter for handling project-related routes
 app.use("/api/projects", ProjectRouter);
 
-app.use('/api/defpartproject', partproject)
+app.use("/api/defpartproject", partproject);
+
+app.use("/api/subAssembly", subAssemblyRoutes);
 
 const PORT = 4040;
 app.listen(PORT, () => {
-    connect();
-    console.log(`Server is running on port ${PORT}`);
+  connect();
+  console.log(`Server is running on port ${PORT}`);
 });
-
 
 // ${process.env.REACT_APP_BASE_URL}/

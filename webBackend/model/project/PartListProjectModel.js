@@ -47,13 +47,7 @@ const partsListSchema = new mongoose.Schema({
   partsListItems: [partSchema],
 });
 
-const SubAssemblyListSchema = new mongoose.Schema({
-  subAssemblyListName: String,
-})
 
-const AssemblyPartListSchema = new mongoose.Schema({
-  assemblyListName: String,
-})
 
 
 // Modified projectSchema
@@ -64,8 +58,6 @@ const partprojectSchema = new mongoose.Schema({
   stockPoQty: Number,
   projectType: String,
   partsLists: [partsListSchema],
-  subAssemblyListFirst:[SubAssemblyListSchema],
-  assemblyPartsLists:[AssemblyPartListSchema]
 });
 
 const PartListProjectModel = mongoose.model("PartProject", partprojectSchema);
