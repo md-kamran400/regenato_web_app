@@ -15,7 +15,11 @@ import { toast } from "react-toastify";
 import Autocomplete from "@mui/material/Autocomplete";
 import TextField from "@mui/material/TextField";
 
-const RmVariable = ({ partDetails, onTotalCountUpdate }) => {
+const RmVariable = ({
+  partDetails,
+  onTotalCountUpdate,
+  // onUpdatePartDetails,
+}) => {
   const [modal_add, setModalList] = useState(false);
   const [modal_edit, setModalEdit] = useState(false);
   const [modal_delete, setModalDelete] = useState(false);
@@ -29,7 +33,7 @@ const RmVariable = ({ partDetails, onTotalCountUpdate }) => {
   const [editId, setEditId] = useState(null);
   const [modal_static_add, setModalstatic_add] = useState(false);
   const [modal_static_edit, setModalstatic_edit] = useState(false);
-  const [rmTotalCount, setRmTotalCount] = useState(0)
+  const [rmTotalCount, setRmTotalCount] = useState(0);
 
   const [formData, setFormData] = useState({
     categoryId: "",
@@ -172,7 +176,6 @@ const RmVariable = ({ partDetails, onTotalCountUpdate }) => {
     onTotalCountUpdate(total);
   }, [RmtableData]);
   // console.log("rm data totalCost", rmTotaCost);
-  
 
   useEffect(() => {
     if (partDetails && partDetails._id) {
@@ -276,7 +279,8 @@ const RmVariable = ({ partDetails, onTotalCountUpdate }) => {
 
       if (response.ok) {
         const result = await response.json();
-
+        // Update the partDetails in the parent component
+        // onUpdatePartDetails(result);
         // Check if the server returned the correct totalRate
         if (result.totalRate !== roundedTotalRate) {
           console.warn(
@@ -372,6 +376,8 @@ const RmVariable = ({ partDetails, onTotalCountUpdate }) => {
       );
 
       if (response.ok) {
+        // const result = await response.json();
+        // onUpdatePartDetails(result);
         await fetchRmData(); // Refetch the data to update the table
         setFormData({
           categoryId: "",
@@ -390,7 +396,7 @@ const RmVariable = ({ partDetails, onTotalCountUpdate }) => {
       setPosting(false);
     }
   };
-  
+
   // handle for deleting
   const handleDelete = async (_id) => {
     setPosting(true);
@@ -423,7 +429,7 @@ const RmVariable = ({ partDetails, onTotalCountUpdate }) => {
             className="add-btn me-1"
             id="create-btn"
           >
-            <i className="ri-add-line align-bottom me-1"></i> Add 
+            <i className="ri-add-line align-bottom me-1"></i> Add
           </Button>
 
           <Button
@@ -572,12 +578,10 @@ const RmVariable = ({ partDetails, onTotalCountUpdate }) => {
       </Modal>
 
       <Modal isOpen={modal_static_add} toggle={tog_static_add}>
-        <ModalHeader toggle={tog_static_add}>
-          Add Unit Cost
-        </ModalHeader>
+        <ModalHeader toggle={tog_static_add}>Add Unit Cost</ModalHeader>
         <ModalBody>
           <form onSubmit={handleSubmitStatic}>
-          <div className="mb-3">
+            <div className="mb-3">
               <label htmlFor="name" className="form-label">
                 Name
               </label>
@@ -609,7 +613,7 @@ const RmVariable = ({ partDetails, onTotalCountUpdate }) => {
                 required
               />
             </div>
-            
+
             <div className="mb-3">
               <div className="mb-3">
                 <label htmlFor="totalRate" className="form-label">

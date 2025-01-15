@@ -483,7 +483,7 @@ const ManufacturingVariable = ({
         totalRate: (hours * parseFloat(prevFormData.hourlyRate || 0)).toFixed(
           2
         ),
-        times: `${inputValue} ${selectedOption}`,
+        times: `${inputValue} ${'day'}`,
       }));
     } else if (selectedOption === "hours") {
       setFormData((prevFormData) => ({
@@ -492,7 +492,7 @@ const ManufacturingVariable = ({
         totalRate: (
           parseFloat(inputValue) * parseFloat(prevFormData.hourlyRate || 0)
         ).toFixed(2),
-        times: `${inputValue} ${selectedOption}`,
+        times: `${inputValue} ${'hr'}`,
       }));
     } else if (selectedOption === "minutes") {
       const hours = parseFloat(inputValue) / 60;
@@ -502,7 +502,7 @@ const ManufacturingVariable = ({
         totalRate: (hours * parseFloat(prevFormData.hourlyRate || 0)).toFixed(
           2
         ),
-        times: `${inputValue} ${selectedOption}`,
+        times: `${inputValue} ${'min'}`,
       }));
     }
 
@@ -726,7 +726,7 @@ const ManufacturingVariable = ({
                 </th> */}
                 <th>ID</th>
                 <th>Name</th>
-                <th>Times</th>
+                <th>Time</th>
                 <th>Hours (h)</th>
                 <th>Hourly Rate (INR)</th>
                 <th>Total Rate</th>

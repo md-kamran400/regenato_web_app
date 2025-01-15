@@ -237,7 +237,7 @@ const Manufacturing = ({
         <thead className="table-light">
           <tr>
             <th>Name</th>
-            <th>Times</th>
+            <th>Time</th>
             <th>Hours</th>
             <th>Hourly Rate</th>
             <th>Total Rate</th>

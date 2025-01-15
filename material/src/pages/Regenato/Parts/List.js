@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  useRef,
+} from "react";
 import { Link } from "react-router-dom";
 import { debounce } from "lodash";
 import "./project.css";
@@ -27,7 +33,7 @@ import FeatherIcon from "feather-icons-react/build/FeatherIcon";
 import Autocomplete from "@mui/material/Autocomplete";
 import TextField from "@mui/material/TextField";
 import PaginatedList from "../Pagination/PaginatedList";
-
+import { useCalculation } from "../../../Components/context/CalculationContext";
 const categories = [
   { name: "Category 1" },
   { name: "Category 2" },
@@ -37,22 +43,25 @@ const categories = [
 ];
 
 const List = () => {
+  const [selectedPartId, setSelectedPartId] = useState(
+    localStorage.getItem("selectedPartId")
+  );
   //   const [modal_category, setModal_category] = useState(false);
   const [modal_list, setModalList] = useState(false);
-  const [modal_edit, setModalEdit] = useState(false);
+  // const [modal_edit, setModalEdit] = useState(false);
   const [modal_delete, setModalDelete] = useState(false);
   const [newPartId, setNewPartId] = useState("");
 
   const [newPartName, setNewPartName] = useState(""); // For storing new part name
   const [newCodeName, setnewCodeName] = useState(""); // For storing new part name
   const [newclientNumber, setnewclientNumber] = useState(""); // For storing new part name
-
   const [listData, setListData] = useState([]); // Local state to store project list
   const [loading, setLoading] = useState(true); // State to manage loading state
   const [error, setError] = useState(null); // State for handling errors
   const [editId, setEditId] = useState(null); // ID for the item being edited
-  const [costPerUnit, setCostPerUnit] = useState(0);
-  const [timePerUnit, setTimePerUnit] = useState(0);
+  const [costPerUnit, setCostPerUnit] = useState(null);
+  const [timePerUnit, setTimePerUnit] = useState(null);
+
   const [stockPOQty, setStockPOQty] = useState(0);
   const [posting, setPosting] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
@@ -65,6 +74,11 @@ const List = () => {
     id: "",
   });
   const [selectedPart, setSelectedPart] = useState(null); // Holds the part to duplicate
+  const [modal_edit, setModalEdit] = useState(false);
+  const [editPartId, setEditPartId] = useState(null);
+  const [editPartName, setEditPartName] = useState("");
+  const [editDrawingNumber, setEditDrawingNumber] = useState("");
+  const [editClientNumber, setEditClientNumber] = useState("");
 
   const [formData, setFormData] = useState({
     partName: "",
@@ -76,8 +90,6 @@ const List = () => {
   const toggleModal = () => {
     setModalList(!modal_list);
   };
-
-  
 
   // Function to toggle 'Delete' modal
   const tog_delete = () => {
@@ -106,29 +118,6 @@ const List = () => {
     setModalDuplicate(!modal_duplicate);
   };
 
-  const toggleEditModal = (item = null) => {
-    if (item) {
-      // Pre-fill the modal with data from the selected item
-      setFormData({
-        partName: item.partName,
-        costPerUnit: item.costPerUnit,
-        timePerUnit: item.timePerUnit,
-        stockPOQty: item.stockPOQty,
-      });
-      setEditId(item._id); // Save the ID for the PUT request
-    } else {
-      // Clear form data if no item is selected
-      setFormData({
-        partName: "",
-        costPerUnit: 0,
-        timePerUnit: 0,
-        stockPOQty: 0,
-      });
-      setEditId(null);
-    }
-    setModalEdit(!modal_edit);
-  };
-
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -147,12 +136,44 @@ const List = () => {
       setLoading(false);
     }
   }, []);
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-  //paginations
 
-  // Filtered and Paginated Data
+  useEffect(() => {
+    if (selectedPartId) {
+      fetchData();
+      fetchSelectedPart();
+      clearSelection();
+      return;
+    } else {
+      fetchData();
+    }
+  }, [selectedPartId]);
+
+  // New function to fetch a single part
+  const fetchSelectedPart = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_BASE_URL}/api/parts/${selectedPartId}`
+      );
+      if (!response.ok) {
+        throw new Error("Failed to fetch selected part");
+      }
+      const data = await response.json();
+      setListData([data]);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Use this function when a part is clicked
+  const handlePartClick = (id) => {
+    setSelectedPartId(id);
+    localStorage.setItem("selectedPartId", id);
+  };
+
   const filteredData = listData.filter((item) =>
     item.partName.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -174,21 +195,20 @@ const List = () => {
 
   const handleInputChange = (e) => {
     const inputValue = e.target.value;
-    setnewCodeName(inputValue === '' ? '-' : inputValue);
+    setnewCodeName(inputValue === "" ? "-" : inputValue);
   };
 
   const handleAddPart = async () => {
     // Extract only the numeric part of the ID
-    // const numericId = newPartId.replace(/[^\d]/g, "");
     const numericId = newPartId.replace(/[^-\d]/g, "");
 
     const newPart = {
       id: numericId,
       partName: newPartName,
       clientNumber: newclientNumber,
-      codeName: newCodeName || 0,
-      costPerUnit: costPerUnit || 0,
-      timePerUnit: timePerUnit || 0,
+      codeName: newCodeName || "",
+      costPerUnit: 0,
+      timePerUnit: 0,
       stockPOQty: stockPOQty || 0,
     };
 
@@ -214,19 +234,60 @@ const List = () => {
       // Reset form fields
       setNewPartId("");
       setNewPartName("");
-      setnewCodeName("")
-      setnewclientNumber("")
+      setnewCodeName("");
+      setnewclientNumber("");
       setCostPerUnit(0);
       setTimePerUnit(0);
       setStockPOQty(0);
 
       // Close the modal
-      toggleModal();
+      toggleModal(false);
 
       toast.success("Records added successfully!");
     } catch (error) {
       console.error("Error adding part:", error);
       toast.error("Failed to add part. Please try again.");
+    }
+  };
+
+  const toggleEditModal = (item) => {
+    if (item) {
+      setEditPartId(item._id);
+      setEditPartName(item.partName);
+      setEditDrawingNumber(item.id);
+      setEditClientNumber(item.clientNumber);
+    }
+    setModalEdit(!modal_edit);
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_BASE_URL}/api/parts/${editPartId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            partName: editPartName,
+            id: editDrawingNumber,
+            clientNumber: editClientNumber,
+          }),
+        }
+      );
+
+      if (response.ok) {
+        await fetchData(); // Refetch the data to update the table
+        toast.success("Records updated successfully!");
+        toggleEditModal();
+      } else {
+        throw new Error("Failed to update part");
+      }
+    } catch (error) {
+      console.error("Error updating part:", error);
+      toast.error("Failed to update part. Please try again.");
     }
   };
 
@@ -246,7 +307,7 @@ const List = () => {
             id: duplicatePartData.id,
             partName: duplicatePartData.partName,
             clientNumber: duplicatePartData.clientNumber,
-            codeName: duplicatePartData.codeName,  //code name new added here
+            codeName: duplicatePartData.codeName, //code name new added here
             costPerUnit: duplicatePartData.costPerUnit,
             timePerUnit: duplicatePartData.timePerUnit,
             stockPOQty: duplicatePartData.stockPOQty,
@@ -283,53 +344,51 @@ const List = () => {
   };
 
   // Calculate totals for each part
-  const partTotals = listData.reduce((acc, part) => {
-    console.log("Processing item:", part.id);
+  // const partTotals = listData.reduce((acc, part) => {
+  //   // console.log("Processing item:", part.id);
 
-    const rmTotal = part.rmVariables.reduce(
-      (sum, item) => sum + Number(item.totalRate || 0),
-      0
-    );
-    const manufacturingTotal = part.manufacturingVariables.reduce(
-      (sum, item) => sum + Number(item.totalRate || 0),
-      0
-    );
-    const shipmentTotal = part.shipmentVariables.reduce(
-      (sum, item) => sum + Number(item.hourlyRate || 0),
-      0
-    );
-    const overheadsTotal = part.overheadsAndProfits.reduce(
-      (sum, item) => sum + Number(item.totalRate || 0),
-      0
-    );
+  //   const rmTotal = part.rmVariables.reduce(
+  //     (sum, item) => sum + Number(item.totalRate || 0),
+  //     0
+  //   );
+  //   const manufacturingTotal = part.manufacturingVariables.reduce(
+  //     (sum, item) => sum + Number(item.totalRate || 0),
+  //     0
+  //   );
+  //   const shipmentTotal = part.shipmentVariables.reduce(
+  //     (sum, item) => sum + Number(item.hourlyRate || 0),
+  //     0
+  //   );
+  //   const overheadsTotal = part.overheadsAndProfits.reduce(
+  //     (sum, item) => sum + Number(item.totalRate || 0),
+  //     0
+  //   );
 
-    acc[part.id] = {
-      rmTotal,
-      manufacturingTotal,
-      shipmentTotal,
-      overheadsTotal,
-      totalCost: (acc[part.id]?.totalCost || 0) + part.costPerUnit,
-      costPerUnitAvg:
-        rmTotal + manufacturingTotal + shipmentTotal + overheadsTotal, // Calculate avg
-      manufacturingHours: part.manufacturingVariables.reduce(
-        (sum, item) => sum + Number(item.hours || 0),
-        0
-      ),
-    };
+  //   acc[part.id] = {
+  //     rmTotal,
+  //     manufacturingTotal,
+  //     shipmentTotal,
+  //     overheadsTotal,
+  //     totalCost: (acc[part.id]?.totalCost || 0) + part.costPerUnit,
+  //     costPerUnitAvg:
+  //       rmTotal + manufacturingTotal + shipmentTotal + overheadsTotal, // Calculate avg
+  //     manufacturingHours: part.manufacturingVariables.reduce(
+  //       (sum, item) => sum + Number(item.hours || 0),
+  //       0
+  //     ),
+  //   };
 
-    return acc;
-  }, {});
+  //   return acc;
+  // }, {});
 
-  console.log("Final Part Totals:", partTotals);
-
-  Object.entries(partTotals).forEach(([partId, totals]) => {
-    console.log(`Part ${partId}:`);
-    console.log("RM Total:", totals.rmTotal);
-    console.log("Manufacturing Total:", totals.manufacturingTotal);
-    console.log("Shipment Total:", totals.shipmentTotal);
-    console.log("Overheads Total:", totals.overheadsTotal);
-    console.log("Cost Per Unit Avg:", totals.costPerUnitAvg);
-  });
+  // Object.entries(partTotals).forEach(([partId, totals]) => {
+  // console.log(`Part ${partId}:`);
+  // console.log("RM Total:", totals.rmTotal);
+  // console.log("Manufacturing Total:", totals.manufacturingTotal);
+  // console.log("Shipment Total:", totals.shipmentTotal);
+  // console.log("Overheads Total:", totals.overheadsTotal);
+  // console.log("Cost Per Unit Avg:", totals.costPerUnitAvg);
+  // });
 
   const handleDelete = async (_id) => {
     setPosting(true);
@@ -345,7 +404,7 @@ const List = () => {
         throw new Error("Network response was not ok");
       }
       await fetchData(); // Refetch the data to update the table
-      toast.success('Records Deleted Successfully')
+      toast.success("Records Deleted Successfully");
       tog_delete(); // Close the modal
     } catch (error) {
       setError(error.message);
@@ -354,7 +413,44 @@ const List = () => {
     }
   };
 
-  
+  // const singlePartId = localStorage.getItem("selectedPartId" || "");
+
+  // useEffect(() => {
+  //   const handlePartClick = async () => {
+  //     // localStorage.getItem("selectedPartId", id);
+  //     try {
+  //       const response = await fetch(
+  //         `${process.env.REACT_APP_BASE_URL}/api/parts/${singlePartId}`
+  //       );
+  //       if (!response.ok) throw new Error("Failed to fetch part");
+  //       const data = await response.json();
+  //       setListData([data]); // Displays only the selected part
+  //     } catch (err) {
+  //       console.error(err.message);
+  //     }
+  //   };
+  //   handlePartClick();
+  // }, []);
+
+  const clearSelection = () => {
+    setSelectedPartId(null);
+    localStorage.removeItem("selectedPartId");
+    fetchData(); // Re-fetch the entire list
+  };
+
+  const formatTime = (time) => {
+    if (time === 0) {
+      return 0;
+    }
+    const hours = Math.floor(time);
+    const minutes = Math.round((time - hours) * 60);
+    if (hours >= 24) {
+      const days = Math.floor(hours / 24);
+      const remainingHours = hours % 24;
+      return `${days}d ${remainingHours}h ${minutes}min`;
+    }
+    return `${hours}h ${minutes}min`;
+  };
 
   return (
     <React.Fragment>
@@ -374,7 +470,7 @@ const List = () => {
               onClick={toggleModal}
               id="create-btn"
             >
-              <i className="ri-add-line align-bottom me-1"></i> Add Part 
+              <i className="ri-add-line align-bottom me-1"></i> Add Part
             </Button>
           </div>
         </div>
@@ -399,89 +495,95 @@ const List = () => {
       {/* {loading && <p>Loading...</p>} */}
       {error && <p>Error: {error}</p>}
       <>
-      {loading && (
-        <div className="loader-overlay">
-          <div className="spinner-border text-primary" role="status">
-            <span className="visually-hidden">Loading...</span>
+        {loading && (
+          <div className="loader-overlay">
+            <div className="spinner-border text-primary" role="status">
+              <span className="visually-hidden">Loading...</span>
+            </div>
           </div>
-        </div>
-      )}
-      <table className="table table-striped">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Drawing Number</th>
-            <th>Client Number</th>
-            <th>Cost per Unit</th>
-            <th>Total Hours</th>
-            <th>On Hand</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-           {paginatedData.map((item, index) => (
-            <tr key={index}>
-              <td>
-                <Link to={`/singlepart/${item._id}`} className="text-body">
-                  {/* {item.partName} ({item.id}) {item.codeName} */}
-                  {item.partName} {item.codeName}
-                </Link>
-              </td>
-              <td>{item.id}</td>
-              <td>{item.clientNumber}</td>
-              <td>
-                {item.partsCalculations && item.partsCalculations.length > 0
-                  ? item.partsCalculations[0].AvgragecostPerUnit.toFixed(2)
-                  : "-"}
-              </td>
-              <td>
-                {item.partsCalculations && item.partsCalculations.length > 0
-                  ? item.partsCalculations[0].AvgragetimePerUnit.toFixed(2)
-                  : "-"}
-              </td>
-              <td></td> {/* On Hand column */}
-              <td>
-                <UncontrolledDropdown direction="start">
-                  <DropdownToggle
-                    tag="button"
-                    className="btn btn-link text-muted p-1 mt-n2 py-0 text-decoration-none fs-15 shadow-none"
-                  >
-                    <FeatherIcon icon="more-horizontal" className="icon-sm" />
-                  </DropdownToggle>
-                  <DropdownMenu className="dropdown-menu-end">
-                    {/* <div className="dropdown-divider"></div> */}
-                    <DropdownItem
-                      href="#"
-                      onClick={() => {
-                        setSelectedId(item._id);
-                        tog_delete();
-                      }}
-                    >
-                      <i className="ri-delete-bin-fill align-bottom me-2 text-muted"></i>{" "}
-                      Remove
-                    </DropdownItem>
-
-                    <DropdownItem
-                      href="#"
-                      onClick={() => toggleDuplicateModal(item)}
-                    >
-                      <i className="ri-file-copy-line align-bottom me-2 text-muted"></i>{" "}
-                      Duplicate
-                    </DropdownItem>
-                  </DropdownMenu>
-                </UncontrolledDropdown>
-              </td>
+        )}
+        <table className="table table-striped">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Drawing Number</th>
+              <th>Client Number</th>
+              <th>Cost per Unit</th>
+              <th>Total Hours</th>
+              <th>On Hand</th>
+              <th>Actions</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {paginatedData.map((item, index) => (
+              <tr key={index}>
+                <td
+                  // style={{
+                  //   fontWeight: "bold",
+                  //   color: "#007bff",
+                  //   border: "2px solid",
+                  // }}
+                  onClick={() => handlePartClick(item._id)}
+                >
+                  <Link
+                    to={`/singlepart/${item._id}`}
+                    style={{ color: "red" }}
+                    className="text-body"
+                  >
+                    {item.partName.trim()} {item.codeName}
+                  </Link>
+                </td>
+                <td>{item.id}</td>
+                <td>{item.clientNumber}</td>
+                <td>{Math.ceil(item.costPerUnit)}</td>
+                <td>{formatTime(item.timePerUnit || 0)}</td>
+                <td>--</td> {/* On Hand column */}
+                <td>
+                  <UncontrolledDropdown direction="start">
+                    <DropdownToggle
+                      tag="button"
+                      className="btn btn-link text-muted p-1 mt-n2 py-0 text-decoration-none fs-15 shadow-none"
+                    >
+                      <FeatherIcon icon="more-horizontal" className="icon-sm" />
+                    </DropdownToggle>
+                    <DropdownMenu className="dropdown-menu-end">
+                      {/* <div className="dropdown-divider"></div> */}
+                      <DropdownItem
+                        href="#"
+                        onClick={() => {
+                          setSelectedId(item._id);
+                          tog_delete();
+                        }}
+                      >
+                        <i className="ri-delete-bin-fill align-bottom me-2 text-muted"></i>{" "}
+                        Remove
+                      </DropdownItem>
 
-      {/* Pagination */}
-      <PaginatedList
-        totalPages={totalPages}
-        currentPage={currentPage}
-        onPageChange={handlePageChange}
-      />      
+                      <DropdownItem
+                        href="#"
+                        onClick={() => toggleDuplicateModal(item)}
+                      >
+                        <i className="ri-file-copy-line align-bottom me-2 text-muted"></i>{" "}
+                        Duplicate
+                      </DropdownItem>
+                      <DropdownItem onClick={() => toggleEditModal(item)}>
+                        <i className="ri-pencil-fill align-bottom me-2 text-muted"></i>{" "}
+                        Edit
+                      </DropdownItem>
+                    </DropdownMenu>
+                  </UncontrolledDropdown>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        {/* Pagination */}
+        <PaginatedList
+          totalPages={totalPages}
+          currentPage={currentPage}
+          onPageChange={handlePageChange}
+        />
       </>
       {/* Modal for adding a new item */}
       <Modal isOpen={modal_list} toggle={toggleModal} centered>
@@ -541,7 +643,7 @@ const List = () => {
 
             <div className="mb-3">
               <label htmlFor="code-name" className="form-label">
-                 Code Name
+                Code Name
               </label>
               <input
                 type="text"
@@ -667,137 +769,64 @@ const List = () => {
           </Button>
         </ModalFooter>
       </Modal>
+
+      {/* edit modal */}
+      <Modal isOpen={modal_edit} toggle={toggleEditModal} centered>
+        <ModalHeader toggle={toggleEditModal}>Edit Part</ModalHeader>
+        <ModalBody>
+          <form onSubmit={handleEditSubmit}>
+            <div className="mb-3">
+              <label htmlFor="edit-part-name" className="form-label">
+                Part Name
+              </label>
+              <input
+                type="text"
+                id="edit-part-name"
+                className="form-control"
+                value={editPartName}
+                onChange={(e) => setEditPartName(e.target.value)}
+                required
+              />
+            </div>
+            <div className="mb-3">
+              <label htmlFor="edit-drawing-number" className="form-label">
+                Drawing Number
+              </label>
+              <input
+                type="text"
+                id="edit-drawing-number"
+                className="form-control"
+                value={editDrawingNumber}
+                onChange={(e) => setEditDrawingNumber(e.target.value)}
+                required
+              />
+            </div>
+            <div className="mb-3">
+              <label htmlFor="edit-client-number" className="form-label">
+                Client Number
+              </label>
+              <input
+                type="text"
+                id="edit-client-number"
+                className="form-control"
+                value={editClientNumber}
+                onChange={(e) => setEditClientNumber(e.target.value)}
+                required
+              />
+            </div>
+          </form>
+        </ModalBody>
+        <ModalFooter>
+          <Button color="primary" type="submit" onClick={handleEditSubmit}>
+            Update
+          </Button>
+          <Button color="secondary" onClick={toggleEditModal}>
+            Cancel
+          </Button>
+        </ModalFooter>
+      </Modal>
     </React.Fragment>
   );
 };
 
 export default List;
-
-{
-  /* <DropdownItem onClick={() => toggleEditModal(item)}>
-<i className="ri-pencil-fill align-bottom me-2 text-muted"></i>{" "}
-Edit
-</DropdownItem> */
-}
-{
-  /* Edit Modal */
-}
-{
-  /* <Modal isOpen={modal_edit} toggle={toggleEditModal}>
-        <ModalHeader toggle={toggleEditModal}>Edit Part</ModalHeader>
-        <ModalBody>
-          <form onSubmit={handleEditSubmit}>
-            <div className="mb-3">
-              <label htmlFor="partName" className="form-label">
-                Name
-              </label>
-              <Input
-                type="text"
-                id="partName"
-                value={formData.partName}
-                onChange={(e) =>
-                  setFormData({ ...formData, partName: e.target.value })
-                }
-                required
-              />
-            </div>
-            <div className="mb-3">
-              <label htmlFor="costPerUnit" className="form-label">
-                Cost Per Unit
-              </label>
-              <Input
-                type="number"
-                id="costPerUnit"
-                value={formData.costPerUnit}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    costPerUnit: parseFloat(e.target.value) || 0,
-                  })
-                }
-                required
-              />
-            </div>
-            <div className="mb-3">
-              <label htmlFor="timePerUnit" className="form-label">
-                Total Hours
-              </label>
-              <Input
-                type="number"
-                id="timePerUnit"
-                value={formData.timePerUnit}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    timePerUnit: parseFloat(e.target.value) || 0,
-                  })
-                }
-              />
-            </div>
-            <div className="mb-3">
-              <label htmlFor="stockPOQty" className="form-label">
-                On Hand
-              </label>
-              <Input
-                type="number"
-                id="stockPOQty"
-                value={formData.stockPOQty}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    stockPOQty: parseFloat(e.target.value) || 0,
-                  })
-                }
-              />
-            </div>
-            <ModalFooter>
-              <Button type="submit" color="primary" disabled={posting}>
-                Update
-              </Button>
-              <Button type="button" color="secondary" onClick={toggleEditModal}>
-                Cancel
-              </Button>
-            </ModalFooter>
-          </form>
-        </ModalBody>
-      </Modal> */
-}
-
-//     const handleEditSubmit = async (e) => {
-//       e.preventDefault();
-//       setPosting(true);
-//       setError(null);
-//       try {
-//         const response = await fetch(
-//           `http://localhost:4040/api/parts/${editId}`,
-//           {
-//             method: "PUT",
-//             headers: {
-//               "Content-Type": "application/json",
-//             },
-//             body: JSON.stringify(formData),
-//           }
-//         );
-//         if (response.ok) {
-//           // Refresh the page after successful POST request
-//           await fetchData();
-//         } else {
-//           // Handle errors here
-//           throw new Error("Network response was not ok");
-//         }
-
-//     await fetchData();
-//     setFormData({
-//       partName: "",
-//       costPerUnit: "",
-//       timePerUnit: "",
-//       stockPOQty: "",
-//     });
-
-//     toggleEditModal();
-//   } catch (error) {
-//     setError(error.message);
-//   } finally {
-//     setPosting(false);
-//   }
-// };

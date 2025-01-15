@@ -44,7 +44,6 @@ const SinglePart = () => {
   const [overheadCount, setoverheadCount] = useState(0);
   const [manufacturingHours, setmanufacturingHours] = useState(0);
 
-
   const handlermTotalCountUpdate = (newTotal) => {
     setrmtotalCount(newTotal);
   };
@@ -60,7 +59,6 @@ const SinglePart = () => {
   const handlemanufacturingCountHoursCountUpdate = (newTotal) => {
     setmanufacturingHours(newTotal);
   };
-
 
   const tog_add_calculation = () => {
     setModal_add(!modal_add);
@@ -146,8 +144,6 @@ const SinglePart = () => {
   //   onTotalCountUpdate(total);
   // }, [shipmentData]);
 
-
-
   // Calculate total cost without profit
   const totalCost = rmtotalCount + manufacturingCount + shipmentCount;
 
@@ -161,13 +157,15 @@ const SinglePart = () => {
     (total, item) => total + Number(item.totalRate || 0),
     0
   );
+
+  const overheadAmount = (totalCost * overheadPercentage) / 100;
+
   // Calculate profit using overhead percentage
   // const profit = (totalCost * overheadPercentage) / 100;
 
   // Final cost per unit including profit
-  const costPerUnitAvg = totalCost + overheadCount;
-
-
+  // const costPerUnitAvg = totalCost + overheadCount;
+  const costPerUnitAvg = Math.ceil(totalCost + overheadAmount);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -204,7 +202,7 @@ const SinglePart = () => {
         // Reset editId after successful update
         setEditId(null);
         // alert("Calculation saved successfully!");
-        toast.success('Calculation saved successfully ')
+        toast.success("Calculation saved successfully ");
       } else {
         const errorResponse = await response.json();
         throw new Error(errorResponse.message || "Failed to save calculation.");
@@ -216,6 +214,19 @@ const SinglePart = () => {
     }
   };
 
+  const formatTime = (time) => {
+    if (time === 0) {
+      return 0;
+    }
+    const hours = Math.floor(time);
+    const minutes = Math.round((time - hours) * 60);
+    if (hours >= 24) {
+      const days = Math.floor(hours / 24);
+      const remainingHours = hours % 24;
+      return `${days}d ${remainingHours}h ${minutes}min`;
+    }
+    return `${hours}h ${minutes}min`;
+  };
 
   // console.log(typeof costPerUnitAvg)
   return (
@@ -226,16 +237,15 @@ const SinglePart = () => {
             title={`Part ${partDetails.partName} (${partDetails.id})`}
             pageTitle={`Part ${partDetails.partName}`}
           />
-          <div className="page-title-box d-sm-flex align-items-center justify-content-between">
+          {/* <div className="page-title-box d-sm-flex align-items-center justify-content-between">
             <Button
               className="add-btn me-1 bg-success"
               onClick={tog_add_calculation}
             >
               Finalize Calculation
             </Button>
-          </div>
+          </div> */}
           <Row>
-
             <Col xl={3} ms={6}>
               <Card className={"card-height-100 "}>
                 <CardBody>
@@ -263,7 +273,6 @@ const SinglePart = () => {
                     </span>{" "}
                     {/* Display part name */}
                   </div>
-                  
                 </CardBody>
               </Card>
             </Col>
@@ -290,7 +299,9 @@ const SinglePart = () => {
                   </div>
                   <div className="d-flex justify-content-between align-items-center">
                     <h6 className="fs-15 fw-bold mb-0">Cost Per Unit:</h6>
-                    <span className="text-muted fs-13">{costPerUnitAvg.toFixed(2)}</span>
+                    <span className="text-muted fs-13">
+                      {costPerUnitAvg || 0}
+                    </span>
                   </div>
                 </CardBody>
               </Card>
@@ -319,7 +330,7 @@ const SinglePart = () => {
                   <div className="d-flex justify-content-between align-items-center">
                     <h6 className="fs-15 fw-bold mb-0">Time Per Unit:</h6>
                     <span className="text-muted fs-13">
-                      {manufacturingHours.toFixed(2)}
+                      {formatTime(manufacturingHours) || 0}
                     </span>{" "}
                     {/* Display time per unit */}
                   </div>
@@ -371,9 +382,8 @@ const SinglePart = () => {
                 </CardBody>
               </Card>
             </Col>
-
           </Row>
-          
+
           <GeneralVariable partDetails={partDetails} />
 
           {/* RM Variables */}
@@ -393,7 +403,9 @@ const SinglePart = () => {
                     />
                     <div className="d-flex align-items-center mt-3 mb-3">
                       <p className="fw-bold mb-0 me-2">Total Cost:</p>
-                      <span className="text-muted fs-13">{rmtotalCount.toFixed(2)}</span>
+                      <span className="text-muted fs-13">
+                        {Math.round(rmtotalCount) || 0}
+                      </span>
                     </div>
                     <RmVariable
                       partDetails={partDetails}
@@ -426,9 +438,15 @@ const SinglePart = () => {
                         {manufacturingCount}
                       </span>
                     </div>
-                    <ManufacturingVariable partDetails={partDetails} 
-                    onTotalCountUpdate={handlemanufacturingCountTotalCountUpdate}
-                    onTotalCountUpdateHours={handlemanufacturingCountHoursCountUpdate}/>
+                    <ManufacturingVariable
+                      partDetails={partDetails}
+                      onTotalCountUpdate={
+                        handlemanufacturingCountTotalCountUpdate
+                      }
+                      onTotalCountUpdateHours={
+                        handlemanufacturingCountHoursCountUpdate
+                      }
+                    />
                   </CardBody>
                 </Card>
               </Col>
@@ -452,11 +470,12 @@ const SinglePart = () => {
                     />
                     <div className="d-flex align-items-center mt-3 mb-3">
                       <p className="fw-bold mb-0 me-2">Total Cost:</p>
-                      <span className="text-muted fs-13">
-                        {shipmentCount}
-                      </span>
+                      <span className="text-muted fs-13">{shipmentCount}</span>
                     </div>
-                    <ShipmentVariable partDetails={partDetails} onTotalCountUpdate={handleshipmentCountTotalCountUpdate}/>
+                    <ShipmentVariable
+                      partDetails={partDetails}
+                      onTotalCountUpdate={handleshipmentCountTotalCountUpdate}
+                    />
                   </CardBody>
                 </Card>
               </Col>
@@ -480,9 +499,7 @@ const SinglePart = () => {
                     />
                     <div className="d-flex align-items-center mt-3 mb-3">
                       <p className="fw-bold mb-0 me-2">Total Cost:</p>
-                      <span className="text-muted fs-13">
-                        {overheadCount}
-                      </span>
+                      <span className="text-muted fs-13">{Math.round(overheadCount) || 0}</span>
                     </div>
                     <OverheadsVariable
                       partDetails={partDetails}
@@ -534,10 +551,7 @@ const SinglePart = () => {
               />
             </div>
             <div className="mb-3">
-              <label
-                htmlFor="manufacturingHours"
-                className="form-label"
-              >
+              <label htmlFor="manufacturingHours" className="form-label">
                 Total Hours
               </label>
               <input

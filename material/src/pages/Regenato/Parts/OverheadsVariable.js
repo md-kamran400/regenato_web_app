@@ -159,8 +159,13 @@ const OverheadsVariable = ({ partDetails, totalCost, onTotalCountUpdate }) => {
       }));
   
       // Also update the state variable
+      // setoverheadsAndProfit(prevState => 
+      //   prevState.map(item => 
+      //     item._id === selectOverheads._id ? { ...item, totalRate: calculatedTotalRate } : item
+      //   )
+      // );
       setoverheadsAndProfit(prevState => 
-        prevState.map(item => 
+        prevState.filter(item => item !== null).map(item => 
           item._id === selectOverheads._id ? { ...item, totalRate: calculatedTotalRate } : item
         )
       );
@@ -193,11 +198,16 @@ const OverheadsVariable = ({ partDetails, totalCost, onTotalCountUpdate }) => {
       }));
       
       // Also update the state variable
-      setoverheadsAndProfit(prevState => {
-        return prevState.map(item => 
-          item._id === newValue._id ? { ...item, totalRate: calculatedTotalRate } : item
-        );
-      });
+      // setoverheadsAndProfit(prevState => {
+      //   return prevState.map(item => 
+      //     item._id === newValue._id ? { ...item, totalRate: calculatedTotalRate } : item
+      //   );
+      // });
+      setoverheadsAndProfit(prevState => 
+        prevState.map(item => 
+          item && item._id === selectOverheads._id ? { ...item, totalRate: calculatedTotalRate } : item
+        )
+      );
     }
   };
 
