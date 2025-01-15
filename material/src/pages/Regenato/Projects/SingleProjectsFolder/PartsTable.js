@@ -217,23 +217,59 @@ const PartsTable = React.memo(
       }
     }, [selectedPartData]);
 
+    // const handleAutocompleteChange = (event, newValue) => {
+    //   if (newValue) {
+    //     const selectedPart = parts.find(
+    //       (part) => part.partName === newValue.partName
+    //     );
+    //     if (selectedPart) {
+    //       setSelectedPartData(selectedPart);
+    //       setDetailedPartData({ ...selectedPart });
+    //       setCostPerUnit(
+    //         selectedPart.partsCalculations?.[0]?.AvgragecostPerUnit || ""
+    //       );
+    //       setTimePerUnit(
+    //         selectedPart.partsCalculations?.[0]?.AvgragetimePerUnit || ""
+    //       );
+    //       setQuantity(1);
+    //       setPartId(selectedPart.id || "");
+    //       setCodeName(selectedPart.codeName || ""); // Set codeName
+    //     } else {
+    //       setSelectedPartData(null);
+    //       setDetailedPartData({});
+    //       setCostPerUnit("");
+    //       setTimePerUnit("");
+    //       setQuantity(0);
+    //       setPartId("");
+    //       setCodeName(""); // Reset codeName
+    //     }
+    //   } else {
+    //     setSelectedPartData(null);
+    //     setDetailedPartData({});
+    //     setCostPerUnit("");
+    //     setTimePerUnit("");
+    //     setQuantity(0);
+    //     setPartId("");
+    //     setCodeName(""); // Reset codeName
+    //   }
+    // };
+
+
+
+    ///projects/:projectId/partsLists/:listId/items
+    
+
     const handleAutocompleteChange = (event, newValue) => {
       if (newValue) {
-        const selectedPart = parts.find(
-          (part) => part.partName === newValue.partName
-        );
+        const selectedPart = parts.find((part) => part.partName === newValue.partName);
         if (selectedPart) {
           setSelectedPartData(selectedPart);
           setDetailedPartData({ ...selectedPart });
-          setCostPerUnit(
-            selectedPart.partsCalculations?.[0]?.AvgragecostPerUnit || ""
-          );
-          setTimePerUnit(
-            selectedPart.partsCalculations?.[0]?.AvgragetimePerUnit || ""
-          );
+          setCostPerUnit(selectedPart.costPerUnit || "");
+          setTimePerUnit(selectedPart.timePerUnit || "");
           setQuantity(1);
           setPartId(selectedPart.id || "");
-          setCodeName(selectedPart.codeName || ""); // Set codeName
+          setCodeName(selectedPart.codeName || "");
         } else {
           setSelectedPartData(null);
           setDetailedPartData({});
@@ -241,7 +277,7 @@ const PartsTable = React.memo(
           setTimePerUnit("");
           setQuantity(0);
           setPartId("");
-          setCodeName(""); // Reset codeName
+          setCodeName("");
         }
       } else {
         setSelectedPartData(null);
@@ -250,10 +286,10 @@ const PartsTable = React.memo(
         setTimePerUnit("");
         setQuantity(0);
         setPartId("");
-        setCodeName(""); // Reset codeName
+        setCodeName("");
       }
     };
-    ///projects/:projectId/partsLists/:listId/items
+
     const PartsTableFetch = useCallback(async () => {
       try {
         const response = await fetch(
@@ -273,58 +309,113 @@ const PartsTable = React.memo(
       PartsTableFetch();
     }, [PartsTableFetch]);
 
+    // const handleSubmit = async (event) => {
+    //   event.preventDefault();
+    //   setIsLoading(true);
+
+    //   const payload = {
+    //     partId: selectedPartData.id,
+    //     partName: selectedPartData.partName,
+    //     codeName: codeName,
+    //     costPerUnit: Number(costPerUnit),
+    //     timePerUnit: Number(timePerUnit),
+    //     quantity: Number(quantity),
+    //     rmVariables: detailedPartData.rmVariables || [],
+    //     manufacturingVariables: detailedPartData.manufacturingVariables || [],
+    //     shipmentVariables: detailedPartData.shipmentVariables || [],
+    //     overheadsAndProfits: detailedPartData.overheadsAndProfits || [],
+    //   };
+
+    //   try {
+    //     const response = await fetch(
+    //       // `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/partsLists/${partsList._id}/items`,
+    //       `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${_id}/partsLists/${partsList._id}/items`,
+
+    //       // /projects/:_id/partsLists/:listId/items
+    //       {
+    //         method: "POST",
+    //         headers: { "Content-Type": "application/json" },
+    //         body: JSON.stringify(payload),
+    //       }
+    //     );
+
+    //     if (!response.ok) {
+    //       throw new Error("Failed to add part");
+    //     }
+
+    //     const newPart = await response.json();
+
+    //     // Update local state with new part
+    //     setPartsListsItems((prevItems) => [...prevItems, newPart]);
+
+    //     onUpdatePrts(newPart);
+
+    //     setModalAdd(false);
+    //     setIsLoading(false);
+    //     toast.success("New Records Added successfully");
+    //     // Reset form
+    //     setSelectedPartData(null);
+    //     setCostPerUnit("");
+    //     setTimePerUnit("");
+    //     setQuantity(0);
+    //     setDetailedPartData({});
+
+    //     // Update the partsListItemsUpdated state
+    //     setPartsListItemsUpdated(true);
+    //   } catch (error) {
+    //     console.error("Error:", error);
+    //     setError("Failed to add part. Please try again.");
+    //     toast.error("Failed to add Records. Please try again.");
+    //   } finally {
+    //     setIsLoading(false);
+    //   }
+    // };
+
+
     const handleSubmit = async (event) => {
       event.preventDefault();
       setIsLoading(true);
-
+    
       const payload = {
         partId: selectedPartData.id,
         partName: selectedPartData.partName,
         codeName: codeName,
-        costPerUnit: Number(costPerUnit),
-        timePerUnit: Number(timePerUnit),
-        quantity: Number(quantity),
+        costPerUnit: parseFloat(costPerUnit),
+        timePerUnit: parseFloat(timePerUnit),
+        quantity: parseInt(quantity),
         rmVariables: detailedPartData.rmVariables || [],
         manufacturingVariables: detailedPartData.manufacturingVariables || [],
         shipmentVariables: detailedPartData.shipmentVariables || [],
         overheadsAndProfits: detailedPartData.overheadsAndProfits || [],
       };
-
+    
       try {
         const response = await fetch(
-          // `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/partsLists/${partsList._id}/items`,
           `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${_id}/partsLists/${partsList._id}/items`,
-
-          // /projects/:_id/partsLists/:listId/items
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload),
           }
         );
-
+    
         if (!response.ok) {
           throw new Error("Failed to add part");
         }
-
+    
         const newPart = await response.json();
-
-        // Update local state with new part
+    
         setPartsListsItems((prevItems) => [...prevItems, newPart]);
-
         onUpdatePrts(newPart);
-
         setModalAdd(false);
         setIsLoading(false);
         toast.success("New Records Added successfully");
-        // Reset form
+    
         setSelectedPartData(null);
         setCostPerUnit("");
         setTimePerUnit("");
         setQuantity(0);
         setDetailedPartData({});
-
-        // Update the partsListItemsUpdated state
         setPartsListItemsUpdated(true);
       } catch (error) {
         console.error("Error:", error);
@@ -342,33 +433,32 @@ const PartsTable = React.memo(
 
     const handleSubmitEditQuantity = async () => {
       if (!itemToEdit) return;
-    
+
       try {
         const response = await fetch(
           `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${_id}/partsLists/${partsList._id}/items/${itemToEdit._id}/quantity`,
           {
-            method: 'PUT',
+            method: "PUT",
             headers: {
-              'Content-Type': 'application/json',
+              "Content-Type": "application/json",
             },
             body: JSON.stringify({ quantity: itemToEdit.quantity }),
           }
         );
-    
+
         if (!response.ok) {
-          throw new Error('Failed to update quantity');
+          throw new Error("Failed to update quantity");
         }
-    
+
         const data = await response.json();
         onUpdatePrts(data);
-        toast.success('Quantity updated successfully');
+        toast.success("Quantity updated successfully");
         setEditQuantityModal(false);
       } catch (error) {
-        console.error('Error updating quantity:', error);
-        toast.error('Failed to update quantity. Please try again.');
+        console.error("Error updating quantity:", error);
+        toast.error("Failed to update quantity. Please try again.");
       }
     };
-
 
     if (loading)
       return (
@@ -869,38 +959,38 @@ const PartsTable = React.memo(
                   <Input
                     className="form-control"
                     type="number"
+                    step="any"
                     id="costPerUnit"
-                    value={Number(costPerUnit).toFixed(2) || "0.00"}
-                    onChange={(e) => setCostPerUnit(Number(e.target.value))}
+                    value={costPerUnit}
+                    onChange={(e) => setCostPerUnit(e.target.value)}
                     required
+                    onWheel={(e) => e.target.blur()}
+                    onKeyDown={(e) => {
+                      if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                        e.preventDefault();
+                      }
+                    }}
                   />
                 </div>
                 <div className="form-group">
                   <Label for="timePerUnit" className="form-label">
                     Time Per Unit
                   </Label>
-                  <div className="input-group">
-                    <Input
-                      className="form-control"
-                      type="number"
-                      id="timePerUnit"
-                      value={Number(timePerUnit).toFixed(2) || "0.00"}
-                      onChange={(e) => setTimePerUnit(e.target.value)}
-                      required
-                    />
-                    {/* <button
-                      className="btn btn-outline-secondary bg-success"
-                      style={{ borderRadius: "5px ", color: "white" }}
-                      type="button"
-                      onClick={() => {
-                        const currentHours = parseFloat(timePerUnit);
-                        const minutes = currentHours * 60;
-                        setTimePerUnit(minutes.toFixed(2));
-                      }}
-                    >
-                      To Min
-                    </button> */}
-                  </div>
+                  <Input
+                    className="form-control"
+                    type="number"
+                    step="any"
+                    id="timePerUnit"
+                    value={timePerUnit}
+                    onChange={(e) => setTimePerUnit(e.target.value)}
+                    required
+                    onWheel={(e) => e.target.blur()}
+                    onKeyDown={(e) => {
+                      if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                        e.preventDefault();
+                      }
+                    }}
+                  />
                 </div>
 
                 <div className="form-group">

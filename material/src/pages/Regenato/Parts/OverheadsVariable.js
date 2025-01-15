@@ -28,7 +28,7 @@ const OverheadsVariable = ({ partDetails, totalCost, onTotalCountUpdate }) => {
   const [selectedId, setSelectedId] = useState(null);
   const [selectOverheads, setselectOverheads] = useState(null);
   const [editId, setEditId] = useState(null);
-  const [overheadCount, setOverheadscount] = useState(0)
+  const [overheadCount, setOverheadscount] = useState(0);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -102,7 +102,6 @@ const OverheadsVariable = ({ partDetails, totalCost, onTotalCountUpdate }) => {
     }
   }, [partDetails, fetchOverheads]);
 
-
   useEffect(() => {
     const total = overheadsData.reduce(
       (sum, item) => sum + Number(item.totalRate || 0),
@@ -116,14 +115,13 @@ const OverheadsVariable = ({ partDetails, totalCost, onTotalCountUpdate }) => {
 
   // useEffect(() => {
   //   if (formData.totalRate) {
-  //     setoverheadsAndProfit(prevState => 
-  //       prevState.map(item => 
+  //     setoverheadsAndProfit(prevState =>
+  //       prevState.map(item =>
   //         item._id === selectOverheads._id ? { ...item, totalRate: formData.totalRate } : item
   //       )
   //     );
   //   }
   // }, [formData.totalRate]);
-
 
   // fetch over heads and profits data
   useEffect(() => {
@@ -145,34 +143,73 @@ const OverheadsVariable = ({ partDetails, totalCost, onTotalCountUpdate }) => {
   }, []);
 
   // Handle form input changes
+  // const handleChange = (e) => {
+  //   const { name, value } = e.target;
+
+  //   if (name === "percentage") {
+  //     const newPercentage = parseFloat(value);
+  //     const calculatedTotalRate = ((newPercentage / 100) * totalCost).toFixed(
+  //       2
+  //     );
+
+  //     setFormData((prevFormData) => ({
+  //       ...prevFormData,
+  //       [name]: value,
+  //       totalRate: calculatedTotalRate,
+  //     }));
+
+  //     // Also update the state variable
+  //     // setoverheadsAndProfit(prevState =>
+  //     //   prevState.map(item =>
+  //     //     item._id === selectOverheads._id ? { ...item, totalRate: calculatedTotalRate } : item
+  //     //   )
+  //     // );
+  //     setoverheadsAndProfit((prevState) =>
+  //       prevState.filter((item) => item !== null)
+  //         .map((item) =>
+  //           item && item._id === selectOverheads._id
+  //             ? { ...item, totalRate: calculatedTotalRate }
+  //             : item
+  //         )
+  //     );
+  //   } else {
+  //     setFormData((prevFormData) => ({
+  //       ...prevFormData,
+  //       [name]: value,
+  //     }));
+  //   }
+  // };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
-    
-    if (name === 'percentage') {
+  
+    if (name === "percentage") {
       const newPercentage = parseFloat(value);
-      const calculatedTotalRate = (newPercentage / 100 * totalCost).toFixed(2);
-      
-      setFormData(prevFormData => ({
+      const calculatedTotalRate = ((newPercentage / 100) * totalCost).toFixed(
+        2
+      );
+  
+      setFormData((prevFormData) => ({
         ...prevFormData,
         [name]: value,
-        totalRate: calculatedTotalRate
+        totalRate: calculatedTotalRate,
       }));
   
-      // Also update the state variable
-      // setoverheadsAndProfit(prevState => 
-      //   prevState.map(item => 
-      //     item._id === selectOverheads._id ? { ...item, totalRate: calculatedTotalRate } : item
-      //   )
-      // );
-      setoverheadsAndProfit(prevState => 
-        prevState.filter(item => item !== null).map(item => 
-          item._id === selectOverheads._id ? { ...item, totalRate: calculatedTotalRate } : item
-        )
-      );
+      // Only update overheadsAndProfit if selectOverheads exists
+      if (selectOverheads && selectOverheads._id) {
+        setoverheadsAndProfit((prevState) =>
+          prevState.filter((item) => item !== null)
+            .map((item) =>
+              item && item._id === selectOverheads._id
+                ? { ...item, totalRate: calculatedTotalRate }
+                : item
+            )
+        );
+      }
     } else {
-      setFormData(prevFormData => ({
+      setFormData((prevFormData) => ({
         ...prevFormData,
-        [name]: value
+        [name]: value,
       }));
     }
   };
@@ -180,15 +217,45 @@ const OverheadsVariable = ({ partDetails, totalCost, onTotalCountUpdate }) => {
   // Handle form submission
   // In the handleSubmit function, replace lines 152-153 with:
 
+  // const handleAutocompleteChange = (event, newValue) => {
+  //   setselectOverheads(newValue);
+
+  //   // Update formData with new percentage and calculate totalRate
+  //   if (newValue) {
+  //     const multiplier = newValue.percentage / 100;
+  //     const calculatedTotalRate = (multiplier * totalCost).toFixed(2);
+
+  //     setFormData((prevFormData) => ({
+  //       ...prevFormData,
+  //       categoryId: newValue.categoryId,
+  //       name: newValue.name,
+  //       percentage: newValue.percentage,
+  //       totalRate: calculatedTotalRate,
+  //     }));
+
+  //     // Also update the state variable
+  //     // setoverheadsAndProfit(prevState => {
+  //     //   return prevState.map(item =>
+  //     //     item._id === newValue._id ? { ...item, totalRate: calculatedTotalRate } : item
+  //     //   );
+  //     // });
+  //     setoverheadsAndProfit((prevState) =>
+  //       prevState.map((item) =>
+  //         item && item._id === selectOverheads._id
+  //           ? { ...item, totalRate: calculatedTotalRate }
+  //           : item
+  //       )
+  //     );
+  //   }
+  // };
 
   const handleAutocompleteChange = (event, newValue) => {
     setselectOverheads(newValue);
-    
-    // Update formData with new percentage and calculate totalRate
+  
     if (newValue) {
       const multiplier = newValue.percentage / 100;
       const calculatedTotalRate = (multiplier * totalCost).toFixed(2);
-      
+  
       setFormData((prevFormData) => ({
         ...prevFormData,
         categoryId: newValue.categoryId,
@@ -196,31 +263,29 @@ const OverheadsVariable = ({ partDetails, totalCost, onTotalCountUpdate }) => {
         percentage: newValue.percentage,
         totalRate: calculatedTotalRate,
       }));
-      
-      // Also update the state variable
-      // setoverheadsAndProfit(prevState => {
-      //   return prevState.map(item => 
-      //     item._id === newValue._id ? { ...item, totalRate: calculatedTotalRate } : item
-      //   );
-      // });
-      setoverheadsAndProfit(prevState => 
-        prevState.map(item => 
-          item && item._id === selectOverheads._id ? { ...item, totalRate: calculatedTotalRate } : item
-        )
-      );
+  
+      // Check if selectOverheads exists before accessing _id
+      if (selectOverheads && selectOverheads._id) {
+        setoverheadsAndProfit((prevState) =>
+          prevState.map((item) =>
+            item._id === selectOverheads._id
+              ? { ...item, totalRate: calculatedTotalRate }
+              : item
+          )
+        );
+      }
     }
   };
-
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setPosting(true);
     setError(null);
-  
+
     // Update formData with new percentage value
     const updatedFormData = { ...formData };
     updatedFormData.percentage = formData.percentage;
-  
+
     try {
       const response = await fetch(
         `${process.env.REACT_APP_BASE_URL}/api/parts/${partDetails._id}/overheadsAndProfits`,
@@ -237,13 +302,13 @@ const OverheadsVariable = ({ partDetails, totalCost, onTotalCountUpdate }) => {
           }),
         }
       );
-  
+
       if (response.ok) {
         await fetchOverheads();
       } else {
         throw new Error("Network response was not ok");
       }
-  
+
       setFormData({
         categoryId: "",
         name: "",
@@ -258,9 +323,7 @@ const OverheadsVariable = ({ partDetails, totalCost, onTotalCountUpdate }) => {
     }
   };
 
-
-
-   const handleEditSubmit = async (e) => {
+  const handleEditSubmit = async (e) => {
     e.preventDefault();
     setPosting(true);
     setError(null);
@@ -416,7 +479,9 @@ const OverheadsVariable = ({ partDetails, totalCost, onTotalCountUpdate }) => {
                     <td className="customer_name">{item.categoryId}</td>
                     <td className="customer_name">{item.name}</td>
                     <td className="customer_name">{item.percentage}</td>
-                    <td className="customer_name">{item.totalRate}</td>
+                    <td className="customer_name">
+                      {Math.ceil(item.totalRate)}
+                    </td>
                     <td>
                       <div className="d-flex gap-2">
                         <div className="edit">
@@ -501,35 +566,35 @@ const OverheadsVariable = ({ partDetails, totalCost, onTotalCountUpdate }) => {
               />
             </div>
             <div className="mb-3">
-  <label htmlFor="percentage" className="form-label">
-    Percentage
-  </label>
-  <input
-    type="number"
-    step="any"
-    min="0"
-    max="100"
-    className="form-control"
-    name="percentage"
-    value={formData.percentage || ""}
-    onChange={handleChange}
-    required
-  />
-</div>
+              <label htmlFor="percentage" className="form-label">
+                Percentage
+              </label>
+              <input
+                type="number"
+                step="any"
+                min="0"
+                max="100"
+                className="form-control"
+                name="percentage"
+                value={formData.percentage || ""}
+                onChange={handleChange}
+                required
+              />
+            </div>
 
-<div className="mb-3">
-  <label htmlFor="totalRate" className="form-label">
-    Total Rate
-  </label>
-  <input
-    type="number"
-    className="form-control"
-    name="totalRate"
-    value={formData.totalRate}
-    readOnly
-    required
-  />
-</div>
+            <div className="mb-3">
+              <label htmlFor="totalRate" className="form-label">
+                Total Rate
+              </label>
+              <input
+                type="number"
+                className="form-control"
+                name="totalRate"
+                value={formData.totalRate}
+                readOnly
+                required
+              />
+            </div>
 
             <ModalFooter>
               <Button type="submit" color="primary" disabled={posting}>

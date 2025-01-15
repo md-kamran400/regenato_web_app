@@ -483,7 +483,7 @@ const ManufacturingVariable = ({
         totalRate: (hours * parseFloat(prevFormData.hourlyRate || 0)).toFixed(
           2
         ),
-        times: `${inputValue} ${'day'}`,
+        times: `${inputValue} ${"day"}`,
       }));
     } else if (selectedOption === "hours") {
       setFormData((prevFormData) => ({
@@ -492,7 +492,7 @@ const ManufacturingVariable = ({
         totalRate: (
           parseFloat(inputValue) * parseFloat(prevFormData.hourlyRate || 0)
         ).toFixed(2),
-        times: `${inputValue} ${'hr'}`,
+        times: `${inputValue} ${"hr"}`,
       }));
     } else if (selectedOption === "minutes") {
       const hours = parseFloat(inputValue) / 60;
@@ -502,7 +502,7 @@ const ManufacturingVariable = ({
         totalRate: (hours * parseFloat(prevFormData.hourlyRate || 0)).toFixed(
           2
         ),
-        times: `${inputValue} ${'min'}`,
+        times: `${inputValue} ${"min"}`,
       }));
     }
 
@@ -557,7 +557,7 @@ const ManufacturingVariable = ({
         setFormData({
           categoryId: "",
           name: "",
-          times:"",
+          times: "",
           hours: 1,
           hourlyRate: "",
           totalRate: "",
@@ -1030,7 +1030,9 @@ const ManufacturingVariable = ({
               </label>
               <Autocomplete
                 options={shipmentvars}
-                getOptionLabel={(option) => option.name}
+                getOptionLabel={(option) =>
+                  `${option.categoryId} - ${option.name}`
+                }
                 onChange={handleAutocompleteChangestatic}
                 renderInput={(params) => (
                   <TextField
@@ -1041,7 +1043,34 @@ const ManufacturingVariable = ({
                 )}
               />
             </div>
-
+            <div className="mb-3">
+              <label htmlFor="time-select">Time</label>
+              <div className="input-group">
+                <input
+                  type="number"
+                  className="form-control"
+                  id="time-input"
+                  value={inputValue}
+                  onChange={handleInputChange}
+                  placeholder={`Enter ${selectedOption} value`}
+                  // disabled={!selectedOption}
+                />
+                <select
+                  id="time-select"
+                  onChange={(e) => {
+                    handleSelectChange(e);
+                    setSelectedOption(e.target.value);
+                  }}
+                  value={selectedOption}
+                  className="form-select"
+                >
+                  <option value="">-- Select --</option>
+                  <option value="day">Days</option>
+                  <option value="hours">Hours</option>
+                  <option value="minutes">Minutes</option>
+                </select>
+              </div>
+            </div>     
             <div className="mb-3">
               <label htmlFor="totalRate-field" className="form-label">
                 Total Rate
