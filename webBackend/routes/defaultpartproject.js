@@ -272,13 +272,13 @@ partproject.post(
         codeName,
       } = req.body;
 
-      if (!partId || !partName || !costPerUnit || !timePerUnit || !quantity) {
-        return res.status(400).json({
-          status: "error",
-          message:
-            "Missing required fields: partId, partName, costPerUnit, timePerUnit, or quantity",
-        });
-      }
+      // if (!partId || !partName || !costPerUnit || !timePerUnit || !quantity) {
+      //   return res.status(400).json({
+      //     status: "error",
+      //     message:
+      //       "Missing required fields: partId, partName, costPerUnit, timePerUnit, or quantity",
+      //   });
+      // }
 
       // Add the new part to the parts list
       const newPart = {
