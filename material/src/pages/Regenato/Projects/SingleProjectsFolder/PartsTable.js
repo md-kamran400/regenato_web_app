@@ -254,14 +254,13 @@ const PartsTable = React.memo(
     //   }
     // };
 
-
-
     ///projects/:projectId/partsLists/:listId/items
-    
 
     const handleAutocompleteChange = (event, newValue) => {
       if (newValue) {
-        const selectedPart = parts.find((part) => part.partName === newValue.partName);
+        const selectedPart = parts.find(
+          (part) => part.partName === newValue.partName
+        );
         if (selectedPart) {
           setSelectedPartData(selectedPart);
           setDetailedPartData({ ...selectedPart });
@@ -309,6 +308,68 @@ const PartsTable = React.memo(
       PartsTableFetch();
     }, [PartsTableFetch]);
 
+    const handleSubmit = async (event) => {
+      event.preventDefault();
+      setIsLoading(true);
+
+      const payload = {
+        partId: selectedPartData.id,
+        partName: selectedPartData.partName,
+        codeName: codeName,
+        costPerUnit: Number(costPerUnit),
+        timePerUnit: Number(timePerUnit),
+        quantity: Number(quantity),
+        rmVariables: detailedPartData.rmVariables || [],
+        manufacturingVariables: detailedPartData.manufacturingVariables || [],
+        shipmentVariables: detailedPartData.shipmentVariables || [],
+        overheadsAndProfits: detailedPartData.overheadsAndProfits || [],
+      };
+
+      try {
+        const response = await fetch(
+          // `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/partsLists/${partsList._id}/items`,
+          `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${_id}/partsLists/${partsList._id}/items`,
+
+          // /projects/:_id/partsLists/:listId/items
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error("Failed to add part");
+        }
+
+        const newPart = await response.json();
+
+        // Update local state with new part
+        setPartsListsItems((prevItems) => [...prevItems, newPart]);
+
+        onUpdatePrts(newPart);
+
+        setModalAdd(false);
+        setIsLoading(false);
+        toast.success("New Records Added successfully");
+        // Reset form
+        setSelectedPartData(null);
+        setCostPerUnit("");
+        setTimePerUnit("");
+        setQuantity(0);
+        setDetailedPartData({});
+
+        // Update the partsListItemsUpdated state
+        setPartsListItemsUpdated(true);
+      } catch (error) {
+        console.error("Error:", error);
+        setError("Failed to add part. Please try again.");
+        toast.error("Failed to add Records. Please try again.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
     // const handleSubmit = async (event) => {
     //   event.preventDefault();
     //   setIsLoading(true);
@@ -317,9 +378,9 @@ const PartsTable = React.memo(
     //     partId: selectedPartData.id,
     //     partName: selectedPartData.partName,
     //     codeName: codeName,
-    //     costPerUnit: Number(costPerUnit),
-    //     timePerUnit: Number(timePerUnit),
-    //     quantity: Number(quantity),
+    //     costPerUnit: parseFloat(costPerUnit),
+    //     timePerUnit: parseFloat(timePerUnit),
+    //     quantity: parseInt(quantity),
     //     rmVariables: detailedPartData.rmVariables || [],
     //     manufacturingVariables: detailedPartData.manufacturingVariables || [],
     //     shipmentVariables: detailedPartData.shipmentVariables || [],
@@ -328,10 +389,7 @@ const PartsTable = React.memo(
 
     //   try {
     //     const response = await fetch(
-    //       // `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/partsLists/${partsList._id}/items`,
     //       `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${_id}/partsLists/${partsList._id}/items`,
-
-    //       // /projects/:_id/partsLists/:listId/items
     //       {
     //         method: "POST",
     //         headers: { "Content-Type": "application/json" },
@@ -345,22 +403,17 @@ const PartsTable = React.memo(
 
     //     const newPart = await response.json();
 
-    //     // Update local state with new part
     //     setPartsListsItems((prevItems) => [...prevItems, newPart]);
-
     //     onUpdatePrts(newPart);
-
     //     setModalAdd(false);
     //     setIsLoading(false);
     //     toast.success("New Records Added successfully");
-    //     // Reset form
+
     //     setSelectedPartData(null);
     //     setCostPerUnit("");
     //     setTimePerUnit("");
     //     setQuantity(0);
     //     setDetailedPartData({});
-
-    //     // Update the partsListItemsUpdated state
     //     setPartsListItemsUpdated(true);
     //   } catch (error) {
     //     console.error("Error:", error);
@@ -371,60 +424,55 @@ const PartsTable = React.memo(
     //   }
     // };
 
+    // const handleSubmit = async (event) => {
+    //   event.preventDefault();
+    //   setIsLoading(true);
 
-    const handleSubmit = async (event) => {
-      event.preventDefault();
-      setIsLoading(true);
-    
-      const payload = {
-        partId: selectedPartData.id,
-        partName: selectedPartData.partName,
-        codeName: codeName,
-        costPerUnit: parseFloat(costPerUnit),
-        timePerUnit: parseFloat(timePerUnit),
-        quantity: parseInt(quantity),
-        rmVariables: detailedPartData.rmVariables || [],
-        manufacturingVariables: detailedPartData.manufacturingVariables || [],
-        shipmentVariables: detailedPartData.shipmentVariables || [],
-        overheadsAndProfits: detailedPartData.overheadsAndProfits || [],
-      };
-    
-      try {
-        const response = await fetch(
-          `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${_id}/partsLists/${partsList._id}/items`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-          }
-        );
-    
-        if (!response.ok) {
-          throw new Error("Failed to add part");
-        }
-    
-        const newPart = await response.json();
-    
-        setPartsListsItems((prevItems) => [...prevItems, newPart]);
-        onUpdatePrts(newPart);
-        setModalAdd(false);
-        setIsLoading(false);
-        toast.success("New Records Added successfully");
-    
-        setSelectedPartData(null);
-        setCostPerUnit("");
-        setTimePerUnit("");
-        setQuantity(0);
-        setDetailedPartData({});
-        setPartsListItemsUpdated(true);
-      } catch (error) {
-        console.error("Error:", error);
-        setError("Failed to add part. Please try again.");
-        toast.error("Failed to add Records. Please try again.");
-      } finally {
-        setIsLoading(false);
-      }
-    };
+    //   const payload = {
+    //     partId: selectedPartData.id,
+    //     partName: selectedPartData.partName,
+    //     codeName: codeName,
+    //     costPerUnit: parseFloat(costPerUnit),
+    //     timePerUnit: parseFloat(timePerUnit),
+    //     quantity: parseInt(quantity),
+    //     rmVariables: detailedPartData.rmVariables || [],
+    //     manufacturingVariables: detailedPartData.manufacturingVariables || [],
+    //     shipmentVariables: detailedPartData.shipmentVariables || [],
+    //     overheadsAndProfits: detailedPartData.overheadsAndProfits || [],
+    //   };
+
+    //   try {
+    //     const response = await fetch(
+    //       `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${_id}/partsLists/${partsList._id}/items`,
+    //       {
+    //         method: "POST",
+    //         headers: { "Content-Type": "application/json" },
+    //         body: JSON.stringify(payload),
+    //       }
+    //     );
+
+    //     if (!response.ok) {
+    //       throw new Error("Failed to add part");
+    //     }
+
+    //     const newPart = await response.json();
+    //     setPartsListsItems((prevItems) => [...prevItems, newPart]);
+    //     onUpdatePrts(newPart);
+    //     setModalAdd(false);
+    //     setIsLoading(false);
+    //     toast.success("New Records Added successfully");
+    //     setSelectedPartData(null);
+    //     setCostPerUnit("");
+    //     setTimePerUnit("");
+    //     setQuantity(0);
+    //     setDetailedPartData({});
+    //     setPartsListItemsUpdated(true);
+    //   } catch (error) {
+    //     console.error("Error:", error);
+    //     toast.error("Failed to add Records. Please try again.");
+    //     setIsLoading(false);
+    //   }
+    // };
 
     const handleEditQuantity = (item) => {
       setItemToEdit(item);
@@ -603,20 +651,20 @@ const PartsTable = React.memo(
       if (time === 0) {
         return 0;
       }
-      
-      let result = '';
-      
+
+      let result = "";
+
       const hours = Math.floor(time);
       const minutes = Math.round((time - hours) * 60);
-      
+
       if (hours > 0) {
         result += `${hours}h `;
       }
-      
+
       if (minutes > 0 || (hours === 0 && minutes !== 0)) {
         result += `${minutes}m`;
       }
-      
+
       return result.trim();
     };
 
@@ -769,12 +817,8 @@ const PartsTable = React.memo(
                                 {item.partName} ({item.Uid || ""}){" "}
                                 {item.codeName || ""}
                               </td>
-                              <td>
-                                {parseFloat(item.costPerUnit || 0)}
-                              </td>
-                              <td>
-                                {formatTime(item.timePerUnit || 0)}
-                              </td>
+                              <td>{parseFloat(item.costPerUnit || 0)}</td>
+                              <td>{formatTime(item.timePerUnit || 0)}</td>
                               <td>
                                 {parseInt(item.quantity || 0)}{" "}
                                 <button
@@ -789,13 +833,13 @@ const PartsTable = React.memo(
                               <td>
                                 {Math.ceil(
                                   parseFloat(item.costPerUnit || 0) *
-                                  parseInt(item.quantity || 0)
+                                    parseInt(item.quantity || 0)
                                 )}
                               </td>
                               <td>
                                 {formatTime(
                                   parseFloat(item.timePerUnit || 0) *
-                                  parseInt(item.quantity || 0)
+                                    parseInt(item.quantity || 0)
                                 )}
                               </td>
 
@@ -943,7 +987,7 @@ const PartsTable = React.memo(
                       {...params}
                       label="Select Part"
                       variant="outlined"
-                      required
+                      // required
                     />
                   )}
                 />
@@ -957,7 +1001,7 @@ const PartsTable = React.memo(
                     id="partId"
                     value={partId}
                     onChange={(e) => setPartId(e.target.value)}
-                    required
+                    // required
                   />
                 </div>
                 <div className="form-group">
@@ -984,10 +1028,10 @@ const PartsTable = React.memo(
                     id="costPerUnit"
                     value={costPerUnit}
                     onChange={(e) => setCostPerUnit(e.target.value)}
-                    required
+                    // required
                     onWheel={(e) => e.target.blur()}
                     onKeyDown={(e) => {
-                      if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                      if (e.key === "ArrowUp" || e.key === "ArrowDown") {
                         e.preventDefault();
                       }
                     }}
@@ -1004,10 +1048,10 @@ const PartsTable = React.memo(
                     id="timePerUnit"
                     value={timePerUnit}
                     onChange={(e) => setTimePerUnit(e.target.value)}
-                    required
+                    // required
                     onWheel={(e) => e.target.blur()}
                     onKeyDown={(e) => {
-                      if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                      if (e.key === "ArrowUp" || e.key === "ArrowDown") {
                         e.preventDefault();
                       }
                     }}
@@ -1034,240 +1078,245 @@ const PartsTable = React.memo(
                     required
                   />
                 </div>
-                <UncontrolledAccordion defaultOpen="1">
-                  {/* Raw Materials Accordion */}
-                  <AccordionItem>
-                    <AccordionHeader targetId="1">
-                      Raw Materials
-                    </AccordionHeader>
-                    <AccordionBody
-                      accordionId="1"
-                      className="accordion-body-custom"
-                    >
-                      {detailedPartData.rmVariables?.map((rm, index) => (
-                        <FormGroup
-                          key={rm._id}
-                          className="accordion-item-custom"
-                        >
-                          <Label className="accordion-label">{rm.name}</Label>
-                          <Input
-                            type="number"
-                            className="accordion-input"
-                            value={rm.netWeight || ""}
-                            onChange={(e) =>
-                              setDetailedPartData((prev) => ({
-                                ...prev,
-                                rmVariables: prev.rmVariables.map((item, idx) =>
-                                  idx === index
-                                    ? { ...item, netWeight: e.target.value }
-                                    : item
-                                ),
-                              }))
-                            }
-                            placeholder="Enter net weight"
-                          />
-                          <Input
-                            type="number"
-                            className="accordion-input"
-                            value={rm.pricePerKg || ""}
-                            onChange={(e) =>
-                              setDetailedPartData((prev) => ({
-                                ...prev,
-                                rmVariables: prev.rmVariables.map((item, idx) =>
-                                  idx === index
-                                    ? { ...item, pricePerKg: e.target.value }
-                                    : item
-                                ),
-                              }))
-                            }
-                            placeholder="Enter price per kg"
-                          />
-                          <p className="accordion-total-rate">
-                            Total Rate: {rm.totalRate}
-                          </p>
-                        </FormGroup>
-                      ))}
-                    </AccordionBody>
-                  </AccordionItem>
-
-                  {/* Manufacturing Variable Accordion */}
-                  <AccordionItem>
-                    <AccordionHeader targetId="2">
-                      Manufacturing Variable
-                    </AccordionHeader>
-                    <AccordionBody accordionId="2">
-                      {detailedPartData.manufacturingVariables?.map(
-                        (man, index) => (
+                <div style={{ display: "none" }}>
+                  <UncontrolledAccordion defaultOpen="1">
+                    {/* Raw Materials Accordion */}
+                    <AccordionItem>
+                      <AccordionHeader targetId="1">
+                        Raw Materials
+                      </AccordionHeader>
+                      <AccordionBody
+                        accordionId="1"
+                        className="accordion-body-custom"
+                      >
+                        {detailedPartData.rmVariables?.map((rm, index) => (
                           <FormGroup
-                            key={man._id}
+                            key={rm._id}
                             className="accordion-item-custom"
                           >
-                            <Label className="accordion-label">
-                              {man.name}
-                            </Label>
+                            <Label className="accordion-label">{rm.name}</Label>
                             <Input
                               type="number"
                               className="accordion-input"
-                              value={man.hours || ""}
+                              value={rm.netWeight || ""}
                               onChange={(e) =>
                                 setDetailedPartData((prev) => ({
                                   ...prev,
-                                  manufacturingVariables:
-                                    prev.manufacturingVariables.map(
-                                      (item, idx) =>
-                                        idx === index
-                                          ? { ...item, hours: e.target.value }
-                                          : item
-                                    ),
+                                  rmVariables: prev.rmVariables.map(
+                                    (item, idx) =>
+                                      idx === index
+                                        ? { ...item, netWeight: e.target.value }
+                                        : item
+                                  ),
                                 }))
                               }
-                              placeholder="Enter hours"
+                              placeholder="Enter net weight"
                             />
                             <Input
                               type="number"
                               className="accordion-input"
-                              value={man.times || ""}
+                              value={rm.pricePerKg || ""}
                               onChange={(e) =>
                                 setDetailedPartData((prev) => ({
                                   ...prev,
-                                  manufacturingVariables:
-                                    prev.manufacturingVariables.map(
-                                      (item, idx) =>
-                                        idx === index
-                                          ? { ...item, times: e.target.value }
-                                          : item
-                                    ),
+                                  rmVariables: prev.rmVariables.map(
+                                    (item, idx) =>
+                                      idx === index
+                                        ? {
+                                            ...item,
+                                            pricePerKg: e.target.value,
+                                          }
+                                        : item
+                                  ),
                                 }))
                               }
-                              placeholder="Enter Times"
+                              placeholder="Enter price per kg"
                             />
-                            <Input
-                              type="number"
-                              className="accordion-input"
-                              value={man.hourlyRate || ""}
-                              onChange={(e) =>
-                                setDetailedPartData((prev) => ({
-                                  ...prev,
-                                  manufacturingVariables:
-                                    prev.manufacturingVariables.map(
-                                      (item, idx) =>
+                            <p className="accordion-total-rate">
+                              Total Rate: {rm.totalRate}
+                            </p>
+                          </FormGroup>
+                        ))}
+                      </AccordionBody>
+                    </AccordionItem>
+
+                    {/* Manufacturing Variable Accordion */}
+                    <AccordionItem>
+                      <AccordionHeader targetId="2">
+                        Manufacturing Variable
+                      </AccordionHeader>
+                      <AccordionBody accordionId="2">
+                        {detailedPartData.manufacturingVariables?.map(
+                          (man, index) => (
+                            <FormGroup
+                              key={man._id}
+                              className="accordion-item-custom"
+                            >
+                              <Label className="accordion-label">
+                                {man.name}
+                              </Label>
+                              <Input
+                                type="number"
+                                className="accordion-input"
+                                value={man.hours || ""}
+                                onChange={(e) =>
+                                  setDetailedPartData((prev) => ({
+                                    ...prev,
+                                    manufacturingVariables:
+                                      prev.manufacturingVariables.map(
+                                        (item, idx) =>
+                                          idx === index
+                                            ? { ...item, hours: e.target.value }
+                                            : item
+                                      ),
+                                  }))
+                                }
+                                placeholder="Enter hours"
+                              />
+                              <Input
+                                type="number"
+                                className="accordion-input"
+                                value={man.times || ""}
+                                onChange={(e) =>
+                                  setDetailedPartData((prev) => ({
+                                    ...prev,
+                                    manufacturingVariables:
+                                      prev.manufacturingVariables.map(
+                                        (item, idx) =>
+                                          idx === index
+                                            ? { ...item, times: e.target.value }
+                                            : item
+                                      ),
+                                  }))
+                                }
+                                placeholder="Enter Times"
+                              />
+                              <Input
+                                type="number"
+                                className="accordion-input"
+                                value={man.hourlyRate || ""}
+                                onChange={(e) =>
+                                  setDetailedPartData((prev) => ({
+                                    ...prev,
+                                    manufacturingVariables:
+                                      prev.manufacturingVariables.map(
+                                        (item, idx) =>
+                                          idx === index
+                                            ? {
+                                                ...item,
+                                                hourlyRate: e.target.value,
+                                              }
+                                            : item
+                                      ),
+                                  }))
+                                }
+                                placeholder="Enter hourly rate"
+                              />
+                              <p className="accordion-total-rate">
+                                Total Rate: {man.totalRate}
+                              </p>
+                            </FormGroup>
+                          )
+                        )}
+                      </AccordionBody>
+                    </AccordionItem>
+
+                    {/* Shipment Variable Accordion */}
+                    <AccordionItem>
+                      <AccordionHeader targetId="3">
+                        Shipment Variable
+                      </AccordionHeader>
+                      <AccordionBody accordionId="3">
+                        {detailedPartData.shipmentVariables?.map(
+                          (ship, index) => (
+                            <FormGroup
+                              key={ship._id}
+                              className="accordion-item-custom"
+                            >
+                              <Label className="accordion-label">
+                                {ship.name}
+                              </Label>
+                              <Input
+                                type="number"
+                                className="accordion-input"
+                                value={ship.hourlyRate || ""}
+                                onChange={(e) =>
+                                  setDetailedPartData((prev) => ({
+                                    ...prev,
+                                    shipmentVariables:
+                                      prev.shipmentVariables.map((item, idx) =>
                                         idx === index
                                           ? {
                                               ...item,
                                               hourlyRate: e.target.value,
                                             }
                                           : item
-                                    ),
-                                }))
-                              }
-                              placeholder="Enter hourly rate"
-                            />
-                            <p className="accordion-total-rate">
-                              Total Rate: {man.totalRate}
-                            </p>
-                          </FormGroup>
-                        )
-                      )}
-                    </AccordionBody>
-                  </AccordionItem>
+                                      ),
+                                  }))
+                                }
+                                placeholder="Enter hourly rate"
+                              />
+                              <p className="accordion-total-rate">
+                                Total Rate: {ship.hourlyRate}
+                              </p>
+                            </FormGroup>
+                          )
+                        )}
+                      </AccordionBody>
+                    </AccordionItem>
 
-                  {/* Shipment Variable Accordion */}
-                  <AccordionItem>
-                    <AccordionHeader targetId="3">
-                      Shipment Variable
-                    </AccordionHeader>
-                    <AccordionBody accordionId="3">
-                      {detailedPartData.shipmentVariables?.map(
-                        (ship, index) => (
-                          <FormGroup
-                            key={ship._id}
-                            className="accordion-item-custom"
-                          >
-                            <Label className="accordion-label">
-                              {ship.name}
-                            </Label>
-                            <Input
-                              type="number"
-                              className="accordion-input"
-                              value={ship.hourlyRate || ""}
-                              onChange={(e) =>
-                                setDetailedPartData((prev) => ({
-                                  ...prev,
-                                  shipmentVariables: prev.shipmentVariables.map(
-                                    (item, idx) =>
-                                      idx === index
-                                        ? {
-                                            ...item,
-                                            hourlyRate: e.target.value,
-                                          }
-                                        : item
-                                  ),
-                                }))
-                              }
-                              placeholder="Enter hourly rate"
-                            />
-                            <p className="accordion-total-rate">
-                              Total Rate: {ship.hourlyRate}
-                            </p>
-                          </FormGroup>
-                        )
-                      )}
-                    </AccordionBody>
-                  </AccordionItem>
+                    {/* Overheads and Profit Accordion */}
+                    <AccordionItem>
+                      <AccordionHeader targetId="4">
+                        Overheads and Profit
+                      </AccordionHeader>
+                      <AccordionBody accordionId="4">
+                        {detailedPartData.overheadsAndProfits?.map(
+                          (overhead, index) => (
+                            <FormGroup
+                              key={overhead._id}
+                              className="accordion-item-custom"
+                            >
+                              <Label className="accordion-label">
+                                {overhead.name}
+                              </Label>
+                              <Input
+                                type="number"
+                                className="accordion-input"
+                                value={overhead.percentage || ""}
+                                onChange={(e) =>
+                                  setDetailedPartData((prev) => ({
+                                    ...prev,
+                                    overheadsAndProfits:
+                                      prev.overheadsAndProfits.map(
+                                        (item, idx) =>
+                                          idx === index
+                                            ? {
+                                                ...item,
+                                                percentage: e.target.value,
+                                              }
+                                            : item
+                                      ),
+                                  }))
+                                }
+                                placeholder="Enter percentage"
+                              />
+                              <p className="accordion-total-rate">
+                                Total Rate: {overhead.totalRate}
+                              </p>
+                            </FormGroup>
+                          )
+                        )}
+                      </AccordionBody>
+                    </AccordionItem>
+                  </UncontrolledAccordion>
+                </div>
 
-                  {/* Overheads and Profit Accordion */}
-                  <AccordionItem>
-                    <AccordionHeader targetId="4">
-                      Overheads and Profit
-                    </AccordionHeader>
-                    <AccordionBody accordionId="4">
-                      {detailedPartData.overheadsAndProfits?.map(
-                        (overhead, index) => (
-                          <FormGroup
-                            key={overhead._id}
-                            className="accordion-item-custom"
-                          >
-                            <Label className="accordion-label">
-                              {overhead.name}
-                            </Label>
-                            <Input
-                              type="number"
-                              className="accordion-input"
-                              value={overhead.percentage || ""}
-                              onChange={(e) =>
-                                setDetailedPartData((prev) => ({
-                                  ...prev,
-                                  overheadsAndProfits:
-                                    prev.overheadsAndProfits.map((item, idx) =>
-                                      idx === index
-                                        ? {
-                                            ...item,
-                                            percentage: e.target.value,
-                                          }
-                                        : item
-                                    ),
-                                }))
-                              }
-                              placeholder="Enter percentage"
-                            />
-                            <p className="accordion-total-rate">
-                              Total Rate: {overhead.totalRate}
-                            </p>
-                          </FormGroup>
-                        )
-                      )}
-                    </AccordionBody>
-                  </AccordionItem>
-                </UncontrolledAccordion>
                 <Button
+                  style={{ marginLeft: "22rem" }}
                   type="submit"
                   color="primary"
-                  disabled={
-                    !selectedPartData ||
-                    !costPerUnit ||
-                    !timePerUnit ||
-                    !quantity
-                  }
+                  disabled={!selectedPartData || !quantity}
                 >
                   Add
                 </Button>
