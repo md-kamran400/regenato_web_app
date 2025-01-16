@@ -40,6 +40,67 @@ partproject.get("/projects", async (req, res) => {
 });
 
 // Get a single project by ID
+// partproject.get("/projects/:id", async (req, res) => {
+//   try {
+//     const projectId = req.params.id;
+
+//     if (!mongoose.Types.ObjectId.isValid(projectId)) {
+//       return res.status(400).json({ error: "Invalid project ID format" });
+//     }
+
+//     const project = await PartListProjectModel.findById(projectId);
+//     if (!project) {
+//       return res.status(404).json({ error: "Project not found" });
+//     }
+
+//     res.status(200).json(project);
+//   } catch (error) {
+//     res.status(500).json({ error: error.message });
+//   }
+// });
+
+// Get a single project by ID
+// partproject.get("/projects/:id", async (req, res) => {
+//   try {
+//     const projectId = req.params.id;
+
+//     if (!mongoose.Types.ObjectId.isValid(projectId)) {
+//       return res.status(400).json({ error: "Invalid project ID format" });
+//     }
+
+//     const project = await PartListProjectModel.findById(projectId);
+//     if (!project) {
+//       return res.status(404).json({ error: "Project not found" });
+//     }
+
+//     // Calculate total cost and total hours for each parts list
+//     let totalProjectCost = 0;
+//     let totalProjectHours = 0;
+
+//     project.partsLists.forEach((partsList) => {
+//       partsList.partsListItems.forEach((item) => {
+//         const itemTotalCost = item.costPerUnit * item.quantity;
+//         const itemTotalHours = item.timePerUnit * item.quantity;
+
+//         totalProjectCost += itemTotalCost;
+//         totalProjectHours += itemTotalHours;
+//       });
+//     });
+
+//     // Store calculated values in the project document
+//     project.costPerUnit = totalProjectCost;
+//     project.timePerUnit = totalProjectHours;
+
+//     // Save the changes to the database
+//     await project.save();
+
+//     res.status(200).json(project);
+//   } catch (error) {
+//     res.status(500).json({ error: error.message });
+//   }
+// });
+
+// Get a single project by ID
 partproject.get("/projects/:id", async (req, res) => {
   try {
     const projectId = req.params.id;
@@ -52,6 +113,37 @@ partproject.get("/projects/:id", async (req, res) => {
     if (!project) {
       return res.status(404).json({ error: "Project not found" });
     }
+
+    // Calculate total cost and total hours for each parts list
+    let totalProjectCost = 0;
+    let totalProjectHours = 0;
+    const machineHours = {};
+
+    project.partsLists.forEach((partsList) => {
+      partsList.partsListItems.forEach((item) => {
+        const itemTotalCost = item.costPerUnit * item.quantity;
+        const itemTotalHours = item.timePerUnit * item.quantity;
+
+        totalProjectCost += itemTotalCost;
+        totalProjectHours += itemTotalHours;
+
+        // Calculate individual machine hours
+        item.manufacturingVariables.forEach((machine) => {
+          const machineName = machine.name;
+          const totalHours = machine.hours * item.quantity;
+          machineHours[machineName] =
+            (machineHours[machineName] || 0) + totalHours;
+        });
+      });
+    });
+
+    // Update the project document with calculated values
+    project.costPerUnit = totalProjectCost;
+    project.timePerUnit = totalProjectHours;
+    project.machineHours = machineHours;
+
+    // Save the changes to the database
+    await project.save();
 
     res.status(200).json(project);
   } catch (error) {

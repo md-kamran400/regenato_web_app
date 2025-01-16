@@ -623,6 +623,34 @@ PartRoutes.get("/:_id/rmVariables", async (req, res) => {
 
 // POST - Add a new RM Variable to a specific part
 
+PartRoutes.post("/:_id/rmVariables", async (req, res) => {
+  try {
+    const newRMVariable = {
+      categoryId: req.body.categoryId,
+      name: req.body.name,
+      netWeight: req.body.netWeight,
+      pricePerKg: req.body.pricePerKg,
+      totalRate:
+        req.body.netWeight && req.body.pricePerKg
+          ? req.body.netWeight * req.body.pricePerKg
+          : req.body.totalRate,
+    };
+
+    const updatedPart = await PartsModel.findByIdAndUpdate(
+      req.params._id,
+      { $push: { rmVariables: newRMVariable } },
+      { new: true }
+    );
+
+    if (!updatedPart) {
+      return res.status(404).json({ message: "Part not found" });
+    }
+
+    res.status(201).json(updatedPart);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
 // PartRoutes.post("/:_id/rmVariables", async (req, res) => {
 //   try {
 //     const newRMVariable = {
@@ -630,7 +658,6 @@ PartRoutes.get("/:_id/rmVariables", async (req, res) => {
 //       name: req.body.name,
 //       netWeight: req.body.netWeight,
 //       pricePerKg: req.body.pricePerKg,
-//       // totalRate: req.body.totalRate ,
 //       totalRate: req.body.netWeight * req.body.pricePerKg,
 //     };
 
@@ -649,31 +676,6 @@ PartRoutes.get("/:_id/rmVariables", async (req, res) => {
 //     res.status(400).json({ message: error.message });
 //   }
 // });
-PartRoutes.post("/:_id/rmVariables", async (req, res) => {
-  try {
-    const newRMVariable = {
-      categoryId: req.body.categoryId,
-      name: req.body.name,
-      netWeight: req.body.netWeight,
-      pricePerKg: req.body.pricePerKg,
-      totalRate: req.body.netWeight * req.body.pricePerKg,
-    };
-
-    const updatedPart = await PartsModel.findByIdAndUpdate(
-      req.params._id,
-      { $push: { rmVariables: newRMVariable } },
-      { new: true }
-    );
-
-    if (!updatedPart) {
-      return res.status(404).json({ message: "Part not found" });
-    }
-
-    res.status(201).json(updatedPart);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
-});
 
 // PUT - Update an RM Variable within a part
 PartRoutes.put("/:_id/rmVariables/:variableId", async (req, res) => {
@@ -759,6 +761,35 @@ PartRoutes.get("/:_id/manufacturingVariables", async (req, res) => {
 //   }
 // });
 
+PartRoutes.post("/:_id/manufacturingVariables", async (req, res) => {
+  try {
+    const newManufacturingVariable = {
+      categoryId: req.body.categoryId,
+      name: req.body.name,
+      times: req.body.times,
+      hours: req.body.hours,
+      hourlyRate: req.body.hourlyRate,
+      totalRate:
+        req.body.hours && req.body.hourlyRate
+          ? req.body.hours * req.body.hourlyRate
+          : req.body.totalRate,
+    };
+
+    const updatedPart = await PartsModel.findByIdAndUpdate(
+      req.params._id,
+      { $push: { manufacturingVariables: newManufacturingVariable } },
+      { new: true }
+    );
+
+    if (!updatedPart) {
+      return res.status(404).json({ message: "Part not found" });
+    }
+
+    res.status(201).json(updatedPart);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
 // PartRoutes.post("/:_id/manufacturingVariables", async (req, res) => {
 //   try {
 //     const newManufacturingVariable = {
@@ -767,8 +798,6 @@ PartRoutes.get("/:_id/manufacturingVariables", async (req, res) => {
 //       times: req.body.times,
 //       hours: req.body.hours,
 //       hourlyRate: req.body.hourlyRate,
-//       // totalRate: req.body.totalRate,
-//       // totaltime
 //       totalRate: req.body.hours * req.body.hourlyRate,
 //     };
 
@@ -787,32 +816,6 @@ PartRoutes.get("/:_id/manufacturingVariables", async (req, res) => {
 //     res.status(400).json({ message: error.message });
 //   }
 // });
-PartRoutes.post("/:_id/manufacturingVariables", async (req, res) => {
-  try {
-    const newManufacturingVariable = {
-      categoryId: req.body.categoryId,
-      name: req.body.name,
-      times: req.body.times,
-      hours: req.body.hours,
-      hourlyRate: req.body.hourlyRate,
-      totalRate: req.body.hours * req.body.hourlyRate,
-    };
-
-    const updatedPart = await PartsModel.findByIdAndUpdate(
-      req.params._id,
-      { $push: { manufacturingVariables: newManufacturingVariable } },
-      { new: true }
-    );
-
-    if (!updatedPart) {
-      return res.status(404).json({ message: "Part not found" });
-    }
-
-    res.status(201).json(updatedPart);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
-});
 
 // PUT - Update an Manufacturing Variable within a part
 PartRoutes.put("/:_id/manufacturingVariables/:variableId", async (req, res) => {

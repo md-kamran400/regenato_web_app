@@ -83,7 +83,11 @@ const partSchema = new mongoose.Schema({
   shipmentVariables: [shipmentVariableSchema],
   overheadsAndProfits: [overheadsAndProfitsSchema],
   partsCalculations: [partsCalculationsSchema],
-  index: { type: Number }
+  index: { type: Number },
+
+  //for time traking
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now }
 });
 // const partSchema = new mongoose.Schema({
 //   id: { type: String, unique: true },  // add unique: true to ensure no duplicates
