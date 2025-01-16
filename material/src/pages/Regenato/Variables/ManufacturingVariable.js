@@ -230,13 +230,13 @@ const ManufacturingVariable = () => {
     setPosting(true);
     setError(null);
     // Check if all fields are filled
-    const hasEmptyFields = Object.values(formData).some((value) => !value);
+    // const hasEmptyFields = Object.values(formData).some((value) => !value);
 
-    if (hasEmptyFields) {
-      setError("Please fill all fields before submitting.");
-      setPosting(false);
-      return;
-    }
+    // if (hasEmptyFields) {
+    //   setError("Please fill all fields before submitting.");
+    //   setPosting(false);
+    //   return;
+    // }
 
     try {
       const response = await fetch(
@@ -669,7 +669,7 @@ const ManufacturingVariable = () => {
                 placeholder="Enter Hourly Rate"
                 value={formData.hourlyrate}
                 onChange={handleChange}
-                require
+                // require
               />
             </div>
 

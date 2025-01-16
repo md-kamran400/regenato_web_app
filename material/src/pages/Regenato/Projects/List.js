@@ -102,8 +102,6 @@ const List = () => {
     fetchManufacturingData();
   }, [fetchManufacturingData]);
 
- 
-
   const handleDuplicateProject = async (item) => {
     try {
       const response = await fetch(
@@ -172,7 +170,6 @@ const List = () => {
     setModal_category(!modal_category);
   };
 
-
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     setError(null);
@@ -191,8 +188,6 @@ const List = () => {
       setIsLoading(false);
     }
   }, [filterType]);
-
-
 
   useEffect(() => {
     fetchData();
@@ -263,7 +258,6 @@ const List = () => {
       }
     }
   };
-
 
   const handleEditSubmit = async (e) => {
     e.preventDefault();
@@ -372,6 +366,34 @@ const List = () => {
     return monthsRequired.toFixed(2);
   };
 
+  // In your List component, add this function
+  const getMachineHours = (project, machineName) => {
+    return project.machineHours && project.machineHours[machineName]
+      ? project.machineHours[machineName]
+      : 0;
+  };
+
+  const formatTime = (time) => {
+    if (time === 0) {
+      return 0;
+    }
+
+    let result = "";
+
+    const hours = Math.floor(time);
+    const minutes = Math.round((time - hours) * 60);
+
+    if (hours > 0) {
+      result += `${hours}h `;
+    }
+
+    if (minutes > 0 || (hours === 0 && minutes !== 0)) {
+      result += `${minutes}m`;
+    }
+
+    return result.trim();
+  };
+
   return (
     <React.Fragment>
       <ToastContainer closeButton={false} />
@@ -388,7 +410,7 @@ const List = () => {
             </Button>
           </div>
         </div>
-        
+
         <div className="col-sm-7 ms-auto">
           <div className="d-flex justify-content-sm-end gap-2 align-items-center">
             <div className="search-box ms-2 col-sm-5 d-flex align-items-center">
@@ -456,6 +478,8 @@ const List = () => {
                     Name
                   </th>
                   <th className="child_parts">Production Order-Types</th>
+                  <th className="child_parts">Total Cost</th>
+                  <th className="child_parts">Total Hour</th>
                   {manufacturingData.map((item) => (
                     <th key={item._id} className="child_parts">
                       {item.name}
@@ -475,27 +499,22 @@ const List = () => {
                         backgroundColor: "rgb(231, 229, 229)",
                       }}
                     >
-                      <Link
-                        to={`/projectSection/${item._id}`}
-                        // style={{
-                        //   color: "#007bff",
-                        //   textDecoration: "none",
-                        // }}
-                      >
+                      <Link to={`/projectSection/${item._id}`}>
                         {item.projectName}
                       </Link>
                     </td>
                     <td>{item.projectType}</td>
-                    {manufacturingData.map((column) => (
-                      <td key={column._id}>
-                        {getHoursForPartListItems(
-                          column.name,
-                          item.quantity || 0,
-                          item.manufacturingVariables || 0
+                    <td>{Math.ceil(item.costPerUnit)}</td>
+                    <td>{formatTime(item.timePerUnit)}</td>
+                    {manufacturingData.map((machine) => (
+                      <td key={machine._id}>
+                        {formatTime(
+                          item.machineHours && item.machineHours[machine.name]
+                            ? item.machineHours[machine.name]
+                            : 0
                         )}
                       </td>
                     ))}
-
                     <td className="sticky-col">
                       <UncontrolledDropdown direction="start">
                         <DropdownToggle

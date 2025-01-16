@@ -96,13 +96,24 @@ const RmVariable = ({
     setModalList(!modal_add);
   };
 
+  // const tog_static_add = () => {
+  //   setFormData({
+  //     categoryId: "",
+  //     name: "",
+  //     totalRate: "",
+  //   });
+
+  //   setModalstatic_add(!modal_static_add);
+  // };
+
   const tog_static_add = () => {
     setFormData({
       categoryId: "",
       name: "",
-      totalRate: "",
+      netWeight: 0,
+      pricePerKg: 0,
+      totalRate: 0,
     });
-
     setModalstatic_add(!modal_static_add);
   };
 
@@ -204,6 +215,8 @@ const RmVariable = ({
 
   const totalRate = formData.pricePerKg * formData.netWeight;
 
+ 
+
   const handleAutocompleteChangestatic = (event, newValue) => {
     setSelectedRmVariable(newValue);
     if (newValue) {
@@ -213,23 +226,28 @@ const RmVariable = ({
 
       if (selectedItem) {
         setStaticFormData({
-          categoryId: newValue.categoryId, // Use the categoryId from the formData
+          categoryId: newValue.categoryId,
           name: newValue.name,
-          totalRate: selectedItem.totalRate,
+          netWeight: selectedItem.netWeight || 0,
+          pricePerKg: selectedItem.pricePerKg || 0,
+          totalRate: 0, // Set totalRate to 0 to allow manual input
         });
       } else {
-        // If no matching item is found, still set the categoryId to the one in formData
         setStaticFormData({
-          categoryId: staticFormData.categoryId,
+          categoryId: newValue.categoryId,
           name: newValue.name,
-          totalRate: newValue.totalRate,
+          netWeight: 0,
+          pricePerKg: 0,
+          totalRate: 0,
         });
       }
     } else {
       setStaticFormData({
         categoryId: "",
         name: "",
-        totalRate: "",
+        netWeight: 0,
+        pricePerKg: 0,
+        totalRate: 0,
       });
     }
   };
@@ -326,21 +344,23 @@ const RmVariable = ({
           body: JSON.stringify({
             categoryId: staticFormData.categoryId,
             name: staticFormData.name,
-            totalRate: staticFormData.totalRate, // Use the rounded value
+            netWeight: parseFloat(staticFormData.netWeight) || 0,
+            pricePerKg: parseFloat(staticFormData.pricePerKg) || 0,
+            totalRate: parseFloat(staticFormData.totalRate) || 0,
           }),
         }
       );
 
       if (response.ok) {
         const result = await response.json();
-
         await fetchRmData(); // Refetch the data to update the table
         setStaticFormData({
           categoryId: "",
           name: "",
-          totalRate: "",
+          netWeight: 0,
+          pricePerKg: 0,
+          totalRate: 0,
         });
-        setModalList(false); // Close the normal add modal
         setModalstatic_add(false); // Close the static add modal
       } else {
         throw new Error("Network response was not ok");
@@ -577,6 +597,7 @@ const RmVariable = ({
         </ModalBody>
       </Modal>
 
+      {/* static unit coast modal */}
       <Modal isOpen={modal_static_add} toggle={tog_static_add}>
         <ModalHeader toggle={tog_static_add}>Add Unit Cost</ModalHeader>
         <ModalBody>
@@ -615,24 +636,25 @@ const RmVariable = ({
             </div>
 
             <div className="mb-3">
-              <div className="mb-3">
-                <label htmlFor="totalRate" className="form-label">
-                  Total Rate
-                </label>
-                <input
-                  type="number"
-                  className="form-control"
-                  name="totalRate"
-                  value={staticFormData.totalRate || 0}
-                  onChange={(e) =>
-                    setStaticFormData({
-                      ...staticFormData,
-                      totalRate: e.target.value,
-                    })
-                  }
-                  required
-                />
-              </div>
+              <label htmlFor="totalRate-field" className="form-label">
+                Total Rate
+              </label>
+              <input
+                type="number"
+                id="totalRate-field"
+                className="form-control"
+                name="totalRate"
+                placeholder="Enter Total Rate"
+                value={staticFormData.totalRate}
+                onChange={(e) => {
+                  const newTotalRate = parseFloat(e.target.value);
+                  setStaticFormData((prevFormData) => ({
+                    ...prevFormData,
+                    totalRate: newTotalRate,
+                  }));
+                }}
+                required
+              />
             </div>
             <ModalFooter>
               <Button type="submit" color="primary" disabled={posting}>

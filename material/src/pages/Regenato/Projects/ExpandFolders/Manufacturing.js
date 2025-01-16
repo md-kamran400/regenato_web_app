@@ -228,6 +228,27 @@ const Manufacturing = ({
     }
   };
 
+  const formatTime = (time) => {
+    if (time === 0) {
+      return 0;
+    }
+
+    let result = "";
+
+    const hours = Math.floor(time);
+    const minutes = Math.round((time - hours) * 60);
+
+    if (hours > 0) {
+      result += `${hours}h `;
+    }
+
+    if (minutes > 0 || (hours === 0 && minutes !== 0)) {
+      result += `${minutes}m`;
+    }
+
+    return result.trim();
+  };
+
   return (
     <div className="manufacturing-container">
       <h5 className="section-title">
@@ -249,7 +270,7 @@ const Manufacturing = ({
             <tr key={index}>
               <td>{item.name}</td>
               <td>{item.times || "--"}</td>
-              <td>{item.hours}</td>
+              <td>{formatTime(item.hours)}</td>
               {/* <td>{item.hours * 60 >= 0 ? `${Math.floor(item.hours * 60)} Min` : '--'}</td> */}
               {/* <td>
                 {Math.floor(item.hours)} hours {(item.hours % 1) * 60} minutes

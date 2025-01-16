@@ -218,14 +218,27 @@ const SinglePart = () => {
     if (time === 0) {
       return 0;
     }
+
+    let result = "";
+
     const hours = Math.floor(time);
     const minutes = Math.round((time - hours) * 60);
+
     if (hours >= 24) {
       const days = Math.floor(hours / 24);
       const remainingHours = hours % 24;
-      return `${days}d ${remainingHours}h ${minutes}min`;
+
+      if (days > 0) result += `${days}d `;
+      if (remainingHours > 0) result += `${remainingHours}h `;
+      if (minutes > 0) result += `${minutes}m`;
+
+      return result.trim();
     }
-    return `${hours}h ${minutes}min`;
+
+    if (hours > 0) result += `${hours}h `;
+    if (minutes > 0) result += `${minutes}m`;
+
+    return result.trim();
   };
 
   // console.log(typeof costPerUnitAvg)
@@ -300,7 +313,7 @@ const SinglePart = () => {
                   <div className="d-flex justify-content-between align-items-center">
                     <h6 className="fs-15 fw-bold mb-0">Cost Per Unit:</h6>
                     <span className="text-muted fs-13">
-                      {costPerUnitAvg || 0}
+                      {Math.ceil(costPerUnitAvg) || 0}
                     </span>
                   </div>
                 </CardBody>
@@ -435,7 +448,7 @@ const SinglePart = () => {
                     <div className="d-flex align-items-center mt-3 mb-3">
                       <p className="fw-bold mb-0 me-2">Total Cost:</p>
                       <span className="text-muted fs-13">
-                        {manufacturingCount}
+                        {Math.round(manufacturingCount)}
                       </span>
                     </div>
                     <ManufacturingVariable
@@ -470,7 +483,9 @@ const SinglePart = () => {
                     />
                     <div className="d-flex align-items-center mt-3 mb-3">
                       <p className="fw-bold mb-0 me-2">Total Cost:</p>
-                      <span className="text-muted fs-13">{shipmentCount}</span>
+                      <span className="text-muted fs-13">
+                        {Math.round(shipmentCount)}
+                      </span>
                     </div>
                     <ShipmentVariable
                       partDetails={partDetails}
@@ -499,7 +514,9 @@ const SinglePart = () => {
                     />
                     <div className="d-flex align-items-center mt-3 mb-3">
                       <p className="fw-bold mb-0 me-2">Total Cost:</p>
-                      <span className="text-muted fs-13">{Math.round(overheadCount) || 0}</span>
+                      <span className="text-muted fs-13">
+                        {Math.round(overheadCount) || 0}
+                      </span>
                     </div>
                     <OverheadsVariable
                       partDetails={partDetails}

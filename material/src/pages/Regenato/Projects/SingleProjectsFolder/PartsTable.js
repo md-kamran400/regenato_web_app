@@ -597,7 +597,28 @@ const PartsTable = React.memo(
 
     // console.log(_id);
 
-    console.log(partsListItems);
+    // console.log(partsListItems);
+
+    const formatTime = (time) => {
+      if (time === 0) {
+        return 0;
+      }
+      
+      let result = '';
+      
+      const hours = Math.floor(time);
+      const minutes = Math.round((time - hours) * 60);
+      
+      if (hours > 0) {
+        result += `${hours}h `;
+      }
+      
+      if (minutes > 0 || (hours === 0 && minutes !== 0)) {
+        result += `${minutes}m`;
+      }
+      
+      return result.trim();
+    };
 
     return (
       <>
@@ -749,10 +770,10 @@ const PartsTable = React.memo(
                                 {item.codeName || ""}
                               </td>
                               <td>
-                                {parseFloat(item.costPerUnit || 0).toFixed(2)}
+                                {parseFloat(item.costPerUnit || 0)}
                               </td>
                               <td>
-                                {parseFloat(item.timePerUnit || 0).toFixed(2)}
+                                {formatTime(item.timePerUnit || 0)}
                               </td>
                               <td>
                                 {parseInt(item.quantity || 0)}{" "}
@@ -766,16 +787,16 @@ const PartsTable = React.memo(
 
                               {/* <td>{parseInt(0)}</td> */}
                               <td>
-                                {(
+                                {Math.ceil(
                                   parseFloat(item.costPerUnit || 0) *
                                   parseInt(item.quantity || 0)
-                                ).toFixed(2)}
+                                )}
                               </td>
                               <td>
-                                {(
+                                {formatTime(
                                   parseFloat(item.timePerUnit || 0) *
                                   parseInt(item.quantity || 0)
-                                ).toFixed(2)}
+                                )}
                               </td>
 
                               <td className="action-cell">

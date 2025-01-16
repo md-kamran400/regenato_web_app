@@ -396,6 +396,28 @@ const HoursPlanningTab = () => {
       .toFixed(2);
   };
 
+  // const calculateTotalHoursForPartsList = (partsList) => {
+  //   if (
+  //     !partsList ||
+  //     !partsList.partsListItems ||
+  //     !manufacturingVariables.length
+  //   ) {
+  //     return 0;
+  //   }
+
+  //   return partsList.partsListItems
+  //     .reduce(
+  //       (sum, item) =>
+  //         sum +
+  //         (manufacturingVariables.find(
+  //           (part) => part.name === item.manufacturingVariables[0]?.name
+  //         )?.hours || 0) *
+  //           (item.quantity || 0),
+  //       0
+  //     )
+  //     .toFixed(2);
+  // };
+
   const calculateTotalHoursForPartsList = (partsList) => {
     if (
       !partsList ||
@@ -405,18 +427,24 @@ const HoursPlanningTab = () => {
       return 0;
     }
 
-    return partsList.partsListItems
-      .reduce(
-        (sum, item) =>
-          sum +
-          (manufacturingVariables.find(
-            (part) => part.name === item.manufacturingVariables[0]?.name
-          )?.hours || 0) *
-            (item.quantity || 0),
-        0
-      )
-      .toFixed(2);
+    const totalHoursPerMachine = {};
+
+    partsList.partsListItems.forEach((item) => {
+      item.manufacturingVariables.forEach((variable) => {
+        const machineName = variable.name;
+        const hours = variable.hours * (item.quantity || 0);
+
+        if (!totalHoursPerMachine[machineName]) {
+          totalHoursPerMachine[machineName] = 0;
+        }
+
+        totalHoursPerMachine[machineName] += hours;
+      });
+    });
+
+    return totalHoursPerMachine;
   };
+
   const getHoursForPartListItems = (
     column,
     quantity,
@@ -616,9 +644,16 @@ const HoursPlanningTab = () => {
                                 >
                                   Required Machinewise Total Hours
                                 </td>
-                                {columnNames.map((processName) => (
+                                {/* {columnNames.map((processName) => (
                                   <td key={processName}>
                                     {calculateTotalHoursForPartsList(partsList)}
+                                  </td>
+                                ))} */}
+                                {columnNames.map((processName) => (
+                                  <td key={processName}>
+                                    {calculateTotalHoursForPartsList(partsList)[
+                                      processName
+                                    ] || 0}
                                   </td>
                                 ))}
                               </tr>

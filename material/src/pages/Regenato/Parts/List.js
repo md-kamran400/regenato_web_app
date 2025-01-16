@@ -569,14 +569,27 @@ const List = () => {
     if (time === 0) {
       return 0;
     }
+
+    let result = "";
+
     const hours = Math.floor(time);
     const minutes = Math.round((time - hours) * 60);
+
     if (hours >= 24) {
       const days = Math.floor(hours / 24);
       const remainingHours = hours % 24;
-      return `${days}d ${remainingHours}h ${minutes}min`;
+
+      if (days > 0) result += `${days}d `;
+      if (remainingHours > 0) result += `${remainingHours}h `;
+      if (minutes > 0) result += `${minutes}m`;
+
+      return result.trim();
     }
-    return `${hours}h ${minutes}min`;
+
+    if (hours > 0) result += `${hours}h `;
+    if (minutes > 0) result += `${minutes}m`;
+
+    return result.trim();
   };
 
   return (
