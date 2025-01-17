@@ -14,6 +14,7 @@ const Overheads = ({
   itemId,
   source,
   overHeadsUpdate,
+  quantity
 }) => {
   const [modal_edit, setModalEdit] = useState(false);
   const [modal_delete, setModalDelete] = useState(false);
@@ -187,7 +188,7 @@ const Overheads = ({
             <tr key={index}>
               <td>{overhead.name}</td>
               <td>{overhead.percentage}%</td>
-              <td>{overhead.totalRate}</td>
+              <td>{overhead.totalRate*quantity}</td>
               <td className="d-flex gap-2">
                 <button
                   className="btn btn-sm btn-success edit-item-btn"

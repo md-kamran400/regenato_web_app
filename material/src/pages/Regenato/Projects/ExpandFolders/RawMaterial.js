@@ -13,6 +13,7 @@ const RawMaterial = ({
   itemId,
   source,
   rawMatarialsUpdate,
+  quantity
 }) => {
   const [modal_edit, setModalEdit] = useState(false);
   const [modal_delete, setModalDelete] = useState(false);
@@ -174,9 +175,9 @@ const RawMaterial = ({
           {rmVariables.map((item, index) => (
             <tr key={index}>
               <td>{item.name}</td>
-              <td>{item.netWeight}</td>
+              <td>{item.netWeight * quantity}</td>
               <td>{item.pricePerKg}</td>
-              <td>{Math.round(item.totalRate)}</td>
+              <td>{Math.round(item.totalRate*quantity)}</td>
               <td className="d-flex gap-2">
                 <button
                   className="btn btn-sm btn-success edit-item-btn"

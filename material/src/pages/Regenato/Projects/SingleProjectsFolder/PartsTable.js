@@ -35,6 +35,8 @@ import { MdOutlineDelete } from "react-icons/md";
 import Manufacturing from "../ExpandFolders/Manufacturing";
 import FeatherIcon from "feather-icons-react";
 import { ToastContainer, toast } from "react-toastify";
+import HoursPlanningTab from "../HoursPlanningTab";
+import HoursPlanningCard from "../HoursPlanningCard";
 
 const PartsTable = React.memo(
   ({ partsList, partsListID, updatePartsLists, onAddPart, onUpdatePrts }) => {
@@ -880,14 +882,6 @@ const PartsTable = React.memo(
                                       />
                                       {item.partName}
                                     </h5>
-                                    {/* Raw Materials Section */}
-                                    {/* <RawMaterial
-                                      partName={item.partName}
-                                      rmVariables={item.rmVariables || {}}
-                                      projectId={_id}
-                                      partId={item._id}
-                                      source="partList"
-                                    /> */}
                                     <RawMaterial
                                       partName={item.partName}
                                       rmVariables={item.rmVariables}
@@ -896,25 +890,10 @@ const PartsTable = React.memo(
                                       itemId={item._id} //items id
                                       source="partList"
                                       rawMatarialsUpdate={onUpdatePrts}
+                                      quantity={item.quantity}
                                     />
-
-                                    {/* <Manufacturing
-                                      partName={item.partName}
-                                      manufacturingVariables={
-                                        item.manufacturingVariables || []
-                                      }
-                                      projectId={_id}
-                                      partId={partsList._id}
-                                      itemId={item._id}
-                                      onUpdateVariable={
-                                        updateManufacturingVariable
-                                      }
-                                      onTotalCountUpdate={() => {}}
-                                      source="partList"
-                                    /> */}
                                     <Manufacturing
                                       partName={item.partName}
-                                      // times={item.times}
                                       manufacturingVariables={
                                         item.manufacturingVariables || []
                                       }
@@ -926,16 +905,8 @@ const PartsTable = React.memo(
                                       }
                                       source="partList"
                                       manufatcuringUpdate={onUpdatePrts}
+                                      quantity={item.quantity}
                                     />
-
-                                    {/* <Shipment
-                                      partName={item.partName}
-                                      shipmentVariables={
-                                        item.shipmentVariables || []
-                                      }
-                                      projectId={_id}
-                                      partId={item._id}
-                                    /> */}
                                     <Shipment
                                       partName={item.partName}
                                       projectId={_id}
@@ -946,6 +917,7 @@ const PartsTable = React.memo(
                                       shipmentVariables={
                                         item.shipmentVariables || []
                                       }
+                                      quantity={item.quantity}
                                     />
 
                                     <Overheads
@@ -959,10 +931,22 @@ const PartsTable = React.memo(
                                       source="partList"
                                       // onUpdatePrts={onUpdatePrts}
                                       overHeadsUpdate={onUpdatePrts}
+                                      quantity={item.quantity}
                                     />
                                   </div>
                                 </td>
                               </tr>
+                            )}
+
+                            {expandedRowId === item._id && (
+                              <HoursPlanningCard
+                                partName={item.partName}
+                                manufacturingVariables={
+                                  item.manufacturingVariables || []
+                                }
+                                quantity={item.quantity}
+                                hours={item.hours}
+                              />
                             )}
                           </React.Fragment>
                         ))}

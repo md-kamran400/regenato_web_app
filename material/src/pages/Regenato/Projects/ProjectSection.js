@@ -50,13 +50,11 @@ const ProjectSection = () => {
 
   return (
     <React.Fragment>
-      {/* Top Section with Tabs */}
-      <Row style={{ marginTop: "10px" }}>
+      {/* <Row style={{ marginTop: "10px" }}>
         <Col lg={12}>
           <Card>
             <div style={{ margin: "auto" }}>
               <CardBody>
-                {/* Tabs */}
                 <Nav className="nav-tabs-custom" role="tablist">
                   <NavItem>
                     <NavLink
@@ -86,7 +84,7 @@ const ProjectSection = () => {
                       Hours Planning
                     </NavLink>
                   </NavItem>
-                  {/* <NavItem>
+                  <NavItem>
                     <NavLink
                       className={classnames(
                         { active: activeTab === "3" },
@@ -99,8 +97,8 @@ const ProjectSection = () => {
                     >
                       Hours Summary
                     </NavLink>
-                  </NavItem> */}
-                  {/* <NavItem>
+                  </NavItem>
+                  <NavItem>
                     <NavLink
                       className={classnames(
                         { active: activeTab === "4" },
@@ -141,13 +139,13 @@ const ProjectSection = () => {
                     >
                       New Hours Planning
                     </NavLink> 
-                  </NavItem>*/}
+                  </NavItem>
                 </Nav>
               </CardBody>
             </div>
           </Card>
         </Col>
-      </Row>
+      </Row> */}
 
       {/* Tab Content Section */}
       <Row style={{ paddingTop: "20px" }}>

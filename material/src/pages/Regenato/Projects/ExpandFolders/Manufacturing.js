@@ -13,6 +13,7 @@ const Manufacturing = ({
   itemId,
   source,
   manufatcuringUpdate,
+  quantity,
 }) => {
   const [modal_edit, setModalEdit] = useState(false);
   const [modal_delete, setModalDelete] = useState(false);
@@ -45,8 +46,7 @@ const Manufacturing = ({
     );
   }, [manufacturingVariables]);
 
-  console.log(manufacturingVariables);
-  
+  // console.log(quantity);
 
   // Toggle edit modal
   const tog_edit = (item = null) => {
@@ -89,16 +89,22 @@ const Manufacturing = ({
         [name]: value,
       };
       // Calculate totalRate using the updated hourlyRate and hours
+      // if (name === "hourlyRate" || name === "hours") {
+      //   updatedFormData.totalRate =
+      //     (parseFloat(updatedFormData.hourlyRate) || 0) *
+      //     (parseFloat(updatedFormData.hours) || 0);
+      // }
       if (name === "hourlyRate" || name === "hours") {
         updatedFormData.totalRate =
           (parseFloat(updatedFormData.hourlyRate) || 0) *
-          (parseFloat(updatedFormData.hours) || 0);
+          (parseFloat(updatedFormData.hours) || 0) *
+          quantity;
       }
 
       return updatedFormData;
     });
   };
- // "/projects/:projectId/partsLists/:partsListId/items/:itemId/:variableType/:variableId",
+  // "/projects/:projectId/partsLists/:partsListId/items/:itemId/:variableType/:variableId",
 
   // Construct API endpoint based on the source
   const getApiEndpoint = (id) => {
@@ -258,7 +264,7 @@ const Manufacturing = ({
         <thead className="table-light">
           <tr>
             <th>Name</th>
-            <th>Time</th>
+            {/* <th>Time</th> */}
             <th>Hours</th>
             <th>Hourly Rate</th>
             <th>Total Rate</th>
@@ -269,14 +275,14 @@ const Manufacturing = ({
           {updatedManufacturingVariables.map((item, index) => (
             <tr key={index}>
               <td>{item.name}</td>
-              <td>{item.times || "--"}</td>
-              <td>{formatTime(item.hours)}</td>
+              {/* <td>{item.times || "--"}</td> */}
+              <td>{formatTime(item.hours*quantity)}</td>
               {/* <td>{item.hours * 60 >= 0 ? `${Math.floor(item.hours * 60)} Min` : '--'}</td> */}
               {/* <td>
                 {Math.floor(item.hours)} hours {(item.hours % 1) * 60} minutes
               </td> */}
               <td>{item.hourlyRate}</td>
-              <td>{item.totalRate}</td>
+              <td>{item.totalRate * quantity}</td>
               <td className="d-flex gap-2">
                 <button
                   className="btn btn-sm btn-success edit-item-btn"

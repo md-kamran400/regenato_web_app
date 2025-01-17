@@ -158,22 +158,22 @@ const HoursPlanningTab = () => {
   // console.log("processPartsMap", processPartsMap);
   // console.log("subAssemblyListFirst:", partDetails.subAssemblyListFirst);
 
-  const getHoursForProcess = (partName, processName) => {
-    const processData = processPartsMap[processName]?.find(
-      (item) => item.partName === partName
-    );
-    const quantity =
-      partDetails.allProjects.find((item) => item.partName === partName)
-        ?.quantity || 0;
+  // const getHoursForProcess = (partName, processName) => {
+  //   const processData = processPartsMap[processName]?.find(
+  //     (item) => item.partName === partName
+  //   );
+  //   const quantity =
+  //     partDetails.allProjects.find((item) => item.partName === partName)
+  //       ?.quantity || 0;
 
-    if (!processData || !processData.hours) {
-      return "-";
-    }
+  //   if (!processData || !processData.hours) {
+  //     return "-";
+  //   }
 
-    const hours = processData.hours * quantity;
+  //   const hours = processData.hours * quantity;
 
-    return hours.toFixed(2);
-  };
+  //   return hours.toFixed(2);
+  // };
 
   const calculateTotalHoursForProcess = (processName) => {
     if (!processPartsMap[processName]) return 0;
@@ -215,123 +215,123 @@ const HoursPlanningTab = () => {
     }
   };
 
-  const calculateMonthsRequired = (processName) => {
-    const totalHours = calculateTotalHoursForProcess(processName);
-    const availableMachineHoursPerMonth =
-      (machineHoursPerDay[processName] || 0) *
-      (numberOfMachines[processName] || 0) *
-      (daysToWork[processName] || 0);
+  // const calculateMonthsRequired = (processName) => {
+  //   const totalHours = calculateTotalHoursForProcess(processName);
+  //   const availableMachineHoursPerMonth =
+  //     (machineHoursPerDay[processName] || 0) *
+  //     (numberOfMachines[processName] || 0) *
+  //     (daysToWork[processName] || 0);
 
-    if (availableMachineHoursPerMonth === 0) {
-      return "--";
-    }
+  //   if (availableMachineHoursPerMonth === 0) {
+  //     return "--";
+  //   }
 
-    const monthsRequired = totalHours / availableMachineHoursPerMonth;
-    return monthsRequired.toFixed(2);
-  };
+  //   const monthsRequired = totalHours / availableMachineHoursPerMonth;
+  //   return monthsRequired.toFixed(2);
+  // };
 
-  const getHoursForAssemblyProcess = (partName, processName) => {
-    const processData = processPartsMap[processName]?.find(
-      (item) => item.partName === partName
-    );
-    let quantity = 0;
+  // const getHoursForAssemblyProcess = (partName, processName) => {
+  //   const processData = processPartsMap[processName]?.find(
+  //     (item) => item.partName === partName
+  //   );
+  //   let quantity = 0;
 
-    partDetails.assemblyPartsLists.forEach((list) => {
-      list.partsListItems.forEach((item) => {
-        if (item.partName === partName) {
-          quantity += item.quantity || 0;
-        }
-      });
-      list.subAssemblyPartsLists.forEach((subList) => {
-        subList.partsListItems.forEach((item) => {
-          if (item.partName === partName) {
-            quantity += item.quantity || 0;
-          }
-        });
-      });
-    });
+  //   partDetails.assemblyPartsLists.forEach((list) => {
+  //     list.partsListItems.forEach((item) => {
+  //       if (item.partName === partName) {
+  //         quantity += item.quantity || 0;
+  //       }
+  //     });
+  //     list.subAssemblyPartsLists.forEach((subList) => {
+  //       subList.partsListItems.forEach((item) => {
+  //         if (item.partName === partName) {
+  //           quantity += item.quantity || 0;
+  //         }
+  //       });
+  //     });
+  //   });
 
-    if (!processData || !processData.hours) {
-      return "-";
-    }
+  //   if (!processData || !processData.hours) {
+  //     return "-";
+  //   }
 
-    const hours = processData.hours * quantity;
-    return hours.toFixed(2);
-  };
+  //   const hours = processData.hours * quantity;
+  //   return hours.toFixed(2);
+  // };
 
-  const calculateTotalHoursForAssemblyProcess = (processName) => {
-    if (!processPartsMap[processName]) return 0;
-    return processPartsMap[processName]
-      .reduce(
-        (sum, part) =>
-          sum +
-          part.hours *
-            (partDetails.assemblyPartsLists
-              .find((list) =>
-                list.partsListItems.some(
-                  (item) => item.partName === part.partName
-                )
-              )
-              ?.partsListItems.find((item) => item.partName === part.partName)
-              ?.quantity || 0),
-        0
-      )
-      .toFixed(2);
-  };
+  // const calculateTotalHoursForAssemblyProcess = (processName) => {
+  //   if (!processPartsMap[processName]) return 0;
+  //   return processPartsMap[processName]
+  //     .reduce(
+  //       (sum, part) =>
+  //         sum +
+  //         part.hours *
+  //           (partDetails.assemblyPartsLists
+  //             .find((list) =>
+  //               list.partsListItems.some(
+  //                 (item) => item.partName === part.partName
+  //               )
+  //             )
+  //             ?.partsListItems.find((item) => item.partName === part.partName)
+  //             ?.quantity || 0),
+  //       0
+  //     )
+  //     .toFixed(2);
+  // };
 
-  const getHoursForSubAssemblyProcess = (partName, processName) => {
-    const processData = processPartsMap[processName]?.find(
-      (item) => item.partName === partName
-    );
-    const quantity =
-      partDetails.assemblyPartsLists
-        .find((list) =>
-          list.subAssemblyPartsLists.some((subList) =>
-            subList.partsListItems.some((item) => item.partName === partName)
-          )
-        )
-        ?.subAssemblyPartsLists.find((subList) =>
-          subList.partsListItems.some((item) => item.partName === partName)
-        )
-        ?.partsListItems.find((item) => item.partName === partName)?.quantity ||
-      0;
-    // console.log("quantity in getHoursForAssemblyProcess",quantity);
+  // const getHoursForSubAssemblyProcess = (partName, processName) => {
+  //   const processData = processPartsMap[processName]?.find(
+  //     (item) => item.partName === partName
+  //   );
+  //   const quantity =
+  //     partDetails.assemblyPartsLists
+  //       .find((list) =>
+  //         list.subAssemblyPartsLists.some((subList) =>
+  //           subList.partsListItems.some((item) => item.partName === partName)
+  //         )
+  //       )
+  //       ?.subAssemblyPartsLists.find((subList) =>
+  //         subList.partsListItems.some((item) => item.partName === partName)
+  //       )
+  //       ?.partsListItems.find((item) => item.partName === partName)?.quantity ||
+  //     0;
+  //   // console.log("quantity in getHoursForAssemblyProcess",quantity);
 
-    if (!processData || !processData.hours) {
-      return "-";
-    }
+  //   if (!processData || !processData.hours) {
+  //     return "-";
+  //   }
 
-    const hours = processData.hours * quantity;
-    console.log("hours in getHoursForAssemblyProcess", hours);
+  //   const hours = processData.hours * quantity;
+  //   console.log("hours in getHoursForAssemblyProcess", hours);
 
-    return hours.toFixed(2);
-  };
+  //   return hours.toFixed(2);
+  // };
 
-  const calculateTotalHoursForSubAssemblyProcess = (
-    processName,
-    subAssemblyList
-  ) => {
-    if (!processPartsMap[processName]) return 0;
-    return processPartsMap[processName]
-      .reduce((sum, part) => {
-        console.log(
-          "aaaaaaaaaa",
-          processName,
-          part,
-          subAssemblyList.partsListItems.find(
-            (item) => item.partName === part.partName
-          )?.quantity
-        );
-        return (
-          sum +
-          part.hours *
-            (subAssemblyList.partsListItems.find(
-              (item) => item.partName === part.partName
-            )?.quantity || 0)
-        );
-      }, 0)
-      .toFixed(2);
-  };
+  // const calculateTotalHoursForSubAssemblyProcess = (
+  //   processName,
+  //   subAssemblyList
+  // ) => {
+  //   if (!processPartsMap[processName]) return 0;
+  //   return processPartsMap[processName]
+  //     .reduce((sum, part) => {
+  //       console.log(
+  //         "aaaaaaaaaa",
+  //         processName,
+  //         part,
+  //         subAssemblyList.partsListItems.find(
+  //           (item) => item.partName === part.partName
+  //         )?.quantity
+  //       );
+  //       return (
+  //         sum +
+  //         part.hours *
+  //           (subAssemblyList.partsListItems.find(
+  //             (item) => item.partName === part.partName
+  //           )?.quantity || 0)
+  //       );
+  //     }, 0)
+  //     .toFixed(2);
+  // };
 
   const calculateMonthsRequiredForPartsList = (partsList) => {
     const totalHours = calculateTotalHoursForPartsList(partsList);

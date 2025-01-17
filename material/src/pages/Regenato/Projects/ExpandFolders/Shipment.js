@@ -14,6 +14,7 @@ const Shipment = ({
   itemId,
   source,
   shipmentUpdate,
+  quantity
 }) => {
   const [modal_edit, setModalEdit] = useState(false);
   const [modal_delete, setModalDelete] = useState(false);
@@ -236,7 +237,7 @@ const Shipment = ({
           {updatedShipmentVariables.map((ship, index) => (
             <tr key={index}>
               <td>{ship.name}</td>
-              <td>{ship.hourlyRate}</td>
+              <td>{ship.hourlyRate*quantity}</td>
               {/* <td>{ship.totalRate}</td> */}
               <td className="d-flex gap-2">
                 <button
