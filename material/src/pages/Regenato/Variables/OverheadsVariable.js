@@ -17,6 +17,7 @@ import {
 import BreadCrumb from "../../../Components/Common/BreadCrumb";
 import { Link } from "react-router-dom";
 import Flatpickr from "react-flatpickr";
+import { toast } from "react-toastify";
 
 const OverheadsVariable = () => {
   const [modal_add, setModalList] = useState(false);
@@ -131,14 +132,13 @@ const OverheadsVariable = () => {
         }
       );
 
-      // Check if the request was successful
-      if (response.ok) {
-        // Refresh the page after successful POST request
-        await fetchOverheads();
-      } else {
-        // Handle errors here
-        throw new Error("Network response was not ok");
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Network response was not ok");
       }
+
+      // Display success toast
+      toast.success("Records Added successfully!");
 
       await fetchOverheads();
       setFormData({
@@ -148,7 +148,18 @@ const OverheadsVariable = () => {
       });
       tog_add();
     } catch (error) {
-      setError(error.message);
+      setError(
+        error.message ||
+          error.response.data.message ||
+          "An unknown error occurred"
+      );
+
+      // Display error toast
+      toast.error(
+        error.message ||
+          error.response.data.message ||
+          "An unknown error occurred"
+      );
     } finally {
       setPosting(false);
     }
@@ -266,8 +277,6 @@ const OverheadsVariable = () => {
                 <div className="table-responsive table-card mt-3 mb-1">
                   {loading ? (
                     <p>Loading...</p>
-                  ) : error ? (
-                    <p>Error: {error}</p>
                   ) : (
                     <table
                       className="table align-middle table-nowrap"
@@ -275,7 +284,6 @@ const OverheadsVariable = () => {
                     >
                       <thead className="table-light">
                         <tr>
-                          
                           <th className="sort" data-sort="customer_name">
                             ID
                           </th>
@@ -294,7 +302,6 @@ const OverheadsVariable = () => {
                       <tbody className="list form-check-all">
                         {overheadsData.map((item) => (
                           <tr key={item._id}>
-                            
                             <td className="customer_name">{item.categoryId}</td>
                             <td className="customer_name">{item.name}</td>
                             <td className="customer_name">{item.percentage}</td>
@@ -373,7 +380,7 @@ const OverheadsVariable = () => {
 
             <div className="mb-3">
               <label htmlFor="percentage-field" className="form-label">
-               Percentage 
+                Percentage
               </label>
               <input
                 type="number"
@@ -432,7 +439,7 @@ const OverheadsVariable = () => {
             </div>
             <div className="mb-3">
               <label htmlFor="percentage" className="form-label">
-                Percentage 
+                Percentage
               </label>
               <input
                 type="number"

@@ -12,6 +12,7 @@ import {
   ModalHeader,
 } from "reactstrap";
 import Flatpickr from "react-flatpickr";
+import { toast } from "react-toastify";
 
 const GeneralVariable = () => {
   const [modalListOpen, setModalListOpen] = useState(false);
@@ -84,11 +85,11 @@ const GeneralVariable = () => {
     setFormData({ ...formData, [name]: value });
   };
 
-  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     setPosting(true);
     setError(null);
+
     try {
       const response = await fetch(
         `${process.env.REACT_APP_BASE_URL}/api/general`,
@@ -97,13 +98,17 @@ const GeneralVariable = () => {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify(formData), // Send the form data
+          body: JSON.stringify(formData),
         }
       );
 
       if (!response.ok) {
-        throw new Error("Network response was not ok");
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Network response was not ok");
       }
+
+      // Display success toast
+      toast.success("Records Added successfully!");
 
       // Option 1: Re-fetch the entire data
       await fetchData();
@@ -111,7 +116,18 @@ const GeneralVariable = () => {
       setFormData({ categoryId: "", name: "", value: "" });
       toggleListModal(); // Close the modal
     } catch (error) {
-      setError(error.message); // Set error message
+      setError(
+        error.message ||
+          error.response.data.message ||
+          "An unknown error occurred"
+      );
+
+      // Display error toast
+      toast.error(
+        error.message ||
+          error.response.data.message ||
+          "An unknown error occurred"
+      );
     } finally {
       setPosting(false);
     }
@@ -179,9 +195,9 @@ const GeneralVariable = () => {
     return <div>Loading...</div>;
   }
 
-  if (error) {
-    return <div>Error: {error}</div>;
-  }
+  // if (error) {
+  //   return <div>Error: {error}</div>;
+  // }
 
   return (
     <React.Fragment>
@@ -233,7 +249,7 @@ const GeneralVariable = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {generalData.map((item) => (
+                      {generalData?.map((item) => (
                         <tr key={item.id}>
                           <td>{item.categoryId}</td>
                           <td>{item.name}</td>

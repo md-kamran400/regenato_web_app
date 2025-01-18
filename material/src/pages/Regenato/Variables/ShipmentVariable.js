@@ -14,6 +14,7 @@ import {
 } from "reactstrap";
 import Flatpickr from "react-flatpickr";
 import { Link } from "react-router-dom";
+import { toast } from "react-toastify";
 
 const ShipmentVariable = () => {
   const [modal_add, setModalList] = useState(false);
@@ -83,7 +84,9 @@ const ShipmentVariable = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${process.env.REACT_APP_BASE_URL}/api/shipment`);
+      const response = await fetch(
+        `${process.env.REACT_APP_BASE_URL}/api/shipment`
+      );
       if (!response.ok) {
         throw new Error("Network response was not ok");
       }
@@ -114,22 +117,24 @@ const ShipmentVariable = () => {
     setPosting(true);
     setError(null);
     try {
-      const response = await fetch(`${process.env.REACT_APP_BASE_URL}/api/shipment`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      });
+      const response = await fetch(
+        `${process.env.REACT_APP_BASE_URL}/api/shipment`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(formData),
+        }
+      );
 
-      // Check if the request was successful
-      if (response.ok) {
-        // Refresh the page after successful POST request
-        await fetchShipmentData();
-      } else {
-        // Handle errors here
-        throw new Error("Network response was not ok");
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Network response was not ok");
       }
+
+      // Display success toast
+      toast.success("Records Added successfully!");
 
       await fetchShipmentData();
       setFormData({
@@ -139,7 +144,18 @@ const ShipmentVariable = () => {
       });
       tog_add();
     } catch (error) {
-      setError(error.message);
+      setError(
+        error.message ||
+          error.response.data.message ||
+          "An unknown error occurred"
+      );
+
+      // Display error toast
+      toast.error(
+        error.message ||
+          error.response.data.message ||
+          "An unknown error occurred"
+      );
     } finally {
       setPosting(false);
     }
@@ -274,7 +290,6 @@ const ShipmentVariable = () => {
                       {shipmentData.length > 0 ? (
                         shipmentData.map((item) => (
                           <tr key={item.id}>
-                            
                             <td>{item.categoryId}</td>
                             <td>{item.name}</td>
                             <td>{item.hourlyrate}</td>
@@ -360,7 +375,7 @@ const ShipmentVariable = () => {
 
             <div className="mb-3">
               <label htmlFor="hourlyrate-field" className="form-label">
-                 Rate 
+                Rate
               </label>
               <input
                 type="number"

@@ -251,8 +251,12 @@ const ManufacturingVariable = () => {
       );
 
       if (!response.ok) {
-        throw new Error("Network response was not ok");
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Network response was not ok");
       }
+
+      // Display success toast
+      toast.success("Records Added successfully!");
 
       await fatchManufacturing();
       setFormData({
@@ -262,7 +266,18 @@ const ManufacturingVariable = () => {
       });
       tog_add();
     } catch (error) {
-      setError(error.message);
+      setError(
+        error.message ||
+          error.response.data.message ||
+          "An unknown error occurred"
+      );
+
+      // Display error toast
+      toast.error(
+        error.message ||
+          error.response.data.message ||
+          "An unknown error occurred"
+      );
     } finally {
       setPosting(false);
     }
@@ -563,7 +578,6 @@ const ManufacturingVariable = () => {
                                           <td className="d-flex gap-2">
                                             <button
                                               className="btn btn-sm btn-success"
-                                              
                                               onClick={() => {
                                                 Sub_tog_edit(subCategory);
                                                 setSelectedManufacturingId(
@@ -573,7 +587,7 @@ const ManufacturingVariable = () => {
                                             >
                                               Edit
                                             </button>
-                                            
+
                                             <button
                                               className="btn btn-sm btn-danger"
                                               onClick={() =>
@@ -909,9 +923,7 @@ const ManufacturingVariable = () => {
       </Modal>
 
       <Modal isOpen={subDeleteModalOpen} toggle={closeSubDeleteModal} centered>
-        <ModalHeader toggle={closeSubDeleteModal}>
-          Delete Machine
-        </ModalHeader>
+        <ModalHeader toggle={closeSubDeleteModal}>Delete Machine</ModalHeader>
         <ModalBody>
           <div className="mt-2 text-center">
             <lord-icon

@@ -781,14 +781,14 @@ const List = () => {
                   {item.partType === "Make" ? (
                     <Link
                       to={`/singlepart/${item._id}`}
-                      style={{ color: "red" }}
+                      style={{ color: "red", cursor:'pointer' }}
                       className="text-body"
                       onClick={() => handlePartClick(item._id)}
                     >
                       {item.partName.trim()} {item.codeName}
                     </Link>
                   ) : (
-                    <span>
+                    <span style={{cursor:'no-drop'}}>
                       {item.partName.trim()} {item.codeName}
                     </span>
                   )}
