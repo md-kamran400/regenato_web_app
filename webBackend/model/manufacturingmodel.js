@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 
 const manufacturingSchema = mongoose.Schema({
-    categoryId: String,
+    categoryId:  { type: String, required: true, unique: true },
     name: String,
     hours: Number,
     hourlyrate: Number,

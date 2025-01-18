@@ -3,15 +3,48 @@ const ManufacturingModel = require("../../model/manufacturingmodel");
 const manufacturRouter = Router();
 
 // POST request (already existing)
+// manufacturRouter.post("/", async (req, res) => {
+//   try {
+//     let Manufacture = new ManufacturingModel(req.body);
+//     await Manufacture.save();
+//     res.status(200).json({
+//       msg: "Manufacturing variable Added",
+//       addManufacture: Manufacture,
+//     });
+//   } catch (error) {
+//     res.status(400).json({ error: error.message });
+//   }
+// });
 manufacturRouter.post("/", async (req, res) => {
   try {
+    // Check if the categoryId already exists
+    const existingManufacture = await ManufacturingModel.findOne({
+      categoryId: req.body.categoryId,
+    });
+
+    if (existingManufacture) {
+      return res.status(409).json({
+        error: "Category ID already exists",
+        message: "Please choose a different Category ID",
+      });
+    }
+
     let Manufacture = new ManufacturingModel(req.body);
     await Manufacture.save();
-    res.status(200).json({
+
+    res.status(201).json({
       msg: "Manufacturing variable Added",
       addManufacture: Manufacture,
+      message: "New manufacturing variable created successfully",
     });
   } catch (error) {
+    if (error.code === 11000) {
+      // MongoDB duplicate key error
+      return res.status(409).json({
+        error: "Duplicate Category ID",
+        message: "Category ID already exists. Please choose a different one.",
+      });
+    }
     res.status(400).json({ error: error.message });
   }
 });

@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 
 const overheadsSchema = mongoose.Schema({
-    categoryId: String,
+    categoryId:  { type: String, required: true, unique: true },
     name: String,
     percentage: Number,
     totalrate: Number,

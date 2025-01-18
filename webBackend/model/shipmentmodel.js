@@ -1,9 +1,9 @@
 const mongoose = require("mongoose");
 
 const shipmentSchema = mongoose.Schema({
-    categoryId: String,
-    name: String,
-    hourlyrate: Number,
+  categoryId: { type: String, required: true, unique: true },
+  name: String,
+  hourlyrate: Number,
 });
 
 const ShipmentModel = mongoose.model("shipment", shipmentSchema);

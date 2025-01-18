@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 
 const rmVariableSchema = mongoose.Schema({
-    categoryId: String,
+    categoryId:  { type: String, required: true, unique: true },
     name: String,
     price: Number,
 });

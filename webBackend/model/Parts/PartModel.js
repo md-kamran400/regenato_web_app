@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 
-// general variable schema 
+// general variable schema
 const generalVariableSchema = new mongoose.Schema({
   categoryId: String,
   name: String,
@@ -16,13 +16,6 @@ const rmVariableSchema = new mongoose.Schema({
   totalRate: Number,
 });
 
-// //Raw Material unit cost schema
-// const rmUnitCostSchema = new mongoose.Schema({
-//   categoryId: String,
-//   name: String,
-//   totalRate: Number,
-// })
-
 // Schema for Manufacturing Variables
 const manufacturingVariableSchema = new mongoose.Schema({
   categoryId: String,
@@ -32,16 +25,6 @@ const manufacturingVariableSchema = new mongoose.Schema({
   hourlyRate: Number,
   totalRate: Number,
 });
-
-// Add unit cost for manufacturing
-// const manufacturingUnitCostSchema = new mongoose.Schema({
-//   categoryId: String,
-//   name: String,
-//   times: String,
-//   totalRate: Number
-// })
-
-
 
 // Schema for Shipment Variables
 const shipmentVariableSchema = new mongoose.Schema({
@@ -69,13 +52,13 @@ const partSchema = new mongoose.Schema({
   partName: { type: String },
   clientNumber: { type: String },
   codeName: { type: String },
-  partType: { type: String, enum: ['Make', 'Purchase'] },
+  partType: { type: String, enum: ["Make", "Purchase"] },
   costPerUnit: { type: Number },
   timePerUnit: { type: Number },
   stockPOQty: { type: Number },
   totalCost: { type: Number },
   totalQuantity: { type: Number },
-  generalVariables: [generalVariableSchema],
+  generalVariables: [generalVariableSchema], // [{},{}]
   rmVariables: [rmVariableSchema],
   // rmUnitCost: [rmUnitCostSchema],
   manufacturingVariables: [manufacturingVariableSchema],
@@ -87,45 +70,9 @@ const partSchema = new mongoose.Schema({
 
   //for time traking
   createdAt: { type: Date, default: Date.now },
-  updatedAt: { type: Date, default: Date.now }
+  updatedAt: { type: Date, default: Date.now },
 });
-// const partSchema = new mongoose.Schema({
-//   id: { type: String, unique: true },  // add unique: true to ensure no duplicates
-//   partName: { type: String },
-//   clientNumber: { type: String },
-//   codeName: { type: String },
-//   costPerUnit: { type: Number },
-//   timePerUnit: { type: Number },
-//   stockPOQty: { type: Number },
-//   generalVariables: [generalVariableSchema],
-//   rmVariables: [rmVariableSchema],
-//   manufacturingVariables: [manufacturingVariableSchema],
-//   shipmentVariables: [shipmentVariableSchema],
-//   overheadsAndProfits: [overheadsAndProfitsSchema],
-//   partsCalculations: [partsCalculationsSchema],
-//   index: { type: Number } // Add this line
-// });
-
 
 const PartsModel = mongoose.model("Part", partSchema);
 
 module.exports = PartsModel;
-
-
-/**
- * const partSchema = new mongoose.Schema({
-  id: { type: String, unique: true },
-  partName: { type: String },
-  costPerUnit: { type: Number },
-  timePerUnit: { type: Number },
-  stockPOQty: { type: Number },
-  totalCost: { type: Number, default: 0 }, // Aggregated total cost
-  totalTime: { type: Number, default: 0 }, // Aggregated total time
-  generalVariables: [generalVariableSchema],
-  rmVariables: [rmVariableSchema],
-  manufacturingVariables: [manufacturingVariableSchema],
-  shipmentVariables: [shipmentVariableSchema],
-  overheadsAndProfits: [overheadsAndProfitsSchema],
-});
-
- */

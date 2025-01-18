@@ -1,9 +1,9 @@
 const mongoose = require("mongoose");
 
 const generalSchema = mongoose.Schema({
-    categoryId: String,
-    name: String,
-    value: Number,
+  categoryId: { type: String, required: true, unique: true },
+  name: String,
+  value: Number,
 });
 
 const GeneralModel = mongoose.model("general", generalSchema);
