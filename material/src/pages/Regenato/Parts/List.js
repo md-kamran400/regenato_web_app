@@ -224,13 +224,33 @@ const List = () => {
   //   item.partName.toLowerCase().includes(searchTerm.toLowerCase())
   // );
 
+  // const filteredData = useMemo(() => {
+  //   if (!listData) return [];
+  //   return listData.filter(
+  //     (item) =>
+  //       item.partName.toLowerCase().includes(searchTerm.toLowerCase()) &&
+  //       (filterType === "" || item.partType === filterType)
+  //   );
+  // }, [listData, searchTerm, filterType]);
+
   const filteredData = useMemo(() => {
     if (!listData) return [];
-    return listData.filter(
-      (item) =>
-        item.partName.toLowerCase().includes(searchTerm.toLowerCase()) &&
-        (filterType === "" || item.partType === filterType)
+    
+    const filteredItems = listData.filter(
+      (item) => {
+        if (!item.partName) {
+          console.warn(`Item missing partName: ${JSON.stringify(item)}`);
+          return false;
+        }
+        
+        const partNameMatch = item.partName.toLowerCase().includes(searchTerm.toLowerCase());
+        const filterTypeMatch = filterType === "" || item.partType === filterType;
+        
+        return partNameMatch && filterTypeMatch;
+      }
     );
+  
+    return filteredItems;
   }, [listData, searchTerm, filterType]);
 
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
