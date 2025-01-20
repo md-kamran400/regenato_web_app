@@ -47,6 +47,7 @@ const List = () => {
   const [partType, setPartType] = useState("");
   //   const [modal_category, setModal_category] = useState(false);
   const [modal_list, setModalList] = useState(false);
+  const [modal_listExel, setModalListExel] = useState(false);
   // const [modal_edit, setModalEdit] = useState(false);
   const [modal_delete, setModalDelete] = useState(false);
   const [newPartId, setNewPartId] = useState("");
@@ -87,9 +88,15 @@ const List = () => {
     timePerUnit: "",
     stockPOQty: "",
   });
+  const [uploadedFile, setUploadedFile] = useState(null);
+  const [dragOver, setDragOver] = useState(false);
 
   const toggleModal = () => {
     setModalList(!modal_list);
+  };
+
+  const toggleModalUpload = () => {
+    setModalListExel(!modal_listExel);
   };
 
   const handleFilterChange = (event) => {
@@ -142,43 +149,6 @@ const List = () => {
     }
   }, []);
 
-  // const fetchData = useCallback(async () => {
-  //   setLoading(true);
-  //   setError(null);
-  //   try {
-  //     const params = new URLSearchParams();
-  //     if (filterType !== "") {
-  //       params.append("partType", filterType);
-  //     }
-  //     params.append("page", currentPage);
-  //     params.append("limit", itemsPerPage);
-
-  //     const response = await fetch(
-  //       `${process.env.REACT_APP_BASE_URL}/api/parts?${params.toString()}`
-  //     );
-  //     if (!response.ok) {
-  //       throw new Error("Failed to fetch parts");
-  //     }
-  //     const data = await response.json();
-  //     if (!data || !data.results) {
-  //       setListData([]);
-  //       setCurrentPage(1);
-  //       setTotalPages(1);
-  //     } else {
-  //       setListData(data.results);
-  //       setCurrentPage(data.page);
-  //       setTotalPages(Math.ceil(data.total / itemsPerPage));
-  //     }
-  //   } catch (err) {
-  //     setError(err.message);
-  //     setListData([]);
-  //     setCurrentPage(1);
-  //     // setTotalPages(1);
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // }, [filterType, currentPage, itemsPerPage]);
-
   useEffect(() => {
     if (selectedPartId) {
       fetchData();
@@ -189,10 +159,6 @@ const List = () => {
       fetchData();
     }
   }, [selectedPartId]);
-
-  // useEffect(() => {
-  //   fetchData();
-  // }, [filterType]);
 
   // New function to fetch a single part
   const fetchSelectedPart = async () => {
@@ -220,36 +186,23 @@ const List = () => {
     localStorage.setItem("selectedPartId", id);
   };
 
-  // const filteredData = listData.filter((item) =>
-  //   item.partName.toLowerCase().includes(searchTerm.toLowerCase())
-  // );
-
-  // const filteredData = useMemo(() => {
-  //   if (!listData) return [];
-  //   return listData.filter(
-  //     (item) =>
-  //       item.partName.toLowerCase().includes(searchTerm.toLowerCase()) &&
-  //       (filterType === "" || item.partType === filterType)
-  //   );
-  // }, [listData, searchTerm, filterType]);
-
   const filteredData = useMemo(() => {
     if (!listData) return [];
-    
-    const filteredItems = listData.filter(
-      (item) => {
-        if (!item.partName) {
-          console.warn(`Item missing partName: ${JSON.stringify(item)}`);
-          return false;
-        }
-        
-        const partNameMatch = item.partName.toLowerCase().includes(searchTerm.toLowerCase());
-        const filterTypeMatch = filterType === "" || item.partType === filterType;
-        
-        return partNameMatch && filterTypeMatch;
+
+    const filteredItems = listData.filter((item) => {
+      if (!item.partName) {
+        console.warn(`Item missing partName: ${JSON.stringify(item)}`);
+        return false;
       }
-    );
-  
+
+      const partNameMatch = item.partName
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
+      const filterTypeMatch = filterType === "" || item.partType === filterType;
+
+      return partNameMatch && filterTypeMatch;
+    });
+
     return filteredItems;
   }, [listData, searchTerm, filterType]);
 
@@ -273,75 +226,9 @@ const List = () => {
     setnewCodeName(inputValue === "" ? "-" : inputValue);
   };
 
-  // const handleAddPart = async () => {
-  //   // Extract only the numeric part of the ID
-  //   const numericId = newPartId.replace(/[^-\d]/g, "");
-
-  //   const newPart = {
-  //     id: numericId,
-  //     partName: newPartName,
-  //     clientNumber: newclientNumber,
-  //     codeName: newCodeName || "",
-  //     costPerUnit: 0,
-  //     timePerUnit: 0,
-  //     stockPOQty: stockPOQty || 0,
-  //   };
-
-  //   try {
-  //     const response = await fetch(
-  //       `${process.env.REACT_APP_BASE_URL}/api/parts`,
-  //       {
-  //         method: "POST",
-  //         headers: {
-  //           "Content-Type": "application/json",
-  //         },
-  //         body: JSON.stringify(newPart),
-  //       }
-  //     );
-
-  //     if (!response.ok) {
-  //       throw new Error("Failed to add part");
-  //     }
-
-  //     // If the request is successful, refresh the list data
-  //     await fetchData();
-
-  //     // Reset form fields
-  //     setNewPartId("");
-  //     setNewPartName("");
-  //     setnewCodeName("");
-  //     setnewclientNumber("");
-  //     setCostPerUnit(0);
-  //     setTimePerUnit(0);
-  //     setStockPOQty(0);
-
-  //     // Close the modal
-  //     toggleModal(false);
-
-  //     toast.success("Records added successfully!");
-  //   } catch (error) {
-  //     console.error("Error adding part:", error);
-  //     toast.error("Failed to add part. Please try again.");
-  //   }
-  // };
-
   const handleAddPart = async () => {
     // Extract only the numeric part of the ID
     const numericId = newPartId.replace(/[^-\d]/g, "");
-
-    // for expection in make
-    // const newPart = {
-    //   id: numericId,
-    //   partName: newPartName,
-    //   clientNumber: newclientNumber,
-    //   codeName: partType === "Make" ? newCodeName : "",
-    //   costPerUnit: partType === "Make" ? costPerUnit : parseFloat(costPerUnit),
-    //   timePerUnit: timePerUnit || 0,
-    //   stockPOQty: stockPOQty || 0,
-    //   partType: partType,
-    //   totalCost: partType === "Purchase" ? parseFloat(totalCost) : 0,
-    //   totalQuantity: partType === "Purchase" ? parseFloat(totalQuantity) : 0,
-    // };
 
     const newPart = {
       id: numericId,
@@ -490,53 +377,6 @@ const List = () => {
     }
   };
 
-  // Calculate totals for each part
-  // const partTotals = listData.reduce((acc, part) => {
-  //   // console.log("Processing item:", part.id);
-
-  //   const rmTotal = part.rmVariables.reduce(
-  //     (sum, item) => sum + Number(item.totalRate || 0),
-  //     0
-  //   );
-  //   const manufacturingTotal = part.manufacturingVariables.reduce(
-  //     (sum, item) => sum + Number(item.totalRate || 0),
-  //     0
-  //   );
-  //   const shipmentTotal = part.shipmentVariables.reduce(
-  //     (sum, item) => sum + Number(item.hourlyRate || 0),
-  //     0
-  //   );
-  //   const overheadsTotal = part.overheadsAndProfits.reduce(
-  //     (sum, item) => sum + Number(item.totalRate || 0),
-  //     0
-  //   );
-
-  //   acc[part.id] = {
-  //     rmTotal,
-  //     manufacturingTotal,
-  //     shipmentTotal,
-  //     overheadsTotal,
-  //     totalCost: (acc[part.id]?.totalCost || 0) + part.costPerUnit,
-  //     costPerUnitAvg:
-  //       rmTotal + manufacturingTotal + shipmentTotal + overheadsTotal, // Calculate avg
-  //     manufacturingHours: part.manufacturingVariables.reduce(
-  //       (sum, item) => sum + Number(item.hours || 0),
-  //       0
-  //     ),
-  //   };
-
-  //   return acc;
-  // }, {});
-
-  // Object.entries(partTotals).forEach(([partId, totals]) => {
-  // console.log(`Part ${partId}:`);
-  // console.log("RM Total:", totals.rmTotal);
-  // console.log("Manufacturing Total:", totals.manufacturingTotal);
-  // console.log("Shipment Total:", totals.shipmentTotal);
-  // console.log("Overheads Total:", totals.overheadsTotal);
-  // console.log("Cost Per Unit Avg:", totals.costPerUnitAvg);
-  // });
-
   const handleDelete = async (_id) => {
     setPosting(true);
     setError(null);
@@ -559,25 +399,6 @@ const List = () => {
       setPosting(false);
     }
   };
-
-  // const singlePartId = localStorage.getItem("selectedPartId" || "");
-
-  // useEffect(() => {
-  //   const handlePartClick = async () => {
-  //     // localStorage.getItem("selectedPartId", id);
-  //     try {
-  //       const response = await fetch(
-  //         `${process.env.REACT_APP_BASE_URL}/api/parts/${singlePartId}`
-  //       );
-  //       if (!response.ok) throw new Error("Failed to fetch part");
-  //       const data = await response.json();
-  //       setListData([data]); // Displays only the selected part
-  //     } catch (err) {
-  //       console.error(err.message);
-  //     }
-  //   };
-  //   handlePartClick();
-  // }, []);
 
   const clearSelection = () => {
     setSelectedPartId(null);
@@ -612,6 +433,62 @@ const List = () => {
     return result.trim();
   };
 
+  // exel file drag drop
+  const handleRemoveFile = () => {
+    console.log("Removing file...");
+    setUploadedFile(null); // Clear the uploaded file
+    console.log("File removed:", uploadedFile);
+  };
+
+  const handleUpload = () => {
+    if (uploadedFile) {
+      // Implement your file upload logic here
+      toast.success("File uploaded successfully");
+      toggleModalUpload();
+    } else {
+      toast.error("Please select a file to upload");
+    }
+  };
+
+  const handleFileUpload = (event) => {
+    const file = event.target.files[0];
+    if (
+      file &&
+      (file.type === "application/vnd.ms-excel" ||
+        file.type ===
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    ) {
+      setUploadedFile(file);
+    } else {
+      alert("Only Excel files (.xlsx, .xls) are allowed.");
+    }
+  };
+
+  const handleDrop = (event) => {
+    event.preventDefault();
+    setDragOver(false);
+    const file = event.dataTransfer.files[0];
+    if (
+      file &&
+      (file.type === "application/vnd.ms-excel" ||
+        file.type ===
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    ) {
+      setUploadedFile(file);
+    } else {
+      alert("Only Excel files (.xlsx, .xls) are allowed.");
+    }
+  };
+
+  const handleDragOver = (event) => {
+    event.preventDefault();
+    setDragOver(true);
+  };
+
+  const handleDragLeave = () => {
+    setDragOver(false);
+  };
+
   return (
     <React.Fragment>
       <ToastContainer closeButton={false} />
@@ -621,7 +498,7 @@ const List = () => {
         onCloseClick={() => {}}
       />
       <Row className="g-4 mb-3">
-        <div className="col-sm-auto">
+        <div className="col-sm-auto d-flex">
           <div>
             <Button
               color="success"
@@ -630,6 +507,17 @@ const List = () => {
               id="create-btn"
             >
               <i className="ri-add-line align-bottom me-1"></i> Add Part
+            </Button>
+          </div>
+
+          <div>
+            <Button
+              color="success"
+              className="add-btn me-1"
+              onClick={toggleModalUpload}
+              id="create-btn"
+            >
+              <i className="ri-add-line align-bottom me-1"></i> Upload Excel
             </Button>
           </div>
         </div>
@@ -648,28 +536,7 @@ const List = () => {
                 style={{ marginTop: "-1px" }}
               ></i>
             </div>
-            {/* <div className="col-sm-auto">
-              <FormControl style={{ width: "15rem", height: "40px" }}>
-                <InputLabel
-                  id="demo-simple-select-label"
-                  style={{ marginTop: "-6px" }}
-                >
-                  Filter by Part Type
-                </InputLabel>
-                <Select
-                  labelId="demo-simple-select-label"
-                  id="demo-simple-select"
-                  value={filterType}
-                  onChange={handleFilterChange}
-                  label="Filter by Part Type"
-                  style={{ height: "40px" }}
-                >
-                  <MenuItem value="">All Types</MenuItem>
-                  <MenuItem value="Make">Make</MenuItem>
-                  <MenuItem value="Purchase">Purchase</MenuItem>
-                </Select>
-              </FormControl>
-            </div> */}
+
             <div className="col-sm-auto">
               <FormControl style={{ width: "15rem", height: "40px" }}>
                 <InputLabel
@@ -709,18 +576,6 @@ const List = () => {
           </div>
         )}
         <table className="table table-striped">
-          {/* <thead>
-            <tr>
-              <th>Name</th>
-              <th>Part Type</th>
-              <th>Drawing Number</th>
-              <th>Client Number</th>
-              <th>Cost per Unit</th>
-              <th>Total Hours</th>
-
-              <th>Actions</th>
-            </tr>
-          </thead> */}
           <thead>
             <tr>
               <th>Name</th>
@@ -731,84 +586,25 @@ const List = () => {
               <th>Total Hours</th>
               <th>Total Cost</th>
               <th>Total Quantity</th>
-              {/* {partType === "Purchase" && (
-                <>
-                  <th>Total Cost</th>
-                  <th>Total Quantity</th>
-                </>
-              )} */}
+
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {/* {paginatedData.map((item, index) => (
-              <tr key={index}>
-                <td
-                  onClick={() => handlePartClick(item._id)}
-                >
-                  <Link
-                    to={`/singlepart/${item._id}`}
-                    style={{ color: "red" }}
-                    className="text-body"
-                  >
-                    {item.partName.trim()} {item.codeName}
-                  </Link>
-                </td>
-                <td>{item.partType || "-"}</td>
-                <td>{item.id}</td>
-                <td>{item.clientNumber}</td>
-                <td>{Math.ceil(item.costPerUnit)}</td>
-                <td>{formatTime(item.timePerUnit || 0)}</td>
-                <td>
-                  <UncontrolledDropdown direction="start">
-                    <DropdownToggle
-                      tag="button"
-                      className="btn btn-link text-muted p-1 mt-n2 py-0 text-decoration-none fs-15 shadow-none"
-                    >
-                      <FeatherIcon icon="more-horizontal" className="icon-sm" />
-                    </DropdownToggle>
-                    <DropdownMenu className="dropdown-menu-end">
-                      <DropdownItem
-                        href="#"
-                        onClick={() => {
-                          setSelectedId(item._id);
-                          tog_delete();
-                        }}
-                      >
-                        <i className="ri-delete-bin-fill align-bottom me-2 text-muted"></i>{" "}
-                        Remove
-                      </DropdownItem>
-
-                      <DropdownItem
-                        href="#"
-                        onClick={() => toggleDuplicateModal(item)}
-                      >
-                        <i className="ri-file-copy-line align-bottom me-2 text-muted"></i>{" "}
-                        Duplicate
-                      </DropdownItem>
-                      <DropdownItem onClick={() => toggleEditModal(item)}>
-                        <i className="ri-pencil-fill align-bottom me-2 text-muted"></i>{" "}
-                        Edit
-                      </DropdownItem>
-                    </DropdownMenu>
-                  </UncontrolledDropdown>
-                </td>
-              </tr>
-            ))} */}
             {paginatedData.map((item, index) => (
               <tr key={index}>
                 <td>
                   {item.partType === "Make" ? (
                     <Link
                       to={`/singlepart/${item._id}`}
-                      style={{ color: "red", cursor:'pointer' }}
+                      style={{ color: "red", cursor: "pointer" }}
                       className="text-body"
                       onClick={() => handlePartClick(item._id)}
                     >
                       {item.partName.trim()} {item.codeName}
                     </Link>
                   ) : (
-                    <span style={{cursor:'no-drop'}}>
+                    <span style={{ cursor: "no-drop" }}>
                       {item.partName.trim()} {item.codeName}
                     </span>
                   )}
@@ -820,13 +616,7 @@ const List = () => {
                 <td>{formatTime(item.timePerUnit || 0)}</td>
                 <td>{item.totalCost}</td>
                 <td>{item.totalQuantity}</td>
-                {/* {item.partType === "Purchase" && (
-                  <>
-                    <td>{item.totalCost}</td>
-                    <td>{item.totalQuantity}</td>
-                  </>
-                )} */}
-                {/* On Hand column */}
+
                 <td>
                   <UncontrolledDropdown direction="start">
                     <DropdownToggle
@@ -874,98 +664,7 @@ const List = () => {
           onPageChange={handlePageChange}
         />
       </>
-      {/* Modal for adding a new item */}
-      {/* <Modal isOpen={modal_list} toggle={toggleModal} centered>
-        <ModalHeader className="bg-light p-3" toggle={toggleModal}>
-          {" "}
-          Add Part{" "}
-        </ModalHeader>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleAddPart();
-          }}
-        >
-          <ModalBody>
-            <div className="mb-3 mt-3">
-              <label htmlFor="category" className="form-label">
-                Part Type
-              </label>
-              <Autocomplete
-                options={categories}
-                getOptionLabel={(option) => option.name}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label="Choose Category"
-                    variant="outlined"
-                  />
-                )}
-              />
-            </div>
-            <div className="mb-3">
-              <label htmlFor="parts-id" className="form-label">
-                Drawing Number
-              </label>
-              <Input
-                type="text"
-                className="form-control"
-                placeholder="Enter Drawing Number (e.g, 48A47015099)"
-                value={newPartId}
-                onChange={(e) => setNewPartId(e.target.value)}
-                required
-              />
-            </div>
 
-            <div className="mb-3">
-              <label htmlFor="parts-name" className="form-label">
-                Common Name
-              </label>
-              <input
-                type="text"
-                id="parts-name"
-                className="form-control"
-                placeholder="Enter Name"
-                value={newPartName}
-                onChange={(e) => setNewPartName(e.target.value)}
-                required
-              />
-            </div>
-
-            <div className="mb-3">
-              <label htmlFor="client-number" className="form-label">
-                Client Number
-              </label>
-              <input
-                type="text"
-                id="client-number"
-                className="form-control"
-                placeholder="Enter Client Number"
-                value={newclientNumber}
-                onChange={(e) => setnewclientNumber(e.target.value)}
-              />
-            </div>
-
-            <div className="mb-3">
-              <label htmlFor="code-name" className="form-label">
-                Code Name
-              </label>
-              <input
-                type="text"
-                id="code-name"
-                className="form-control"
-                placeholder="Enter Code Name"
-                value={newCodeName}
-                onChange={handleInputChange}
-              />
-            </div>
-
-            <Button type="submit" color="success" className="add-btn me-1">
-              <i className="ri-add-line align-bottom me-1"></i> Add
-            </Button>
-          </ModalBody>
-        </form>
-      </Modal> */}
       <Modal isOpen={modal_list} toggle={toggleModal} centered>
         <ModalHeader className="bg-light p-3" toggle={toggleModal}>
           {" "}
@@ -1316,6 +1015,148 @@ const List = () => {
           </Button>
           <Button color="secondary" onClick={toggleEditModal}>
             Cancel
+          </Button>
+        </ModalFooter>
+      </Modal>
+
+      <Modal isOpen={modal_listExel} toggle={toggleModalUpload} centered>
+        <ModalHeader toggle={toggleModalUpload}>
+          <div style={{ display: "flex", alignItems: "center" }}>
+            <lord-icon
+              src="https://cdn.lordicon.com/gsqxdxog.json"
+              trigger="loop"
+              colors="primary:#f7b84b,secondary:#f06548"
+              style={{ width: "50px", height: "50px" }}
+            ></lord-icon>
+            <h5
+              className="modal-title"
+              style={{
+                marginLeft: "12px",
+                fontWeight: "bold",
+                color: "#333",
+              }}
+            >
+              Upload Excel File
+            </h5>
+          </div>
+        </ModalHeader>
+        <ModalBody>
+          <div style={{ textAlign: "center", paddingBottom: "16px" }}>
+            <h5 style={{ fontSize: "18px", color: "#444" }}>
+              Drag and drop or click to upload
+            </h5>
+            <p style={{ fontSize: "14px", color: "#777" }}>
+              Only Excel files (.xlsx, .xls) are allowed
+            </p>
+          </div>
+          <div
+            style={{
+              border: dragOver ? "2px solid #007bff" : "2px dashed #ccc",
+              borderRadius: "10px",
+              padding: "20px",
+              textAlign: "center",
+              backgroundColor: dragOver ? "#eaf4ff" : "#f9f9f9",
+              cursor: "pointer",
+              transition: "background-color 0.3s, border-color 0.3s",
+            }}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+          >
+            <input
+              type="file"
+              accept=".xlsx, .xls"
+              onChange={handleFileUpload}
+              style={{
+                position: "absolute",
+                width: "100%",
+                height: "100%",
+                opacity: 0,
+                cursor: "pointer",
+              }}
+            />
+            <i
+              className="ri-upload-cloud-2-line"
+              style={{
+                fontSize: "48px",
+                color: dragOver ? "#007bff" : "#bbb",
+              }}
+            ></i>
+            <p style={{ marginTop: "10px", fontSize: "14px", color: "#555" }}>
+              Drop file here or click to upload
+            </p>
+          </div>
+          {uploadedFile && (
+            <div
+              style={{
+                marginTop: "20px",
+                padding: "15px",
+                backgroundColor: "#f8f8f8",
+                border: "1px solid #ddd",
+                borderRadius: "8px",
+              }}
+            >
+              <h6
+                style={{ fontSize: "16px", fontWeight: "bold", color: "#333" }}
+              >
+                Selected File:
+              </h6>
+              <div style={{ display: "flex", alignItems: "center" }}>
+                <i
+                  className="ri-file-excel-2-line"
+                  style={{
+                    marginRight: "10px",
+                    fontSize: "24px",
+                    color: "#28a745",
+                  }}
+                ></i>
+                <span style={{ color: "#555" }}>{uploadedFile.name}</span>
+                <button
+                  type="button"
+                  className="btn btn-link"
+                  style={{
+                    marginLeft: "auto",
+                    color: "#d9534f",
+                    textDecoration: "none",
+                    fontSize: "14px",
+                  }}
+                  onClick={handleRemoveFile} // Correct function reference
+                >
+                  Remove
+                </button>
+              </div>
+            </div>
+          )}
+        </ModalBody>
+        <ModalFooter
+          style={{ display: "flex", justifyContent: "space-between" }}
+        >
+          <Button
+            color="secondary"
+            onClick={toggleModalUpload}
+            style={{
+              backgroundColor: "#6c757d",
+              borderColor: "#6c757d",
+              padding: "8px 16px",
+              fontSize: "14px",
+              fontWeight: "bold",
+            }}
+          >
+            Cancel
+          </Button>
+          <Button
+            color="primary"
+            onClick={() => handleUpload(uploadedFile)}
+            style={{
+              backgroundColor: "#007bff",
+              borderColor: "#007bff",
+              padding: "8px 16px",
+              fontSize: "14px",
+              fontWeight: "bold",
+            }}
+            disabled={!uploadedFile}
+          >
+            Upload
           </Button>
         </ModalFooter>
       </Modal>
