@@ -90,6 +90,7 @@ const List = () => {
   });
   const [uploadedFile, setUploadedFile] = useState(null);
   const [dragOver, setDragOver] = useState(false);
+  const [duplicateCount, setDuplicateCount] = useState(0);
 
   const toggleModal = () => {
     setModalList(!modal_list);
@@ -245,7 +246,7 @@ const List = () => {
 
     try {
       const response = await fetch(
-        `${process.env.REACT_APP_BASE_URL}/api/parts`,
+        `${process.env.REACT_APP_BASE_URL}/api/parts`, //""
         {
           method: "POST",
           headers: {
@@ -440,11 +441,70 @@ const List = () => {
     console.log("File removed:", uploadedFile);
   };
 
-  const handleUpload = () => {
+  // const handleUpload = async () => {
+  //   if (uploadedFile) {
+  //     try {
+  //       const formData = new FormData();
+  //       formData.append("file", uploadedFile);
+
+  //       const response = await fetch(
+  //         `${process.env.REACT_APP_BASE_URL}/api/parts/uploadexcelparts`,
+  //         {
+  //           method: "POST",
+  //           body: formData,
+  //         }
+  //       );
+
+  //       if (!response.ok) {
+  //         throw new Error("Network response was not ok");
+  //         await fetchData();
+  //       }
+
+  //       const data = await response.json();
+  //       // console.log("Upload response:", data);
+  //       await fetchData();
+
+  //       toast.success("File uploaded successfully!");
+  //       setUploadedFile(null); // Reset the uploaded file after successful upload
+  //       toggleModalUpload();
+  //     } catch (error) {
+  //       console.error("Error uploading file:", error);
+  //       toast.error("Failed to upload file. Please try again.");
+  //     }
+  //   } else {
+  //     toast.error("Please select a file to upload");
+  //   }
+  // };
+
+  const handleUpload = async () => {
     if (uploadedFile) {
-      // Implement your file upload logic here
-      toast.success("File uploaded successfully");
-      toggleModalUpload();
+      try {
+        const formData = new FormData();
+        formData.append("file", uploadedFile);
+
+        const response = await fetch(
+          `${process.env.REACT_APP_BASE_URL}/api/parts/uploadexcelparts`,
+          {
+            method: "POST",
+            body: formData,
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error("Network response was not ok");
+        }
+
+        const data = await response.json();
+        console.log("Upload response:", data);
+        setDuplicateCount(data.duplicateCount);
+        await fetchData();
+        setUploadedFile(null);
+        toggleModalUpload();
+        toast.success("File uploaded successfully!");
+      } catch (error) {
+        console.error("Error uploading file:", error);
+        toast.error("Failed to upload file. Please try again.");
+      }
     } else {
       toast.error("Please select a file to upload");
     }
@@ -1031,15 +1091,21 @@ const List = () => {
             <h5
               className="modal-title"
               style={{
-                marginLeft: "12px",
+                marginLeft: "-4rem",
                 fontWeight: "bold",
                 color: "#333",
               }}
             >
               Upload Excel File
+              {duplicateCount > 0 && (
+                <span style={{ color: "red", marginLeft: "10px" }}>
+                  ({duplicateCount} duplicates found)
+                </span>
+              )}
             </h5>
           </div>
         </ModalHeader>
+
         <ModalBody>
           <div style={{ textAlign: "center", paddingBottom: "16px" }}>
             <h5 style={{ fontSize: "18px", color: "#444" }}>
@@ -1096,34 +1162,40 @@ const List = () => {
                 borderRadius: "8px",
               }}
             >
-              <h6
-                style={{ fontSize: "16px", fontWeight: "bold", color: "#333" }}
-              >
-                Selected File:
-              </h6>
-              <div style={{ display: "flex", alignItems: "center" }}>
-                <i
-                  className="ri-file-excel-2-line"
+              <div>
+                <h6
                   style={{
-                    marginRight: "10px",
-                    fontSize: "24px",
-                    color: "#28a745",
+                    fontSize: "16px",
+                    fontWeight: "bold",
+                    color: "#333",
                   }}
-                ></i>
-                <span style={{ color: "#555" }}>{uploadedFile.name}</span>
-                <button
-                  type="button"
-                  className="btn btn-link"
-                  style={{
-                    marginLeft: "auto",
-                    color: "#d9534f",
-                    textDecoration: "none",
-                    fontSize: "14px",
-                  }}
-                  onClick={handleRemoveFile} // Correct function reference
                 >
-                  Remove
-                </button>
+                  Selected File:
+                </h6>
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <i
+                    className="ri-file-excel-2-line"
+                    style={{
+                      marginRight: "10px",
+                      fontSize: "24px",
+                      color: "#28a745",
+                    }}
+                  ></i>
+                  <span style={{ color: "#555" }}>{uploadedFile.name}</span>
+                  <button
+                    type="button"
+                    className="btn btn-link"
+                    style={{
+                      marginLeft: "auto",
+                      color: "#d9534f",
+                      textDecoration: "none",
+                      fontSize: "14px",
+                    }}
+                    onClick={handleRemoveFile}
+                  >
+                    Remove
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -1131,7 +1203,7 @@ const List = () => {
         <ModalFooter
           style={{ display: "flex", justifyContent: "space-between" }}
         >
-          <Button
+          {/* <Button
             color="secondary"
             onClick={toggleModalUpload}
             style={{
@@ -1143,7 +1215,7 @@ const List = () => {
             }}
           >
             Cancel
-          </Button>
+          </Button> */}
           <Button
             color="primary"
             onClick={() => handleUpload(uploadedFile)}
