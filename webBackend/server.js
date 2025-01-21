@@ -22,6 +22,7 @@ const {
 } = require("./routes/variableRoutes/manufacturingStatic.route");
 const partproject = require("./routes/defaultpartproject");
 const subAssemblyRoutes = require("./routes/Sub-Assembly/subAssembly.route");
+const excelPartroutes = require("./routes/PartsExcelData/excelParts");
 
 // MongoDB connection
 const connect = async () => {
@@ -52,6 +53,8 @@ app.use("/api/projects", ProjectRouter);
 app.use("/api/defpartproject", partproject);
 
 app.use("/api/subAssembly", subAssemblyRoutes);
+
+// app.use("/api/parts", excelPartroutes)
 
 const PORT = 4040;
 app.listen(PORT, () => {

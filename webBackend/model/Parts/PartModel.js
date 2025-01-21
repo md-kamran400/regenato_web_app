@@ -46,6 +46,16 @@ const partsCalculationsSchema = new mongoose.Schema({
   // AveragestockPOQty: Number,
 });
 
+  // generalVariables: [generalVariableSchema], // [{},{}]
+  // rmVariables: [rmVariableSchema],
+  // // rmUnitCost: [rmUnitCostSchema],
+  // manufacturingVariables: [manufacturingVariableSchema],
+  // // manufacturingUnitCost: [manufacturingUnitCostSchema],
+  // shipmentVariables: [shipmentVariableSchema],
+  // overheadsAndProfits: [overheadsAndProfitsSchema],
+  // partsCalculations: [partsCalculationsSchema],
+  // index: { type: Number },rmVariables manufacturingVariables shipmentVariables overheadsAndProfits
+
 // Main Part schema
 const partSchema = new mongoose.Schema({
   id: { type: String, unique: true },
@@ -58,14 +68,47 @@ const partSchema = new mongoose.Schema({
   stockPOQty: { type: Number },
   totalCost: { type: Number },
   totalQuantity: { type: Number },
-  generalVariables: [generalVariableSchema], // [{},{}]
-  rmVariables: [rmVariableSchema],
-  // rmUnitCost: [rmUnitCostSchema],
-  manufacturingVariables: [manufacturingVariableSchema],
-  // manufacturingUnitCost: [manufacturingUnitCostSchema],
-  shipmentVariables: [shipmentVariableSchema],
-  overheadsAndProfits: [overheadsAndProfitsSchema],
-  partsCalculations: [partsCalculationsSchema],
+  generalVariables: [
+    {
+      categoryId: String,
+      name: String,
+      value: String,
+    },
+  ],
+  rmVariables: [
+    {
+      categoryId: String,
+      name: String,
+      netWeight: Number,
+      pricePerKg: Number,
+      totalRate: Number,
+    },
+  ],
+  manufacturingVariables: [
+    {
+      categoryId: String,
+      name: String,
+      times: String,
+      hours: Number,
+      hourlyRate: Number,
+      totalRate: Number,
+    },
+  ],
+  shipmentVariables: [
+    {
+      categoryId: String,
+      name: String,
+      hourlyRate: Number,
+    },
+  ],
+  overheadsAndProfits: [
+    {
+      categoryId: String,
+      name: String,
+      percentage: Number,
+      totalRate: Number,
+    },
+  ],
   index: { type: Number },
 
   //for time traking

@@ -2,7 +2,14 @@
 
 const { Router } = require("express");
 const PartsModel = require("../../model/Parts/PartModel");
+const multer = require("multer");
+const xlsx = require("xlsx");
+const fs = require("fs");
 const PartRoutes = Router();
+
+// Multer Configuration
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
 
 // parts variable's backend
 
@@ -1396,5 +1403,151 @@ PartRoutes.delete(
   }
 );
 //end here
+
+// excel post code
+
+
+
+// Helper Functions
+function parseExcel(filePath) {
+  const workbook = xlsx.readFile(filePath);
+  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+  const jsonData = xlsx.utils.sheet_to_json(sheet);
+
+  const idSet = new Set();
+  const partsData = [];
+  const duplicates = [];
+
+  jsonData.forEach((row) => {
+    if (row["Part ID"]) {
+      if (idSet.has(row["Part ID"])) {
+        duplicates.push(row["Part ID"]);
+      } else {
+        idSet.add(row["Part ID"]);
+        partsData.push({
+          id: row["Part ID"],
+          partName: row["Part Name"],
+          clientNumber: row["Client Number"],
+          codeName: row["Code Name"],
+          partType: row["Part Type"],
+          costPerUnit: row["Cost Per Unit"],
+          timePerUnit: row["Time Per Unit"],
+          stockPOQty: row["Stock PO Qty"],
+          totalCost: row["Total Cost"],
+          totalQuantity: row["Total Quantity"],
+          generalVariables: parseArrayData(row, "General Variables"),
+          rmVariables: parseArrayData(row, "RM Variables"),
+          manufacturingVariables: parseArrayData(row, "Manufacturing Variables"),
+          shipmentVariables: parseArrayData(row, "Shipment Variables"),
+          overheadsAndProfits: parseArrayData(row, "Overheads and Profits"),
+        });
+      }
+    }
+  });
+
+  return {
+    partsData,
+    duplicates,
+    error: null,
+    message: "Excel file parsed successfully"
+  };
+}
+
+function parseArrayData(row, prefix) {
+  const items = [];
+  let index = 1;
+  while (row[`${prefix} Category ID ${index}`]) {
+    const item = {
+      categoryId: row[`${prefix} Category ID ${index}`],
+      name: row[`${prefix} Name ${index}`],
+    };
+
+    // Add keys based on prefix type
+    if (prefix === "General Variables") {
+      item.value = row[`${prefix} Value ${index}`] || null;
+    } else if (prefix === "RM Variables") {
+      item.netWeight = parseFloat(row[`${prefix} Net Weight ${index}`]) || null;
+      item.pricePerKg =
+        parseFloat(row[`${prefix} Price Per Kg ${index}`]) || null;
+      item.totalRate = parseFloat(row[`${prefix} Total Rate ${index}`]) || null;
+    } else if (prefix === "Manufacturing Variables") {
+      item.times = row[`${prefix} Times ${index}`] || null;
+      item.hours = parseFloat(row[`${prefix} Hours ${index}`]) || null;
+      item.hourlyRate =
+        parseFloat(row[`${prefix} Hourly Rate ${index}`]) || null;
+      item.totalRate = parseFloat(row[`${prefix} Total Rate ${index}`]) || null;
+    } else if (prefix === "Shipment Variables") {
+      item.hourlyRate =
+        parseFloat(row[`${prefix} Hourly Rate ${index}`]) || null;
+    } else if (prefix === "Overheads and Profits") {
+      item.percentage =
+        parseFloat(row[`${prefix} Percentage ${index}`]) || null;
+      item.totalRate = parseFloat(row[`${prefix} Total Rate ${index}`]) || null;
+    }
+
+    items.push(item);
+    index++;
+  }
+  return items;
+}
+
+PartRoutes.post(
+  "/uploadexcelparts",
+  (req, res, next) => {
+    upload.single("file")(req, res, (err) => {
+      if (err instanceof multer.MulterError) {
+        return res.status(400).send({ error: "File upload failed." });
+      } else if (err) {
+        return res
+          .status(500)
+          .send({ error: "An error occurred during upload." });
+      }
+      next();
+    });
+  },
+  async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).send("No file uploaded.");
+      }
+
+      const tempFilePath = `./upload/${req.file.originalname}`;
+      fs.writeFileSync(tempFilePath, req.file.buffer);
+
+      const { partsData, duplicates, error, message } =
+        parseExcel(tempFilePath);
+
+      fs.unlinkSync(tempFilePath);
+
+      if (error) {
+        return res.status(400).send({ error, message });
+      }
+
+      if (partsData.length === 0) {
+        return res.status(400).send({
+          error: "No unique data to upload.",
+          duplicates,
+        });
+      }
+
+      // Save unique parts data to the database
+      const result = await PartsModel.insertMany(partsData);
+
+      res.status(201).send({
+        message: "Parts data uploaded successfully.",
+        savedData: result,
+        savedCount: result.length,
+        duplicates,
+        duplicateCount: duplicates.length,
+      });
+    } catch (error) {
+      console.error(error);
+      res.status(500).send({
+        error: "An error occurred while processing the file.",
+        message: error.message,
+      });
+    }
+  }
+);
 
 module.exports = { PartRoutes };
