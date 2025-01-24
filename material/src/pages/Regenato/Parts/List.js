@@ -477,37 +477,7 @@ const List = () => {
   // };
 
   const handleUpload = async () => {
-    if (uploadedFile) {
-      try {
-        const formData = new FormData();
-        formData.append("file", uploadedFile);
-
-        const response = await fetch(
-          `${process.env.REACT_APP_BASE_URL}/api/parts/uploadexcelparts`,
-          {
-            method: "POST",
-            body: formData,
-          }
-        );
-
-        if (!response.ok) {
-          throw new Error("Network response was not ok");
-        }
-
-        const data = await response.json();
-        console.log("Upload response:", data);
-        setDuplicateCount(data.duplicateCount);
-        await fetchData();
-        setUploadedFile(null);
-        toggleModalUpload();
-        toast.success("File uploaded successfully!");
-      } catch (error) {
-        console.error("Error uploading file:", error);
-        toast.error("Failed to upload file. Please try again.");
-      }
-    } else {
-      toast.error("Please select a file to upload");
-    }
+  // do the excel post here as well 
   };
 
   const handleFileUpload = (event) => {
