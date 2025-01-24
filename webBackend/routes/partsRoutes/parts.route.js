@@ -2,15 +2,18 @@
 
 const { Router } = require("express");
 const PartsModel = require("../../model/Parts/PartModel");
+const ManufacturingModel = require("../../model/manufacturingmodel");
 const multer = require("multer");
-const xlsx = require("xlsx");
+const XLSX = require("xlsx");
 const fs = require("fs");
 const PartRoutes = Router();
 const axios = require("axios");
+const xlsx = require("xlsx");
 
 // Multer Configuration
-const storage = multer.memoryStorage();
-const upload = multer({ storage: storage });
+// const storage = multer.memoryStorage();
+// const upload = multer({ storage: storage });
+const upload = multer({ storage: multer.memoryStorage() });
 
 // parts variable's backend
 
@@ -1405,315 +1408,423 @@ PartRoutes.delete(
 );
 //end here
 
-// excel post code
-
-// Helper Functions
-function parseExcel(filePath) {
-  const workbook = xlsx.readFile(filePath);
-  const sheet = workbook.Sheets[workbook.SheetNames[0]];
-  const jsonData = xlsx.utils.sheet_to_json(sheet);
-
-  const idSet = new Set();
-  const partsData = [];
-  const duplicates = [];
-
-  jsonData.forEach((row) => {
-    if (row["Part ID"]) {
-      if (idSet.has(row["Part ID"])) {
-        duplicates.push(row["Part ID"]);
-      } else {
-        idSet.add(row["Part ID"]);
-        partsData.push({
-          id: row["Part ID"],
-          partName: row["Part Name"],
-          clientNumber: row["Client Number"],
-          codeName: row["Code Name"],
-          partType: row["Part Type"],
-          costPerUnit: row["Cost Per Unit"],
-          timePerUnit: row["Time Per Unit"],
-          stockPOQty: row["Stock PO Qty"],
-          totalCost: row["Total Cost"],
-          totalQuantity: row["Total Quantity"],
-          generalVariables: parseArrayData(row, "General Variables"),
-          rmVariables: parseArrayData(row, "RM Variables"),
-          manufacturingVariables: parseArrayData(row, "Manufacturing Variables"),
-          shipmentVariables: parseArrayData(row, "Shipment Variables"),
-          overheadsAndProfits: parseArrayData(row, "Overheads and Profits"),
-        });
-      }
-    }
-  });
-
-  return {
-    partsData,
-    duplicates,
-    error: null,
-    message: "Excel file parsed successfully"
-  };
-}
-
-function parseArrayData(row, prefix) {
-  const items = [];
-  let index = 1;
-  while (row[`${prefix} Category ID ${index}`]) {
-    const item = {
-      categoryId: row[`${prefix} Category ID ${index}`],
-      name: row[`${prefix} Name ${index}`],
-    };
-
-    // Add keys based on prefix type
-    if (prefix === "General Variables") {
-      item.value = row[`${prefix} Value ${index}`] || null;
-    } else if (prefix === "RM Variables") {
-      item.netWeight = parseFloat(row[`${prefix} Net Weight ${index}`]) || null;
-      item.pricePerKg =
-        parseFloat(row[`${prefix} Price Per Kg ${index}`]) || null;
-      item.totalRate = parseFloat(row[`${prefix} Total Rate ${index}`]) || null;
-    } else if (prefix === "Manufacturing Variables") {
-      item.times = row[`${prefix} Times ${index}`] || null;
-      item.hours = parseFloat(row[`${prefix} Hours ${index}`]) || null;
-      item.hourlyRate =
-        parseFloat(row[`${prefix} Hourly Rate ${index}`]) || null;
-      item.totalRate = parseFloat(row[`${prefix} Total Rate ${index}`]) || null;
-    } else if (prefix === "Shipment Variables") {
-      item.hourlyRate =
-        parseFloat(row[`${prefix} Hourly Rate ${index}`]) || null;
-    } else if (prefix === "Overheads and Profits") {
-      item.percentage =
-        parseFloat(row[`${prefix} Percentage ${index}`]) || null;
-      item.totalRate = parseFloat(row[`${prefix} Total Rate ${index}`]) || null;
-    }
-
-    items.push(item);
-    index++;
-  }
-  return items;
-}
-
-PartRoutes.post(
-  "/uploadexcelparts",
-  (req, res, next) => {
-    upload.single("file")(req, res, (err) => {
-      if (err instanceof multer.MulterError) {
-        return res.status(400).send({ error: "File upload failed." });
-      } else if (err) {
-        return res
-          .status(500)
-          .send({ error: "An error occurred during upload." });
-      }
-      next();
-    });
-  },
-  async (req, res) => {
-    try {
-      if (!req.file) {
-        return res.status(400).send("No file uploaded.");
-      }
-
-      const tempFilePath = `./upload/${req.file.originalname}`;
-      fs.writeFileSync(tempFilePath, req.file.buffer);
-
-      const { partsData, duplicates, error, message } =
-        parseExcel(tempFilePath);
-
-      fs.unlinkSync(tempFilePath);
-
-      if (error) {
-        return res.status(400).send({ error, message });
-      }
-
-      if (partsData.length === 0) {
-        return res.status(400).send({
-          error: "No unique data to upload.",
-          duplicates,
-        });
-      }
-
-      // Save unique parts data to the database
-      const result = await PartsModel.insertMany(partsData);
-
-      res.status(201).send({
-        message: "Parts data uploaded successfully.",
-        savedData: result,
-        savedCount: result.length,
-        duplicates,
-        duplicateCount: duplicates.length,
-      });
-    } catch (error) {
-      console.error(error);
-      res.status(500).send({
-        error: "An error occurred while processing the file.",
-        message: error.message,
-      });
-    }
-  }
-);
-
-// // Helper Function to Fetch Data from API
-// const fetchCategoryData = async (categoryId) => {
+// PartRoutes.post("/uploadexcelparts", upload.single("file"), async (req, res) => {
 //   try {
-//     const response = await axios.get(
-//       `http://localhost:4040/api/manufacturing/category/${categoryId}`
-//     );
-//     return response.data;
+//     const fileBuffer = req.file.buffer;
+//     const workbook = XLSX.read(fileBuffer, { type: "buffer" });
+//     const sheetName = workbook.SheetNames[0];
+//     const sheet = workbook.Sheets[sheetName];
+//     const excelData = XLSX.utils.sheet_to_json(sheet);
+
+//     // Fetch existing manufacturing data
+//     const existingManufacturingData = await ManufacturingModel.find(); // Ensure the ManufacturingModel is defined
+
+//     // Process data
+//     const bulkOps = excelData.map((item) => {
+//       const partId = item.partNo; // id from partNo
+//       const partName = item.description; // partName from description
+
+//       // Match manufacturing variables by categoryId
+//       const manufacturingVariables = Object.entries(item)
+//         .filter(([key]) => key.startsWith("C")) // Filter c1, c2, etc.
+//         .map(([key, value]) => {
+//           const matchedVariable = existingManufacturingData.find(
+//             (manufacturingItem) => manufacturingItem.categoryId === key
+//           );
+
+//           if (matchedVariable) {
+//             return {
+//               categoryId: key,
+//               name: matchedVariable.name || `Manufacturing ${key}`,
+//               hours: parseFloat(value) || 0,
+//               hourlyRate: matchedVariable.hourlyRate || 0,
+//               totalRate: (parseFloat(value) || 0) * (matchedVariable.hourlyRate || 0),
+//             };
+//           }
+//           return null;
+//         })
+//         .filter((variable) => variable !== null); // Remove null entries
+
+//       return {
+//         updateOne: {
+//           filter: { id: partId },
+//           update: {
+//             $set: {
+//               id: partId,
+//               partName: partName || "",
+//               clientNumber: item.clientNumber || "",
+//               codeName: item.codeName || "",
+//               partType: item.partType || "Make",
+//               costPerUnit: item.costPerUnit || 0,
+//               timePerUnit: item.timePerUnit || 0,
+//               stockPOQty: item.stockPOQty || 0,
+//               totalCost: item.totalCost || 0,
+//               totalQuantity: item.totalQuantity || 0,
+//               rmVariables: [], // Add rmVariables if applicable
+//               shipmentVariables: [], // Add shipmentVariables if applicable
+//               overheadsAndProfits: [], // Add overheadsAndProfits if applicable
+//               partsCalculations: [], // Add partsCalculations if applicable
+//               generalVariables: [], // Add generalVariables if applicable
+//             },
+//             $push: { manufacturingVariables: { $each: manufacturingVariables } },
+//           },
+//           upsert: true,
+//         },
+//       };
+//     });
+
+//     // Perform bulk write
+//     const result = await PartsModel.bulkWrite(bulkOps);
+//     res.status(200).send({
+//       message: "Data uploaded successfully",
+//       insertedCount: result.nInserted,
+//       modifiedCount: result.nModified,
+//     });
 //   } catch (error) {
-//     console.error(`Error fetching data for category ${categoryId}:`, error);
-//     return null;
+//     console.error("Error processing Excel upload:", error);
+//     res.status(500).send({
+//       message: "Failed to process and upload data",
+//       error: error.message || "Unknown error occurred",
+//     });
 //   }
-// };
+// });
 
-// // Updated parseExcel Function
-// async function parseExcelWithAPI(filePath) {
-//   const workbook = xlsx.readFile(filePath);
-//   const sheet = workbook.Sheets[workbook.SheetNames[0]];
-//   const jsonData = xlsx.utils.sheet_to_json(sheet);
+PartRoutes.get("/category/:categoryId", async (req, res) => {
+  try {
+    const { categoryId } = req.params;
 
-//   console.log("Parsed Data:", jsonData);
+    // Find manufacturing entry by categoryId
+    const manufacturingEntry = await ManufacturingModel.findOne({ categoryId });
 
-//   const idSet = new Set();
-//   const partsData = [];
-//   const duplicates = [];
-//   const skippedRows = [];
-//   const validPartTypes = ["Make", "Purchase"];
+    if (!manufacturingEntry) {
+      return res.status(404).json({ msg: "Manufacturing entry not found" });
+    }
 
-//   for (const [index, row] of jsonData.entries()) {
-//     const partId = row["Part ID"]?.trim() || null; // Adjust key based on actual column name
-//     if (!partId) {
-//       skippedRows.push({ index, reason: "Missing Part ID", row });
-//       continue;
+    // Extract only the required fields
+    const { categoryId: id, name, hourlyrate } = manufacturingEntry;
+
+    res.status(200).json({
+      msg: "Manufacturing entry retrieved",
+      data: { categoryId: id, name, hourlyrate },
+    });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// // Route to upload and process Excel file
+// PartRoutes.post("/uploadexcel", upload.single("file"), async (req, res) => {
+//   try {
+//     if (!req.file) {
+//       return res.status(400).json({ message: "No file uploaded" });
 //     }
 
-//     if (idSet.has(partId)) {
-//       duplicates.push(partId);
-//       continue;
+//     // Parse the uploaded Excel file
+//     const workbook = xlsx.read(req.file.buffer, { type: "buffer" });
+//     const sheetName = workbook.SheetNames[0];
+//     const sheetData = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
+
+//     if (sheetData.length === 0) {
+//       return res
+//         .status(400)
+//         .json({ message: "The uploaded Excel file is empty" });
 //     }
 
-//     idSet.add(partId);
+//     const processedParts = [];
 
-//     // Prepare Manufacturing Variables
-//     const manufacturingVariables = [];
-//     for (const key in row) {
-//       if (key.startsWith("C")) {
-//         const categoryId = key.trim();
-//         const hours = parseFloat(row[key]) || 0;
-//         const categoryData = await fetchCategoryData(categoryId);
+//     for (const row of sheetData) {
+//       // Normalize column names to match your schema
+//       const id = row["id"];
+//       const partName = row["partName"];
+//       const qty = row["Qty."];
 
-//         if (categoryData) {
-//           manufacturingVariables.push({
-//             categoryId,
-//             name: categoryData.name,
-//             hours,
-//             ...categoryData,
-//           });
+//       // Skip rows with missing essential fields
+//       if (!id || !partName || !qty) {
+//         console.warn(
+//           `Skipping row with missing fields: ${JSON.stringify(row)}`
+//         );
+//         continue;
+//       }
+
+//       const validManufacturingVariables = [];
+
+//       for (const [key, value] of Object.entries(row)) {
+//         // Skip irrelevant fields and rows where hours are 0 or undefined
+//         if (["id", "partName", "Qty."].includes(key) || !value) {
+//           continue;
 //         }
-//       }
-//     }
 
-//     partsData.push({
-//       id: partId,
-//       partName: row["Part Name"]?.trim() || "Unknown",
-//       // partType: row["Part Type"]?.trim() || "Unknown",
-//       partType: validPartTypes.includes(row["Part Type"]?.trim())
-//         ? row["Part Type"]?.trim()
-//         : "Unknown",
-//       clientNumber: row["Client Number"]?.trim() || "Unknown",
-//       codeName: row["Code Name"]?.trim() || "Unknown",
-//       costPerUnit: parseFloat(row["Cost Per Unit"]) || 0,
-//       timePerUnit: parseFloat(row["Time Per Unit"]) || 0,
-//       stockPOQty: parseInt(row["Stock PO Qty"], 10) || 0,
-//       totalCost: parseFloat(row["Total Cost"]) || 0,
-//       totalQuantity: parseInt(row["Total Quantity"], 10) || 0,
-//       manufacturingVariables,
-//     });
-//   }
+//         // Find manufacturing entry by categoryId (e.g., "C1", "C2")
+//         const manufacturingEntry = await ManufacturingModel.findOne({
+//           categoryId: key,
+//         });
 
-//   console.log("Skipped Rows:", skippedRows);
+//         if (!manufacturingEntry) {
+//           console.warn(`No manufacturing entry found for categoryId: ${key}`);
+//           continue;
+//         }
 
-//   if (partsData.length === 0) {
-//     return {
-//       partsData,
-//       duplicates,
-//       skippedRows,
-//       error: "No valid data to upload.",
-//       message: "No unique data found or all rows were invalid.",
-//     };
-//   }
-
-//   return {
-//     partsData,
-//     duplicates,
-//     skippedRows,
-//     error: null,
-//     message: "Excel file parsed successfully.",
-//   };
-// }
-
-// // Updated Endpoint
-// PartRoutes.post(
-//   "/uploadexcelparts",
-//   (req, res, next) => {
-//     upload.single("file")(req, res, (err) => {
-//       if (err instanceof multer.MulterError) {
-//         return res.status(400).send({ error: "File upload failed." });
-//       } else if (err) {
-//         return res
-//           .status(500)
-//           .send({ error: "An error occurred during upload." });
-//       }
-//       next();
-//     });
-//   },
-//   async (req, res) => {
-//     try {
-//       if (!req.file) {
-//         return res.status(400).send("No file uploaded.");
-//       }
-
-//       const tempFilePath = `./upload/${req.file.originalname}`;
-//       fs.writeFileSync(tempFilePath, req.file.buffer);
-
-//       const { partsData, duplicates, error, message } = await parseExcelWithAPI(
-//         tempFilePath
-//       );
-
-//       fs.unlinkSync(tempFilePath);
-
-//       if (error) {
-//         return res.status(400).send({ error, message });
-//       }
-
-//       // if (partsData.length === 0) {
-//       //   return res.status(400).send({
-//       //     error: "No unique data to upload.",
-//       //     duplicates,
-//       //   });
-//       // }
-//       if (partsData.length === 0) {
-//         return res.status(400).send({
-//           error: "No unique data to upload.",
-//           duplicates,
-//           skippedRows,
+//         // Construct the manufacturing variable object
+//         validManufacturingVariables.push({
+//           categoryId: manufacturingEntry.categoryId,
+//           name: manufacturingEntry.name,
+//           hours: value, // Hours from the Excel file
+//           hourlyRate: manufacturingEntry.hourlyrate,
+//           totalRate: value * manufacturingEntry.hourlyrate,
 //         });
 //       }
 
-//       // Save unique parts data to the database
-//       const result = await PartsModel.insertMany(partsData);
+//       if (validManufacturingVariables.length > 0) {
+//         // Construct the part object
+//         const partData = {
+//           id,
+//           partName,
+//           manufacturingVariables: validManufacturingVariables,
+//         };
 
-//       res.status(201).send({
-//         message: "Parts data uploaded successfully.",
-//         savedData: result,
-//         savedCount: result.length,
-//         duplicates,
-//         duplicateCount: duplicates.length,
-//       });
-//     } catch (error) {
-//       console.error("Error inserting data:", error);
-//       return res.status(400).send({
-//         error: "Failed to insert data into the database",
-//         message: error.message,
-//       });
+//         // Check if part already exists in the database
+//         let part = await PartsModel.findOne({ id });
+//         if (part) {
+//           // Append manufacturing variables to existing part
+//           part.manufacturingVariables.push(...validManufacturingVariables);
+//           await part.save();
+//         } else {
+//           // Create a new part entry
+//           part = new PartsModel(partData);
+//           await part.save();
+//         }
+
+//         processedParts.push(part);
+//       }
 //     }
+
+//     if (processedParts.length === 0) {
+//       return res
+//         .status(400)
+//         .json({ message: "No valid data found in the file" });
+//     }
+
+//     res.status(201).json({
+//       message: "Parts processed and saved successfully",
+//       processedParts,
+//     });
+//   } catch (error) {
+//     console.error("Error processing file:", error.message);
+//     res.status(500).json({ message: error.message });
 //   }
-// );
+// });
+
+// PartRoutes.post("/uploadexcel", upload.single("file"), async (req, res) => {
+//   try {
+//     if (!req.file) {
+//       return res.status(400).json({ message: "No file uploaded" });
+//     }
+
+//     // Parse the uploaded Excel file
+//     const workbook = xlsx.read(req.file.buffer, { type: "buffer" });
+//     const sheetName = workbook.SheetNames[0];
+//     const sheetData = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
+
+//     if (sheetData.length === 0) {
+//       return res
+//         .status(400)
+//         .json({ message: "The uploaded Excel file is empty" });
+//     }
+
+//     const processedParts = [];
+
+//     for (const row of sheetData) {
+//       const id = row["id"];
+//       const partName = row["partName"];
+//       const qty = row["Qty."];
+
+//       // Skip rows with missing essential fields
+//       if (!id || !partName || !qty) {
+//         console.warn(
+//           `Skipping row with missing fields: ${JSON.stringify(row)}`
+//         );
+//         continue;
+//       }
+
+//       const manufacturingVariables = [];
+
+//       for (const [key, value] of Object.entries(row)) {
+//         // Check if the key represents a category ID and the value (hours) is valid
+//         if (!key.startsWith("C") || value <= 0) {
+//           continue;
+//         }
+
+//         try {
+//           // Fetch manufacturing entry for the category ID
+//           const response = await axios.get(
+//             `http://localhost:4040/api/parts/category/${key}`
+//           );
+
+//           const manufacturingEntry = response.data.data;
+
+//           if (manufacturingEntry) {
+//             manufacturingVariables.push({
+//               categoryId: manufacturingEntry.categoryId,
+//               name: manufacturingEntry.name,
+//               hours: value, // Hours from Excel
+//               hourlyRate: manufacturingEntry.hourlyrate,
+//               totalRate: value * manufacturingEntry.hourlyrate,
+//             });
+//           }
+//         } catch (error) {
+//           console.warn(
+//             `Failed to fetch data for category ID ${key}: ${error.message}`
+//           );
+//           continue;
+//         }
+//       }
+
+//       if (manufacturingVariables.length > 0) {
+//         const partData = {
+//           id,
+//           partName,
+//           manufacturingVariables,
+//         };
+
+//         // Check if part already exists in the database
+//         let part = await PartsModel.findOne({ id });
+//         if (part) {
+//           // Append manufacturing variables to existing part
+//           part.manufacturingVariables.push(...manufacturingVariables);
+//           await part.save();
+//         } else {
+//           // Create a new part entry
+//           part = new PartsModel(partData);
+//           await part.save();
+//         }
+
+//         processedParts.push(part);
+//       }
+//     }
+
+//     if (processedParts.length === 0) {
+//       return res
+//         .status(400)
+//         .json({ message: "No valid data found in the file" });
+//     }
+
+//     res.status(201).json({
+//       message: "Parts processed and saved successfully",
+//       processedParts,
+//     });
+//   } catch (error) {
+//     console.error("Error processing file:", error.message);
+//     res.status(500).json({ message: error.message });
+//   }
+// });
+
+PartRoutes.post("/uploadexcel", upload.single("file"), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
+
+    // Parse the uploaded Excel file
+    const workbook = xlsx.read(req.file.buffer, { type: "buffer" });
+    const sheetName = workbook.SheetNames[0];
+    const sheetData = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
+
+    console.log("Parsed Excel Data:", sheetData); // Debugging: Log the parsed data
+
+    if (sheetData.length === 0) {
+      return res
+        .status(400)
+        .json({ message: "The uploaded Excel file is empty" });
+    }
+
+    const processedParts = [];
+
+    for (const row of sheetData) {
+      const id = row["id"];
+      const partName = row["partName"];
+      const qty = row["Qty."];
+
+      // Skip rows with missing essential fields
+      if (!id || !partName || !qty) {
+        console.warn(
+          `Skipping row with missing fields: ${JSON.stringify(row)}`
+        );
+        continue;
+      }
+
+      const validManufacturingVariables = [];
+
+      for (const [key, value] of Object.entries(row)) {
+        if (["id", "partName", "Qty."].includes(key) || !value || value === 0) {
+          continue;
+        }
+
+        // Fetch manufacturing data for the category ID
+        try {
+          const response = await fetch(
+            `http://localhost:4040/api/parts/category/${key}`
+          );
+          if (!response.ok) {
+            console.warn(`API call failed for categoryId: ${key}`);
+            continue;
+          }
+
+          const manufacturingEntry = await response.json();
+          if (!manufacturingEntry?.data) {
+            console.warn(`No manufacturing entry found for categoryId: ${key}`);
+            continue;
+          }
+
+          // Construct the manufacturing variable object
+          validManufacturingVariables.push({
+            categoryId: manufacturingEntry.data.categoryId,
+            name: manufacturingEntry.data.name,
+            hours: value, // Hours from the Excel file
+            hourlyRate: manufacturingEntry.data.hourlyrate,
+            totalRate: value * manufacturingEntry.data.hourlyrate,
+          });
+        } catch (apiError) {
+          console.error(
+            `Error fetching data for categoryId ${key}:`,
+            apiError.message
+          );
+        }
+      }
+
+      if (validManufacturingVariables.length > 0) {
+        const partData = {
+          id,
+          partName,
+          manufacturingVariables: validManufacturingVariables,
+        };
+
+        let part = await PartsModel.findOne({ id });
+        if (part) {
+          part.manufacturingVariables.push(...validManufacturingVariables);
+          await part.save();
+        } else {
+          part = new PartsModel(partData);
+          await part.save();
+        }
+
+        processedParts.push(part);
+      }
+    }
+
+    if (processedParts.length === 0) {
+      return res
+        .status(400)
+        .json({ message: "No valid data found in the file" });
+    }
+
+    res.status(201).json({
+      message: "Parts processed and saved successfully",
+      processedParts,
+    });
+  } catch (error) {
+    console.error("Error processing file:", error.message);
+    res.status(500).json({ message: error.message });
+  }
+});
 
 module.exports = { PartRoutes };
