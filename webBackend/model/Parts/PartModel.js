@@ -46,16 +46,6 @@ const partsCalculationsSchema = new mongoose.Schema({
   // AveragestockPOQty: Number,
 });
 
-  // generalVariables: [generalVariableSchema], // [{},{}]
-  // rmVariables: [rmVariableSchema],
-  // // rmUnitCost: [rmUnitCostSchema],
-  // manufacturingVariables: [manufacturingVariableSchema],
-  // // manufacturingUnitCost: [manufacturingUnitCostSchema],
-  // shipmentVariables: [shipmentVariableSchema],
-  // overheadsAndProfits: [overheadsAndProfitsSchema],
-  // partsCalculations: [partsCalculationsSchema],
-  // index: { type: Number },rmVariables manufacturingVariables shipmentVariables overheadsAndProfits
-
 // Main Part schema
 const partSchema = new mongoose.Schema({
   id: { type: String, unique: true },

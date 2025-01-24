@@ -1,6 +1,6 @@
 const { Router } = require("express");
 const ManufacturingModel = require("../../model/manufacturingmodel");
-const manufacturRouter = Router();
+const manufacturRouter = Router();+
 
 // POST request (already existing)
 // manufacturRouter.post("/", async (req, res) => {
