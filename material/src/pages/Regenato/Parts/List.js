@@ -7,6 +7,7 @@ import React, {
 } from "react";
 import { Link } from "react-router-dom";
 import { debounce } from "lodash";
+import { Spinner } from "reactstrap";
 import "./project.css";
 import {
   Card,
@@ -91,6 +92,7 @@ const List = () => {
   const [uploadedFile, setUploadedFile] = useState(null);
   const [dragOver, setDragOver] = useState(false);
   const [duplicateCount, setDuplicateCount] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
 
   const toggleModal = () => {
     setModalList(!modal_list);
@@ -443,12 +445,13 @@ const List = () => {
 
   // const handleUpload = async () => {
   //   if (uploadedFile) {
+  //     setIsUploading(true);
   //     try {
   //       const formData = new FormData();
   //       formData.append("file", uploadedFile);
 
   //       const response = await fetch(
-  //         `${process.env.REACT_APP_BASE_URL}/api/parts/uploadexcelparts`,
+  //         `${process.env.REACT_APP_BASE_URL}/api/parts/uploadexcel`,
   //         {
   //           method: "POST",
   //           body: formData,
@@ -470,14 +473,64 @@ const List = () => {
   //     } catch (error) {
   //       console.error("Error uploading file:", error);
   //       toast.error("Failed to upload file. Please try again.");
+  //     } finally {
+  //       setIsUploading(false);
   //     }
   //   } else {
   //     toast.error("Please select a file to upload");
   //   }
   // };
 
+  // const handleUpload = async () => {
+  // // do the excel post here as well
+  // };
+
   const handleUpload = async () => {
-  // do the excel post here as well 
+    if (uploadedFile) {
+      setIsUploading(true);
+      try {
+        const formData = new FormData();
+        formData.append("file", uploadedFile);
+
+        const response = await fetch(
+          `${process.env.REACT_APP_BASE_URL}/api/parts/uploadexcel`,
+          {
+            method: "POST",
+            body: formData,
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error("Network response was not ok");
+        }
+
+        const data = await response.json();
+
+        // Display duplicate IDs if any
+        if (data.duplicateCount > 0) {
+          toast.warn(
+            `Upload partially successful. ${
+              data.duplicateCount
+            } duplicates skipped: ${data.duplicateIds.join(", ")}`
+          );
+        } else {
+          toast.success("File uploaded successfully!");
+        }
+
+        // Fetch updated data
+        await fetchData();
+
+        setUploadedFile(null); // Reset the uploaded file after successful upload
+        toggleModalUpload();
+      } catch (error) {
+        console.error("Error uploading file:", error);
+        toast.error("Failed to upload file. Please try again.");
+      } finally {
+        setIsUploading(false);
+      }
+    } else {
+      toast.error("Please select a file to upload");
+    }
   };
 
   const handleFileUpload = (event) => {
@@ -1186,9 +1239,10 @@ const List = () => {
           >
             Cancel
           </Button> */}
+          {/* // Modify the upload button */}
           <Button
             color="primary"
-            onClick={() => handleUpload(uploadedFile)}
+            onClick={() => handleUpload()}
             style={{
               backgroundColor: "#007bff",
               borderColor: "#007bff",
@@ -1196,9 +1250,16 @@ const List = () => {
               fontSize: "14px",
               fontWeight: "bold",
             }}
-            disabled={!uploadedFile}
+            disabled={!uploadedFile || isUploading}
           >
-            Upload
+            {isUploading ? (
+              <>
+                <Spinner className="small-spinner" size="xs" color="light" />
+                &nbsp; Uploading...
+              </>
+            ) : (
+              "Upload"
+            )}
           </Button>
         </ModalFooter>
       </Modal>
