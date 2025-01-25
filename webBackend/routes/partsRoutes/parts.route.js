@@ -4,81 +4,17 @@ const { Router } = require("express");
 const PartsModel = require("../../model/Parts/PartModel");
 const ManufacturingModel = require("../../model/manufacturingmodel");
 const multer = require("multer");
-const XLSX = require("xlsx");
+const xlsx = require("xlsx");
 const fs = require("fs");
 const PartRoutes = Router();
 const axios = require("axios");
 
 // Multer Configuration
 const storage = multer.memoryStorage();
-const upload = multer({ storage: storage });
+const upload = multer({ storage: multer.memoryStorage() });
 
 // parts variable's backend
 
-// POST - Add a new part
-// POST - Add a new part or duplicate an existing part
-// POST - Add a new part or duplicate an existing part
-// PartRoutes.post("/", async (req, res) => {
-//   try {
-//     const {
-//       id,
-//       partName,
-//       codeName,
-//       clientNumber,
-//       costPerUnit,
-//       timePerUnit,
-//       stockPOQty,
-//       rmVariables,
-//       manufacturingVariables,
-//       shipmentVariables,
-//       overheadsAndProfits,
-//       partsCalculations,
-//       originalIndex,
-//     } = req.body;
-
-//     // Check if this is a duplicate request
-//     if (id && partName && costPerUnit && timePerUnit && stockPOQty) {
-//       // This is a duplicate request, create a new part with the provided data
-//       const newPart = new PartsModel({
-//         id,
-//         partName,
-//         clientNumber,
-//         codeName,
-//         costPerUnit,
-//         timePerUnit,
-//         stockPOQty,
-//         rmVariables,
-//         manufacturingVariables,
-//         shipmentVariables,
-//         overheadsAndProfits,
-//         partsCalculations,
-//       });
-
-//       // Find all parts
-//       const allParts = await PartsModel.find().sort({ id: 1 });
-
-//       // Insert the new part at the correct position
-//       allParts.splice(originalIndex + 1, 0, newPart);
-
-//       // Update the database with the new order
-//       await Promise.all(
-//         allParts.map((part, index) => {
-//           part.index = index;
-//           return part.save();
-//         })
-//       );
-
-//       res.status(201).json(newPart);
-//     } else {
-//       // This is a new part creation request
-//       const newPart = new PartsModel(req.body);
-//       await newPart.save();
-//       res.status(201).json(newPart);
-//     }
-//   } catch (error) {
-//     res.status(400).json({ message: error.message });
-//   }
-// });
 PartRoutes.post("/", async (req, res) => {
   try {
     const {
@@ -196,47 +132,6 @@ PartRoutes.put("/:_id", async (req, res) => {
   }
 });
 
-// post for dupliate
-// Route to duplicate a part
-// PartRoutes.post("/duplicate/:id", async (req, res) => {
-//   try {
-//     const { id } = req.params; // Original part ID
-//     const { newId, newPartName, ...duplicateData } = req.body;
-
-//     console.log("Duplicate request received:");
-//     console.log("Original Part ID:", id);
-//     console.log("New Part ID:", newId);
-//     console.log("New Part Name:", newPartName);
-
-//     // Fetch the original part
-//     const originalPart = await PartsModel.findById(id);
-//     if (!originalPart) {
-//       return res.status(404).json({ message: "Original part not found" });
-//     }
-
-//     // Check if newId is unique
-//     const existingPart = await PartsModel.findOne({ id: newId });
-//     if (existingPart) {
-//       return res.status(400).json({ message: "Duplicate ID already exists" });
-//     }
-
-//     // Create duplicate part
-//     const duplicatePart = new PartsModel({
-//       ...originalPart.toObject(), // Clone original part
-//       _id: undefined, // Generate a new MongoDB ID
-//       id: newId, // Assign new ID
-//       partName: newPartName, // Assign new Name
-//       ...duplicateData, // Overwrite other fields
-//     });
-
-//     await duplicatePart.save();
-//     res.status(201).json(duplicatePart);
-//   } catch (error) {
-//     console.error("Error duplicating part:", error);
-//     res.status(500).json({ message: error.message || "Internal server error" });
-//   }
-// });
-
 // GET - Retrieve all parts
 
 PartRoutes.get("/", async (req, res) => {
@@ -247,180 +142,6 @@ PartRoutes.get("/", async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
-
-// GET - Retrieve a specific part
-// PartRoutes.get("/:_id", async (req, res) => {
-//   try {
-//     const part = await PartsModel.findById(req.params._id);
-//     if (!part) {
-//       return res.status(404).json({ message: "Part not found" });
-//     }
-//     res.status(200).json(part);
-//   } catch (error) {
-//     res.status(500).json({ message: error.message });
-//   }
-// });
-
-// PartRoutes.get("/:_id", async (req, res) => {
-//   try {
-//     const part = await PartsModel.findById(req.params._id);
-//     if (!part) {
-//       return res.status(404).json({ message: "Part not found" });
-//     }
-
-//     // Calculate total costs
-//     const rmVariablesTotalCost = part.rmVariables.reduce((sum, item) => sum + item.totalRate, 0);
-//     const manufacturingVariablesTotalCost = part.manufacturingVariables.reduce((sum, item) => sum + item.totalRate, 0);
-//     const shipmentVariablesTotalCost = part.shipmentVariables.reduce((sum, item) => sum + item.totalRate, 0);
-//     const allThreeSum = rmVariablesTotalCost + manufacturingVariablesTotalCost + shipmentVariablesTotalCost;
-
-//     // Check if partsCalculations is available
-//     if (part.partsCalculations.length > 0) {
-//       const finalCostPerUnit = part.partsCalculations[0].AvgragecostPerUnit;
-//       const updatedPart = await PartsModel.findByIdAndUpdate(
-//         req.params._id,
-//         { costPerUnit: finalCostPerUnit },
-//         { new: true }
-//       );
-//       res.status(200).json(updatedPart);
-//     } else {
-//       // If partsCalculations is not available, calculate costPerUnit
-//       // Calculate overheads
-//       const overheadsAndProfits = part.overheadsAndProfits || [];
-//       const overheadsPercentage = overheadsAndProfits.reduce((sum, item) => sum + item.percentage, 0);
-//       const overheadsAmount = (allThreeSum * overheadsPercentage) / 100;
-
-//       // Calculate final costPerUnit
-//       const finalCostPerUnit = allThreeSum + overheadsAmount;
-
-//       // Update costPerUnit in the part document
-//       const updatedPart = await PartsModel.findByIdAndUpdate(
-//         req.params._id,
-//         { costPerUnit: finalCostPerUnit },
-//         { new: true }
-//       );
-
-//       res.status(200).json(updatedPart);
-//     }
-//   } catch (error) {
-//     res.status(500).json({ message: error.message });
-//   }
-// });
-
-// PartRoutes.get("/:_id", async (req, res) => {
-//   try {
-//     const part = await PartsModel.findById(req.params._id);
-//     if (!part) {
-//       return res.status(404).json({ message: "Part not found" });
-//     }
-
-//     // Calculate total costs
-//     const rmVariablesTotalCost = part.rmVariables.reduce((sum, item) => sum + (item.totalRate || 0), 0);
-//     const manufacturingVariablesTotalCost = part.manufacturingVariables.reduce((sum, item) => sum + (item.totalRate || 0), 0);
-//     const shipmentVariablesTotalCost = part.shipmentVariables.reduce((sum, item) => sum + (item.totalRate || 0), 0);
-//     const allThreeSum = rmVariablesTotalCost + manufacturingVariablesTotalCost + shipmentVariablesTotalCost;
-
-//     // Calculate total hours from manufacturingVariables
-//     const totalHours = part.manufacturingVariables.reduce((sum, item) => sum + (item.hours || 0), 0);
-
-//     // Calculate overheads
-//     const overheadsAndProfits = part.overheadsAndProfits || [];
-//     const overheadsPercentage = overheadsAndProfits.reduce((sum, item) => sum + (item.percentage || 0), 0);
-//     const overheadsAmount = (allThreeSum * overheadsPercentage) / 100;
-
-//     // Calculate final costPerUnit
-//     const finalCostPerUnit = allThreeSum + overheadsAmount;
-
-//     // Check if finalCostPerUnit is NaN
-//     if (isNaN(finalCostPerUnit)) {
-//       return res.status(400).json({ message: "Error calculating costPerUnit. Please check your input values." });
-//     }
-
-//     // Update costPerUnit and timePerUnit in the part document
-//     const updatedPart = await PartsModel.findByIdAndUpdate(
-//       req.params._id,
-//       {
-//         costPerUnit: finalCostPerUnit,
-//         timePerUnit: totalHours
-//       },
-//       { new: true }
-//     );
-
-//     res.status(200).json(updatedPart);
-//   } catch (error) {
-//     console.error("Error:", error);
-//     res.status(500).json({ message: error.message });
-//   }
-// });
-
-// PartRoutes.get("/:_id", async (req, res) => {
-//   try {
-//     const part = await PartsModel.findById(req.params._id);
-//     if (!part) {
-//       return res.status(404).json({ message: "Part not found" });
-//     }
-
-//     // Calculate total costs
-//     const rmVariablesTotalCost = part.rmVariables.reduce(
-//       (sum, item) => sum + (item.totalRate || 0),
-//       0
-//     );
-//     const manufacturingVariablesTotalCost = part.manufacturingVariables.reduce(
-//       (sum, item) => sum + (item.totalRate || 0),
-//       0
-//     );
-//     const shipmentVariablesTotalCost = part.shipmentVariables.reduce(
-//       (sum, item) => sum + (item.hourlyRate || 0),
-//       0
-//     );
-//     const allThreeSum =
-//       rmVariablesTotalCost +
-//       manufacturingVariablesTotalCost +
-//       shipmentVariablesTotalCost;
-
-//     // Calculate total hours from manufacturingVariables
-//     const totalHours = part.manufacturingVariables.reduce(
-//       (sum, item) => sum + (item.hours || 0),
-//       0
-//     );
-
-//     // Calculate overheads
-//     const overheadsAndProfits = part.overheadsAndProfits || [];
-//     const overheadsPercentage = overheadsAndProfits.reduce(
-//       (sum, item) => sum + (item.percentage || 0),
-//       0
-//     );
-//     const overheadsAmount = (allThreeSum * overheadsPercentage) / 100;
-
-//     // Calculate final costPerUnit
-//     const finalCostPerUnit = Math.ceil(allThreeSum + overheadsAmount);
-
-//     // Check if finalCostPerUnit is NaN
-//     if (isNaN(finalCostPerUnit)) {
-//       return res
-//         .status(400)
-//         .json({
-//           message:
-//             "Error calculating costPerUnit. Please check your input values.",
-//         });
-//     }
-
-//     // Update costPerUnit and timePerUnit in the part document
-//     const updatedPart = await PartsModel.findByIdAndUpdate(
-//       req.params._id,
-//       {
-//         costPerUnit: finalCostPerUnit,
-//         timePerUnit: totalHours,
-//       },
-//       { new: true }
-//     );
-
-//     res.status(200).json(updatedPart);
-//   } catch (error) {
-//     console.error("Error:", error);
-//     res.status(500).json({ message: error.message });
-//   }
-// });
 
 PartRoutes.get("/:_id", async (req, res) => {
   try {
@@ -660,33 +381,9 @@ PartRoutes.post("/:_id/rmVariables", async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 });
-// PartRoutes.post("/:_id/rmVariables", async (req, res) => {
-//   try {
-//     const newRMVariable = {
-//       categoryId: req.body.categoryId,
-//       name: req.body.name,
-//       netWeight: req.body.netWeight,
-//       pricePerKg: req.body.pricePerKg,
-//       totalRate: req.body.netWeight * req.body.pricePerKg,
-//     };
-
-//     const updatedPart = await PartsModel.findByIdAndUpdate(
-//       req.params._id,
-//       { $push: { rmVariables: newRMVariable } },
-//       { new: true }
-//     );
-
-//     if (!updatedPart) {
-//       return res.status(404).json({ message: "Part not found" });
-//     }
-
-//     res.status(201).json(updatedPart);
-//   } catch (error) {
-//     res.status(400).json({ message: error.message });
-//   }
-// });
 
 // PUT - Update an RM Variable within a part
+
 PartRoutes.put("/:_id/rmVariables/:variableId", async (req, res) => {
   try {
     const updatedPart = await PartsModel.findOneAndUpdate(
@@ -743,33 +440,6 @@ PartRoutes.get("/:_id/manufacturingVariables", async (req, res) => {
   }
 });
 
-// POST - Add a new Manufacturing Variable to a specific part
-// PartRoutes.post("/:_id/manufacturingVariables", async (req, res) => {
-//   try {
-//     const newManufacturingVariable = {
-//       categoryId: req.body.categoryId,
-//       name: req.body.name,
-//       hours: req.body.hours,
-//       hourlyRate: req.body.hourlyRate,
-//       totalRate: req.body.totalRate,
-//     };
-
-//     const updatedPart = await PartsModel.findByIdAndUpdate(
-//       req.params._id,
-//       { $push: { manufacturingVariables: newManufacturingVariable } },
-//       { new: true }
-//     );
-
-//     if (!updatedPart) {
-//       return res.status(404).json({ message: "Part not found" });
-//     }
-
-//     res.status(201).json(updatedPart);
-//   } catch (error) {
-//     res.status(400).json({ message: error.message });
-//   }
-// });
-
 PartRoutes.post("/:_id/manufacturingVariables", async (req, res) => {
   try {
     const newManufacturingVariable = {
@@ -799,32 +469,6 @@ PartRoutes.post("/:_id/manufacturingVariables", async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 });
-// PartRoutes.post("/:_id/manufacturingVariables", async (req, res) => {
-//   try {
-//     const newManufacturingVariable = {
-//       categoryId: req.body.categoryId,
-//       name: req.body.name,
-//       times: req.body.times,
-//       hours: req.body.hours,
-//       hourlyRate: req.body.hourlyRate,
-//       totalRate: req.body.hours * req.body.hourlyRate,
-//     };
-
-//     const updatedPart = await PartsModel.findByIdAndUpdate(
-//       req.params._id,
-//       { $push: { manufacturingVariables: newManufacturingVariable } },
-//       { new: true }
-//     );
-
-//     if (!updatedPart) {
-//       return res.status(404).json({ message: "Part not found" });
-//     }
-
-//     res.status(201).json(updatedPart);
-//   } catch (error) {
-//     res.status(400).json({ message: error.message });
-//   }
-// });
 
 // PUT - Update an Manufacturing Variable within a part
 PartRoutes.put("/:_id/manufacturingVariables/:variableId", async (req, res) => {
@@ -983,31 +627,6 @@ PartRoutes.get("/:_id/shipmentVariables", async (req, res) => {
   }
 });
 
-// POST for shipment
-// PartRoutes.post("/:_id/shipmentVariables", async (req, res) => {
-//   try {
-//     const newShipmentVariable = {
-//       categoryId: req.body.categoryId,
-//       name: req.body.name,
-//       hourlyRate: req.body.hourlyRate,
-//       totalRate: req.body.hourlyRate,
-//     };
-
-//     const updatedPart = await PartsModel.findByIdAndUpdate(
-//       req.params._id,
-//       { $push: { shipmentVariables: newShipmentVariable } },
-//       { new: true }
-//     );
-
-//     if (!updatedPart) {
-//       return res.status(404).json({ message: "Part not found" });
-//     }
-
-//     res.status(201).json(updatedPart);
-//   } catch (error) {
-//     res.status(400).json({ message: error.message });
-//   }
-// });
 PartRoutes.post("/:_id/shipmentVariables", async (req, res) => {
   try {
     const newShipmentVariable = {
@@ -1405,5 +1024,255 @@ PartRoutes.delete(
   }
 );
 //end here
+
+PartRoutes.get("/category/:categoryId", async (req, res) => {
+  try {
+    const { categoryId } = req.params;
+
+    // Find manufacturing entry by categoryId
+    const manufacturingEntry = await ManufacturingModel.findOne({ categoryId });
+
+    if (!manufacturingEntry) {
+      return res.status(404).json({ msg: "Manufacturing entry not found" });
+    }
+
+    // Extract only the required fields
+    const { categoryId: id, name, hourlyrate } = manufacturingEntry;
+
+    res.status(200).json({
+      msg: "Manufacturing entry retrieved",
+      data: { categoryId: id, name, hourlyrate },
+    });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// PartRoutes.post("/uploadexcel", upload.single("file"), async (req, res) => {
+//   try {
+//     if (!req.file) {
+//       return res.status(400).json({ message: "No file uploaded" });
+//     }
+
+//     // Parse the uploaded Excel file
+//     const workbook = xlsx.read(req.file.buffer, { type: "buffer" });
+//     const sheetName = workbook.SheetNames[0];
+//     const sheetData = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
+
+//     if (sheetData.length === 0) {
+//       return res
+//         .status(400)
+//         .json({ message: "The uploaded Excel file is empty" });
+//     }
+
+//     const processedParts = [];
+
+//     for (const row of sheetData) {
+//       const id = row["id"];
+//       const partName = row["partName "] || row["partName"]; // Handle spaces in column names
+//       const qty = row["Qty."] || row["Qty"]; // Handle alternative column names
+
+//       if (!id || !partName || !qty) {
+//         console.warn(
+//           `Skipping row with missing fields: ${JSON.stringify(row)}`
+//         );
+//         continue;
+//       }
+
+//       const partType = "Make"; // Set partType to "Make" as default
+//       const costPerUnit = row["costPerUnit"] || 0;
+//       const timePerUnit = row["timePerUnit"] || 0;
+//       const stockPOQty = row["stockPOQty"] || 0;
+//       const totalCost = row["totalCost"] || 0;
+//       const totalQuantity = row["totalQuantity"] || 0;
+
+//       const validManufacturingVariables = [];
+
+//       for (const [key, value] of Object.entries(row)) {
+//         if (key.startsWith("C") && value > 0) {
+//           const manufacturingEntry = await ManufacturingModel.findOne({
+//             categoryId: key,
+//           });
+//           if (!manufacturingEntry) {
+//             console.warn(`No manufacturing entry found for categoryId: ${key}`);
+//             continue;
+//           }
+
+//           validManufacturingVariables.push({
+//             categoryId: manufacturingEntry.categoryId,
+//             name: manufacturingEntry.name,
+//             hours: value / 60, // Convert minutes to hours
+//             hourlyRate: manufacturingEntry.hourlyrate,
+//             totalRate: (value / 60) * manufacturingEntry.hourlyrate,
+//           });
+//         }
+//       }
+
+//       if (validManufacturingVariables.length > 0) {
+//         let part = await PartsModel.findOne({ id });
+
+//         if (part) {
+//           // Update existing part
+//           await PartsModel.updateOne(
+//             { id },
+//             {
+//               $set: {
+//                 partName,
+//                 qty,
+//                 partType,
+//                 costPerUnit,
+//                 timePerUnit,
+//                 stockPOQty,
+//                 totalCost,
+//                 totalQuantity,
+//               },
+//               $push: {
+//                 manufacturingVariables: {
+//                   $each: validManufacturingVariables,
+//                 },
+//               },
+//             }
+//           );
+//         } else {
+//           // Create a new part
+//           const partData = {
+//             id,
+//             partName,
+//             qty,
+//             partType,
+//             costPerUnit,
+//             timePerUnit,
+//             stockPOQty,
+//             totalCost,
+//             totalQuantity,
+//             manufacturingVariables: validManufacturingVariables,
+//           };
+
+//           part = new PartsModel(partData);
+//           await part.save();
+//         }
+
+//         processedParts.push(part);
+//       } else {
+//         console.warn(`No valid manufacturing variables for part: ${id}`);
+//       }
+//     }
+
+//     if (processedParts.length === 0) {
+//       return res.status(400).json({
+//         message: "No valid data found in the file",
+//         details:
+//           "Ensure the Excel file has valid data, correct column names, and non-zero manufacturing hours.",
+//       });
+//     }
+
+//     res.status(201).json({
+//       message: "Parts processed and saved successfully",
+//       processedParts,
+//     });
+//   } catch (error) {
+//     console.error("Error processing file:", error.message);
+//     res.status(500).json({ message: error.message });
+//   }
+// });
+PartRoutes.post("/uploadexcel", upload.single("file"), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
+
+    // Parse the uploaded Excel file
+    const workbook = xlsx.read(req.file.buffer, { type: "buffer" });
+    const sheetName = workbook.SheetNames[0];
+    const sheetData = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
+
+    if (sheetData.length === 0) {
+      return res
+        .status(400)
+        .json({ message: "The uploaded Excel file is empty" });
+    }
+
+    const processedParts = [];
+    const duplicateParts = [];
+
+    for (const row of sheetData) {
+      const id = row["id"];
+      const partName = row["partName "] || row["partName"];
+      const qty = row["Qty."] || row["Qty"];
+
+      if (!id || !partName || !qty) {
+        console.warn(
+          `Skipping row with missing fields: ${JSON.stringify(row)}`
+        );
+        continue;
+      }
+
+      const existingPart = await PartsModel.findOne({ id });
+      if (existingPart) {
+        duplicateParts.push(id);
+        continue; // Skip processing this part
+      }
+
+      const partType = "Make"; // Set partType to "Make" as default
+      const costPerUnit = row["costPerUnit"] || 0;
+      const timePerUnit = row["timePerUnit"] || 0;
+      const stockPOQty = row["stockPOQty"] || 0;
+      const totalCost = row["totalCost"] || 0;
+      const totalQuantity = row["totalQuantity"] || 0;
+
+      const validManufacturingVariables = [];
+      for (const [key, value] of Object.entries(row)) {
+        if (key.startsWith("C") && value > 0) {
+          const manufacturingEntry = await ManufacturingModel.findOne({
+            categoryId: key,
+          });
+          if (!manufacturingEntry) {
+            console.warn(`No manufacturing entry found for categoryId: ${key}`);
+            continue;
+          }
+
+          validManufacturingVariables.push({
+            categoryId: manufacturingEntry.categoryId,
+            name: manufacturingEntry.name,
+            hours: value / 60, // Convert minutes to hours
+            hourlyRate: manufacturingEntry.hourlyrate,
+            totalRate: (value / 60) * manufacturingEntry.hourlyrate,
+          });
+        }
+      }
+
+      if (validManufacturingVariables.length > 0) {
+        const partData = {
+          id,
+          partName,
+          qty,
+          partType,
+          costPerUnit,
+          timePerUnit,
+          stockPOQty,
+          totalCost,
+          totalQuantity,
+          manufacturingVariables: validManufacturingVariables,
+        };
+
+        const part = new PartsModel(partData);
+        await part.save();
+        processedParts.push(part);
+      } else {
+        console.warn(`No valid manufacturing variables for part: ${id}`);
+      }
+    }
+
+    res.status(201).json({
+      message: "File processed successfully",
+      processedCount: processedParts.length,
+      duplicateCount: duplicateParts.length,
+      duplicateIds: duplicateParts,
+    });
+  } catch (error) {
+    console.error("Error processing file:", error.message);
+    res.status(500).json({ message: error.message });
+  }
+});
 
 module.exports = { PartRoutes };
