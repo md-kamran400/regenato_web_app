@@ -88,6 +88,7 @@ const ManufacturingVariable = ({
   };
 
   const tog_add = () => {
+    // setModalList(!modal_add);
     const allIds = [
       ...manufacturingData.map((item) => item.categoryId),
       ...shipmentvars.map((item) => item.categoryId),
@@ -460,6 +461,18 @@ const ManufacturingVariable = ({
     e.preventDefault();
     setPosting(true);
     setError(null);
+
+    // Check if the category ID already exists
+    const existingCategory = manufacturingData.find(
+      (item) => item.categoryId === formData.categoryId
+    );
+
+    if (existingCategory) {
+      toast.error("Category ID already exists");
+      setPosting(false);
+      return;
+    }
+
     try {
       const response = await fetch(
         `${process.env.REACT_APP_BASE_URL}/api/parts/${partDetails._id}/manufacturingVariables`,
@@ -579,6 +592,27 @@ const ManufacturingVariable = ({
     return (validHours * validHourlyRate).toFixed(2); // Multiply and return
   };
 
+  const formatTime = (time) => {
+    if (time === 0) {
+      return 0;
+    }
+
+    let result = "";
+
+    const hours = Math.floor(time);
+    const minutes = Math.round((time - hours) * 60);
+
+    if (hours > 0) {
+      result += `${hours}h `;
+    }
+
+    if (minutes > 0 || (hours === 0 && minutes !== 0)) {
+      result += `${minutes}m`;
+    }
+
+    return result.trim();
+  };
+
   return (
     <React.Fragment>
       <Row className="g-4 mb-3">
@@ -625,8 +659,8 @@ const ManufacturingVariable = ({
                 </th> */}
                 <th>ID</th>
                 <th>Name</th>
-                <th>Time</th>
-                {/* <th>Hours (h)</th> */}
+                {/* <th>Time</th> */}
+                <th>Hours (h)</th>
                 <th>Hourly Rate (INR)</th>
                 <th>Total Rate</th>
                 <th>Action</th>
@@ -642,10 +676,10 @@ const ManufacturingVariable = ({
                   </td> */}
                   <td>{item.categoryId}</td>
                   <td>{item.name}</td>
-                  <td>{item.times || "-"}</td>
-                  {/* <td>{item.hours}</td> */}
+                  {/* <td>{item.times || "-"}</td> */}
+                  <td>{formatTime(item.hours)}</td>
                   <td>{item.hourlyRate}</td>
-                  <td>{item.totalRate}</td>
+                  <td>{Math.round(item.totalRate)}</td>
                   <td>
                     <div className="d-flex gap-2">
                       <button
@@ -1011,7 +1045,7 @@ const ManufacturingVariable = ({
                 type="number"
                 className="form-control"
                 name="totalRate"
-                value={formData.totalRate}
+                value={Math.round(formData.totalRate)}
                 readOnly
                 required
               />

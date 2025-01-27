@@ -351,7 +351,7 @@ const SinglePart = () => {
               </Card>
             </Col>
 
-            <Col xl={3} ms={6}>
+            {/* <Col xl={3} ms={6}>
               <Card className={"card-height-100 "}>
                 <CardBody>
                   <UncontrolledDropdown className="float-end">
@@ -390,11 +390,10 @@ const SinglePart = () => {
                     <span className="text-muted fs-13">
                       {partDetails.stockPOQty}
                     </span>{" "}
-                    {/* Display stock quantity */}
                   </div>
                 </CardBody>
               </Card>
-            </Col>
+            </Col> */}
           </Row>
 
           <GeneralVariable partDetails={partDetails} />
