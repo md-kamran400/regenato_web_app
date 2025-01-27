@@ -94,6 +94,9 @@ const List = () => {
   const [duplicateCount, setDuplicateCount] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
 
+  const [warningModal, setWarningModal] = useState(false);
+  const [warningData, setWarningData] = useState("");
+
   const toggleModal = () => {
     setModalList(!modal_list);
   };
@@ -484,7 +487,6 @@ const List = () => {
   // const handleUpload = async () => {
   // // do the excel post here as well
   // };
-
   const handleUpload = async () => {
     if (uploadedFile) {
       setIsUploading(true);
@@ -506,13 +508,10 @@ const List = () => {
 
         const data = await response.json();
 
-        // Display duplicate IDs if any
+        // Handle warning or success
         if (data.duplicateCount > 0) {
-          toast.warn(
-            `Upload partially successful. ${
-              data.duplicateCount
-            } duplicates skipped: ${data.duplicateIds.join(", ")}`
-          );
+          setWarningData(data.duplicateIds.join(", "));
+          setWarningModal(true);
         } else {
           toast.success("File uploaded successfully!");
         }
@@ -521,7 +520,7 @@ const List = () => {
         await fetchData();
 
         setUploadedFile(null); // Reset the uploaded file after successful upload
-        toggleModalUpload();
+        toggleModalUpload(); // Close the upload modal automatically
       } catch (error) {
         console.error("Error uploading file:", error);
         toast.error("Failed to upload file. Please try again.");
@@ -1260,6 +1259,41 @@ const List = () => {
             ) : (
               "Upload"
             )}
+          </Button>
+        </ModalFooter>
+      </Modal>
+
+      {/* warnind modal for uplaoding the duplicate id for excel */}
+      <Modal
+        isOpen={warningModal}
+        toggle={() => setWarningModal(false)}
+        centered
+      >
+        <ModalHeader toggle={() => setWarningModal(false)}>
+          <span style={{ display: "flex", alignItems: "center" }}>
+            <i
+              className="ri-error-warning-line"
+              style={{ color: "#f0ad4e", marginRight: "8px" }}
+            ></i>
+            Warning
+          </span>
+        </ModalHeader>
+        <ModalBody>
+          <p style={{ color: "#555" }}>
+            Upload partially successful. Duplicate IDs skipped:
+          </p>
+          <ol style={{ paddingLeft: "1.5rem", color: "#333" }}>
+            {warningData &&
+              warningData.split(", ").map((id, index) => (
+                <li key={index} style={{ marginBottom: "0.5rem" }}>
+                  {id}
+                </li>
+              ))}
+          </ol>
+        </ModalBody>
+        <ModalFooter>
+          <Button color="secondary" onClick={() => setWarningModal(false)}>
+            Close
           </Button>
         </ModalFooter>
       </Modal>

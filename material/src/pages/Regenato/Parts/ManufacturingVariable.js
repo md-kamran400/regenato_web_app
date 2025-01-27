@@ -88,7 +88,7 @@ const ManufacturingVariable = ({
   };
 
   const tog_add = () => {
-    setModalList(!modal_add);
+    // setModalList(!modal_add);
     const allIds = [
       ...manufacturingData.map((item) => item.categoryId),
       ...shipmentvars.map((item) => item.categoryId),
@@ -103,7 +103,7 @@ const ManufacturingVariable = ({
       totalRate: "",
     });
 
-    // setModalList(!modal_add); // Open the modal
+    setModalList(!modal_add); // Open the modal
   };
 
   const tog_static_vairbale = () => {
