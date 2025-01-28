@@ -3,6 +3,9 @@
 const { Router } = require("express");
 const PartsModel = require("../../model/Parts/PartModel");
 const ManufacturingModel = require("../../model/manufacturingmodel");
+const RmVariableModel = require("../../model/rmmodel");
+const OverheadsModel = require("../../model/overheadsmodel");
+const ShipmentModel = require("../../model/shipmentmodel");
 const multer = require("multer");
 const xlsx = require("xlsx");
 const fs = require("fs");
@@ -1048,6 +1051,75 @@ PartRoutes.get("/category/:categoryId", async (req, res) => {
   }
 });
 
+PartRoutes.get("/categoryrm/:categoryId", async (req, res) => {
+  try {
+    const { categoryId } = req.params;
+
+    // Find manufacturing entry by categoryId
+    const RmEntry = await RmVariableModel.findOne({ categoryId });
+
+    if (!RmEntry) {
+      return res.status(404).json({ msg: "Rm entry not found" });
+    }
+
+    // Extract only the required fields
+    const { categoryId: id, name, price } = RmEntry;
+
+    res.status(200).json({
+      msg: "Rm entry retrieved",
+      data: { categoryId: id, name, price },
+    });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+PartRoutes.get("/categoryoverheads/:categoryId", async (req, res) => {
+  try {
+    const { categoryId } = req.params;
+
+    // Find manufacturing entry by categoryId
+    const OverHeadsEntry = await OverheadsModel.findOne({ categoryId });
+
+    if (!OverHeadsEntry) {
+      return res.status(404).json({ msg: "Overheads entry not found" });
+    }
+
+    // Extract only the required fields
+    const { categoryId: id, name } = OverHeadsEntry;
+
+    res.status(200).json({
+      msg: "Overheads entry retrieved",
+      data: { categoryId: id, name },
+    });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+PartRoutes.get("/categoryshipment/:categoryId", async (req, res) => {
+  try {
+    const { categoryId } = req.params;
+
+    // Find manufacturing entry by categoryId
+    const shipmentEntry = await ShipmentModel.findOne({ categoryId });
+
+    if (!shipmentEntry) {
+      return res.status(404).json({ msg: "shipment entry not found" });
+    }
+
+    // Extract only the required fields
+    const { categoryId: id, name, percentage } = shipmentEntry;
+
+    res.status(200).json({
+      msg: "shipment entry retrieved",
+      data: { categoryId: id, name, percentage },
+    });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
 // PartRoutes.post("/uploadexcel", upload.single("file"), async (req, res) => {
 //   try {
 //     if (!req.file) {
@@ -1066,12 +1138,14 @@ PartRoutes.get("/category/:categoryId", async (req, res) => {
 //     }
 
 //     const processedParts = [];
+//     const duplicateParts = [];
 
 //     for (const row of sheetData) {
 //       const id = row["id"];
-//       const partName = row["partName "] || row["partName"]; // Handle spaces in column names
-//       const qty = row["Qty."] || row["Qty"]; // Handle alternative column names
+//       const partName = row["partName "] || row["partName"];
+//       const qty = row["Qty."] || row["Qty"];
 
+//       // Skip rows with missing essential fields
 //       if (!id || !partName || !qty) {
 //         console.warn(
 //           `Skipping row with missing fields: ${JSON.stringify(row)}`
@@ -1079,15 +1153,23 @@ PartRoutes.get("/category/:categoryId", async (req, res) => {
 //         continue;
 //       }
 
-//       const partType = "Make"; // Set partType to "Make" as default
+//       // Check for duplicate parts
+//       const existingPart = await PartsModel.findOne({ id });
+//       if (existingPart) {
+//         duplicateParts.push(id);
+//         continue; // Skip processing this part
+//       }
+
+//       // Default values for the part
+//       const partType = "Make"; // Default to "Make"
 //       const costPerUnit = row["costPerUnit"] || 0;
 //       const timePerUnit = row["timePerUnit"] || 0;
 //       const stockPOQty = row["stockPOQty"] || 0;
 //       const totalCost = row["totalCost"] || 0;
 //       const totalQuantity = row["totalQuantity"] || 0;
 
+//       // Collect valid manufacturing variables
 //       const validManufacturingVariables = [];
-
 //       for (const [key, value] of Object.entries(row)) {
 //         if (key.startsWith("C") && value > 0) {
 //           const manufacturingEntry = await ManufacturingModel.findOne({
@@ -1101,95 +1183,291 @@ PartRoutes.get("/category/:categoryId", async (req, res) => {
 //           validManufacturingVariables.push({
 //             categoryId: manufacturingEntry.categoryId,
 //             name: manufacturingEntry.name,
-//             hours: value / 60, // Convert minutes to hours
+//             hours: value / 60,
 //             hourlyRate: manufacturingEntry.hourlyrate,
 //             totalRate: (value / 60) * manufacturingEntry.hourlyrate,
 //           });
 //         }
 //       }
 
-//       if (validManufacturingVariables.length > 0) {
-//         let part = await PartsModel.findOne({ id });
+//       // Collect valid RM variables
+//       const validRmVariables = [];
+//       for (const [key, value] of Object.entries(row)) {
+//         if (key === "FC") {
+//           const rmEntry = await RmVariableModel.findOne({ categoryId: "FC" });
+//           if (!rmEntry) {
+//             console.warn(`No RM entry found for categoryId: FC`);
+//             continue;
+//           }
 
-//         if (part) {
-//           // Update existing part
-//           await PartsModel.updateOne(
-//             { id },
-//             {
-//               $set: {
-//                 partName,
-//                 qty,
-//                 partType,
-//                 costPerUnit,
-//                 timePerUnit,
-//                 stockPOQty,
-//                 totalCost,
-//                 totalQuantity,
-//               },
-//               $push: {
-//                 manufacturingVariables: {
-//                   $each: validManufacturingVariables,
-//                 },
-//               },
-//             }
-//           );
-//         } else {
-//           // Create a new part
-//           const partData = {
-//             id,
-//             partName,
-//             qty,
-//             partType,
-//             costPerUnit,
-//             timePerUnit,
-//             stockPOQty,
-//             totalCost,
-//             totalQuantity,
-//             manufacturingVariables: validManufacturingVariables,
-//           };
+//           validRmVariables.push({
+//             categoryId: rmEntry.categoryId,
+//             name: rmEntry.name,
+//             netWeight: 0,
+//             pricePerKg: 0,
+//             totalRate: value,
+//           });
+//         } else if (key.startsWith("B") && value > 0) {
+//           const rmEntry = await RmVariableModel.findOne({ categoryId: key });
+//           if (!rmEntry) {
+//             console.warn(`No RM entry found for categoryId: ${key}`);
+//             continue;
+//           }
 
-//           part = new PartsModel(partData);
-//           await part.save();
+//           validRmVariables.push({
+//             categoryId: rmEntry.categoryId,
+//             name: rmEntry.name,
+//             netWeight: value,
+//             pricePerKg: rmEntry.price,
+//             totalRate: value * rmEntry.price,
+//           });
 //         }
-
-//         processedParts.push(part);
-//       } else {
-//         console.warn(`No valid manufacturing variables for part: ${id}`);
 //       }
-//     }
 
-//     if (processedParts.length === 0) {
-//       return res.status(400).json({
-//         message: "No valid data found in the file",
-//         details:
-//           "Ensure the Excel file has valid data, correct column names, and non-zero manufacturing hours.",
-//       });
+//       // Collect valid shipment variables
+//       const validShipmentVariables = [];
+//       for (const [key, value] of Object.entries(row)) {
+//         if (key.startsWith("E") && value > 0) {
+//           const shipmentEntry = await ShipmentModel.findOne({
+//             categoryId: key,
+//           });
+//           if (!shipmentEntry) {
+//             console.warn(`No shipment entry found for categoryId: ${key}`);
+//             continue;
+//           }
+
+//           validShipmentVariables.push({
+//             categoryId: shipmentEntry.categoryId,
+//             name: shipmentEntry.name,
+//             hourlyRate: value,
+//           });
+//         }
+//       }
+
+//       // Calculate the sum of total rates
+//       const manufacturingTotalRate = validManufacturingVariables.reduce(
+//         (sum, item) => sum + item.totalRate,
+//         0
+//       );
+//       const rmTotalRate = validRmVariables.reduce(
+//         (sum, item) => sum + item.totalRate,
+//         0
+//       );
+//       const shipmentTotalRate = validShipmentVariables.reduce(
+//         (sum, item) => sum + item.hourlyRate,
+//         0
+//       );
+//       const totalSum = manufacturingTotalRate + rmTotalRate + shipmentTotalRate;
+
+//       // Collect valid overheads and profits
+//       const validOverheadsAndProfits = [];
+//       for (const [key, value] of Object.entries(row)) {
+//         if (key.startsWith("F") && value > 0) {
+//           const overheadsEntry = await OverheadsModel.findOne({
+//             categoryId: key,
+//           });
+//           if (!overheadsEntry) {
+//             console.warn(`No overheads entry found for categoryId: ${key}`);
+//             continue;
+//           }
+
+//           const percentage = value || 0;
+//           const totalRate = (percentage / 100) * totalSum;
+
+//           validOverheadsAndProfits.push({
+//             categoryId: overheadsEntry.categoryId,
+//             name: overheadsEntry.name,
+//             percentage,
+//             totalRate,
+//           });
+//         }
+//       }
+
+//       // Only create part data if there's valid data
+//       const partData = {
+//         id,
+//         partName,
+//         qty,
+//         partType,
+//         costPerUnit,
+//         timePerUnit,
+//         stockPOQty,
+//         totalCost,
+//         totalQuantity,
+//         manufacturingVariables: validManufacturingVariables,
+//         rmVariables: validRmVariables,
+//         shipmentVariables: validShipmentVariables,
+//         overheadsAndProfits: validOverheadsAndProfits,
+//       };
+
+//       const part = new PartsModel(partData);
+//       await part.save();
+//       processedParts.push(part);
 //     }
 
 //     res.status(201).json({
-//       message: "Parts processed and saved successfully",
-//       processedParts,
+//       message: "File processed successfully",
+//       processedCount: processedParts.length,
+//       duplicateCount: duplicateParts.length,
+//       duplicateIds: duplicateParts,
 //     });
 //   } catch (error) {
 //     console.error("Error processing file:", error.message);
 //     res.status(500).json({ message: error.message });
 //   }
 // });
+
+// PartRoutes.post("/uploadexcel", upload.single("file"), async (req, res) => {
+//   try {
+//     if (!req.file) {
+//       return res.status(400).json({ message: "No file uploaded" });
+//     }
+
+//     const workbook = xlsx.read(req.file.buffer, { type: "buffer" });
+//     const sheetName = workbook.SheetNames[0];
+//     const sheetData = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
+
+//     if (sheetData.length === 0) {
+//       return res.status(400).json({ message: "The uploaded Excel file is empty" });
+//     }
+
+//     const processedParts = [];
+//     const duplicateParts = [];
+
+//     for (const row of sheetData) {
+//       const id = row["id"];
+//       const partName = row["partName "] || row["partName"];
+//       const qty = row["Qty."] || row["Qty"];
+
+//       if (!id || !partName || !qty) {
+//         console.warn(`Skipping row with missing fields: ${JSON.stringify(row)}`);
+//         continue;
+//       }
+
+//       const existingPart = await PartsModel.findOne({ id });
+//       if (existingPart) {
+//         duplicateParts.push(id);
+//         continue;
+//       }
+
+//       const partType = "Make"; // Default
+//       const stockPOQty = row["stockPOQty"] || 0;
+
+//       // Initialize variables
+//       const validManufacturingVariables = [];
+//       const validRmVariables = [];
+//       const validShipmentVariables = [];
+//       const validOverheadsAndProfits = [];
+
+//       // Process variables
+//       for (const [key, value] of Object.entries(row)) {
+//         if (key.startsWith("C") && value > 0) {
+//           const manufacturingEntry = await ManufacturingModel.findOne({ categoryId: key });
+//           if (manufacturingEntry) {
+//             validManufacturingVariables.push({
+//               categoryId: manufacturingEntry.categoryId,
+//               name: manufacturingEntry.name,
+//               hours: value / 60,
+//               hourlyRate: manufacturingEntry.hourlyrate,
+//               totalRate: (value / 60) * manufacturingEntry.hourlyrate,
+//             });
+//           }
+//         } else if (key.startsWith("B") && value > 0) {
+//           const rmEntry = await RmVariableModel.findOne({ categoryId: key });
+//           if (rmEntry) {
+//             validRmVariables.push({
+//               categoryId: rmEntry.categoryId,
+//               name: rmEntry.name,
+//               netWeight: value,
+//               pricePerKg: rmEntry.price,
+//               totalRate: value * rmEntry.price,
+//             });
+//           }
+//         } else if (key.startsWith("E") && value > 0) {
+//           const shipmentEntry = await ShipmentModel.findOne({ categoryId: key });
+//           if (shipmentEntry) {
+//             validShipmentVariables.push({
+//               categoryId: shipmentEntry.categoryId,
+//               name: shipmentEntry.name,
+//               hourlyRate: value,
+//             });
+//           }
+//         } else if (key.startsWith("F") && value > 0) {
+//           const overheadsEntry = await OverheadsModel.findOne({ categoryId: key });
+//           if (overheadsEntry) {
+//             const overheadsBase =
+//               validManufacturingVariables.reduce((sum, item) => sum + item.totalRate, 0) +
+//               validRmVariables.reduce((sum, item) => sum + item.totalRate, 0) +
+//               validShipmentVariables.reduce((sum, item) => sum + item.hourlyRate, 0);
+
+//             validOverheadsAndProfits.push({
+//               categoryId: overheadsEntry.categoryId,
+//               name: overheadsEntry.name,
+//               percentage: value,
+//               totalRate: (value / 100) * overheadsBase,
+//             });
+//           }
+//         }
+//       }
+
+//       // Calculate totals
+//       const manufacturingTotalRate = validManufacturingVariables.reduce((sum, item) => sum + item.totalRate, 0);
+//       const rmTotalRate = validRmVariables.reduce((sum, item) => sum + item.totalRate, 0);
+//       const shipmentTotalRate = validShipmentVariables.reduce((sum, item) => sum + item.hourlyRate, 0);
+//       const overheadsTotalRate = validOverheadsAndProfits.reduce((sum, item) => sum + item.totalRate, 0);
+
+//       const allThree = manufacturingTotalRate + rmTotalRate + shipmentTotalRate;
+//       const totalSum = allThree + overheadsTotalRate;
+
+//       const totalHours = validManufacturingVariables.reduce((sum, item) => sum + item.hours, 0);
+
+//       const costPerUnit = qty > 0 ? Math.ceil(totalSum / qty) : 0; // Calculate cost per unit
+//       const timePerUnit = qty > 0 ? totalHours / qty : 0; // Calculate time per unit
+
+//       // Create part object
+//       const partData = {
+//         id,
+//         partName,
+//         qty,
+//         partType,
+//         costPerUnit,
+//         timePerUnit,
+//         stockPOQty,
+//         manufacturingVariables: validManufacturingVariables,
+//         rmVariables: validRmVariables,
+//         shipmentVariables: validShipmentVariables,
+//         overheadsAndProfits: validOverheadsAndProfits,
+//       };
+
+//       const part = new PartsModel(partData);
+//       await part.save();
+//       processedParts.push(part);
+//     }
+
+//     res.status(201).json({
+//       message: "File processed successfully",
+//       processedCount: processedParts.length,
+//       duplicateCount: duplicateParts.length,
+//       duplicateIds: duplicateParts,
+//     });
+//   } catch (error) {
+//     console.error("Error processing file:", error.message);
+//     res.status(500).json({ message: error.message });
+//   }
+// });
+
 PartRoutes.post("/uploadexcel", upload.single("file"), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ message: "No file uploaded" });
     }
 
-    // Parse the uploaded Excel file
     const workbook = xlsx.read(req.file.buffer, { type: "buffer" });
     const sheetName = workbook.SheetNames[0];
     const sheetData = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
 
     if (sheetData.length === 0) {
-      return res
-        .status(400)
-        .json({ message: "The uploaded Excel file is empty" });
+      return res.status(400).json({ message: "The uploaded Excel file is empty" });
     }
 
     const processedParts = [];
@@ -1201,66 +1479,109 @@ PartRoutes.post("/uploadexcel", upload.single("file"), async (req, res) => {
       const qty = row["Qty."] || row["Qty"];
 
       if (!id || !partName || !qty) {
-        console.warn(
-          `Skipping row with missing fields: ${JSON.stringify(row)}`
-        );
+        console.warn(`Skipping row with missing fields: ${JSON.stringify(row)}`);
         continue;
       }
 
       const existingPart = await PartsModel.findOne({ id });
       if (existingPart) {
         duplicateParts.push(id);
-        continue; // Skip processing this part
+        continue;
       }
 
-      const partType = "Make"; // Set partType to "Make" as default
-      const costPerUnit = row["costPerUnit"] || 0;
-      const timePerUnit = row["timePerUnit"] || 0;
+      const partType = "Make"; // Default
       const stockPOQty = row["stockPOQty"] || 0;
-      const totalCost = row["totalCost"] || 0;
-      const totalQuantity = row["totalQuantity"] || 0;
 
+      // Initialize variables
       const validManufacturingVariables = [];
+      const validRmVariables = [];
+      const validShipmentVariables = [];
+      const validOverheadsAndProfits = [];
+
+      // Process variables
       for (const [key, value] of Object.entries(row)) {
         if (key.startsWith("C") && value > 0) {
-          const manufacturingEntry = await ManufacturingModel.findOne({
-            categoryId: key,
-          });
-          if (!manufacturingEntry) {
-            console.warn(`No manufacturing entry found for categoryId: ${key}`);
-            continue;
+          const manufacturingEntry = await ManufacturingModel.findOne({ categoryId: key });
+          if (manufacturingEntry) {
+            validManufacturingVariables.push({
+              categoryId: manufacturingEntry.categoryId,
+              name: manufacturingEntry.name,
+              hours: value / 60,
+              hourlyRate: manufacturingEntry.hourlyrate,
+              totalRate: (value / 60) * manufacturingEntry.hourlyrate,
+            });
           }
+        } else if (key.startsWith("B") && value > 0) {
+          const rmEntry = await RmVariableModel.findOne({ categoryId: key });
+          if (rmEntry) {
+            validRmVariables.push({
+              categoryId: rmEntry.categoryId,
+              name: rmEntry.name,
+              netWeight: value,
+              pricePerKg: rmEntry.price,
+              totalRate: value * rmEntry.price,
+            });
+          }
+        } else if (key.startsWith("E") && value > 0) {
+          const shipmentEntry = await ShipmentModel.findOne({ categoryId: key });
+          if (shipmentEntry) {
+            validShipmentVariables.push({
+              categoryId: shipmentEntry.categoryId,
+              name: shipmentEntry.name,
+              hourlyRate: value,
+            });
+          }
+        } else if (key.startsWith("F") && value > 0) {
+          const overheadsEntry = await OverheadsModel.findOne({ categoryId: key });
+          if (overheadsEntry) {
+            // Calculate the base for overheads
+            const overheadsBase =
+              validManufacturingVariables.reduce((sum, item) => sum + item.totalRate, 0) +
+              validRmVariables.reduce((sum, item) => sum + item.totalRate, 0) +
+              validShipmentVariables.reduce((sum, item) => sum + item.hourlyRate, 0);
 
-          validManufacturingVariables.push({
-            categoryId: manufacturingEntry.categoryId,
-            name: manufacturingEntry.name,
-            hours: value / 60, // Convert minutes to hours
-            hourlyRate: manufacturingEntry.hourlyrate,
-            totalRate: (value / 60) * manufacturingEntry.hourlyrate,
-          });
+            validOverheadsAndProfits.push({
+              categoryId: overheadsEntry.categoryId,
+              name: overheadsEntry.name,
+              percentage: value,
+              totalRate: (value / 100) * overheadsBase, // Calculate total rate based on percentage
+            });
+          }
         }
       }
 
-      if (validManufacturingVariables.length > 0) {
-        const partData = {
-          id,
-          partName,
-          qty,
-          partType,
-          costPerUnit,
-          timePerUnit,
-          stockPOQty,
-          totalCost,
-          totalQuantity,
-          manufacturingVariables: validManufacturingVariables,
-        };
+      // Calculate totals
+      const manufacturingTotalRate = validManufacturingVariables.reduce((sum, item) => sum + item.totalRate, 0);
+      const rmTotalRate = validRmVariables.reduce((sum, item) => sum + item.totalRate, 0);
+      const shipmentTotalRate = validShipmentVariables.reduce((sum, item) => sum + item.hourlyRate, 0);
+      const overheadsTotalRate = validOverheadsAndProfits.reduce((sum, item) => sum + item.totalRate, 0);
 
-        const part = new PartsModel(partData);
-        await part.save();
-        processedParts.push(part);
-      } else {
-        console.warn(`No valid manufacturing variables for part: ${id}`);
-      }
+      const allThree = manufacturingTotalRate + rmTotalRate + shipmentTotalRate;
+      const totalSum = allThree + overheadsTotalRate;
+
+      const totalHours = validManufacturingVariables.reduce((sum, item) => sum + item.hours, 0);
+
+      const costPerUnit = qty > 0 ? Math.ceil(totalSum / qty) : 0; // Calculate cost per unit
+      const timePerUnit = qty > 0 ? totalHours / qty : 0; // Calculate time per unit
+
+      // Create part object
+      const partData = {
+        id,
+        partName,
+        qty,
+        partType,
+        costPerUnit,
+        timePerUnit,
+        stockPOQty,
+        manufacturingVariables: validManufacturingVariables,
+        rmVariables: validRmVariables,
+        shipmentVariables: validShipmentVariables,
+        overheadsAndProfits: validOverheadsAndProfits,
+      };
+
+      const part = new PartsModel(partData);
+      await part.save();
+      processedParts.push(part);
     }
 
     res.status(201).json({
@@ -1274,5 +1595,6 @@ PartRoutes.post("/uploadexcel", upload.single("file"), async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
+
 
 module.exports = { PartRoutes };
