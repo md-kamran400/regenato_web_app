@@ -1011,6 +1011,7 @@ const List = () => {
           </Button>
         </ModalFooter>
       </Modal>
+
       {/* Delete modal */}
       <Modal isOpen={modal_delete} toggle={tog_delete} centered>
         <ModalHeader className="bg-light p-3" toggle={tog_delete}>
@@ -1045,6 +1046,7 @@ const List = () => {
           </Button>
         </ModalFooter>
       </Modal>
+
       {/* edit modal */}
       <Modal isOpen={modal_edit} toggle={toggleEditModal} centered>
         <ModalHeader toggle={toggleEditModal}>Edit Part</ModalHeader>
@@ -1101,6 +1103,7 @@ const List = () => {
         </ModalFooter>
       </Modal>
 
+      {/* EXCEL MODAL FOR UPLAODING THE EXCEL  */}
       <Modal isOpen={modal_listExel} toggle={toggleModalUpload} centered>
         <ModalHeader toggle={toggleModalUpload}>
           <div style={{ display: "flex", alignItems: "center" }}>
@@ -1238,7 +1241,6 @@ const List = () => {
           >
             Cancel
           </Button> */}
-          {/* // Modify the upload button */}
           <Button
             color="primary"
             onClick={() => handleUpload()}
@@ -1262,6 +1264,8 @@ const List = () => {
           </Button>
         </ModalFooter>
       </Modal>
+
+      
 
       {/* warnind modal for uplaoding the duplicate id for excel */}
       <Modal
