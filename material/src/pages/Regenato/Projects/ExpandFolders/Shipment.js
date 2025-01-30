@@ -1,4 +1,4 @@
-import React, { useState,useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import "./Matarials.css";
 import { FaEdit } from "react-icons/fa";
 import { MdDelete } from "react-icons/md";
@@ -9,12 +9,10 @@ import "react-toastify/dist/ReactToastify.css";
 const Shipment = ({
   partName,
   shipmentVariables,
-  projectId,
   partId,
-  itemId,
-  source,
-  shipmentUpdate,
-  quantity
+  onUpdatePrts,
+  quantity,
+  subAssemblyId,
 }) => {
   const [modal_edit, setModalEdit] = useState(false);
   const [modal_delete, setModalDelete] = useState(false);
@@ -25,7 +23,6 @@ const Shipment = ({
   const [formData, setFormData] = useState({
     name: "",
     hourlyRate: "",
-    totalRate: "",
   });
 
   const [updatedShipmentVariables, setUpdatedShipmentVariables] = useState([]);
@@ -46,7 +43,6 @@ const Shipment = ({
       setFormData({
         name: item.name,
         hourlyRate: item.hourlyRate,
-        totalRate: item.totalRate,
       });
       setEditId(item._id);
     } else {
@@ -87,67 +83,20 @@ const Shipment = ({
   };
 
   // Construct API endpoint based on the source
-  const getApiEndpoint = (id) => {
-    if (source === "partList") {
-      return `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${projectId}/partsLists/${partId}/items/${itemId}/shipmentVariables/${id}`;
-    } else if (source === "subAssemblyListFirst") {
-      return `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${projectId}/subAssemblyListFirst/${partId}/items/${itemId}/shipmentVariables/${id}`;
-    }
-    throw new Error("Invalid source");
-  };
-
-  // Submit edited data
-  // const handleEditSubmit = async (e) => {
-  //   e.preventDefault();
-  //   setPosting(true);
-  //   setError(null);
-
-  //   try {
-  //     const endpoint = getApiEndpoint();
-  //     const response = await fetch(endpoint, {
-  //       method: "PUT",
-  //       headers: {
-  //         "Content-Type": "application/json",
-  //       },
-  //       body: JSON.stringify({
-  //         name: formData.name,
-  //         hourlyRate: parseFloat(formData.hourlyRate),
-  //         totalRate: parseFloat(formData.totalRate),
-  //       }),
-  //     });
-
-  //     if (!response.ok) {
-  //       const errorData = await response.json();
-  //       throw new Error(
-  //         errorData.message || "Failed to update shipment variable"
-  //       );
-  //     }
-
-  //     const updatedData = await response.json();
-  //     // Update local shipment variables
-  //     setUpdatedShipmentVariables((prevVariables) =>
-  //       prevVariables.map((ship) =>
-  //         ship._id === updatedData._id ? updatedData : ship
-  //       )
-  //     );
-  //     toast.success("Shipment updated successfully");
-  //     setModalEdit(false);
-  //     resetForm();
-  //   } catch (error) {
-  //     console.error("Error updating shipment variable:", error);
-  //     setError(error.message);
-  //   } finally {
-  //     setPosting(false);
-  //   }
-  // };
-
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     setPosting(true);
     setError(null);
 
+    console.log("🔍 Debugging IDs:");
+    console.log("subAssemblyId:", subAssemblyId);
+    console.log("partId:", partId);
+    console.log("editId (shipmentVariableId):", editId);
+
     try {
-      const endpoint = getApiEndpoint(editId); // Pass editId here
+      const endpoint = `${process.env.REACT_APP_BASE_URL}/api/subAssembly/${subAssemblyId}/parts/${partId}/shipmentVariables/${editId}`;
+      console.log("🚀 PUT Request to:", endpoint);
+
       const response = await fetch(endpoint, {
         method: "PUT",
         headers: {
@@ -156,7 +105,6 @@ const Shipment = ({
         body: JSON.stringify({
           name: formData.name,
           hourlyRate: parseFloat(formData.hourlyRate),
-          totalRate: parseFloat(formData.totalRate),
         }),
       });
 
@@ -168,16 +116,15 @@ const Shipment = ({
       }
 
       const updatedData = await response.json();
-       setUpdatedShipmentVariables((prevVariables) =>
-        prevVariables.map((ship) => (ship._id === updatedData._id ? updatedData : ship))
-      );
-      shipmentUpdate(updatedData);
-      toast.success("Records updated successfully");
+      onUpdatePrts(updatedData);
+
+      toast.success("shipment variable updated successfully");
       setModalEdit(false);
       resetForm();
     } catch (error) {
-      console.error("Error updating shipment variable:", error);
+      console.error("❌ Error updating shipment variable:", error);
       setError(error.message);
+      toast.error(error.message);
     } finally {
       setPosting(false);
     }
@@ -206,7 +153,7 @@ const Shipment = ({
       );
 
       const updateData = await response.json();
-      shipmentUpdate(updateData);
+      onUpdatePrts(updateData);
 
       toast.success("Records deleted successfully");
       setModalDelete(false);
@@ -237,7 +184,7 @@ const Shipment = ({
           {updatedShipmentVariables.map((ship, index) => (
             <tr key={index}>
               <td>{ship.name}</td>
-              <td>{ship.hourlyRate*quantity}</td>
+              <td>{ship.hourlyRate * quantity}</td>
               {/* <td>{ship.totalRate}</td> */}
               <td className="d-flex gap-2">
                 <button

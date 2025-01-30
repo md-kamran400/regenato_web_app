@@ -8,12 +8,10 @@ import "react-toastify/dist/ReactToastify.css";
 const RawMaterial = ({
   partName,
   rmVariables,
-  projectId,
   partId,
-  itemId,
-  assemblyId,
-  source,
-  rawMatarialsUpdate,
+  subAssemblyId,
+  onUpdatePrts,
+  quantity,
 }) => {
   const [modal_edit, setModalEdit] = useState(false);
   const [modal_delete, setModalDelete] = useState(false);
@@ -63,6 +61,7 @@ const RawMaterial = ({
     const price = parseFloat(pricePerKg) || 0;
     return Math.round(weight * price + 0.5);
   };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
 
@@ -77,22 +76,20 @@ const RawMaterial = ({
     });
   };
 
-  const getApiEndpoint = (id) => {
-    if (source === "subAssemblyPartsLists") {
-      return `${process.env.REACT_APP_BASE_URL}/api/projects/${projectId}/assemblyPartsLists/${assemblyId}/subAssemblyPartsLists/${partId}/items/${itemId}/rmVariables/${id}`;
-    } else if (source === "assemblyMultyPartsList") {
-      return `${process.env.REACT_APP_BASE_URL}/api/projects/${projectId}/assemblyPartsLists/${assemblyId}/assemblyMultyPartsList/${partId}/items/${itemId}/rmVariables/${id}`;
-    }
-    throw new Error("Invalid source");
-  };
-
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     setPosting(true);
     setError(null);
 
+    console.log("🔍 Debugging IDs:");
+    console.log("subAssemblyId:", subAssemblyId);
+    console.log("partId:", partId);
+    console.log("editId (Raw MatarialVariableId):", editId);
+
     try {
-      const endpoint = getApiEndpoint(editId);
+      const endpoint = `${process.env.REACT_APP_BASE_URL}/api/assmebly/${subAssemblyId}/parts/${partId}/rmVariables/${editId}`;
+      console.log("🚀 PUT Request to:", endpoint);
+
       const response = await fetch(endpoint, {
         method: "PUT",
         headers: {
@@ -102,23 +99,24 @@ const RawMaterial = ({
           name: formData.name,
           netWeight: parseFloat(formData.netWeight),
           pricePerKg: parseFloat(formData.pricePerKg),
-          totalRate: parseFloat(formData.totalRate),
         }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to update raw material");
+        throw new Error(
+          errorData.message || "Failed to update Raw Matarial variable"
+        );
       }
 
-      const updateData = await response.json();
+      const updatedData = await response.json();
+      onUpdatePrts(updatedData);
 
-      rawMatarialsUpdate(updateData);
-      toast.success("Records updated successfully");
+      toast.success("Raw Matarial variable updated successfully");
       setModalEdit(false);
       resetForm();
     } catch (error) {
-      console.error("Error updating raw material:", error);
+      console.error("❌ Error updating Raw Matarial variable:", error);
       setError(error.message);
       toast.error(error.message);
     } finally {
@@ -142,7 +140,7 @@ const RawMaterial = ({
       }
 
       const updateDeleteData = await response.json();
-      rawMatarialsUpdate(updateDeleteData);
+      onUpdatePrts(updateDeleteData);
       toast.success("Records deleted successfully");
       setModalDelete(false);
     } catch (error) {
@@ -155,7 +153,7 @@ const RawMaterial = ({
   };
 
   return (
-    <div className="manufacturing-container">
+    <div className="Raw Matarial-container">
       <h5 className="section-title">
         <CiSettings /> Raw Materials Variables for {partName}
       </h5>
@@ -174,9 +172,9 @@ const RawMaterial = ({
           {rmVariables.map((item, index) => (
             <tr key={index}>
               <td>{item.name}</td>
-              <td>{item.netWeight}</td>
+              <td>{item.netWeight * quantity}</td>
               <td>{item.pricePerKg}</td>
-              <td>{Math.round(item.totalRate)}</td>
+              <td>{Math.ceil(item.totalRate * quantity)}</td>
               <td className="d-flex gap-2">
                 <button
                   className="btn btn-sm btn-success edit-item-btn"

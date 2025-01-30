@@ -1,4 +1,4 @@
-import React, { useState,useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import "./Matarials.css";
 import { FaEdit } from "react-icons/fa";
 import { MdDelete } from "react-icons/md";
@@ -9,12 +9,10 @@ import "react-toastify/dist/ReactToastify.css";
 const Shipment = ({
   partName,
   shipmentVariables,
-  projectId,
   partId,
-  itemId,
-  assemblyId,
-  source,
-  shipmentUpdate,
+  onUpdatePrts,
+  quantity,
+  subAssemblyId,
 }) => {
   const [modal_edit, setModalEdit] = useState(false);
   const [modal_delete, setModalDelete] = useState(false);
@@ -25,7 +23,6 @@ const Shipment = ({
   const [formData, setFormData] = useState({
     name: "",
     hourlyRate: "",
-    totalRate: "",
   });
 
   const [updatedShipmentVariables, setUpdatedShipmentVariables] = useState([]);
@@ -46,7 +43,6 @@ const Shipment = ({
       setFormData({
         name: item.name,
         hourlyRate: item.hourlyRate,
-        totalRate: item.totalRate,
       });
       setEditId(item._id);
     } else {
@@ -86,24 +82,21 @@ const Shipment = ({
     });
   };
 
-
-  const getApiEndpoint = (id) => {
-    if (source === "subAssemblyPartsLists") {
-      return `${process.env.REACT_APP_BASE_URL}/api/projects/${projectId}/assemblyPartsLists/${assemblyId}/subAssemblyPartsLists/${partId}/items/${itemId}/shipmentVariables/${id}`;
-    } else if (source === "assemblyMultyPartsList") {
-      return `${process.env.REACT_APP_BASE_URL}/api/projects/${projectId}/assemblyPartsLists/${assemblyId}/assemblyMultyPartsList/${partId}/items/${itemId}/shipmentVariables/${id}`;
-    }
-    throw new Error("Invalid source");
-  };
-
-  
+  // Construct API endpoint based on the source
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     setPosting(true);
     setError(null);
-  
+
+    console.log("🔍 Debugging IDs:");
+    console.log("subAssemblyId:", subAssemblyId);
+    console.log("partId:", partId);
+    console.log("editId (shipmentVariableId):", editId);
+
     try {
-      const endpoint = getApiEndpoint(editId); // Pass editId here
+      const endpoint = `${process.env.REACT_APP_BASE_URL}/api/assmebly/${subAssemblyId}/parts/${partId}/shipmentVariables/${editId}`;
+      console.log("🚀 PUT Request to:", endpoint);
+
       const response = await fetch(endpoint, {
         method: "PUT",
         headers: {
@@ -112,55 +105,56 @@ const Shipment = ({
         body: JSON.stringify({
           name: formData.name,
           hourlyRate: parseFloat(formData.hourlyRate),
-          totalRate: parseFloat(formData.totalRate),
         }),
       });
-  
+
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to update shipment variable");
+        throw new Error(
+          errorData.message || "Failed to update shipment variable"
+        );
       }
-  
+
       const updatedData = await response.json();
-      setUpdatedShipmentVariables((prevVariables) =>
-        prevVariables.map((ship) => (ship._id === updatedData._id ? updatedData : ship))
-      );
-      shipmentUpdate(updatedData)
-      toast.success("Records updated successfully");
+      onUpdatePrts(updatedData);
+
+      toast.success("shipment variable updated successfully");
       setModalEdit(false);
       resetForm();
     } catch (error) {
-      console.error("Error updating shipment variable:", error);
+      console.error("❌ Error updating shipment variable:", error);
       setError(error.message);
+      toast.error(error.message);
     } finally {
       setPosting(false);
     }
   };
-  
 
   const handleDelete = async () => {
     setPosting(true);
     setError(null);
-  
+
     try {
       const endpoint = getApiEndpoint(deleteId); // Pass deleteId here
       const response = await fetch(endpoint, {
         method: "DELETE",
       });
-  
+
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to delete shipment variable");
+        throw new Error(
+          errorData.message || "Failed to delete shipment variable"
+        );
       }
-  
+
       // Update the local state to remove the deleted item
       setUpdatedShipmentVariables((prevVariables) =>
         prevVariables.filter((ship) => ship._id !== deleteId)
       );
 
       const updateData = await response.json();
-      shipmentUpdate(updateData)
-  
+      onUpdatePrts(updateData);
+
       toast.success("Records deleted successfully");
       setModalDelete(false);
     } catch (error) {
@@ -171,7 +165,6 @@ const Shipment = ({
       setPosting(false);
     }
   };
-  
 
   return (
     <div className="shipment-container">
@@ -191,7 +184,7 @@ const Shipment = ({
           {updatedShipmentVariables.map((ship, index) => (
             <tr key={index}>
               <td>{ship.name}</td>
-              <td>{ship.hourlyRate}</td>
+              <td>{ship.hourlyRate * quantity}</td>
               {/* <td>{ship.totalRate}</td> */}
               <td className="d-flex gap-2">
                 <button
@@ -266,20 +259,20 @@ const Shipment = ({
         </ModalBody>
       </Modal>
       {/* Delete Confirmation Modal */}
-            <Modal isOpen={modal_delete} toggle={tog_delete}>
-              <ModalHeader toggle={tog_delete}>Confirm Deletion</ModalHeader>
-              <ModalBody>
-                Are you sure you want to delete this raw material?
-              </ModalBody>
-              <ModalFooter>
-                <Button color="danger" onClick={handleDelete} disabled={posting}>
-                  {posting ? "Deleting..." : "Delete"}
-                </Button>
-                <Button color="secondary" onClick={tog_delete}>
-                  Cancel
-                </Button>
-              </ModalFooter>
-            </Modal>
+      <Modal isOpen={modal_delete} toggle={tog_delete}>
+        <ModalHeader toggle={tog_delete}>Confirm Deletion</ModalHeader>
+        <ModalBody>
+          Are you sure you want to delete this raw material?
+        </ModalBody>
+        <ModalFooter>
+          <Button color="danger" onClick={handleDelete} disabled={posting}>
+            {posting ? "Deleting..." : "Delete"}
+          </Button>
+          <Button color="secondary" onClick={tog_delete}>
+            Cancel
+          </Button>
+        </ModalFooter>
+      </Modal>
     </div>
   );
 };

@@ -25,6 +25,20 @@ export const SubAssmeblies = () => {
   const [editSubAssemblyData, setEditSubAssemblyData] = useState({});
   const [newSubAssemblyName, setNewSubAssemblyName] = useState("");
   const [newSubAssemblyNumber, setNewSubAssemblyNumber] = useState("");
+  const [deleteModal, setDeleteModal] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState(null);
+  const [duplicateModalOpen, setDuplicateModalOpen] = useState(false);
+  const [itemToDuplicate, setItemToDuplicate] = useState(null);
+
+  const toggleDeleteModal = (item) => {
+    setDeleteModal(!deleteModal);
+    setItemToDelete(item); // Pass the subAssembly to the delete modal
+  };
+
+  const toggleDuplicateModal = (item) => {
+    setDuplicateModalOpen(!duplicateModalOpen);
+    setItemToDuplicate(item);
+  };
 
   const fetchSubAssemblies = async () => {
     try {
@@ -42,6 +56,10 @@ export const SubAssmeblies = () => {
     fetchSubAssemblies();
   }, []);
 
+  // In SubAssmeblies.js
+
+  // In SubAssmeblies.js
+
   const handleAddPart = async () => {
     try {
       const response = await fetch(
@@ -57,6 +75,12 @@ export const SubAssmeblies = () => {
           }),
         }
       );
+
+      if (!response.ok) {
+        const errorMessage = await response.text(); // Get the error message from the response
+        throw new Error(errorMessage);
+      }
+
       const data = await response.json();
       setListData([...ListData, data]);
       toast.success("Records Added Successfully");
@@ -64,7 +88,7 @@ export const SubAssmeblies = () => {
       setNewSubAssemblyName("");
       setNewSubAssemblyNumber("");
     } catch (error) {
-      console.error("Error adding part:", error);
+      toast.error(`Error: ${error.message}`);
     }
   };
 
@@ -113,6 +137,33 @@ export const SubAssmeblies = () => {
     }
   };
 
+  const handlePartDelete = async () => {
+    if (!itemToDelete) return;
+    try {
+      const { _id } = itemToDelete;
+      // Send DELETE request to remove the sub-assembly
+      const response = await fetch(
+        `${process.env.REACT_APP_BASE_URL}/api/subAssembly/${_id}`,
+        {
+          method: "DELETE",
+        }
+      );
+      if (!response.ok) {
+        throw new Error("Failed to delete sub-assembly");
+      }
+      // Update the local state
+      setListData((prevData) =>
+        prevData.filter((subAssembly) => subAssembly._id !== _id)
+      );
+      toast.success("Sub-assembly deleted successfully");
+      setDeleteModal(false);
+      setItemToDelete(null);
+    } catch (error) {
+      console.error("Error deleting sub-assembly:", error);
+      toast.error("Failed to delete sub-assembly");
+    }
+  };
+
   const handleSearch = () => {
     if (searchTerm) {
       const filteredData = ListData.filter((item) =>
@@ -122,6 +173,57 @@ export const SubAssmeblies = () => {
     } else {
       fetchSubAssemblies();
     }
+  };
+
+  const handleDuplicate = async () => {
+    if (!itemToDuplicate) return;
+    try {
+      const { _id } = itemToDuplicate;
+
+      const response = await fetch(
+        `${process.env.REACT_APP_BASE_URL}/api/subAssembly/duplicate/${_id}`,
+        {
+          method: "POST",
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to duplicate sub-assembly");
+      }
+
+      const duplicatedSubAssembly = await response.json();
+
+      // Update the local state
+      setListData([...ListData, duplicatedSubAssembly]);
+
+      toast.success("Sub-assembly duplicated successfully");
+      setDuplicateModalOpen(false);
+      setItemToDelete(null);
+    } catch (error) {
+      console.error("Error duplicating sub-assembly:", error);
+      toast.error("Failed to duplicate sub-assembly");
+    }
+  };
+
+  const formatTime = (time) => {
+    if (time === 0) {
+      return 0;
+    }
+
+    let result = "";
+
+    const hours = Math.floor(time);
+    const minutes = Math.round((time - hours) * 60);
+
+    if (hours > 0) {
+      result += `${hours}h `;
+    }
+
+    if (minutes > 0 || (hours === 0 && minutes !== 0)) {
+      result += `${minutes}m`;
+    }
+
+    return result.trim();
   };
 
   return (
@@ -163,7 +265,7 @@ export const SubAssmeblies = () => {
           <thead>
             <tr>
               <th style={{ fontWeight: "bold" }}>Sub-Assembly Name</th>
-              <th style={{ fontWeight: "bold" }}>Sub-Assembly Number</th>
+              <th style={{ fontWeight: "bold" }}>Sub-Assembly ID</th>
               <th style={{ fontWeight: "bold" }}>Total Cost</th>
               <th style={{ fontWeight: "bold" }}>Total Hours</th>
               <th style={{ fontWeight: "bold" }}>Action</th>
@@ -174,16 +276,17 @@ export const SubAssmeblies = () => {
               <tr key={index}>
                 <td>
                   <Link
-                    to={`/regenato-single-subAssmebly`}
+                    to={`/singleSubAssembly/${subAssembly._id}`}
                     className="text-body text-primary"
                     style={{ color: "#007bff", textDecoration: "none" }}
+                    state={{ subAssemblyName: subAssembly.subAssemblyName }}
                   >
                     {subAssembly.subAssemblyName}
                   </Link>
                 </td>
                 <td>{subAssembly.SubAssemblyNumber}</td>
-                <td>--</td>
-                <td>--</td>
+                <td>{Math.ceil(subAssembly.totalCost || 0)}</td>
+                <td>{formatTime(subAssembly.totalHours || 0)}</td>
                 <td>
                   <UncontrolledDropdown direction="start">
                     <DropdownToggle
@@ -193,11 +296,16 @@ export const SubAssmeblies = () => {
                       <FeatherIcon icon="more-horizontal" className="icon-sm" />
                     </DropdownToggle>
                     <DropdownMenu className="dropdown-menu-end">
-                      <DropdownItem>
+                      <DropdownItem
+                        onClick={() => toggleDeleteModal(subAssembly)}
+                      >
                         <i className="ri-delete-bin-fill align-bottom me-2 text-muted"></i>{" "}
                         Remove
                       </DropdownItem>
-                      <DropdownItem>
+
+                      <DropdownItem
+                        onClick={() => toggleDuplicateModal(subAssembly)}
+                      >
                         <i className="ri-file-copy-line align-bottom me-2 text-muted"></i>{" "}
                         Duplicate
                       </DropdownItem>
@@ -289,6 +397,50 @@ export const SubAssmeblies = () => {
             Update
           </Button>
           <Button color="secondary" onClick={() => setIsEditModalOpen(false)}>
+            Cancel
+          </Button>
+        </ModalFooter>
+      </Modal>
+
+      {/* delete modal */}
+      <Modal isOpen={deleteModal} toggle={() => setDeleteModal(!deleteModal)}>
+        <ModalHeader toggle={() => setDeleteModal(!deleteModal)}>
+          Confirm Deletion
+        </ModalHeader>
+        <ModalBody>
+          Are you sure you want to delete the sub-assembly{" "}
+          <strong>{itemToDelete?.subAssemblyName}</strong>?
+        </ModalBody>
+        <ModalFooter>
+          <Button color="danger" onClick={handlePartDelete}>
+            Delete
+          </Button>
+          <Button color="secondary" onClick={() => setDeleteModal(false)}>
+            Cancel
+          </Button>
+        </ModalFooter>
+      </Modal>
+
+      {/* modal for duplicate creation */}
+      <Modal
+        isOpen={duplicateModalOpen}
+        toggle={() => setDuplicateModalOpen(!duplicateModalOpen)}
+      >
+        <ModalHeader toggle={() => setDuplicateModalOpen(false)}>
+          Confirm Duplication
+        </ModalHeader>
+        <ModalBody>
+          Are you sure you want to duplicate the sub-assembly{" "}
+          <strong>{itemToDuplicate?.subAssemblyName}</strong>?
+        </ModalBody>
+        <ModalFooter>
+          <Button color="primary" onClick={handleDuplicate}>
+            Duplicate
+          </Button>
+          <Button
+            color="secondary"
+            onClick={() => setDuplicateModalOpen(false)}
+          >
             Cancel
           </Button>
         </ModalFooter>

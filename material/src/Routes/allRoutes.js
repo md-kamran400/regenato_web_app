@@ -207,14 +207,17 @@ const publicRoutes = [
   { path: "/singleproject/:_id", component: <SingeProject /> },
   { path: "/projectSection/:_id", component: <ProjectSection /> },
   { path: "/projectinvoice", component: <ProjectInvoice /> },
+  // SingleSubAssembly
 
   { path: "/regenato-assembly-list", component: <NewAssmebliy /> }, // New route
   { path: "/regenato-sub-assembly-list", component: <NewSubAssmebly /> }, // New route
   { path: "/regenato-parts-list", component: <NewPartsLists /> }, // New route
 
-  {path: "/regenato-single-subAssmebly", component: <SingleSubAssembly/>},
-  {path: "/regenato-single-parts", component: <SinglePartsList/>},
-  {path: "/regenato-single-assmebly", component: <SingleAssmeblyList/>},
+  { path: "/singleSubAssembly/:_id", component: <SingleSubAssembly /> }, // New route
+  { path: "/singleAssembly/:_id", component: <SingleAssmeblyList /> }, // New route
+  // {path: "/regenato-single-subAssmebly", component: <SingleSubAssembly/>},
+  // {path: "/regenato-single-parts", component: <SinglePartsList/>},
+  // {path: "/regenato-single-assmebly", component: <SingleAssmeblyList/>},
 
   {
     path: "/",

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import "./Matarials.css";
 import { FaEdit } from "react-icons/fa";
 import { MdDelete } from "react-icons/md";
@@ -9,12 +9,10 @@ import "react-toastify/dist/ReactToastify.css";
 const Overheads = ({
   partName,
   overheadsAndProfits,
-  projectId,
   partId,
-  itemId,
-  source,
-  overHeadsUpdate,
-  assemblyId,
+  subAssemblyId,
+  onUpdatePrts,
+  quantity,
 }) => {
   const [modal_edit, setModalEdit] = useState(false);
   const [modal_delete, setModalDelete] = useState(false);
@@ -87,23 +85,20 @@ const Overheads = ({
     });
   };
 
-  const getApiEndpoint = (id) => {
-    if (source === "subAssemblyPartsLists") {
-      return `${process.env.REACT_APP_BASE_URL}/api/projects/${projectId}/assemblyPartsLists/${assemblyId}/subAssemblyPartsLists/${partId}/items/${itemId}/overheadsAndProfits/${id}`;
-    } else if (source === "assemblyMultyPartsList") {
-      return `${process.env.REACT_APP_BASE_URL}/api/projects/${projectId}/assemblyPartsLists/${assemblyId}/assemblyMultyPartsList/${partId}/items/${itemId}/overheadsAndProfits/${id}`;
-    }
-    throw new Error("Invalid source");
-  };
-
-  // Submit edited data
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     setPosting(true);
     setError(null);
 
+    console.log("🔍 Debugging IDs:");
+    console.log("subAssemblyId:", subAssemblyId);
+    console.log("partId:", partId);
+    console.log("editId (shipmentVariableId):", editId);
+
     try {
-      const endpoint = getApiEndpoint(editId);
+      const endpoint = `${process.env.REACT_APP_BASE_URL}/api/assmebly/${subAssemblyId}/parts/${partId}/overheadsAndProfits/${editId}`;
+      console.log("🚀 PUT Request to:", endpoint);
+
       const response = await fetch(endpoint, {
         method: "PUT",
         headers: {
@@ -111,31 +106,27 @@ const Overheads = ({
         },
         body: JSON.stringify({
           name: formData.name,
-          percentage: parseFloat(formData.percentage),
-          totalRate: parseFloat(formData.totalRate),
+          hourlyRate: parseFloat(formData.hourlyRate),
         }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to update overheads");
+        throw new Error(
+          errorData.message || "Failed to update shipment variable"
+        );
       }
 
       const updatedData = await response.json();
-      // Update local state
-      setUpdatedOverheads((prevOverheads) =>
-        prevOverheads.map((overhead) =>
-          overhead._id === updatedData._id ? updatedData : overhead
-        )
-      );
-      overHeadsUpdate(updatedData);
+      onUpdatePrts(updatedData);
 
-      toast.success("Records updated successfully");
+      toast.success("shipment variable updated successfully");
       setModalEdit(false);
       resetForm();
     } catch (error) {
-      console.error("Error updating overheads:", error);
+      console.error("❌ Error updating shipment variable:", error);
       setError(error.message);
+      toast.error(error.message);
     } finally {
       setPosting(false);
     }
@@ -157,9 +148,9 @@ const Overheads = ({
       }
 
       const updatedData = await response.json();
-      overHeadsUpdate(updatedData);
+      onUpdatePrts(updatedData);
 
-      toast.success("Raw material deleted successfully");
+      toast.success("Records deleted successfully");
       setModalDelete(false);
     } catch (error) {
       console.error("Error deleting raw material:", error);
@@ -187,7 +178,7 @@ const Overheads = ({
             <tr key={index}>
               <td>{overhead.name}</td>
               <td>{overhead.percentage}%</td>
-              <td>{overhead.totalRate}</td>
+              <td>{Math.ceil(overhead.totalRate * quantity)}</td>
               <td className="d-flex gap-2">
                 <button
                   className="btn btn-sm btn-success edit-item-btn"
