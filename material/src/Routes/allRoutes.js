@@ -218,6 +218,7 @@ const publicRoutes = [
   // {path: "/regenato-single-subAssmebly", component: <SingleSubAssembly/>},
   // {path: "/regenato-single-parts", component: <SinglePartsList/>},
   // {path: "/regenato-single-assmebly", component: <SingleAssmeblyList/>},
+  // {path: "/regenato-single-assmebly", component: <SingleAssmeblyList/>},
 
   {
     path: "/",
