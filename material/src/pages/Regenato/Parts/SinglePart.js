@@ -259,7 +259,7 @@ const SinglePart = () => {
             </Button>
           </div> */}
           <Row>
-            <Col xl={3} ms={6}>
+            <Col xl={4} ms={6}>
               <Card className={"card-height-100 "}>
                 <CardBody>
                   <div className="mb-4 pb-2">
@@ -290,7 +290,7 @@ const SinglePart = () => {
               </Card>
             </Col>
 
-            <Col xl={3} ms={6}>
+            <Col xl={4} ms={6}>
               <Card className="card-height-100">
                 <CardBody>
                   <div className="mb-4 pb-2">
@@ -320,7 +320,7 @@ const SinglePart = () => {
               </Card>
             </Col>
 
-            <Col xl={3} ms={6}>
+            <Col xl={4} ms={6}>
               <Card className={"card-height-100 "}>
                 <CardBody>
                   <div className="mb-4 pb-2">

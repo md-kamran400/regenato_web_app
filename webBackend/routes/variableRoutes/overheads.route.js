@@ -13,6 +13,22 @@ const OverheadsRouter = Router();
 //     }
 // });
 
+// validRmVariables.push({
+//   categoryId: rmEntry.categoryId,
+//   name: rmEntry.name,
+//   netWeight: 0,
+//   pricePerKg: 0,
+//   totalRate: value, 
+// });
+
+// validRmVariables.push({
+//   categoryId: rmEntry.categoryId,
+//   name: rmEntry.name,
+//   netWeight: value, // Assuming value represents weight in kg
+//   pricePerKg: rmEntry.price,
+//   totalRate: value * rmEntry.price, // Calculate total cost
+// });
+
 OverheadsRouter.post("/", async (req, res) => {
   try {
     // Check if the categoryId already exists

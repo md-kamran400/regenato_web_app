@@ -481,7 +481,7 @@ const RmVariable = ({
                 <td>{item.name}</td>
                 <td>{item.netWeight}</td>
                 <td>{item.pricePerKg}</td>
-                <td>{item.totalRate}</td>
+                <td>{Math.round(item.totalRate)}</td>
                 <td>
                   <div className="d-flex gap-2">
                     <Button
