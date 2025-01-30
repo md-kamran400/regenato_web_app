@@ -40,16 +40,17 @@ const partSchema = new mongoose.Schema({
   ],
 });
 
-const SubAssemblySchema = new mongoose.Schema({
-  subAssemblyName: String,
-  SubAssemblyNumber: String,
+const AssemblySchema = new mongoose.Schema({
+  AssemblyName: String,
+  AssemblyNumber: String,
   totalCost: Number,
   totalHours: Number,
   partsListItems: [partSchema],
+  //for time traking
   //for time traking
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 });
 
-const SubAssemblyModel = mongoose.model("subAssembly", SubAssemblySchema);
-module.exports = SubAssemblyModel;
+const AssemblyModel = mongoose.model("Assembly", AssemblySchema);
+module.exports = AssemblyModel;

@@ -1,12 +1,12 @@
 const express = require("express");
-const subAssemblyRoutes = express.Router();
-const SubAssemblyModel = require("../../model/sub-Assembly/subAssebmlyModel");
+const AssemblyRoutes = express.Router();
+const AssemblyModel = require("../../model/assembly/AssebmlyModel");
 const mongoose = require("mongoose");
 
 // GET all sub-assemblies
-subAssemblyRoutes.get("/", async (req, res) => {
+AssemblyRoutes.get("/", async (req, res) => {
   try {
-    const subAssemblies = await SubAssemblyModel.find().exec();
+    const subAssemblies = await AssemblyModel.find().exec();
     res.status(200).json(subAssemblies);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -14,10 +14,10 @@ subAssemblyRoutes.get("/", async (req, res) => {
 });
 
 // GET a single sub-assembly by _id
-// subAssemblyRoutes.get("/:_id", async (req, res) => {
+// AssemblyRoutes.get("/:_id", async (req, res) => {
 //   try {
 //     const { _id } = req.params;
-//     const subAssembly = await SubAssemblyModel.findById(_id);
+//     const subAssembly = await AssemblyModel.findById(_id);
 //     if (!subAssembly) {
 //       return res.status(404).json({ error: "Sub-assembly not found" });
 //     }
@@ -27,7 +27,7 @@ subAssemblyRoutes.get("/", async (req, res) => {
 //   }
 // });
 
-subAssemblyRoutes.get("/:_id", async (req, res) => {
+AssemblyRoutes.get("/:_id", async (req, res) => {
   try {
     const { _id } = req.params;
 
@@ -35,7 +35,7 @@ subAssemblyRoutes.get("/:_id", async (req, res) => {
       return res.status(400).json({ error: "Invalid sub-assembly ID format" });
     }
 
-    const subAssembly = await SubAssemblyModel.findById(_id);
+    const subAssembly = await AssemblyModel.findById(_id);
     if (!subAssembly) {
       return res.status(404).json({ error: "Sub-assembly not found" });
     }
@@ -77,12 +77,12 @@ subAssemblyRoutes.get("/:_id", async (req, res) => {
 });
 
 // put request for edit the quanityt
-subAssemblyRoutes.put("/:subAssemblyId/parts/:partId", async (req, res) => {
+AssemblyRoutes.put("/:assmeblyId/parts/:partId", async (req, res) => {
   try {
-    const { subAssemblyId, partId } = req.params;
+    const { assmeblyId, partId } = req.params;
     const { quantity } = req.body;
 
-    if (!mongoose.Types.ObjectId.isValid(subAssemblyId)) {
+    if (!mongoose.Types.ObjectId.isValid(assmeblyId)) {
       return res.status(400).json({ error: "Invalid sub-assembly ID format" });
     }
 
@@ -90,7 +90,7 @@ subAssemblyRoutes.put("/:subAssemblyId/parts/:partId", async (req, res) => {
       return res.status(400).json({ error: "Invalid part ID format" });
     }
 
-    const subAssembly = await SubAssemblyModel.findById(subAssemblyId);
+    const subAssembly = await AssemblyModel.findById(assmeblyId);
 
     if (!subAssembly) {
       return res.status(404).json({ error: "Sub-assembly not found" });
@@ -117,63 +117,59 @@ subAssemblyRoutes.put("/:subAssemblyId/parts/:partId", async (req, res) => {
 });
 
 // POST create a new sub-assembly
-// In subAssembly.route.js
-
-subAssemblyRoutes.post("/", async (req, res) => {
+AssemblyRoutes.post("/", async (req, res) => {
   try {
     const {
-      subAssemblyName,
-      SubAssemblyNumber,
+      AssemblyName,
+      AssemblyNumber,
       timePerUnit,
       costPerUnit,
       partsListItems,
     } = req.body;
 
-    // Check if SubAssemblyNumber already exists
-    const existingSubAssembly = await SubAssemblyModel.findOne({
-      SubAssemblyNumber,
+    // Check if AssemblyNumber already exists
+    const existingAssembly = await AssemblyModel.findOne({
+      AssemblyNumber,
     });
 
-    if (existingSubAssembly) {
-      return res
-        .status(400)
-        .json({ error: "Sub Assembly Number Already Exists" });
+    if (existingAssembly) {
+      return res.status(400).json({ error: "Assembly Number Already Exists" });
     }
 
-    const newSubAssembly = new SubAssemblyModel({
-      subAssemblyName,
-      SubAssemblyNumber,
+    const newAssembly = new AssemblyModel({
+      AssemblyName,
+      AssemblyNumber,
       timePerUnit,
       costPerUnit,
       partsListItems,
     });
 
-    await newSubAssembly.save();
-    res.status(201).json(newSubAssembly);
+    await newAssembly.save();
+    res.status(201).json(newAssembly);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
 // PUT update an existing sub-assembly
-subAssemblyRoutes.put("/:id", async (req, res) => {
+AssemblyRoutes.put("/:id", async (req, res) => {
   try {
     const { id } = req.params;
     const {
-      subAssemblyName,
-      SubAssemblyNumber,
-      timePerUnit,
-      costPerUnit,
+      AssemblyName,
+      AssemblyNumber,
+      totalHours,
+      totalCost,
       partsListItems,
     } = req.body;
 
-    const updatedSubAssembly = await SubAssemblyModel.findByIdAndUpdate(
+    const updatedSubAssembly = await AssemblyModel.findByIdAndUpdate(
       id,
       {
-        subAssemblyName,
-        SubAssemblyNumber,
-        timePerUnit,
-        costPerUnit,
+        AssemblyName,
+        AssemblyNumber,
+        totalHours,
+        totalCost,
         partsListItems,
       },
       { new: true }
@@ -190,21 +186,21 @@ subAssemblyRoutes.put("/:id", async (req, res) => {
 });
 
 // POST duplicate a sub-assembly
-// subAssemblyRoutes.post("/duplicate/:id", async (req, res) => {
+// AssemblyRoutes.post("/duplicate/:id", async (req, res) => {
 //   try {
 //     const { id } = req.params;
 
-//     const originalSubAssembly = await SubAssemblyModel.findById(id);
+//     const originalSubAssembly = await AssemblyModel.findById(id);
 
 //     if (!originalSubAssembly) {
 //       return res.status(404).json({ error: "Original sub-assembly not found" });
 //     }
 
-//     const newSubAssembly = new SubAssemblyModel({
+//     const newSubAssembly = new AssemblyModel({
 //       ...originalSubAssembly._doc,
 //       _id: mongoose.Types.ObjectId(), // Generate new ObjectId
-//       subAssemblyName: `${originalSubAssembly.subAssemblyName} - Copy`,
-//       SubAssemblyNumber: `${originalSubAssembly.SubAssemblyNumber} - Copy`,
+//       AssemblyName: `${originalSubAssembly.AssemblyName} - Copy`,
+//       AssemblyNumber: `${originalSubAssembly.AssemblyNumber} - Copy`,
 //     });
 
 //     await newSubAssembly.save();
@@ -214,23 +210,23 @@ subAssemblyRoutes.put("/:id", async (req, res) => {
 //     res.status(500).json({ error: error.message });
 //   }
 // });
-subAssemblyRoutes.post("/duplicate/:id", async (req, res) => {
+AssemblyRoutes.post("/duplicate/:id", async (req, res) => {
   try {
     const { id } = req.params;
 
     // Find the original sub-assembly
-    const originalSubAssembly = await SubAssemblyModel.findById(id);
+    const originalSubAssembly = await AssemblyModel.findById(id);
 
     if (!originalSubAssembly) {
       return res.status(404).json({ error: "Original sub-assembly not found" });
     }
 
     // Create a new sub-assembly based on the original
-    const newSubAssembly = new SubAssemblyModel({
+    const newSubAssembly = new AssemblyModel({
       ...originalSubAssembly._doc,
       _id: new mongoose.Types.ObjectId(), // Use new keyword here
-      subAssemblyName: `${originalSubAssembly.subAssemblyName} - Copy`,
-      SubAssemblyNumber: `${originalSubAssembly.SubAssemblyNumber} - Copy`,
+      AssemblyName: `${originalSubAssembly.AssemblyName} - Copy`,
+      AssemblyNumber: `${originalSubAssembly.AssemblyNumber} - Copy`,
     });
 
     await newSubAssembly.save();
@@ -243,7 +239,7 @@ subAssemblyRoutes.post("/duplicate/:id", async (req, res) => {
 });
 
 // DELETE remove a sub-assembly
-subAssemblyRoutes.delete("/:id", async (req, res) => {
+AssemblyRoutes.delete("/:id", async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -251,7 +247,7 @@ subAssemblyRoutes.delete("/:id", async (req, res) => {
       return res.status(400).json({ error: "Invalid sub-assembly ID format" });
     }
 
-    const deletedSubAssembly = await SubAssemblyModel.findByIdAndDelete(id);
+    const deletedSubAssembly = await AssemblyModel.findByIdAndDelete(id);
 
     if (!deletedSubAssembly) {
       return res.status(404).json({ error: "Sub-assembly not found" });
@@ -269,7 +265,7 @@ subAssemblyRoutes.delete("/:id", async (req, res) => {
 
 // POST add a part to a sub-assembly
 // POST route to add data to partsListItems for a specific sub-assembly
-subAssemblyRoutes.post("/:id/partsListItems", async (req, res) => {
+AssemblyRoutes.post("/:id/partsListItems", async (req, res) => {
   try {
     const { id } = req.params;
     const {
@@ -285,7 +281,7 @@ subAssemblyRoutes.post("/:id/partsListItems", async (req, res) => {
     } = req.body;
 
     // Fetch the sub-assembly document by ID
-    const subAssembly = await SubAssemblyModel.findById(id);
+    const subAssembly = await AssemblyModel.findById(id);
 
     if (!subAssembly) {
       return res.status(404).json({ error: "Sub-assembly not found" });
@@ -325,11 +321,11 @@ subAssemblyRoutes.post("/:id/partsListItems", async (req, res) => {
 
 // DELETE remove a part from a sub-assembly
 // Add this route at the end of your file
-subAssemblyRoutes.delete("/:subAssemblyId/parts/:partId", async (req, res) => {
+AssemblyRoutes.delete("/:assmeblyId/parts/:partId", async (req, res) => {
   try {
-    const { subAssemblyId, partId } = req.params;
+    const { assmeblyId, partId } = req.params;
 
-    if (!mongoose.Types.ObjectId.isValid(subAssemblyId)) {
+    if (!mongoose.Types.ObjectId.isValid(assmeblyId)) {
       return res.status(400).json({ error: "Invalid sub-assembly ID format" });
     }
 
@@ -337,7 +333,7 @@ subAssemblyRoutes.delete("/:subAssemblyId/parts/:partId", async (req, res) => {
       return res.status(400).json({ error: "Invalid part ID format" });
     }
 
-    const subAssembly = await SubAssemblyModel.findById(subAssemblyId);
+    const subAssembly = await AssemblyModel.findById(assmeblyId);
 
     if (!subAssembly) {
       return res.status(404).json({ error: "Sub-assembly not found" });
@@ -363,10 +359,10 @@ subAssemblyRoutes.delete("/:subAssemblyId/parts/:partId", async (req, res) => {
 // ... rest of the file ...
 
 // GET parts of a sub-assembly
-subAssemblyRoutes.get("/:id/parts", async (req, res) => {
+AssemblyRoutes.get("/:id/parts", async (req, res) => {
   try {
     const { id } = req.params;
-    const subAssembly = await SubAssemblyModel.findById(id);
+    const subAssembly = await AssemblyModel.findById(id);
     if (!subAssembly) {
       return res.status(404).json({ error: "Sub-assembly not found" });
     }
@@ -378,16 +374,16 @@ subAssemblyRoutes.get("/:id/parts", async (req, res) => {
 
 // edit the manufacturing
 // PUT route to edit manufacturing data
-subAssemblyRoutes.put(
-  "/:subAssemblyId/parts/:partId/manufacturing/:variableId",
+AssemblyRoutes.put(
+  "/:assmeblyId/parts/:partId/manufacturing/:variableId",
   async (req, res) => {
     try {
-      const { subAssemblyId, partId, variableId } = req.params;
+      const { assmeblyId, partId, variableId } = req.params;
       const { name, hours, hourlyRate } = req.body;
 
       // Validate IDs
       if (
-        !mongoose.Types.ObjectId.isValid(subAssemblyId) ||
+        !mongoose.Types.ObjectId.isValid(assmeblyId) ||
         !mongoose.Types.ObjectId.isValid(partId) ||
         !mongoose.Types.ObjectId.isValid(variableId)
       ) {
@@ -395,7 +391,7 @@ subAssemblyRoutes.put(
       }
 
       // Find the sub-assembly
-      const subAssembly = await SubAssemblyModel.findById(subAssemblyId);
+      const subAssembly = await AssemblyModel.findById(assmeblyId);
       if (!subAssembly) {
         return res.status(404).json({ error: "Sub-assembly not found" });
       }
@@ -438,16 +434,16 @@ subAssemblyRoutes.put(
 );
 
 // put request for raw matarisl
-subAssemblyRoutes.put(
-  "/:subAssemblyId/parts/:partId/rmVariables/:rmVariableId",
+AssemblyRoutes.put(
+  "/:assmeblyId/parts/:partId/rmVariables/:rmVariableId",
   async (req, res) => {
     try {
-      const { subAssemblyId, partId, rmVariableId } = req.params;
+      const { assmeblyId, partId, rmVariableId } = req.params;
       const { name, netWeight, pricePerKg } = req.body;
 
       // Validate IDs
       if (
-        !mongoose.Types.ObjectId.isValid(subAssemblyId) ||
+        !mongoose.Types.ObjectId.isValid(assmeblyId) ||
         !mongoose.Types.ObjectId.isValid(partId) ||
         !mongoose.Types.ObjectId.isValid(rmVariableId)
       ) {
@@ -455,7 +451,7 @@ subAssemblyRoutes.put(
       }
 
       // Find the sub-assembly
-      const subAssembly = await SubAssemblyModel.findById(subAssemblyId);
+      const subAssembly = await AssemblyModel.findById(assmeblyId);
       if (!subAssembly) {
         return res.status(404).json({ error: "Sub-assembly not found" });
       }
@@ -503,16 +499,16 @@ subAssemblyRoutes.put(
 );
 
 // PUT request for the shipment
-subAssemblyRoutes.put(
-  "/:subAssemblyId/parts/:partId/shipmentVariables/:shipmentVariableId",
+AssemblyRoutes.put(
+  "/:assmeblyId/parts/:partId/shipmentVariables/:shipmentVariableId",
   async (req, res) => {
     try {
-      const { subAssemblyId, partId, shipmentVariableId } = req.params;
+      const { assmeblyId, partId, shipmentVariableId } = req.params;
       const { name, hourlyRate } = req.body;
 
       // Validate IDs
       if (
-        !mongoose.Types.ObjectId.isValid(subAssemblyId) ||
+        !mongoose.Types.ObjectId.isValid(assmeblyId) ||
         !mongoose.Types.ObjectId.isValid(partId) ||
         !mongoose.Types.ObjectId.isValid(shipmentVariableId)
       ) {
@@ -520,7 +516,7 @@ subAssemblyRoutes.put(
       }
 
       // Find the sub-assembly
-      const subAssembly = await SubAssemblyModel.findById(subAssemblyId);
+      const subAssembly = await AssemblyModel.findById(assmeblyId);
       if (!subAssembly) {
         return res.status(404).json({ error: "Sub-assembly not found" });
       }
@@ -570,16 +566,16 @@ subAssemblyRoutes.put(
 );
 
 // put request for overheads and proftis
-subAssemblyRoutes.put(
-  "/:subAssemblyId/parts/:partId/overheadsAndProfits/:profitId",
+AssemblyRoutes.put(
+  "/:assmeblyId/parts/:partId/overheadsAndProfits/:profitId",
   async (req, res) => {
     try {
-      const { subAssemblyId, partId, profitId } = req.params;
+      const { assmeblyId, partId, profitId } = req.params;
       const { name, percentage } = req.body;
 
       // Validate IDs
       if (
-        !mongoose.Types.ObjectId.isValid(subAssemblyId) ||
+        !mongoose.Types.ObjectId.isValid(assmeblyId) ||
         !mongoose.Types.ObjectId.isValid(partId) ||
         !mongoose.Types.ObjectId.isValid(profitId)
       ) {
@@ -587,7 +583,7 @@ subAssemblyRoutes.put(
       }
 
       // Find the sub-assembly
-      const subAssembly = await SubAssemblyModel.findById(subAssemblyId);
+      const subAssembly = await AssemblyModel.findById(assmeblyId);
       if (!subAssembly) {
         return res.status(404).json({ error: "Sub-assembly not found" });
       }
@@ -635,4 +631,5 @@ subAssemblyRoutes.put(
     }
   }
 );
-module.exports = subAssemblyRoutes;
+
+module.exports = AssemblyRoutes;

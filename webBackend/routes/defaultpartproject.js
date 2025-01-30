@@ -101,6 +101,7 @@ partproject.get("/projects", async (req, res) => {
 // });
 
 // Get a single project by ID
+
 partproject.get("/projects/:id", async (req, res) => {
   try {
     const projectId = req.params.id;
