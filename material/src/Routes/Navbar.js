@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { RxHamburgerMenu } from "react-icons/rx";
 import { MdClose } from "react-icons/md";
 import ProfileDropdown from "../Components/Common/ProfileDropdown";
@@ -9,6 +9,7 @@ import navdata from "../Layouts/LayoutMenuData";
 const Navbar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState(null);
+  const location = useLocation(); // Get current route
 
   const toggleMobileMenu = () => setMenuOpen(!menuOpen);
 
@@ -37,15 +38,23 @@ const Navbar = () => {
               {menuItems.map((item) => (
                 <li
                   key={item.id}
-                  className="nav-item"
+                  className={`nav-item ${
+                    location.pathname === item.link ? "active" : ""
+                  }`}
                   onMouseEnter={() => handleMouseEnter(item.id)}
                   onMouseLeave={handleMouseLeave}
                 >
                   <Link to={item.link} className="nav-link">
                     <i className={item.icon}></i> {item.label}
                   </Link>
-                  {item.children && activeDropdown === item.id && (
-                    <ul className="dropdown-menu">
+
+                  {/* Always render dropdown but control visibility */}
+                  {item.children && (
+                    <ul
+                      className={`dropdown-menu ${
+                        activeDropdown === item.id ? "show" : ""
+                      }`}
+                    >
                       {item.children.map((child) => (
                         <li key={child.id}>
                           <Link to={child.link} className="dropdown-item">
