@@ -35,7 +35,7 @@ const navdata = () => {
             {
               id: "partsList",
               label: "Parts List",
-              link: "/regenato-parts-list",
+              link: "/regenato-parts",
               icon: "fa fa-list",
             },
           ],
