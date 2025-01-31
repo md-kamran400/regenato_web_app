@@ -234,7 +234,8 @@ const List = () => {
 
   const handleAddPart = async () => {
     // Extract only the numeric part of the ID
-    const numericId = newPartId.replace(/[^-\d]/g, "");
+    // const numericId = newPartId.replace(/[^-\d]/g, "");
+    const numericId = newPartId.replace(/[^a-zA-Z0-9]/g, "");
 
     const newPart = {
       id: numericId,

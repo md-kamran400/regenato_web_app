@@ -24,6 +24,8 @@ const ImageUploader = ({
   const [imageUrl, setImageUrl] = useState("");
   const [hasImage, setHasImage] = useState(false);
   // const [listsetListData]
+  const [isPreviewing, setIsPreviewing] = useState(false);
+  const [previewImage, setPreviewImage] = useState("");
 
   // Webcam reference
   const webcamRef = useRef(null);
@@ -73,6 +75,8 @@ const ImageUploader = ({
     const file = acceptedFiles[0];
     setImageFile(file);
     setSelectedImage(URL.createObjectURL(file));
+    setPreviewImage(URL.createObjectURL(file));
+    setIsPreviewing(true);
   };
 
   const handleUpload = async () => {
@@ -181,82 +185,6 @@ const ImageUploader = ({
         )}
       </div>
 
-      {/* <Modal
-        isOpen={showUploadModal}
-        toggle={() => setShowUploadModal(false)}
-        centered
-      >
-        <ModalHeader toggle={() => setShowUploadModal(false)}>
-          Upload Image
-        </ModalHeader>
-        <ModalBody>
-          <div className="d-flex flex-column align-items-center">
-            {imageUrl && (
-              <div className="mt-4 d-flex flex-column align-items-center">
-                <img
-                  src={imageUrl}
-                  alt="Preview"
-                  className="shadow-sm"
-                  style={{
-                    maxWidth: "100%",
-                    maxHeight: "180px",
-                    objectFit: "cover",
-                    borderRadius: "10px",
-                    border: "1px solid #ddd",
-                  }}
-                />
-              </div>
-            )}
-            <Dropzone onDrop={handleDrop} accept="image/*">
-              {({ getRootProps, getInputProps }) => (
-                <div
-                  {...getRootProps()}
-                  className="dropzone text-center d-flex flex-column align-items-center justify-content-center"
-                  style={{
-                    border: "2px dashedrgb(3, 16, 30)",
-                    padding: "40px",
-                    cursor: "pointer",
-                    borderRadius: "12px",
-                    background: "#f8f9fa",
-                    transition: "all 0.3s ease",
-                    width: "100%",
-                    maxWidth: "400px",
-                  }}
-                >
-                  <input {...getInputProps()} />
-                  <IoCloudUploadOutline size={50} color="#007bff" />
-                  <p
-                    className="mt-2 text-secondary"
-                    style={{ fontSize: "15px" }}
-                  >
-                    Drag & drop an image here, or click to select one
-                  </p>
-                </div>
-              )}
-            </Dropzone>
-
-            <div className="d-flex gap-3 mt-4">
-              <Button
-                onClick={() => setShowCameraModal(true)}
-                color="secondary"
-                className="d-flex align-items-center gap-2"
-              >
-                <IoCamera size={18} />
-                Take Photo
-              </Button>
-
-              <Button
-                color="primary"
-                onClick={handleUpload}
-                disabled={uploading}
-                className="d-flex align-items-center gap-2"
-              >
-                {uploading ? "Uploading..." : "Upload"}
-              </Button>
-            </div>
-          </div>
-        </ModalBody>
-      </Modal> */}
       <Modal
         isOpen={showUploadModal}
         toggle={() => setShowUploadModal(false)}
@@ -267,13 +195,29 @@ const ImageUploader = ({
         </ModalHeader>
         <ModalBody>
           <div className="d-flex flex-column align-items-center">
-            {/* Image Preview */}
-            {imageUrl && (
+            {imageUrl && !previewImage && (
               <div className="mt-4 d-flex flex-column align-items-center">
                 <img
                   src={imageUrl}
-                  alt="Preview"
+                  alt="Current Image"
                   onClick={() => window.open(imageUrl, "_blank")}
+                  className="shadow-sm img-preview"
+                  style={{
+                    width: "300px",
+                    objectFit: "cover",
+                    borderRadius: "10px",
+                    border: "1px solid #ddd",
+                    cursor: "pointer",
+                  }}
+                />
+              </div>
+            )}
+            {previewImage && (
+              <div className="mt-4 d-flex flex-column align-items-center">
+                <img
+                  src={previewImage}
+                  alt="Preview"
+                  onClick={() => window.open(previewImage, "_blank")}
                   className="shadow-sm img-preview"
                   style={{
                     width: "300px",

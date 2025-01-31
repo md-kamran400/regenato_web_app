@@ -56,7 +56,8 @@ const SinglePart = () => {
   const [partImage, setPartImage] = useState(null);
 
   const defaultImageSrc =
-    "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS-RcH3_rFP8ZmSEgjhZy5pv4O4bLl-SwZGsA&s";
+    // "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS-RcH3_rFP8ZmSEgjhZy5pv4O4bLl-SwZGsA&s";
+    "https://encrypted-tbn3.gstatic.com/images?q=tbn:ANd9GcSrvV7VFmPY5PGdfMH0XskLzPsebL1LFrrfbzALx8zf3sKIC3Bv";
 
   // image uploading part
   const [showUploadModal, setShowUploadModal] = useState(false);

@@ -82,6 +82,8 @@ const List = () => {
   const [numberOfMachines, setNumberOfMachines] = useState({});
   const [daysToWork, setDaysToWork] = useState({});
   const [manufacturingData, setManufacturingData] = useState([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
 
   const fetchManufacturingData = useCallback(async () => {
     setLoading(true);
@@ -229,6 +231,7 @@ const List = () => {
         stockPoQty: 0,
         projectType: projectType,
       };
+      setIsSubmitting(true);
       try {
         const response = await fetch(
           // `${process.env.REACT_APP_BASE_URL}/api/projects`,
@@ -252,6 +255,7 @@ const List = () => {
       } catch (error) {
         toast.error(`Error: ${error.message}`);
       } finally {
+        setIsSubmitting(false);
         setNewprojectName("");
         setProjectType("");
         toggleModal();
@@ -613,8 +617,8 @@ const List = () => {
                 <option value="PO Type 2">PO Type 2</option>
               </Input>
             </div>
-            <Button type="submit" color="primary">
-              Add Project
+            <Button type="submit" color="primary" disabled={isSubmitting}>
+            {isSubmitting ? 'Adding...' : 'Add Project'}
             </Button>
           </ModalBody>
         </form>
