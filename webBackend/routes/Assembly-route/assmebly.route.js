@@ -125,6 +125,7 @@ AssemblyRoutes.post("/", async (req, res) => {
       timePerUnit,
       costPerUnit,
       partsListItems,
+      // subAssemblies,
     } = req.body;
 
     // Check if AssemblyNumber already exists
@@ -142,6 +143,7 @@ AssemblyRoutes.post("/", async (req, res) => {
       timePerUnit,
       costPerUnit,
       partsListItems,
+      // subAssemblies,
     });
 
     await newAssembly.save();
@@ -317,6 +319,118 @@ AssemblyRoutes.post("/:id/partsListItems", async (req, res) => {
   }
 });
 
+AssemblyRoutes.post(
+  "/:id/subAssemblies/:subAssemblyId/parts",
+  async (req, res) => {
+    try {
+      const { id, subAssemblyId } = req.params;
+      const {
+        partName,
+        codeName,
+        costPerUnit,
+        timePerUnit,
+        quantity,
+        rmVariables,
+        manufacturingVariables,
+        shipmentVariables,
+        overheadsAndProfits,
+      } = req.body;
+
+      // Fetch the assembly document by ID
+      const assembly = await AssemblyModel.findById(id);
+
+      if (!assembly) {
+        return res.status(404).json({ error: "Assembly not found" });
+      }
+
+      // Find the sub-assembly within the assembly
+      const subAssembly = assembly.subAssemblies.id(subAssemblyId);
+
+      if (!subAssembly) {
+        return res.status(404).json({ error: "Sub-assembly not found" });
+      }
+
+      // Create the new part object
+      const newPart = {
+        partName,
+        codeName,
+        costPerUnit,
+        timePerUnit,
+        quantity,
+        rmVariables: rmVariables || [],
+        manufacturingVariables: manufacturingVariables || [],
+        shipmentVariables: shipmentVariables || [],
+        overheadsAndProfits: overheadsAndProfits || [],
+      };
+
+      // Add the new part to the sub-assembly's partsListItems array
+      subAssembly.partsListItems.push(newPart);
+
+      // Save the updated assembly to the database
+      await assembly.save();
+
+      // Return only the newly added part
+      res.status(201).json({
+        message: "Part added successfully",
+        data: newPart,
+      });
+    } catch (error) {
+      console.error("Error adding part:", error.message);
+      res.status(500).json({ error: error.message });
+    }
+  }
+);
+
+AssemblyRoutes.delete(
+  "/:id/subAssemblies/:subAssemblyId/parts/:partId",
+  async (req, res) => {
+    try {
+      const { id, subAssemblyId, partId } = req.params;
+
+      // Validate IDs
+      if (
+        !mongoose.Types.ObjectId.isValid(id) ||
+        !mongoose.Types.ObjectId.isValid(subAssemblyId) ||
+        !mongoose.Types.ObjectId.isValid(partId)
+      ) {
+        return res.status(400).json({ error: "Invalid ID format" });
+      }
+
+      // Fetch the assembly document by ID
+      const assembly = await AssemblyModel.findById(id);
+
+      if (!assembly) {
+        return res.status(404).json({ error: "Assembly not found" });
+      }
+
+      // Find the sub-assembly within the assembly
+      const subAssembly = assembly.subAssemblies.id(subAssemblyId);
+
+      if (!subAssembly) {
+        return res.status(404).json({ error: "Sub-assembly not found" });
+      }
+
+      // Remove the part from the sub-assembly's partsListItems array
+      const updatedPartsList = subAssembly.partsListItems.filter(
+        (part) => part._id.toString() !== partId
+      );
+
+      // Update the partsListItems array
+      subAssembly.partsListItems = updatedPartsList;
+
+      // Save the updated assembly to the database
+      await assembly.save();
+
+      res.status(200).json({
+        message: "Part removed successfully",
+        data: updatedPartsList,
+      });
+    } catch (error) {
+      console.error("Error deleting part:", error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+);
 // ... other routes ...
 
 // DELETE remove a part from a sub-assembly
@@ -627,6 +741,344 @@ AssemblyRoutes.put(
       });
     } catch (error) {
       console.error("Error updating Overhead/Profit entry:", error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+);
+
+AssemblyRoutes.post("/:id/subAssemblies", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const subAssembly = req.body;
+    console.log("Received subAssembly data:", subAssembly); // Debugging
+
+    const assembly = await AssemblyModel.findById(id);
+    if (!assembly) {
+      return res.status(404).json({ error: "Assembly not found" });
+    }
+    assembly.subAssemblies.push(subAssembly);
+    await assembly.save();
+
+    console.log("Updated Assembly:", assembly); // Debugging
+    res.status(201).json(assembly);
+  } catch (error) {
+    console.error("Error adding sub-assembly:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+AssemblyRoutes.get("/:id/subAssemblies", async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ error: "Invalid assembly ID format" });
+    }
+    const assembly = await AssemblyModel.findById(id).select("subAssemblies");
+    if (!assembly) {
+      return res.status(404).json({ error: "Assembly not found" });
+    }
+    res.status(200).json(assembly.subAssemblies);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// puts for manufatcuirng shipment and raw matarisl and overhads
+// PUT request for raw materials of a sub-assembly
+AssemblyRoutes.put(
+  "/:assemblyId/subAssemblies/:subAssemblyId/parts/:partId/rmVariables/:rawmatarialsId",
+  async (req, res) => {
+    try {
+      const { assemblyId, subAssemblyId, partId, rawmatarialsId } = req.params;
+      const { name, netWeight, pricePerKg } = req.body;
+
+      // Validate IDs
+      if (
+        !mongoose.Types.ObjectId.isValid(assemblyId) ||
+        !mongoose.Types.ObjectId.isValid(subAssemblyId) ||
+        !mongoose.Types.ObjectId.isValid(partId) ||
+        !mongoose.Types.ObjectId.isValid(rawmatarialsId)
+      ) {
+        return res.status(400).json({ error: "Invalid ID format" });
+      }
+
+      // Find the assembly
+      const assembly = await AssemblyModel.findById(assemblyId);
+      if (!assembly) {
+        return res.status(404).json({ error: "Assembly not found" });
+      }
+
+      // Find the sub-assembly
+      const subAssembly = assembly.subAssemblies.id(subAssemblyId);
+      if (!subAssembly) {
+        return res.status(404).json({ error: "Sub-assembly not found" });
+      }
+
+      // Find the part
+      const part = subAssembly.partsListItems.id(partId);
+      if (!part) {
+        return res
+          .status(404)
+          .json({ error: "Part not found in sub-assembly" });
+      }
+
+      // Find the manufacturing variable
+      const rmVaraibleindex = part.rmVariables.findIndex(
+        (item) => item._id.toString() === rawmatarialsId
+      );
+      if (rmVaraibleindex === -1) {
+        return res
+          .status(404)
+          .json({ error: "Manufacturing variable not found in part" });
+      }
+
+      // Update the manufacturing variable
+      part.rmVariables[rmVaraibleindex] = {
+        ...part.rmVariables[rmVaraibleindex],
+        name: name || part.rmVariables[rmVaraibleindex].name,
+        netWeight:
+          parseFloat(netWeight) || part.rmVariables[rmVaraibleindex].netWeight,
+        pricePerKg:
+          parseFloat(pricePerKg) ||
+          part.rmVariables[rmVaraibleindex].pricePerKg,
+        totalRate: (parseFloat(netWeight) || 0) * (parseFloat(pricePerKg) || 0),
+      };
+
+      // Save the changes
+      await assembly.save();
+
+      res.status(200).json({
+        message: "Manufacturing variable updated successfully",
+        data: part.rmVariables[rmVaraibleindex],
+      });
+    } catch (error) {
+      console.error("Error updating manufacturing variable:", error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+);
+
+// PUT request for manufacturing variables of a sub-assembly
+AssemblyRoutes.put(
+  "/:assemblyId/subAssemblies/:subAssemblyId/parts/:partId/manufacturingVariables/:manufacturingVariableId",
+  async (req, res) => {
+    try {
+      const { assemblyId, subAssemblyId, partId, manufacturingVariableId } =
+        req.params;
+      const { name, hours, hourlyRate } = req.body;
+
+      // Validate IDs
+      if (
+        !mongoose.Types.ObjectId.isValid(assemblyId) ||
+        !mongoose.Types.ObjectId.isValid(subAssemblyId) ||
+        !mongoose.Types.ObjectId.isValid(partId) ||
+        !mongoose.Types.ObjectId.isValid(manufacturingVariableId)
+      ) {
+        return res.status(400).json({ error: "Invalid ID format" });
+      }
+
+      // Find the assembly
+      const assembly = await AssemblyModel.findById(assemblyId);
+      if (!assembly) {
+        return res.status(404).json({ error: "Assembly not found" });
+      }
+
+      // Find the sub-assembly
+      const subAssembly = assembly.subAssemblies.id(subAssemblyId);
+      if (!subAssembly) {
+        return res.status(404).json({ error: "Sub-assembly not found" });
+      }
+
+      // Find the part
+      const part = subAssembly.partsListItems.id(partId);
+      if (!part) {
+        return res
+          .status(404)
+          .json({ error: "Part not found in sub-assembly" });
+      }
+
+      // Find the manufacturing variable
+      const manufacturingVariableIndex = part.manufacturingVariables.findIndex(
+        (item) => item._id.toString() === manufacturingVariableId
+      );
+      if (manufacturingVariableIndex === -1) {
+        return res
+          .status(404)
+          .json({ error: "Manufacturing variable not found in part" });
+      }
+
+      // Update the manufacturing variable
+      part.manufacturingVariables[manufacturingVariableIndex] = {
+        ...part.manufacturingVariables[manufacturingVariableIndex],
+        name:
+          name || part.manufacturingVariables[manufacturingVariableIndex].name,
+        hours:
+          parseFloat(hours) ||
+          part.manufacturingVariables[manufacturingVariableIndex].hours,
+        hourlyRate:
+          parseFloat(hourlyRate) ||
+          part.manufacturingVariables[manufacturingVariableIndex].hourlyRate,
+        totalRate: (parseFloat(hours) || 0) * (parseFloat(hourlyRate) || 0),
+      };
+
+      // Save the changes
+      await assembly.save();
+
+      res.status(200).json({
+        message: "Manufacturing variable updated successfully",
+        data: part.manufacturingVariables[manufacturingVariableIndex],
+      });
+    } catch (error) {
+      console.error("Error updating manufacturing variable:", error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+);
+
+// PUT request for shipment variables of a sub-assembly
+AssemblyRoutes.put(
+  "/:assemblyId/subAssemblies/:subAssemblyId/parts/:partId/shipmentVariables/:shipmentVariableId",
+  async (req, res) => {
+    try {
+      const { assemblyId, subAssemblyId, partId, shipmentVariableId } =
+        req.params;
+      const { name, hourlyRate } = req.body;
+
+      // Validate IDs
+      if (
+        !mongoose.Types.ObjectId.isValid(assemblyId) ||
+        !mongoose.Types.ObjectId.isValid(subAssemblyId) ||
+        !mongoose.Types.ObjectId.isValid(partId) ||
+        !mongoose.Types.ObjectId.isValid(shipmentVariableId)
+      ) {
+        return res.status(400).json({ error: "Invalid ID format" });
+      }
+
+      // Find the assembly
+      const assembly = await AssemblyModel.findById(assemblyId);
+      if (!assembly) {
+        return res.status(404).json({ error: "Assembly not found" });
+      }
+
+      // Find the sub-assembly
+      const subAssembly = assembly.subAssemblies.id(subAssemblyId);
+      if (!subAssembly) {
+        return res.status(404).json({ error: "Sub-assembly not found" });
+      }
+
+      // Find the part
+      const part = subAssembly.partsListItems.id(partId);
+      if (!part) {
+        return res
+          .status(404)
+          .json({ error: "Part not found in sub-assembly" });
+      }
+
+      // Find the shipment variable
+      const shipmentVariableIndex = part.shipmentVariables.findIndex(
+        (item) => item._id.toString() === shipmentVariableId
+      );
+      if (shipmentVariableIndex === -1) {
+        return res
+          .status(404)
+          .json({ error: "Shipment variable not found in part" });
+      }
+
+      // Update the shipment variable
+      part.shipmentVariables[shipmentVariableIndex] = {
+        ...part.shipmentVariables[shipmentVariableIndex],
+        name: name || part.shipmentVariables[shipmentVariableIndex].name,
+        hourlyRate:
+          parseFloat(hourlyRate) ||
+          part.shipmentVariables[shipmentVariableIndex].hourlyRate,
+        totalRate:
+          parseFloat(hourlyRate) ||
+          part.shipmentVariables[shipmentVariableId].totalRate,
+      };
+
+      // Save the changes
+      await assembly.save();
+
+      res.status(200).json({
+        message: "Shipment variable updated successfully",
+        data: part.shipmentVariables[shipmentVariableIndex],
+      });
+    } catch (error) {
+      console.error("Error updating shipment variable:", error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+);
+
+// PUT request for overheads/profits of a sub-assembly
+AssemblyRoutes.put(
+  "/:assemblyId/subAssemblies/:subAssemblyId/parts/:partId/overheadsAndProfits/:profitId",
+  async (req, res) => {
+    try {
+      const { assemblyId, subAssemblyId, partId, profitId } = req.params;
+      const { name, percentage } = req.body;
+
+      // Validate IDs
+      if (
+        !mongoose.Types.ObjectId.isValid(assemblyId) ||
+        !mongoose.Types.ObjectId.isValid(subAssemblyId) ||
+        !mongoose.Types.ObjectId.isValid(partId) ||
+        !mongoose.Types.ObjectId.isValid(profitId)
+      ) {
+        return res.status(400).json({ error: "Invalid ID format" });
+      }
+
+      // Find the assembly
+      const assembly = await AssemblyModel.findById(assemblyId);
+      if (!assembly) {
+        return res.status(404).json({ error: "Assembly not found" });
+      }
+
+      // Find the sub-assembly
+      const subAssembly = assembly.subAssemblies.id(subAssemblyId);
+      if (!subAssembly) {
+        return res.status(404).json({ error: "Sub-assembly not found" });
+      }
+
+      // Find the part
+      const part = subAssembly.partsListItems.id(partId);
+      if (!part) {
+        return res
+          .status(404)
+          .json({ error: "Part not found in sub-assembly" });
+      }
+
+      // Find the overhead/profit entry
+      const profitIndex = part.overheadsAndProfits.findIndex(
+        (item) => item._id.toString() === profitId
+      );
+      if (profitIndex === -1) {
+        return res
+          .status(404)
+          .json({ error: "Overhead/profit entry not found in part" });
+      }
+
+      // Update the overhead/profit entry
+      part.overheadsAndProfits[profitIndex] = {
+        ...part.overheadsAndProfits[profitIndex],
+        name: name || part.overheadsAndProfits[profitIndex].name,
+        percentage:
+          parseFloat(percentage) ||
+          part.overheadsAndProfits[profitIndex].percentage,
+        totalRate:
+          parseFloat(percentage) ||
+          part.overheadsAndProfits[profitIndex].totalRate,
+      };
+
+      // Save the changes
+      await assembly.save();
+
+      res.status(200).json({
+        message: "Overhead/profit entry updated successfully",
+        data: part.overheadsAndProfits[profitIndex],
+      });
+    } catch (error) {
+      console.error("Error updating overhead/profit entry:", error);
       res.status(500).json({ error: error.message });
     }
   }

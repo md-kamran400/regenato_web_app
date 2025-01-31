@@ -579,40 +579,40 @@ partproject.put(
 
 // ============================================ SUB-ASSEMBLY CODE START ===============================
 // Route to add a new subAssemblyListFirst item
-partproject.post(
-  "/projects/:projectId/subAssemblyListFirst",
-  async (req, res) => {
-    try {
-      const { projectId } = req.params;
+// partproject.post(
+//   "/projects/:projectId/subAssemblyListFirst",
+//   async (req, res) => {
+//     try {
+//       const { projectId } = req.params;
 
-      if (!mongoose.Types.ObjectId.isValid(projectId)) {
-        return res.status(400).json({ error: "Invalid project ID format" });
-      }
+//       if (!mongoose.Types.ObjectId.isValid(projectId)) {
+//         return res.status(400).json({ error: "Invalid project ID format" });
+//       }
 
-      const project = await PartListProjectModel.findById(projectId);
-      if (!project) {
-        return res.status(404).json({ error: "Project not found" });
-      }
+//       const project = await PartListProjectModel.findById(projectId);
+//       if (!project) {
+//         return res.status(404).json({ error: "Project not found" });
+//       }
 
-      // Fix: Using a plain object instead of trying to instantiate a schema
-      const newSubAssemblyList = {
-        subAssemblyListName:
-          req.body.subAssemblyListName || "Unnamed Sub Assembly List",
-      };
+//       // Fix: Using a plain object instead of trying to instantiate a schema
+//       const newSubAssemblyList = {
+//         subAssemblyListName:
+//           req.body.subAssemblyListName || "Unnamed Sub Assembly List",
+//       };
 
-      project.subAssemblyListFirst.push(newSubAssemblyList);
-      await project.save();
+//       project.subAssemblyListFirst.push(newSubAssemblyList);
+//       await project.save();
 
-      res.status(201).json({
-        status: "success",
-        message: "New sub assembly list added successfully",
-        data: newSubAssemblyList,
-      });
-    } catch (error) {
-      res.status(500).json({ error: error.message });
-    }
-  }
-);
+//       res.status(201).json({
+//         status: "success",
+//         message: "New sub assembly list added successfully",
+//         data: newSubAssemblyList,
+//       });
+//     } catch (error) {
+//       res.status(500).json({ error: error.message });
+//     }
+//   }
+// );
 
 // Route to get all subAssemblyListFirst items
 partproject.get(
@@ -710,4 +710,163 @@ partproject.get("/projects/:projectId/assemblyPartsLists", async (req, res) => {
 
 // ============================================ ASSEMBLY CODE START ===============================
 
+// sub assmebly code start from here
+partproject.post("/projects/:_id/subAssemblyListFirst", async (req, res) => {
+  const { _id } = req.params;
+  const {
+    subAssemblyName,
+    SubAssemblyNumber,
+    totalCost,
+    totalHours,
+    partsListItems,
+  } = req.body;
+
+  try {
+    const project = await PartListProjectModel.findById(_id);
+    if (!project) {
+      return res.status(404).json({ message: "Project not found" });
+    }
+
+    const newSubAssemblyList = {
+      subAssemblyName,
+      SubAssemblyNumber,
+      totalCost,
+      totalHours,
+      partsListItems,
+    };
+
+    project.subAssemblyListFirst.push(newSubAssemblyList);
+    const updatedProject = await project.save();
+    res.status(200).json(updatedProject);
+  } catch (error) {
+    console.error(error); // Add this line to log errors
+    res.status(500).json({ message: error.message });
+  }
+});
+
+partproject.delete(
+  "/projects/:projectId/subAssemblyListFirst/:subAssemblyId",
+  async (req, res) => {
+    const { projectId, subAssemblyId } = req.params;
+
+    try {
+      // Validate project ID
+      if (!mongoose.Types.ObjectId.isValid(projectId)) {
+        return res.status(400).json({ error: "Invalid project ID format" });
+      }
+
+      // Find the project and remove the subAssemblyListFirst item
+      const project = await PartListProjectModel.findByIdAndUpdate(
+        projectId,
+        { $pull: { subAssemblyListFirst: { _id: subAssemblyId } } },
+        { new: true }
+      );
+
+      if (!project) {
+        return res.status(404).json({ error: "Project not found" });
+      }
+
+      // Check if the subAssemblyListFirst item was actually removed
+      const removedItemIndex = project.subAssemblyListFirst.findIndex(
+        (item) => item._id.toString() === subAssemblyId
+      );
+      if (removedItemIndex === -1) {
+        return res
+          .status(404)
+          .json({ error: "SubAssemblyListFirst item not found" });
+      }
+
+      res.status(200).json({
+        status: "success",
+        message: "SubAssemblyListFirst item deleted successfully",
+        data: project,
+      });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({
+        error: "An error occurred while deleting the subAssemblyListFirst item",
+      });
+    }
+  }
+);
+
+partproject.post(
+  "/projects/:projectId/subAssemblyListFirst/:subAssemblyId/items",
+  async (req, res) => {
+    const { projectId, subAssemblyId } = req.params;
+    const {
+      partName,
+      codeName,
+      costPerUnit,
+      timePerUnit,
+      quantity,
+      rmVariables,
+      manufacturingVariables,
+      shipmentVariables,
+      overheadsAndProfits,
+    } = req.body;
+
+    try {
+      // Validate project ID
+      if (!mongoose.Types.ObjectId.isValid(projectId)) {
+        return res.status(400).json({ error: "Invalid project ID format" });
+      }
+
+      // Find the project and the specific sub-assembly list
+      const project = await PartListProjectModel.findOne({
+        _id: projectId,
+        "subAssemblyListFirst._id": subAssemblyId,
+      });
+
+      if (!project) {
+        return res
+          .status(404)
+          .json({ error: "Project or SubAssemblyListFirst not found" });
+      }
+
+      // Find the specific sub-assembly list
+      const subAssemblyList = project.subAssemblyListFirst.find(
+        (item) => item._id.toString() === subAssemblyId
+      );
+
+      if (!subAssemblyList) {
+        return res
+          .status(404)
+          .json({ error: "SubAssemblyListFirst item not found" });
+      }
+
+      // Create a new part item
+      const newPartItem = {
+        partName,
+        codeName,
+        costPerUnit,
+        timePerUnit,
+        quantity,
+        rmVariables: rmVariables || [],
+        manufacturingVariables: manufacturingVariables || [],
+        shipmentVariables: shipmentVariables || [],
+        overheadsAndProfits: overheadsAndProfits || [],
+      };
+
+      // Add the new part item to the partsListItems array
+      subAssemblyList.partsListItems.push(newPartItem);
+
+      // Save the updated project
+      const updatedProject = await project.save();
+
+      res.status(201).json({
+        status: "success",
+        message: "New part item added successfully",
+        data: updatedProject.subAssemblyListFirst.find(
+          (item) => item._id.toString() === subAssemblyId
+        ),
+      });
+    } catch (error) {
+      console.error(error);
+      res
+        .status(500)
+        .json({ error: "An error occurred while adding the part item" });
+    }
+  }
+);
 module.exports = partproject;

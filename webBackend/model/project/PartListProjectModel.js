@@ -46,6 +46,14 @@ const partsListSchema = new mongoose.Schema({
   partsListItems: [partSchema],
 });
 
+const SubAssemblyListSchema = new mongoose.Schema({
+  subAssemblyName: String,
+  SubAssemblyNumber: String,
+  totalCost: Number,
+  totalHours: Number,
+  partsListItems: [partSchema],
+});
+
 const partprojectSchema = new mongoose.Schema({
   projectName: String,
   costPerUnit: Number,
@@ -53,6 +61,7 @@ const partprojectSchema = new mongoose.Schema({
   stockPoQty: Number,
   projectType: String,
   partsLists: [partsListSchema],
+  subAssemblyListFirst: [SubAssemblyListSchema],
   machineHours: {
     type: Object,
     default: {},

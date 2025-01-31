@@ -45,7 +45,6 @@ ProjectRouter.post("/", async (req, res) => {
   }
 });
 
-
 // POST Route: Duplicate a project
 ProjectRouter.post("/:_id/duplicate", async (req, res) => {
   const { _id } = req.params;
@@ -97,7 +96,6 @@ ProjectRouter.get("/:_id", async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
-
 
 // POST Route: Add a part to an existing project's allProjects array
 ProjectRouter.post("/:_id/allProjects", async (req, res) => {
@@ -488,9 +486,16 @@ ProjectRouter.put("/:_id/partsLists/:listId", async (req, res) => {
 });
 
 // post for outer sub assmebly list
+// POST Route: Add a new sub-assembly list to an existing project
 ProjectRouter.post("/:_id/subAssemblyListFirst", async (req, res) => {
   const { _id } = req.params;
-  const { subAssemblyListName } = req.body;
+  const {
+    subAssemblyName,
+    SubAssemblyNumber,
+    totalCost,
+    totalHours,
+    partsListItems,
+  } = req.body;
 
   try {
     const project = await ProjectModal.findById(_id);
@@ -498,18 +503,22 @@ ProjectRouter.post("/:_id/subAssemblyListFirst", async (req, res) => {
       return res.status(404).json({ message: "Project not found" });
     }
 
-    const newPartsList = {
-      subAssemblyListName,
-      partsListItems: [],
+    const newSubAssemblyList = {
+      subAssemblyName,
+      SubAssemblyNumber,
+      totalCost,
+      totalHours,
+      partsListItems,
     };
 
-    project.subAssemblyListFirst.push(newPartsList);
+    project.subAssemblyListFirst.push(newSubAssemblyList);
     const updatedProject = await project.save();
     res.status(200).json(updatedProject);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 });
+
 
 ProjectRouter.post(
   "/:_id/subAssemblyListFirst/:listId/items",
@@ -666,7 +675,6 @@ ProjectRouter.post(
     }
   }
 );
-
 
 ProjectRouter.delete(
   "/:_id/assemblyPartsLists/:listId/items/:itemId",
@@ -848,8 +856,6 @@ ProjectRouter.get(
     }
   }
 );
-
-
 
 ProjectRouter.post(
   "/:_id/assemblyPartsLists/:listId/duplicate",
@@ -1746,7 +1752,6 @@ ProjectRouter.delete(
   }
 );
 
-
 // DELETE Route: Remove a part from a sub-assembly parts list by its _id
 ProjectRouter.delete(
   "/:_id/subAssemblyListFirst/:listId/items/:itemId",
@@ -1771,7 +1776,9 @@ ProjectRouter.delete(
         (item) => item._id.toString() === itemId
       );
       if (itemIndex === -1) {
-        return res.status(404).json({ message: "Part not found in the sub-assembly list" });
+        return res
+          .status(404)
+          .json({ message: "Part not found in the sub-assembly list" });
       }
 
       subAssemblyList.partsListItems.splice(itemIndex, 1);
@@ -1789,7 +1796,6 @@ ProjectRouter.delete(
   }
 );
 
-
 // DELETE Route: Remove a part from a sub-assembly parts list by its _id
 ProjectRouter.delete(
   "/:_id/assemblyPartsLists/:listId/subAssemblyPartsLists/:subListId/items/:itemId",
@@ -1806,13 +1812,18 @@ ProjectRouter.delete(
       // Find the specific assembly parts list by ID
       const assemblyPartsList = project.assemblyPartsLists.id(listId);
       if (!assemblyPartsList) {
-        return res.status(404).json({ message: "Assembly parts list not found" });
+        return res
+          .status(404)
+          .json({ message: "Assembly parts list not found" });
       }
 
       // Find the specific sub-assembly parts list by ID
-      const subAssemblyPartsList = assemblyPartsList.subAssemblyPartsLists.id(subListId);
+      const subAssemblyPartsList =
+        assemblyPartsList.subAssemblyPartsLists.id(subListId);
       if (!subAssemblyPartsList) {
-        return res.status(404).json({ message: "Sub-assembly parts list not found" });
+        return res
+          .status(404)
+          .json({ message: "Sub-assembly parts list not found" });
       }
 
       // Remove the specific item in the sub-assembly parts list
@@ -1820,7 +1831,9 @@ ProjectRouter.delete(
         (item) => item._id.toString() === itemId
       );
       if (itemIndex === -1) {
-        return res.status(404).json({ message: "Part not found in the sub-assembly list" });
+        return res
+          .status(404)
+          .json({ message: "Part not found in the sub-assembly list" });
       }
 
       subAssemblyPartsList.partsListItems.splice(itemIndex, 1);
@@ -1854,13 +1867,18 @@ ProjectRouter.delete(
       // Find the specific assembly parts list by ID
       const assemblyPartsList = project.assemblyPartsLists.id(listId);
       if (!assemblyPartsList) {
-        return res.status(404).json({ message: "Assembly parts list not found" });
+        return res
+          .status(404)
+          .json({ message: "Assembly parts list not found" });
       }
 
       // Find the specific assembly multi-parts list by ID
-      const assemblyMultyPartList = assemblyPartsList.assemblyMultyPartsList.id(multiPartId);
+      const assemblyMultyPartList =
+        assemblyPartsList.assemblyMultyPartsList.id(multiPartId);
       if (!assemblyMultyPartList) {
-        return res.status(404).json({ message: "Assembly multi-parts list not found" });
+        return res
+          .status(404)
+          .json({ message: "Assembly multi-parts list not found" });
       }
 
       // Remove the specific item in the assembly multi-parts list
@@ -1868,7 +1886,9 @@ ProjectRouter.delete(
         (item) => item._id.toString() === itemId
       );
       if (itemIndex === -1) {
-        return res.status(404).json({ message: "Part not found in the assembly multi-parts list" });
+        return res
+          .status(404)
+          .json({ message: "Part not found in the assembly multi-parts list" });
       }
 
       assemblyMultyPartList.partsListItems.splice(itemIndex, 1);
@@ -1885,11 +1905,6 @@ ProjectRouter.delete(
     }
   }
 );
-
-
-
-
-
 
 //============= subAssemblylistfirst daynamic put request do not touch ======================
 ProjectRouter.put(
@@ -2053,9 +2068,6 @@ ProjectRouter.delete(
 );
 // ========== subAssemblylistfirst daynamic delete request do not touch =======================
 
-
-
-
 // ============== partlist dynamic put request do not touch =======================
 ProjectRouter.put(
   "/:projectId/partsLists/:partsListId/items/:itemId/:variableType/:variableId",
@@ -2217,8 +2229,6 @@ ProjectRouter.delete(
   }
 );
 // ================ partlist dynamic delete request do not touch ==========
-
-
 
 // ================== assmebly List dynamic put requets do not touch
 // PUT route for updating nested variables in assemblyPartsLists
@@ -2401,7 +2411,9 @@ ProjectRouter.delete(
       }
 
       // Locate the item within the list
-      const item = list.partsListItems.find((part) => part._id.toString() === itemId);
+      const item = list.partsListItems.find(
+        (part) => part._id.toString() === itemId
+      );
 
       if (!item) {
         return res.status(404).json({ message: "Item not found" });
