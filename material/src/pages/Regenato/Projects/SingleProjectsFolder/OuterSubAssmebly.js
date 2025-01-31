@@ -34,6 +34,7 @@ import { MdOutlineDelete } from "react-icons/md";
 import Manufacturing from "../ExpandFolders/Manufacturing";
 import FeatherIcon from "feather-icons-react";
 import { ToastContainer, toast } from "react-toastify";
+import { FaEdit } from "react-icons/fa";
 
 const OuterSubAssmebly = React.memo(
   ({
@@ -298,6 +299,8 @@ const OuterSubAssmebly = React.memo(
       }
     }, [selectedPartData]);
 
+    // In the handleAutocompleteChange function
+
     const handleAutocompleteChange = (event, newValue) => {
       if (newValue) {
         const selectedPart = parts.find(
@@ -314,7 +317,7 @@ const OuterSubAssmebly = React.memo(
           );
           setQuantity(1);
           setPartId(selectedPart.id || "");
-          setCodeName(selectedPart.codeName || ""); // Set codeName
+          setCodeName(selectedPart.codeName || ""); // Add this line
         } else {
           setSelectedPartData(null);
           setDetailedPartData({});
@@ -322,7 +325,7 @@ const OuterSubAssmebly = React.memo(
           setTimePerUnit("");
           setQuantity(0);
           setPartId("");
-          setCodeName(""); // Reset codeName
+          setCodeName(""); // Add this line
         }
       } else {
         setSelectedPartData(null);
@@ -331,7 +334,7 @@ const OuterSubAssmebly = React.memo(
         setTimePerUnit("");
         setQuantity(0);
         setPartId("");
-        setCodeName(""); // Reset codeName
+        setCodeName(""); // Add this line
       }
     };
 
@@ -374,24 +377,22 @@ const OuterSubAssmebly = React.memo(
 
     const handleSubmit = async (event) => {
       event.preventDefault();
-      setIsLoading(true);
 
       const payload = {
-        partId: selectedPartData.id,
         partName: selectedPartData.partName,
         codeName: codeName,
         costPerUnit: Number(costPerUnit),
         timePerUnit: Number(timePerUnit),
         quantity: Number(quantity),
-        rmVariables: detailedPartData.rmVariables || [],
-        manufacturingVariables: detailedPartData.manufacturingVariables || [],
-        shipmentVariables: detailedPartData.shipmentVariables || [],
-        overheadsAndProfits: detailedPartData.overheadsAndProfits || [],
+        rmVariables: selectedPartData.rmVariables || [],
+        manufacturingVariables: selectedPartData.manufacturingVariables || [],
+        shipmentVariables: selectedPartData.shipmentVariables || [],
+        overheadsAndProfits: selectedPartData.overheadsAndProfits || [],
       };
 
       try {
         const response = await fetch(
-          `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/subAssemblyListFirst/${subAssemblyItem._id}/items`,
+          `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${_id}/subAssemblyListFirst/${subAssemblyItem._id}/items`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -404,25 +405,18 @@ const OuterSubAssmebly = React.memo(
         }
 
         const newPart = await response.json();
-
-        setPartsListsItems((prevItems) => [...prevItems, newPart]);
-
         onUpdatePrts(newPart);
-
         setModalAdd(false);
-        setIsLoading(false);
-
-        setSelectedPartData(null);
-        setCostPerUnit("");
-        setTimePerUnit("");
-        setQuantity(0);
-        setDetailedPartData({});
+        toast.success("Part added successfully");
       } catch (error) {
-        console.error("Error:", error);
-        setError("Failed to add part. Please try again.");
-      } finally {
-        setIsLoading(false);
+        console.error("Error adding part:", error);
+        toast.error("Failed to add part. Please try again.");
       }
+    };
+
+    const handleEditQuantity = (item) => {
+      setItemToEdit(item);
+      setEditQuantityModal(true);
     };
 
     if (loading)
@@ -512,7 +506,7 @@ const OuterSubAssmebly = React.memo(
                       }}
                     >
                       <li style={{ fontSize: "25px", marginBottom: "5px" }}>
-                        {subAssemblyItem.subAssemblyListName}
+                        {subAssemblyItem.subAssemblyName}
                       </li>
 
                       <li style={{ fontSize: "19px" }}>
@@ -595,7 +589,7 @@ const OuterSubAssmebly = React.memo(
                         </tr>
                       </thead>
                       <tbody>
-                        {partsListItems.map((item) => (
+                        {subAssemblyItem.partsListItems?.map((item) => (
                           <React.Fragment key={item._id}>
                             <tr
                               onClick={() =>
@@ -618,7 +612,23 @@ const OuterSubAssmebly = React.memo(
                               <td>
                                 {parseFloat(item.timePerUnit || 0).toFixed(2)}
                               </td>
-                              <td>{parseInt(item.quantity || 0)}</td>
+                              <td>
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    width: "60%",
+                                  }}
+                                >
+                                  {parseInt(item.quantity || 0)}
+                                  <button
+                                    className="btn btn-sm btn-success edit-item-btn"
+                                    onClick={() => handleEditQuantity(item)}
+                                  >
+                                    <FaEdit />-
+                                  </button>
+                                </div>
+                              </td>
                               <td>
                                 {(
                                   parseFloat(item.costPerUnit || 0) *
@@ -853,8 +863,7 @@ const OuterSubAssmebly = React.memo(
                     required
                   />
                 </div>
-                <UncontrolledAccordion defaultOpen="1">
-                  {/* Raw Materials Accordion */}
+                {/* <UncontrolledAccordion defaultOpen="1">
                   <AccordionItem>
                     <AccordionHeader targetId="1">
                       Raw Materials
@@ -909,7 +918,6 @@ const OuterSubAssmebly = React.memo(
                     </AccordionBody>
                   </AccordionItem>
 
-                  {/* Manufacturing Variable Accordion */}
                   <AccordionItem>
                     <AccordionHeader targetId="2">
                       Manufacturing Variable
@@ -972,7 +980,6 @@ const OuterSubAssmebly = React.memo(
                     </AccordionBody>
                   </AccordionItem>
 
-                  {/* Shipment Variable Accordion */}
                   <AccordionItem>
                     <AccordionHeader targetId="3">
                       Shipment Variable
@@ -1016,7 +1023,6 @@ const OuterSubAssmebly = React.memo(
                     </AccordionBody>
                   </AccordionItem>
 
-                  {/* Overheads and Profit Accordion */}
                   <AccordionItem>
                     <AccordionHeader targetId="4">
                       Overheads and Profit
@@ -1059,7 +1065,7 @@ const OuterSubAssmebly = React.memo(
                       )}
                     </AccordionBody>
                   </AccordionItem>
-                </UncontrolledAccordion>
+                </UncontrolledAccordion> */}
 
                 <Button
                   type="submit"

@@ -1,9 +1,7 @@
-import React from 'react'
+import React from "react";
 
 const Subassembly = () => {
-  return (
-    <div>Subassembly</div>
-  )
-}
+  return <div>Subassembly</div>;
+};
 
-export default Subassembly
+export default Subassembly;

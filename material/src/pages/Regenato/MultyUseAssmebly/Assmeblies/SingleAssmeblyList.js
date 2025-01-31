@@ -34,6 +34,7 @@ import { FiSettings } from "react-icons/fi";
 import { useLocation } from "react-router-dom";
 import { FaEdit } from "react-icons/fa";
 import { toast } from "react-toastify";
+import Assmebly_subAssembly from "./Assmebly_subAssembly";
 
 const SingleAssmeblyList = () => {
   const { _id } = useParams();
@@ -78,72 +79,91 @@ const SingleAssmeblyList = () => {
   const [editQuantityModal, setEditQuantityModal] = useState(false);
   const [itemToEdit, setItemToEdit] = useState(null);
 
+  const [subAssemblies, setSubAssemblies] = useState([]);
+  const [existingSubAssemblies, setExistingSubAssemblies] = useState([]);
+  const [selectedSubAssembly, setSelectedSubAssembly] = useState(null);
+  const [addSubAssemblyModal, setAddSubAssemblyModal] = useState(false);
+  const [newSubAssembly, setNewSubAssembly] = useState({});
+
   const [deleteModal, setDeleteModal] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
   const toggleAddModal = () => {
     setModalAdd(!modalAdd);
   };
 
-  // const fetchSubAssemblyData = async () => {
-  //   try {
-  //     const response = await fetch(
-  //       `${process.env.REACT_APP_BASE_URL}/api/subAssembly/${_id}`
-  //     );
-  //     const data = await response.json();
-  //     setsubAssemblyList(data);
-  //     setProjectName(data.subAssemblyListFirst);
-  //     console.log(data);
-  //   } catch (error) {
-  //     console.error("Error fetching sub-assemblies:", error);
-  //   }
-  // };
-  // useEffect(() => {
-  //   fetchSubAssemblyData();
-  // }, []);
+  const toggleAddModal_subAssmebly = () => {
+    // sub assmebly add modal
+  };
 
-  const fetchSubAssembly = async () => {
+  useEffect(() => {
+    fetchExistingSubAssemblies();
+  }, []);
+
+  const fetchExistingSubAssemblies = async () => {
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_BASE_URL}/api/subAssembly`
+      );
+      const data = await response.json();
+      setExistingSubAssemblies(data);
+    } catch (error) {
+      console.error("Error fetching existing sub-assemblies:", error);
+    }
+  };
+
+  const handleAddSubAssembly = async () => {
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_BASE_URL}/api/assmebly/${_id}/subAssemblies`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(selectedSubAssembly),
+        }
+      );
+      if (!response.ok) throw new Error("Failed to add sub-assembly");
+
+      const updatedSubAssemblies = await response.json(); // Fetch updated sub-assemblies
+      setSubAssemblies(updatedSubAssemblies); // Update state directly
+      setAddSubAssemblyModal(false);
+      setSelectedSubAssembly(null);
+      toast.success("Sub-assembly added successfully");
+
+      // Ensure data is fetched again after post
+      await fetchAssembly();
+    } catch (error) {
+      console.error("Error adding sub-assembly:", error);
+    }
+  };
+
+  const handleSubAssemblyChange = (event, value) => {
+    setSelectedSubAssembly(value);
+  };
+
+  const fetchAssembly = async () => {
     try {
       const response = await fetch(
         `${process.env.REACT_APP_BASE_URL}/api/assmebly/${_id}`
       );
       const data = await response.json();
-      setsubAssemblyList(data);
-      setProjectName(data.subAssemblyListFirst);
-      setPartsListItems(data.partsListItems || []); // Set to empty array if undefined
-      console.log(data);
+      setsubAssemblyList(data.subAssemblies || []); // Ensure sub-assemblies are stored
+      setPartsListItems(data.partsListItems || []);
+      console.log("Fetched Assembly Data: ", data);
     } catch (error) {
-      console.error("Error fetching sub-assemblies:", error);
-      setPartsListItems([]); // Set to empty array if there's an error
+      console.error("Error fetching assembly:", error);
+      setsubAssemblyList([]); // Reset on failure
+      setPartsListItems([]);
     }
   };
 
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
-      await fetchSubAssembly();
+      await fetchAssembly();
       setIsLoading(false);
     };
     fetchData();
   }, [_id]);
-
-  // useEffect(() => {
-  //   const fetchPartsListItems = async () => {
-  //     try {
-  //       const response = await fetch(
-  //         `${process.env.REACT_APP_BASE_URL}/api/subAssembly/${_id}/subAssemblyListFirst/${subAssemblyList._id}/items`
-  //       );
-  //       if (!response.ok) {
-  //         throw new Error("Network response was not ok");
-  //       }
-  //       const data = await response.json();
-  //       setPartsListsItems(data);
-  //     } catch (error) {
-  //       console.error("Error fetching parts list items:", error);
-  //     }
-  //   };
-
-  //   fetchPartsListItems();
-  // }, [_id]);
 
   useEffect(() => {
     const fetchParts = async () => {
@@ -160,11 +180,6 @@ const SingleAssmeblyList = () => {
       );
       const data = await response.json();
       setManufacturingVariables(data);
-
-      // setMachinesTBU((prev) => ({
-      //   ...prev,
-      //   ...data.reduce((acc, item) => ({ ...acc, [item.name]: 6 }), {}),
-      // }));
     };
 
     fetchParts();
@@ -308,8 +323,8 @@ const SingleAssmeblyList = () => {
       // Update the parts list in the state directly
       setPartsListItems((prevItems) => [...prevItems, newPart]);
 
-      // Optionally, call fetchSubAssembly to refresh all data
-      await fetchSubAssembly();
+      // Optionally, call fetchAssembly to refresh all data
+      await fetchAssembly();
 
       // Reset form and state
       setModalAdd(false);
@@ -402,7 +417,7 @@ const SingleAssmeblyList = () => {
 
       toast.success("Quantity updated successfully");
       setEditQuantityModal(false);
-      await fetchSubAssembly();
+      await fetchAssembly();
     } catch (error) {
       console.error("Error updating quantity:", error);
       toast.error("Failed to update quantity. Please try again.");
@@ -445,8 +460,8 @@ const SingleAssmeblyList = () => {
                       </li>
 
                       <li style={{ fontSize: "19px" }}>
-                        <span class="badge bg-danger-subtle text-danger">
-                          Sub Assmebly
+                        <span class="badge bg-primary-subtle text-primary">
+                          Assmebly
                         </span>
                       </li>
                     </ul>
@@ -486,6 +501,15 @@ const SingleAssmeblyList = () => {
                       onClick={toggleAddModal}
                     >
                       <i className="ri-add-line align-bottom me-1"></i> Add Part
+                    </Button>
+
+                    <Button
+                      color="primary"
+                      className="add-btn"
+                      onClick={() => setAddSubAssemblyModal(true)}
+                    >
+                      <i className="ri-add-line align-bottom me-1"></i> Add Sub
+                      Assembly
                     </Button>
                   </div>
 
@@ -545,13 +569,21 @@ const SingleAssmeblyList = () => {
                                 </td>
                                 <td>{formatTime(item.timePerUnit || 0)}</td>
                                 <td>
-                                  {parseInt(item.quantity || 0)}
-                                  <button
-                                    className="btn btn-sm btn-success edit-item-btn"
-                                    onClick={() => handleEditQuantity(item)}
+                                  <div
+                                    style={{
+                                      display: "flex",
+                                      justifyContent: "space-between",
+                                      width: "60%",
+                                    }}
                                   >
-                                    <FaEdit />
-                                  </button>
+                                    {parseInt(item.quantity || 0)}
+                                    <button
+                                      className="btn btn-sm btn-success edit-item-btn"
+                                      onClick={() => handleEditQuantity(item)}
+                                    >
+                                      <FaEdit />-
+                                    </button>
+                                  </div>
                                 </td>
                                 <td>
                                   {(
@@ -619,7 +651,7 @@ const SingleAssmeblyList = () => {
                                         partId={item._id}
                                         subAssemblyId={_id}
                                         source="subAssemblyListFirst"
-                                        onUpdatePrts={fetchSubAssembly}
+                                        onUpdatePrts={fetchAssembly}
                                         quantity={item.quantity}
                                       />
 
@@ -632,7 +664,7 @@ const SingleAssmeblyList = () => {
                                         quantity={item.quantity}
                                         subAssemblyId={_id}
                                         source="subAssemblyListFirst"
-                                        onUpdatePrts={fetchSubAssembly}
+                                        onUpdatePrts={fetchAssembly}
                                       />
 
                                       <Shipment
@@ -644,7 +676,7 @@ const SingleAssmeblyList = () => {
                                         quantity={item.quantity}
                                         subAssemblyId={_id}
                                         source="subAssemblyListFirst"
-                                        onUpdatePrts={fetchSubAssembly}
+                                        onUpdatePrts={fetchAssembly}
                                       />
                                       <Overheads
                                         partName={item.partName}
@@ -656,7 +688,7 @@ const SingleAssmeblyList = () => {
                                           item.overheadsAndProfits
                                         }
                                         source="subAssemblyListFirst"
-                                        onUpdatePrts={fetchSubAssembly}
+                                        onUpdatePrts={fetchAssembly}
                                       />
                                     </div>
                                   </td>
@@ -673,7 +705,20 @@ const SingleAssmeblyList = () => {
             </Col>
           </Row>
         </Col>
+        {Array.isArray(subAssemblyList) && subAssemblyList.length > 0 && (
+          <div>
+            {subAssemblyList.map((subAssembly) => (
+              <Assmebly_subAssembly
+                key={subAssembly._id}
+                assemblyId = {_id}
+                subAssembly={subAssembly}
+                onupdateAssmebly = {fetchAssembly}
+              />
+            ))}
+          </div>
+        )}
       </div>
+
       <Modal isOpen={modalAdd} toggle={toggleAddModal}>
         <ModalHeader toggle={toggleAddModal}>Add sub Assembly List</ModalHeader>
         <ModalBody>
@@ -766,8 +811,8 @@ const SingleAssmeblyList = () => {
                 required
               />
             </div>
-            <UncontrolledAccordion defaultOpen="1">
-              {/* Raw Materials Accordion */}
+            {/* <UncontrolledAccordion defaultOpen="1">
+              
               <AccordionItem>
                 <AccordionHeader targetId="1">Raw Materials</AccordionHeader>
                 <AccordionBody
@@ -817,7 +862,6 @@ const SingleAssmeblyList = () => {
                 </AccordionBody>
               </AccordionItem>
 
-              {/* Manufacturing Variable Accordion */}
               <AccordionItem>
                 <AccordionHeader targetId="2">
                   Manufacturing Variable
@@ -876,7 +920,6 @@ const SingleAssmeblyList = () => {
                 </AccordionBody>
               </AccordionItem>
 
-              {/* Shipment Variable Accordion */}
               <AccordionItem>
                 <AccordionHeader targetId="3">
                   Shipment Variable
@@ -913,7 +956,6 @@ const SingleAssmeblyList = () => {
                 </AccordionBody>
               </AccordionItem>
 
-              {/* Overheads and Profit Accordion */}
               <AccordionItem>
                 <AccordionHeader targetId="4">
                   Overheads and Profit
@@ -956,7 +998,7 @@ const SingleAssmeblyList = () => {
                   )}
                 </AccordionBody>
               </AccordionItem>
-            </UncontrolledAccordion>
+            </UncontrolledAccordion> */}
 
             <Button
               type="submit"
@@ -984,6 +1026,51 @@ const SingleAssmeblyList = () => {
           </Button>
           <Button color="danger" onClick={handleDeletePart}>
             Delete
+          </Button>
+        </ModalFooter>
+      </Modal>
+
+      {/* modal for exuting sub assmebly  */}
+      <Modal
+        isOpen={addSubAssemblyModal}
+        toggle={() => setAddSubAssemblyModal(false)}
+      >
+        <ModalHeader toggle={() => setAddSubAssemblyModal(false)}>
+          Add Sub Assembly
+        </ModalHeader>
+        <ModalBody>
+          <Autocomplete
+            options={existingSubAssemblies}
+            getOptionLabel={(option) => option.subAssemblyName}
+            onChange={handleSubAssemblyChange}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Select Sub Assembly"
+                variant="outlined"
+              />
+            )}
+          />
+          {selectedSubAssembly && (
+            <div>
+              <Label>Sub Assembly Number</Label>
+              <Input
+                type="text"
+                value={selectedSubAssembly.SubAssemblyNumber}
+                readOnly
+              />
+            </div>
+          )}
+        </ModalBody>
+        <ModalFooter>
+          <Button color="primary" onClick={handleAddSubAssembly}>
+            Add Sub Assembly
+          </Button>
+          <Button
+            color="secondary"
+            onClick={() => setAddSubAssemblyModal(false)}
+          >
+            Cancel
           </Button>
         </ModalFooter>
       </Modal>

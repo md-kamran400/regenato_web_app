@@ -228,7 +228,7 @@ export const SubAssmeblies = () => {
 
   return (
     <React.Fragment>
-      <div className="p-3">
+      <div className="">
         <Row className="g-4 mb-3">
           <div className="col-sm-auto">
             <div>

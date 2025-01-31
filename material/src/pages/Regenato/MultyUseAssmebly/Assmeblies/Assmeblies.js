@@ -350,7 +350,7 @@ export const Assmeblies = () => {
 
   return (
     <React.Fragment>
-      <div className="p-3">
+      <div className="">
         <Row className="g-4 mb-3">
           <div className="col-sm-auto">
             <div>
@@ -362,6 +362,7 @@ export const Assmeblies = () => {
               >
                 <i className="ri-add-line align-bottom me-1"></i> Add Assembly
               </Button>
+              
             </div>
           </div>
           <div className="col-sm-7 ms-auto">
