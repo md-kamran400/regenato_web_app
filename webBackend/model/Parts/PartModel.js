@@ -58,6 +58,7 @@ const partSchema = new mongoose.Schema({
   stockPOQty: { type: Number },
   totalCost: { type: Number },
   totalQuantity: { type: Number },
+  image: {type: String},
   generalVariables: [
     {
       categoryId: String,
