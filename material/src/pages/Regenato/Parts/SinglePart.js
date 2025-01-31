@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   Button,
   Container,
@@ -14,8 +14,12 @@ import {
   DropdownMenu,
   ModalFooter,
   DropdownItem,
+  Nav,
+  NavItem,
+  NavLink,
 } from "reactstrap";
-
+import "./parts.css";
+import { useDropzone } from "react-dropzone";
 import BreadCrumb from "../../../Components/Common/BreadCrumb";
 import RmVariable from "./RmVariable";
 import ManufacturingVariable from "./ManufacturingVariable";
@@ -26,6 +30,12 @@ import GeneralVariable from "./GeneralVariable";
 import ManufacuringStatic from "./ManufacuringStatic";
 import List from "./List";
 import { toast } from "react-toastify";
+import Webcam from "react-webcam";
+import { BsFillClockFill } from "react-icons/bs";
+import { PiCurrencyDollarFill } from "react-icons/pi";
+import { BiDollar } from "react-icons/bi";
+import Dropzone from "react-dropzone";
+import ImageUploader from "./ImageUploader";
 
 const SinglePart = () => {
   const [modal_category, setModal_category] = useState(false);
@@ -43,6 +53,14 @@ const SinglePart = () => {
   const [shipmentCount, setshipmentCount] = useState(0);
   const [overheadCount, setoverheadCount] = useState(0);
   const [manufacturingHours, setmanufacturingHours] = useState(0);
+  const [partImage, setPartImage] = useState(null);
+
+  const defaultImageSrc =
+    "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS-RcH3_rFP8ZmSEgjhZy5pv4O4bLl-SwZGsA&s";
+
+  // image uploading part
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
 
   const handlermTotalCountUpdate = (newTotal) => {
     setrmtotalCount(newTotal);
@@ -68,32 +86,40 @@ const SinglePart = () => {
     setModal_category(!modal_category);
   };
 
-  useEffect(() => {
-    const fetchPartDetails = async () => {
-      try {
-        const response = await fetch(
-          `${process.env.REACT_APP_BASE_URL}/api/parts/${_id}`
-        );
-        if (!response.ok) {
-          throw new Error(`Error: ${response.statusText}`);
-        }
-        const data = await response.json();
-        setPartDetails(data);
-
-        // Set editId if this is an existing part
-        if (data._id !== _id) {
-          setEditId(data._id);
-        } else {
-          setEditId(null);
-        }
-      } catch (error) {
-        console.error("Error fetching part details:", error);
-        setError(error.message);
-      } finally {
-        setLoading(false);
+  // useEffect(() => {
+  //   fetch(`${process.env.REACT_APP_BASE_URL}/api/parts/image/${_id}`)
+  //     .then((response) => response.blob())
+  //     .then((blob) => {
+  //       const imageUrl = URL.createObjectURL(blob);
+  //       setExistingImage(imageUrl || null);
+  //     })
+  //     .catch((error) => console.error("Error fetching image:", error));
+  // }, [_id]);
+  const fetchPartDetails = async () => {
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_BASE_URL}/api/parts/${_id}`
+      );
+      if (!response.ok) {
+        throw new Error(`Error: ${response.statusText}`);
       }
-    };
+      const data = await response.json();
+      setPartDetails(data);
 
+      // Set editId if this is an existing part
+      if (data._id !== _id) {
+        setEditId(data._id);
+      } else {
+        setEditId(null);
+      }
+    } catch (error) {
+      console.error("Error fetching part details:", error);
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+  useEffect(() => {
     fetchPartDetails();
   }, [_id]);
 
@@ -102,6 +128,20 @@ const SinglePart = () => {
       setPartsCalculations(partDetails.partsCalculations[0]);
     }
   }, [partDetails]);
+  useEffect(() => {
+    if (partDetails?.image) {
+      setPartImage(partDetails.image);
+    }
+  }, [partDetails]);
+
+  const handleImageUpdate = (newImageUrl) => {
+    setPartImage(newImageUrl);
+    // Optionally, you can also update the partDetails state here
+    setPartDetails((prev) => ({
+      ...prev,
+      image: newImageUrl,
+    }));
+  };
 
   if (loading) {
     return <div>Loading...</div>;
@@ -250,150 +290,71 @@ const SinglePart = () => {
             title={`Part ${partDetails.partName} (${partDetails.id})`}
             pageTitle={`Part ${partDetails.partName}`}
           />
-          {/* <div className="page-title-box d-sm-flex align-items-center justify-content-between">
-            <Button
-              className="add-btn me-1 bg-success"
-              onClick={tog_add_calculation}
-            >
-              Finalize Calculation
-            </Button>
-          </div> */}
-          <Row>
-            <Col xl={4} ms={6}>
-              <Card className={"card-height-100 "}>
-                <CardBody>
-                  <div className="mb-4 pb-2">
-                    <div
-                      style={{
-                        width: "30px",
-                        height: "30px",
-                        borderRadius: "50%",
-                        display: "flex",
-                        justifyContent: "center",
-                        alignItems: "center",
-                      }}
-                    >
-                      <i
-                        className="mdi mdi-alpha-p-box-outline"
-                        style={{ fontSize: "33px" }}
-                      ></i>
-                    </div>
-                  </div>
-                  <div className="d-flex justify-content-between align-items-center">
-                    <h6 className="fs-15 fw-bold mb-0">Part Name</h6>
-                    <span className="text-muted fs-13">
-                      {partDetails.partName} ({partDetails.id})
-                    </span>{" "}
-                    {/* Display part name */}
-                  </div>
-                </CardBody>
+          <Row
+            className="mt-4"
+            style={{ padding: "0px 20px", borderRadius: "20px" }}
+          >
+            <Col lg={12}>
+              <Card className="mt-n4 mx-n4">
+                <div className="">
+                  <CardBody className="pb-2 px-4">
+                    <Row className="mb-3">
+                      <div className="col-md">
+                        <Row className="align-items-center g-3">
+                          <ImageUploader
+                            partDetails={partDetails}
+                            defaultImageSrc={defaultImageSrc}
+                            partId={_id}
+                            currentImage={partImage}
+                            onImageUpdate={fetchPartDetails}
+                          />
+
+                          <div className="col-md">
+                            <div>
+                              <h3 className="fw-bold">
+                                {partDetails.partName} ({partDetails.id})
+                              </h3>
+                              <div className="hstack gap-5 flex-wrap mt-3">
+                                <div className="d-inline-flex align-items-center">
+                                  <PiCurrencyDollarFill
+                                    size={26}
+                                    className="me-2"
+                                  />
+                                  <h5 className="fw-semibold fs-5 mb-0">
+                                    Cost Per Unit :&nbsp;
+                                  </h5>{" "}
+                                  <h5 className="fw-semibold fs-5 mb-0">
+                                    {Math.ceil(costPerUnitAvg) || 0}
+                                  </h5>
+                                </div>
+                                {/* <div className="d-inline-flex align-items-center">
+                                  <BsFillClockFill size={18} className="me-2" />
+                                  <h5 className="fw-semibold fs-5">
+                                    Time Per Unit :&nbsp;
+                                  </h5>
+                                  <h5 className="fw-semibold fs-5">
+                                    {formatTime(manufacturingHours) || 0}
+                                  </h5>
+                                </div> */}
+                                <div className="d-flex align-items-center gap-2">
+                                  <BsFillClockFill size={18} />
+                                  <h5 className="fw-semibold fs-5 mb-0">
+                                    Time Per Unit:&nbsp;
+                                  </h5>
+                                  <h5 className="fw-semibold fs-5 mb-0">
+                                    {formatTime(manufacturingHours) || 0}
+                                  </h5>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </Row>
+                      </div>
+                    </Row>
+                  </CardBody>
+                </div>
               </Card>
             </Col>
-
-            <Col xl={4} ms={6}>
-              <Card className="card-height-100">
-                <CardBody>
-                  <div className="mb-4 pb-2">
-                    <div
-                      style={{
-                        width: "30px",
-                        height: "30px",
-                        borderRadius: "50%",
-                        display: "flex",
-                        justifyContent: "center",
-                        alignItems: "center",
-                      }}
-                    >
-                      <i
-                        className="mdi mdi-alpha-c-box-outline"
-                        style={{ fontSize: "33px" }}
-                      ></i>
-                    </div>
-                  </div>
-                  <div className="d-flex justify-content-between align-items-center">
-                    <h6 className="fs-15 fw-bold mb-0">Cost Per Unit:</h6>
-                    <span className="text-muted fs-13">
-                      {Math.ceil(costPerUnitAvg) || 0}
-                    </span>
-                  </div>
-                </CardBody>
-              </Card>
-            </Col>
-
-            <Col xl={4} ms={6}>
-              <Card className={"card-height-100 "}>
-                <CardBody>
-                  <div className="mb-4 pb-2">
-                    <div
-                      style={{
-                        width: "30px",
-                        height: "30px",
-                        borderRadius: "50%",
-                        display: "flex",
-                        justifyContent: "center",
-                        alignItems: "center",
-                      }}
-                    >
-                      <i
-                        className="mdi mdi-alpha-t-box-outline"
-                        style={{ fontSize: "33px" }}
-                      ></i>
-                    </div>
-                  </div>
-                  <div className="d-flex justify-content-between align-items-center">
-                    <h6 className="fs-15 fw-bold mb-0">Time Per Unit:</h6>
-                    <span className="text-muted fs-13">
-                      {formatTime(manufacturingHours) || 0}
-                    </span>{" "}
-                    {/* Display time per unit */}
-                  </div>
-                </CardBody>
-              </Card>
-            </Col>
-
-            {/* <Col xl={3} ms={6}>
-              <Card className={"card-height-100 "}>
-                <CardBody>
-                  <UncontrolledDropdown className="float-end">
-                    <DropdownToggle
-                      tag="a"
-                      className="text-reset dropdown-btn"
-                      href="#"
-                    >
-                      <span className="text-muted fs-18">
-                        <i className="mdi mdi-dots-vertical"></i>
-                      </span>
-                    </DropdownToggle>
-                    <DropdownMenu className="dropdown-menu-end">
-                      <DropdownItem>Add Stock</DropdownItem>
-                    </DropdownMenu>
-                  </UncontrolledDropdown>
-                  <div className="mb-4 pb-2">
-                    <div
-                      style={{
-                        width: "30px",
-                        height: "30px",
-                        borderRadius: "50%",
-                        display: "flex",
-                        justifyContent: "center",
-                        alignItems: "center",
-                      }}
-                    >
-                      <i
-                        className="mdi mdi-alpha-s-box-outline"
-                        style={{ fontSize: "33px" }}
-                      ></i>
-                    </div>
-                  </div>
-                  <div className="d-flex justify-content-between align-items-center">
-                    <h6 className="fs-15 fw-bold mb-0">Stock / PO Qty:</h6>
-                    <span className="text-muted fs-13">
-                      {partDetails.stockPOQty}
-                    </span>{" "}
-                  </div>
-                </CardBody>
-              </Card>
-            </Col> */}
           </Row>
 
           <GeneralVariable partDetails={partDetails} />

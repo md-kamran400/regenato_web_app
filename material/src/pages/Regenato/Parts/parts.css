@@ -1,0 +1,39 @@
+.hover-opacity {
+  transition: opacity 0.3s ease-in-out;
+}
+
+.hover-opacity:hover {
+  opacity: 1 !important;
+}
+
+/* Upload Icon */
+.upload-icon {
+  position: absolute;
+  bottom: 30px;
+  right: 30px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  padding: 8px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  z-index: 2; /* Ensure the icon stays above the image */
+}
+
+.upload-icon:hover {
+  background-color: rgba(12, 12, 12, 0.8);
+  transform: scale(1.05);
+}
+
+/* Blur the image only when hovering over the upload icon */
+.avatar-xl:hover .image-style-parts {
+  filter: blur(4px);
+}
+
+/* Ensure upload icon is not affected */
+.upload-icon:hover + .image-style-parts {
+  filter: none;
+}
