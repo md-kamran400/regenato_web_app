@@ -5,6 +5,7 @@ import { IoCloudUploadOutline, IoCamera } from "react-icons/io5";
 import { toast } from "react-toastify";
 import Webcam from "react-webcam";
 import { IoImage } from "react-icons/io5";
+
 const ImageUploader = ({
   partDetails,
   defaultImageSrc,
@@ -67,25 +68,14 @@ const ImageUploader = ({
     setSelectedImage(defaultImageSrc);
   };
 
-  // const handleDrop = (acceptedFiles) => {
-  //   if (acceptedFiles.length === 0) return;
-  //   const file = acceptedFiles[0];
-  //   setImageFile(file);
-  //   setSelectedImage(URL.createObjectURL(file));
-  // };
-  const handleDrop = useCallback(
-    (acceptedFiles) => {
-      if (acceptedFiles.length === 0) return;
-      const file = acceptedFiles[0];
-      setImageFile(file);
-      setSelectedImage(URL.createObjectURL(file));
-      // Update the current image in the parent component
-      onImageUpdate(URL.createObjectURL(file));
-    },
-    [onImageUpdate]
-  );
+  const handleDrop = (acceptedFiles) => {
+    if (acceptedFiles.length === 0) return;
+    const file = acceptedFiles[0];
+    setImageFile(file);
+    setSelectedImage(URL.createObjectURL(file));
+  };
 
-  const handleUpload = useCallback(async () => {
+  const handleUpload = async () => {
     setUploading(true);
     toast.info("Uploading image...");
 
@@ -136,7 +126,7 @@ const ImageUploader = ({
       setShowUploadModal(false);
       setShowCameraModal(false);
     }
-  }, [hasImage, partId, imageFile, webcamRef, uploading]);
+  };
 
   return (
     <div className="col-md-auto position-relative">
@@ -286,7 +276,7 @@ const ImageUploader = ({
                   onClick={() => window.open(imageUrl, "_blank")}
                   className="shadow-sm img-preview"
                   style={{
-                    width: "100%",
+                    width: "300px",
                     objectFit: "cover",
                     borderRadius: "10px",
                     border: "1px solid #ddd",
@@ -300,17 +290,15 @@ const ImageUploader = ({
               {({ getRootProps, getInputProps }) => (
                 <div
                   {...getRootProps()}
-                  className="dropzone text-center d-flex flex-column align-items-center justify-content-center"
+                  className="text-center d-flex flex-column align-items-center justify-content-center"
                   style={{
-                    border: "2px dashedrgb(3, 16, 30)",
-                    padding: "2px",
+                    border: "2px dashed #007bff",
+                    padding: "5px 20px",
                     cursor: "pointer",
                     borderRadius: "12px",
                     background: "#f8f9fa",
                     transition: "all 0.3s ease",
-                    width: "200px",
-                    height: "100px", // Reduced height
-                    marginTop:'10px'
+                    marginTop: "10px",
                   }}
                 >
                   <input {...getInputProps()} />
@@ -319,7 +307,7 @@ const ImageUploader = ({
                     className="mt-2 text-secondary"
                     style={{ fontSize: "12px" }}
                   >
-                    Drag & drop an image here, or click to select one
+                    Drag & drop or click to select
                   </p>
                 </div>
               )}
