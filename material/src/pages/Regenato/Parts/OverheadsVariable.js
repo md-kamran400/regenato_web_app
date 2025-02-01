@@ -29,6 +29,7 @@ const OverheadsVariable = ({ partDetails, totalCost, onTotalCountUpdate }) => {
   const [selectOverheads, setselectOverheads] = useState(null);
   const [editId, setEditId] = useState(null);
   const [overheadCount, setOverheadscount] = useState(0);
+  const [canAddNew, setCanAddNew] = useState(true);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -87,6 +88,7 @@ const OverheadsVariable = ({ partDetails, totalCost, onTotalCountUpdate }) => {
       }
       const data = await response.json();
       setOverheadsData(data);
+      setCanAddNew(data.length < 1);
       console.log(data);
     } catch (error) {
       console.error("Error fetching manufacturingVariables data:", error);
@@ -182,23 +184,24 @@ const OverheadsVariable = ({ partDetails, totalCost, onTotalCountUpdate }) => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-  
+
     if (name === "percentage") {
       const newPercentage = parseFloat(value);
       const calculatedTotalRate = ((newPercentage / 100) * totalCost).toFixed(
         2
       );
-  
+
       setFormData((prevFormData) => ({
         ...prevFormData,
         [name]: value,
         totalRate: calculatedTotalRate,
       }));
-  
+
       // Only update overheadsAndProfit if selectOverheads exists
       if (selectOverheads && selectOverheads._id) {
         setoverheadsAndProfit((prevState) =>
-          prevState.filter((item) => item !== null)
+          prevState
+            .filter((item) => item !== null)
             .map((item) =>
               item && item._id === selectOverheads._id
                 ? { ...item, totalRate: calculatedTotalRate }
@@ -251,11 +254,11 @@ const OverheadsVariable = ({ partDetails, totalCost, onTotalCountUpdate }) => {
 
   const handleAutocompleteChange = (event, newValue) => {
     setselectOverheads(newValue);
-  
+
     if (newValue) {
       const multiplier = newValue.percentage / 100;
       const calculatedTotalRate = (multiplier * totalCost).toFixed(2);
-  
+
       setFormData((prevFormData) => ({
         ...prevFormData,
         categoryId: newValue.categoryId,
@@ -263,7 +266,7 @@ const OverheadsVariable = ({ partDetails, totalCost, onTotalCountUpdate }) => {
         percentage: newValue.percentage,
         totalRate: calculatedTotalRate,
       }));
-  
+
       // Check if selectOverheads exists before accessing _id
       if (selectOverheads && selectOverheads._id) {
         setoverheadsAndProfit((prevState) =>
@@ -395,6 +398,8 @@ const OverheadsVariable = ({ partDetails, totalCost, onTotalCountUpdate }) => {
     0
   );
 
+  
+
   return (
     <React.Fragment>
       {/* General Variable */}
@@ -406,6 +411,8 @@ const OverheadsVariable = ({ partDetails, totalCost, onTotalCountUpdate }) => {
               className="add-btn me-1"
               onClick={tog_add}
               id="create-btn"
+              disabled={!canAddNew}
+              style={{ cursor: !canAddNew ? "no-drop" : "pointer" }}
             >
               <i className="ri-add-line align-bottom me-1"></i> Add
             </Button>

@@ -80,7 +80,6 @@ const PartsTable = React.memo(
     // const [editModal, setEditModal] = useState(false);
     const [partsListName, setPartsListName] = useState("");
     const [selectedPartsList, setSelectedPartsList] = useState(null);
-    const [isSubmitting, setIsSubmitting] = useState(false);
     const toggleAddModal = () => {
       setModalAdd(!modalAdd);
     };
@@ -220,6 +219,7 @@ const PartsTable = React.memo(
       }
     }, [selectedPartData]);
 
+
     const handleAutocompleteChange = (event, newValue) => {
       if (newValue) {
         const selectedPart = parts.find(
@@ -275,7 +275,7 @@ const PartsTable = React.memo(
     const handleSubmit = async (event) => {
       event.preventDefault();
       setIsLoading(true);
-      setIsSubmitting(true);
+
       const payload = {
         partId: selectedPartData.id,
         partName: selectedPartData.partName,
@@ -330,10 +330,10 @@ const PartsTable = React.memo(
         setError("Failed to add part. Please try again.");
         toast.error("Failed to add Records. Please try again.");
       } finally {
-        setIsSubmitting(false);
         setIsLoading(false);
       }
     };
+
 
     const handleEditQuantity = (item) => {
       setItemToEdit(item);
@@ -869,7 +869,7 @@ const PartsTable = React.memo(
                     type="number"
                     step="any"
                     id="costPerUnit"
-                    value={Math.round(costPerUnit)}
+                    value={costPerUnit}
                     onChange={(e) => setCostPerUnit(e.target.value)}
                     // required
                     onWheel={(e) => e.target.blur()}
@@ -889,7 +889,7 @@ const PartsTable = React.memo(
                     type="number"
                     step="any"
                     id="timePerUnit"
-                    value={Math.round(timePerUnit)}
+                    value={timePerUnit}
                     onChange={(e) => setTimePerUnit(e.target.value)}
                     // required
                     onWheel={(e) => e.target.blur()}
@@ -1156,12 +1156,12 @@ const PartsTable = React.memo(
                 </div>
 
                 <Button
-                  style={{ marginLeft: "19rem" }}
+                  style={{ marginLeft: "22rem" }}
                   type="submit"
                   color="primary"
-                  disabled={!selectedPartData || !quantity || isSubmitting}
+                  disabled={!selectedPartData || !quantity}
                 >
-                  {isSubmitting ? "Add" : "Add Parts"}
+                  Add
                 </Button>
               </form>
             </ModalBody>
