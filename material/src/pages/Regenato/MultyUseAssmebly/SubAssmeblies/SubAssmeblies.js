@@ -285,8 +285,8 @@ export const SubAssmeblies = () => {
                   </Link>
                 </td>
                 <td>{subAssembly.SubAssemblyNumber}</td>
-                <td>{Math.ceil(subAssembly.totalCost || 0)}</td>
-                <td>{formatTime(subAssembly.totalHours || 0)}</td>
+                <td>{Math.ceil(subAssembly.costPerUnit || 0)}</td>
+                <td>{formatTime(subAssembly.timePerUnit || 0)}</td>
                 <td>
                   <UncontrolledDropdown direction="start">
                     <DropdownToggle

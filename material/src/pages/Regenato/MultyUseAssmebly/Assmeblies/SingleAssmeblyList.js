@@ -211,7 +211,7 @@ const SingleAssmeblyList = () => {
   const fetchDetailedPartData = useCallback(async (partName) => {
     try {
       const response = await fetch(
-        `${process.env.REACT_APP_BASE_URL}/api/parts`
+       ` ${process.env.REACT_APP_BASE_URL}/api/parts`
       );
       const data = await response.json();
       const partData = data.find((part) => part.partName === partName);

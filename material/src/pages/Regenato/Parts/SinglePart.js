@@ -35,7 +35,9 @@ import { BsFillClockFill } from "react-icons/bs";
 import { PiCurrencyDollarFill } from "react-icons/pi";
 import { BiDollar } from "react-icons/bi";
 import Dropzone from "react-dropzone";
+import { MdSubtitles } from "react-icons/md";
 import ImageUploader from "./ImageUploader";
+import { FiSettings } from "react-icons/fi";
 
 const SinglePart = () => {
   const [modal_category, setModal_category] = useState(false);
@@ -54,6 +56,7 @@ const SinglePart = () => {
   const [overheadCount, setoverheadCount] = useState(0);
   const [manufacturingHours, setmanufacturingHours] = useState(0);
   const [partImage, setPartImage] = useState(null);
+  const [costPerUnit, setCostPerUnit] = useState(null);
 
   const defaultImageSrc =
     // "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS-RcH3_rFP8ZmSEgjhZy5pv4O4bLl-SwZGsA&s";
@@ -123,6 +126,12 @@ const SinglePart = () => {
   useEffect(() => {
     fetchPartDetails();
   }, [_id]);
+
+  useEffect(() => {
+    if (partDetails) {
+      setCostPerUnit(partDetails.costPerUnit);
+    }
+  }, [partDetails]);
 
   useEffect(() => {
     if (partDetails?.partsCalculations?.length) {
@@ -206,6 +215,7 @@ const SinglePart = () => {
 
   // Final cost per unit including profit
   // const costPerUnitAvg = totalCost + overheadCount;
+
   const costPerUnitAvg = Math.ceil(totalCost + overheadAmount);
 
   const handleSubmit = async (e) => {
@@ -313,6 +323,7 @@ const SinglePart = () => {
                           <div className="col-md">
                             <div>
                               <h3 className="fw-bold">
+                                <MdSubtitles size={28} className="me-2" />
                                 {partDetails.partName} ({partDetails.id})
                               </h3>
                               <div className="hstack gap-5 flex-wrap mt-3">
@@ -320,28 +331,26 @@ const SinglePart = () => {
                                   <PiCurrencyDollarFill
                                     size={26}
                                     className="me-2"
+                                    style={{ color: "#495057" }}
                                   />
                                   <h5 className="fw-semibold fs-5 mb-0">
                                     Cost Per Unit :&nbsp;
                                   </h5>{" "}
                                   <h5 className="fw-semibold fs-5 mb-0">
                                     {Math.ceil(costPerUnitAvg) || 0}
+                                    {/* {Math.ceil(costPerUnit || 0)} */}
                                   </h5>
                                 </div>
-                                {/* <div className="d-inline-flex align-items-center">
-                                  <BsFillClockFill size={18} className="me-2" />
-                                  <h5 className="fw-semibold fs-5">
-                                    Time Per Unit :&nbsp;
-                                  </h5>
-                                  <h5 className="fw-semibold fs-5">
-                                    {formatTime(manufacturingHours) || 0}
-                                  </h5>
-                                </div> */}
-                                <div className="d-flex align-items-center gap-2">
-                                  <BsFillClockFill size={18} />
+
+                                <div className="d-flex align-items-center">
+                                  <BsFillClockFill
+                                    size={18}
+                                    className="me-2"
+                                    style={{ color: "#495057" }}
+                                  />
                                   <h5 className="fw-semibold fs-5 mb-0">
-                                    Time Per Unit:&nbsp;
-                                  </h5>
+                                    Time Per Unit :&nbsp;
+                                  </h5>{" "}
                                   <h5 className="fw-semibold fs-5 mb-0">
                                     {formatTime(manufacturingHours) || 0}
                                   </h5>
