@@ -266,7 +266,7 @@ const SingeProject = () => {
   //   }
   // }, [selectedPartData]);
 
-  const totalCost =
+  const costPerUnit =
     partDetails.allProjects?.reduce(
       (total, item) => total + item.costPerUnit * item.quantity,
       0
@@ -335,8 +335,8 @@ const SingeProject = () => {
           body: JSON.stringify({
             subAssemblyName: selectedSubAssembly.subAssemblyName,
             SubAssemblyNumber: selectedSubAssembly.SubAssemblyNumber,
-            totalCost: selectedSubAssembly.totalCost,
-            totalHours: selectedSubAssembly.totalHours,
+            costPerUnit: selectedSubAssembly.costPerUnit,
+            timePerUnit: selectedSubAssembly.timePerUnit,
             partsListItems: selectedSubAssembly.partsListItems,
           }),
         }
@@ -540,7 +540,9 @@ const SingeProject = () => {
             <OuterSubAssmebly
               subAssemblyItem={subAssemblyItem}
               updatesubAssemblyItems={updatesubAssemblyItems}
+              setSubAssemblyItems={setSubAssemblyItems}
               subAssemblyId={subAssemblyItem._id}
+              projectId= {_id}
               onAddPart={handleAddPart}
               onUpdatePrts={fetchProjectDetails}
             />

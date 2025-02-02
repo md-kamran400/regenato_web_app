@@ -43,8 +43,8 @@ const partSchema = new mongoose.Schema({
 const SubAssemblySchema = new mongoose.Schema({
   subAssemblyName: String,
   SubAssemblyNumber: String,
-  totalCost: Number,
-  totalHours: Number,
+  costPerUnit: Number,
+  timePerUnit: Number,
   partsListItems: [partSchema],
   //for time traking
   createdAt: { type: Date, default: Date.now },
@@ -53,7 +53,3 @@ const SubAssemblySchema = new mongoose.Schema({
 
 const SubAssemblyModel = mongoose.model("subAssembly", SubAssemblySchema);
 module.exports = SubAssemblyModel;
-
-
-
-

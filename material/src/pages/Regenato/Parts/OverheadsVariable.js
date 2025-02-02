@@ -308,6 +308,7 @@ const OverheadsVariable = ({ partDetails, totalCost, onTotalCountUpdate }) => {
 
       if (response.ok) {
         await fetchOverheads();
+        recalculateTotals();
       } else {
         throw new Error("Network response was not ok");
       }
@@ -326,6 +327,19 @@ const OverheadsVariable = ({ partDetails, totalCost, onTotalCountUpdate }) => {
     }
   };
 
+  // New function to recalculate totals
+  const recalculateTotals = () => {
+    let totalCost = 0;
+    let overheadPercentage = 0;
+
+    overheadsData.forEach((item) => {
+      totalCost += Number(item.totalRate || 0);
+      overheadPercentage += Number(item.percentage || 0);
+    });
+
+    setOverheadscount(totalCost);
+    setoverheadsAndProfit(overheadsData);
+  };
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     setPosting(true);
@@ -373,18 +387,32 @@ const OverheadsVariable = ({ partDetails, totalCost, onTotalCountUpdate }) => {
   const handleDelete = async (_id) => {
     setPosting(true);
     setError(null);
+
     try {
       const response = await fetch(
         `${process.env.REACT_APP_BASE_URL}/api/parts/${partDetails._id}/overheadsAndProfits/${_id}`,
-        {
-          method: "DELETE",
-        }
+        { method: "DELETE" }
       );
+
       if (!response.ok) {
         throw new Error("Network response was not ok");
       }
-      await fetchOverheads(); // Refetch the data to update the table
-      tog_delete(); // Close the modal
+
+      // ✅ Immediately update UI before fetching
+      setOverheadsData((prev) => {
+        const updatedData = prev.filter((item) => item._id !== _id);
+        const newTotal = updatedData.reduce(
+          (sum, item) => sum + Number(item.totalRate || 0),
+          0
+        );
+
+        setOverheadscount(newTotal); // ✅ Update overheadCount state immediately
+        onTotalCountUpdate(newTotal); // ✅ Ensure parent updates immediately
+        return updatedData;
+      });
+
+      await fetchOverheads(); // ✅ Fetch latest data from API after update
+      tog_delete(); // Close modal
     } catch (error) {
       setError(error.message);
     } finally {

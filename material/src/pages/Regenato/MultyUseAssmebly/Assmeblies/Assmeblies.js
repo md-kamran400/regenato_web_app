@@ -407,8 +407,8 @@ export const Assmeblies = () => {
                   </Link>
                 </td>
                 <td>{assembly.AssemblyNumber}</td>
-                <td>{Math.ceil(assembly.totalCost || 0)}</td>
-                <td>{formatTime(assembly.totalHours || 0)}</td>
+                <td>{Math.ceil(assembly.costPerUnit || 0)}</td>
+                <td>{formatTime(assembly.timePerUnit || 0)}</td>
                 <td>
                   <UncontrolledDropdown direction="start">
                     <DropdownToggle
