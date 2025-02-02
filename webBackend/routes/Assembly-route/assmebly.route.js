@@ -41,16 +41,16 @@ AssemblyRoutes.get("/:_id", async (req, res) => {
     }
 
     // Initialize total cost and total hours
-    let totalCost = 0;
-    let totalHours = 0;
+    let costPerUnit = 0;
+    let timePerUnit = 0;
     const machineHours = {};
 
     subAssembly.partsListItems.forEach((item) => {
-      const itemTotalCost = item.costPerUnit * item.quantity;
-      const itemTotalHours = item.timePerUnit * item.quantity;
+      const itemcostPerUnit = item.costPerUnit * item.quantity;
+      const itemtimePerUnit = item.timePerUnit * item.quantity;
 
-      totalCost += itemTotalCost;
-      totalHours += itemTotalHours;
+      costPerUnit += itemcostPerUnit;
+      timePerUnit += itemtimePerUnit;
 
       // Calculate individual machine hours
       item.manufacturingVariables.forEach((machine) => {
@@ -62,8 +62,8 @@ AssemblyRoutes.get("/:_id", async (req, res) => {
     });
 
     // Update the sub-assembly document with calculated values
-    subAssembly.totalCost = totalCost;
-    subAssembly.totalHours = totalHours;
+    subAssembly.costPerUnit = costPerUnit;
+    subAssembly.timePerUnit = timePerUnit;
     subAssembly.machineHours = machineHours;
     subAssembly.updatedAt = new Date();
 
@@ -160,8 +160,8 @@ AssemblyRoutes.put("/:id", async (req, res) => {
     const {
       AssemblyName,
       AssemblyNumber,
-      totalHours,
-      totalCost,
+      timePerUnit,
+      costPerUnit,
       partsListItems,
     } = req.body;
 
@@ -170,8 +170,8 @@ AssemblyRoutes.put("/:id", async (req, res) => {
       {
         AssemblyName,
         AssemblyNumber,
-        totalHours,
-        totalCost,
+        timePerUnit,
+        costPerUnit,
         partsListItems,
       },
       { new: true }
@@ -485,6 +485,7 @@ AssemblyRoutes.get("/:id/parts", async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
 
 // edit the manufacturing
 // PUT route to edit manufacturing data

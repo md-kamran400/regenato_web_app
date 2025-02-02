@@ -41,16 +41,16 @@ subAssemblyRoutes.get("/:_id", async (req, res) => {
     }
 
     // Initialize total cost and total hours
-    let totalCost = 0;
-    let totalHours = 0;
+    let costPerUnit = 0;
+    let timePerUnit = 0;
     const machineHours = {};
 
     subAssembly.partsListItems.forEach((item) => {
-      const itemTotalCost = item.costPerUnit * item.quantity;
-      const itemTotalHours = item.timePerUnit * item.quantity;
+      const itemcostPerUnit = item.costPerUnit * item.quantity;
+      const itemtimePerUnit = item.timePerUnit * item.quantity;
 
-      totalCost += itemTotalCost;
-      totalHours += itemTotalHours;
+      costPerUnit += itemcostPerUnit;
+      timePerUnit += itemtimePerUnit;
 
       // Calculate individual machine hours
       item.manufacturingVariables.forEach((machine) => {
@@ -63,7 +63,7 @@ subAssemblyRoutes.get("/:_id", async (req, res) => {
 
     // Update the sub-assembly document with calculated values
     subAssembly.totalCost = totalCost;
-    subAssembly.totalHours = totalHours;
+    subAssembly.timePerUnit = timePerUnit;
     subAssembly.machineHours = machineHours;
     subAssembly.updatedAt = new Date();
 
