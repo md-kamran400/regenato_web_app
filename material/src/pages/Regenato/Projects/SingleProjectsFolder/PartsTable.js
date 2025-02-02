@@ -83,7 +83,7 @@ const PartsTable = React.memo(
     const toggleAddModal = () => {
       setModalAdd(!modalAdd);
     };
-
+    const [modalOpenId, setModalOpenId] = useState(null);
     // console.log(partsList._id);
     // console.log(updatePartsLists)
 
@@ -142,6 +142,10 @@ const PartsTable = React.memo(
     // deleting the part list items
     const tog_delete = () => {
       setModalDelete(!modal_delete);
+    };
+
+    const toggleModal = (item) => {
+      setModalOpenId((prevId) => (prevId === item._id ? null : item._id));
     };
 
     // second function for deleteing the parts
@@ -218,7 +222,6 @@ const PartsTable = React.memo(
         setDetailedPartData({});
       }
     }, [selectedPartData]);
-
 
     const handleAutocompleteChange = (event, newValue) => {
       if (newValue) {
@@ -333,7 +336,6 @@ const PartsTable = React.memo(
         setIsLoading(false);
       }
     };
-
 
     const handleEditQuantity = (item) => {
       setItemToEdit(item);
@@ -681,13 +683,13 @@ const PartsTable = React.memo(
                               <td>{parseFloat(item.costPerUnit || 0)}</td>
                               <td>{formatTime(item.timePerUnit || 0)}</td>
                               <td>
-                                {parseInt(item.quantity || 0)}{" "}
                                 <button
                                   className="btn btn-sm btn-success edit-item-btn"
                                   onClick={() => handleEditQuantity(item)}
                                 >
                                   <FaEdit />
                                 </button>
+                                {parseInt(item.quantity || 0)}{" "}
                               </td>
 
                               {/* <td>{parseInt(0)}</td> */}
@@ -706,11 +708,27 @@ const PartsTable = React.memo(
 
                               <td className="action-cell">
                                 <div className="action-buttons">
-                                  {/* <span>
-                                    <FiEdit size={20} />
-                                  </span> */}
                                   <span
-                                    style={{ color: "red", cursor: "pointer" }}
+                                    style={{
+                                      color: "blue",
+                                      cursor: "pointer",
+                                      marginRight: "2px",
+                                    }}
+                                  >
+                                    <FiSettings
+                                      size={20}
+                                      onClick={() => toggleModal(item)}
+                                      className={`settings-icon ${
+                                        modalOpenId === item._id ? "rotate" : ""
+                                      }`}
+                                    />
+                                  </span>
+                                  <span
+                                    style={{
+                                      color: "red",
+                                      cursor: "pointer",
+                                      marginLeft: "3px",
+                                    }}
                                   >
                                     <MdOutlineDelete
                                       size={25}
@@ -720,10 +738,13 @@ const PartsTable = React.memo(
                                 </div>
                               </td>
                             </tr>
-                            {expandedRowId === item._id && (
-                              <tr className="details-row">
+                            {/* {expandedRowId === item._id && (
+                              <tr
+                                className="details-row"
+                                style={{ border: "2px solid red" }}
+                              >
                                 <td colSpan={6}>
-                                  <div className="details-box">
+                                  <div className="details-box" style={{border:'2px solid'}}>
                                     <h5
                                       className="mb-3 d-flex align-items-center"
                                       style={{
@@ -792,9 +813,102 @@ const PartsTable = React.memo(
                                       overHeadsUpdate={onUpdatePrts}
                                       quantity={item.quantity}
                                     />
-                                  </div>
+                                  </div> 
                                 </td>
                               </tr>
+                            )} */}
+                            {modalOpenId === item._id && (
+                              <Modal
+                                isOpen={true}
+                                toggle={() => setModalOpenId(null)}
+                                style={{ maxWidth: "80%" }}
+                              >
+                                <ModalHeader
+                                  toggle={() => setModalOpenId(null)}
+                                >
+                                  <h5
+                                    className="mb-3 d-flex align-items-center"
+                                    style={{
+                                      fontWeight: "bold",
+                                      color: "#333",
+                                    }}
+                                  >
+                                    <FiSettings
+                                      style={{
+                                        fontSize: "1.2rem",
+                                        marginRight: "10px",
+                                        color: "#2563eb",
+                                        fontWeight: "bold",
+                                      }}
+                                    />
+                                    {item.partName}
+                                  </h5>
+                                </ModalHeader>
+                                <ModalBody>
+                                  <div>
+                                    <div style={{ marginBottom: "20px" }}>
+                                      <RawMaterial
+                                        partName={item.partName}
+                                        rmVariables={item.rmVariables}
+                                        projectId={_id}
+                                        partId={partsList._id}
+                                        itemId={item._id}
+                                        source="partList"
+                                        rawMatarialsUpdate={onUpdatePrts}
+                                        quantity={item.quantity}
+                                      />
+                                    </div>
+
+                                    <div style={{ marginBottom: "20px" }}>
+                                      <Manufacturing
+                                        partName={item.partName}
+                                        manufacturingVariables={
+                                          item.manufacturingVariables || []
+                                        }
+                                        projectId={_id}
+                                        partId={partsList._id}
+                                        itemId={item._id}
+                                        onUpdateVariable={
+                                          updateManufacturingVariable
+                                        }
+                                        source="partList"
+                                        manufatcuringUpdate={onUpdatePrts}
+                                        quantity={item.quantity}
+                                      />
+                                    </div>
+
+                                    <div style={{ marginBottom: "20px" }}>
+                                      <Shipment
+                                        partName={item.partName}
+                                        projectId={_id}
+                                        partId={partsList._id}
+                                        itemId={item._id}
+                                        source="partList"
+                                        shipmentUpdate={onUpdatePrts}
+                                        shipmentVariables={
+                                          item.shipmentVariables || []
+                                        }
+                                        quantity={item.quantity}
+                                      />
+                                    </div>
+
+                                    <div>
+                                      <Overheads
+                                        partName={item.partName}
+                                        overheadsAndProfits={
+                                          item.overheadsAndProfits || []
+                                        }
+                                        projectId={_id}
+                                        partId={partsList._id}
+                                        itemId={item._id}
+                                        source="partList"
+                                        overHeadsUpdate={onUpdatePrts}
+                                        quantity={item.quantity}
+                                      />
+                                    </div>
+                                  </div>
+                                </ModalBody>
+                              </Modal>
                             )}
 
                             {expandedRowId === item._id && (

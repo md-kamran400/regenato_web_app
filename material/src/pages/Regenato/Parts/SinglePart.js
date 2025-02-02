@@ -39,7 +39,6 @@ import { MdSubtitles } from "react-icons/md";
 import ImageUploader from "./ImageUploader";
 import { FiSettings } from "react-icons/fi";
 
-
 const SinglePart = () => {
   const [modal_category, setModal_category] = useState(false);
   const { _id } = useParams();
@@ -57,6 +56,7 @@ const SinglePart = () => {
   const [overheadCount, setoverheadCount] = useState(0);
   const [manufacturingHours, setmanufacturingHours] = useState(0);
   const [partImage, setPartImage] = useState(null);
+  const [costPerUnit, setCostPerUnit] = useState(null);
 
   const defaultImageSrc =
     // "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS-RcH3_rFP8ZmSEgjhZy5pv4O4bLl-SwZGsA&s";
@@ -126,6 +126,12 @@ const SinglePart = () => {
   useEffect(() => {
     fetchPartDetails();
   }, [_id]);
+
+  useEffect(() => {
+    if (partDetails) {
+      setCostPerUnit(partDetails.costPerUnit);
+    }
+  }, [partDetails]);
 
   useEffect(() => {
     if (partDetails?.partsCalculations?.length) {
@@ -210,7 +216,6 @@ const SinglePart = () => {
   // Final cost per unit including profit
   // const costPerUnitAvg = totalCost + overheadCount;
 
-  
   const costPerUnitAvg = Math.ceil(totalCost + overheadAmount);
 
   const handleSubmit = async (e) => {
@@ -317,15 +322,11 @@ const SinglePart = () => {
 
                           <div className="col-md">
                             <div>
-                              <h3
-                                className="fw-bold"
-                              >
+                              <h3 className="fw-bold">
                                 <MdSubtitles size={28} className="me-2" />
                                 {partDetails.partName} ({partDetails.id})
                               </h3>
-                              <div
-                                className="hstack gap-5 flex-wrap mt-3"
-                              >
+                              <div className="hstack gap-5 flex-wrap mt-3">
                                 <div className="d-inline-flex align-items-center">
                                   <PiCurrencyDollarFill
                                     size={26}
@@ -337,6 +338,7 @@ const SinglePart = () => {
                                   </h5>{" "}
                                   <h5 className="fw-semibold fs-5 mb-0">
                                     {Math.ceil(costPerUnitAvg) || 0}
+                                    {/* {Math.ceil(costPerUnit || 0)} */}
                                   </h5>
                                 </div>
 

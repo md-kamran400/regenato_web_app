@@ -30,7 +30,7 @@ const Shipment = ({
   // useEffect to update local state when shipmentVariables prop changes
   useEffect(() => {
     setUpdatedShipmentVariables(
-      shipmentVariables.map((ship) => ({
+      shipmentVariables?.map((ship) => ({
         ...ship,
         totalRate: ship.totalRate || 0,
       }))
@@ -181,7 +181,7 @@ const Shipment = ({
           </tr>
         </thead>
         <tbody>
-          {updatedShipmentVariables.map((ship, index) => (
+          {updatedShipmentVariables?.map((ship, index) => (
             <tr key={index}>
               <td>{ship.name}</td>
               <td>{ship.hourlyRate * quantity}</td>

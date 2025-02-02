@@ -1006,7 +1006,7 @@ const SingeProject = () => {
             <Button
               color="primary"
               className="add-btn"
-              // onClick={toggleAddModalAssembly}
+              onClick={toggleAddModalAssembly}
             >
               <i className="ri-add-line align-bottom me-1"></i> Add Assembly
             </Button>
@@ -1277,6 +1277,7 @@ const SingeProject = () => {
           </Button>
         </ModalFooter>
       </Modal>
+
     </React.Fragment>
   );
 };

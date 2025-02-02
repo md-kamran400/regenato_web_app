@@ -635,3 +635,35 @@ h5 i.icon {
   width: 0.95rem;
   height: 0.95rem;
 }
+
+ .custom-modal-width {
+  max-width: 70vw;
+  overflow: hidden;
+}
+
+/*.custom-modal-width .modal-dialog {
+  max-width: 80%;
+}
+
+.custom-modal-width .modal-content {
+  max-width: 100%;
+} */
+
+/* Modal and Content Styling */
+.custom-modal-width .modal-dialog {
+  max-width: 70vw; /* Adjust based on preference */
+  width: 100%;
+}
+
+.custom-modal-width .modal-content {
+  padding: 20px;
+}
+
+/* Rotate Icon Animation */
+.settings-icon {
+  transition: transform 0.3s ease-in-out;
+}
+
+.settings-icon.rotate {
+  transform: rotate(180deg);
+}
