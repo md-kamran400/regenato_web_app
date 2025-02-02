@@ -322,11 +322,15 @@ const SinglePart = () => {
 
                           <div className="col-md">
                             <div>
-                              <h3 className="fw-bold">
+                              <h3
+                                className="fw-bold"
+                              >
                                 <MdSubtitles size={28} className="me-2" />
                                 {partDetails.partName} ({partDetails.id})
                               </h3>
-                              <div className="hstack gap-5 flex-wrap mt-3">
+                              <div
+                                className="hstack gap-5 flex-wrap mt-3"
+                              >
                                 <div className="d-inline-flex align-items-center">
                                   <PiCurrencyDollarFill
                                     size={26}

@@ -29,6 +29,7 @@ const OverheadsVariable = ({ partDetails, totalCost, onTotalCountUpdate }) => {
   const [selectOverheads, setselectOverheads] = useState(null);
   const [editId, setEditId] = useState(null);
   const [overheadCount, setOverheadscount] = useState(0);
+  const [canAddNew, setCanAddNew] = useState(true);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -87,6 +88,7 @@ const OverheadsVariable = ({ partDetails, totalCost, onTotalCountUpdate }) => {
       }
       const data = await response.json();
       setOverheadsData(data);
+      setCanAddNew(data.length < 1);
       console.log(data);
     } catch (error) {
       console.error("Error fetching manufacturingVariables data:", error);
@@ -424,6 +426,8 @@ const OverheadsVariable = ({ partDetails, totalCost, onTotalCountUpdate }) => {
     0
   );
 
+  
+
   return (
     <React.Fragment>
       {/* General Variable */}
@@ -435,6 +439,8 @@ const OverheadsVariable = ({ partDetails, totalCost, onTotalCountUpdate }) => {
               className="add-btn me-1"
               onClick={tog_add}
               id="create-btn"
+              disabled={!canAddNew}
+              style={{ cursor: !canAddNew ? "no-drop" : "pointer" }}
             >
               <i className="ri-add-line align-bottom me-1"></i> Add
             </Button>
