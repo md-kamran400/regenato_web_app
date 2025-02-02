@@ -870,3 +870,54 @@ partproject.post(
   }
 );
 module.exports = partproject;
+
+// ============================================ ASSEMBLY CODE START ===============================
+partproject.post("/projects/:projectId/assemblyList", async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const {
+      AssemblyName,
+      AssemblyNumber,
+      totalCost,
+      totalHours,
+      partsListItems,
+      subAssemblies,
+    } = req.body;
+
+    // Validate project ID
+    if (!mongoose.Types.ObjectId.isValid(projectId)) {
+      return res.status(400).json({ error: "Invalid project ID format" });
+    }
+
+    // Find the project by ID
+    const project = await PartListProjectModel.findById(projectId);
+    if (!project) {
+      return res.status(404).json({ error: "Project not found" });
+    }
+
+    // Create new assembly list entry
+    const newAssemblyList = {
+      AssemblyName,
+      AssemblyNumber,
+      totalCost,
+      totalHours,
+      partsListItems: partsListItems || [],
+      subAssemblies: subAssemblies || [],
+    };
+
+    // Add assembly list to the project
+    project.assemblyList.push(newAssemblyList);
+
+    // Save updated project
+    await project.save();
+
+    res.status(201).json({
+      status: "success",
+      message: "Assembly list added successfully",
+      data: project.assemblyList,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});

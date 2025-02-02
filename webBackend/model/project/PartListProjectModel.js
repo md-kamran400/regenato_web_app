@@ -1,5 +1,4 @@
 const mongoose = require("mongoose");
-
 const partSchema = new mongoose.Schema({
   Uid: String,
   partName: String,
@@ -54,6 +53,15 @@ const SubAssemblyListSchema = new mongoose.Schema({
   partsListItems: [partSchema],
 });
 
+const AssemblyListSchema = new mongoose.Schema({
+  AssemblyName: String,
+  AssemblyNumber: String,
+  totalCost: Number,
+  totalHours: Number,
+  partsListItems: [partSchema],
+  subAssemblies: [SubAssemblyListSchema],
+});
+
 const partprojectSchema = new mongoose.Schema({
   projectName: String,
   costPerUnit: Number,
@@ -62,6 +70,7 @@ const partprojectSchema = new mongoose.Schema({
   projectType: String,
   partsLists: [partsListSchema],
   subAssemblyListFirst: [SubAssemblyListSchema],
+  assemblyList: [AssemblyListSchema],
   machineHours: {
     type: Object,
     default: {},
