@@ -476,7 +476,9 @@ const Assmebly_subAssembly = ({
                                   {item.codeName || ""}
                                 </td>
                                 <td>
-                                  {parseFloat(item.costPerUnit || 0).toFixed(2)}
+                                  {Math.round(
+                                    parseFloat(item.costPerUnit || 0)
+                                  )}
                                 </td>
                                 <td>{formatTime(item.timePerUnit || 0)}</td>
                                 <td>
@@ -497,10 +499,12 @@ const Assmebly_subAssembly = ({
                                   </div>
                                 </td>
                                 <td>
-                                  {(
-                                    parseFloat(item.costPerUnit || 0) *
-                                    parseInt(item.quantity || 0)
-                                  ).toFixed(2)}
+                                  <td>
+                                    {Math.round(
+                                      parseFloat(item.costPerUnit || 0) *
+                                        parseInt(item.quantity || 0)
+                                    )}
+                                  </td>
                                 </td>
                                 <td>
                                   {formatTime(

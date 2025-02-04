@@ -22,12 +22,12 @@ import { FiEdit } from "react-icons/fi";
 import Autocomplete from "@mui/material/Autocomplete";
 import TextField from "@mui/material/TextField";
 import { FiSettings } from "react-icons/fi";
-import RawMaterial from "../AssemblyExpandFolder/RawMaterial";
-import Shipment from "../AssemblyExpandFolder/Shipment";
-import Overheads from "../AssemblyExpandFolder/Overheads";
+// import RawMaterial from "../AssemblyExpandFolder/RawMaterial";
+// import Shipment from "../AssemblyExpandFolder/Shipment";
+// import Overheads from "../AssemblyExpandFolder/Overheads";
 import { useParams } from "react-router-dom";
 import { MdOutlineDelete } from "react-icons/md";
-import Manufacturing from "../AssemblyExpandFolder/Manufacturing";
+// import Manufacturing from "../AssemblyExpandFolder/Manufacturing";
 import PropTypes from "prop-types";
 import { ToastContainer, toast } from "react-toastify";
 

@@ -26,12 +26,12 @@ import { FiEdit } from "react-icons/fi";
 import Autocomplete from "@mui/material/Autocomplete";
 import TextField from "@mui/material/TextField";
 import { FiSettings } from "react-icons/fi";
-import RawMaterial from "./subassemblyexFolders/RawMaterial";
-import Shipment from "./subassemblyexFolders/Shipment";
-import Overheads from "./subassemblyexFolders/Overheads";
+import RawMaterial from "./OutersubassemblyexFolders/RawMaterial";
+import Shipment from "./OutersubassemblyexFolders/Shipment";
+import Overheads from "./OutersubassemblyexFolders/Overheads";
 import { useParams } from "react-router-dom";
 import { MdOutlineDelete } from "react-icons/md";
-import Manufacturing from "./subassemblyexFolders/Manufacturing";
+import Manufacturing from "./OutersubassemblyexFolders/Manufacturing";
 import FeatherIcon from "feather-icons-react";
 import { ToastContainer, toast } from "react-toastify";
 import { FaEdit } from "react-icons/fa";
@@ -630,7 +630,7 @@ const OuterSubAssmebly = React.memo(
                                 {item.codeName || ""}
                               </td>
                               <td>
-                                {parseFloat(item.costPerUnit || 0).toFixed(2)}
+                                {Math.round(parseFloat(item.costPerUnit || 0))}
                               </td>
                               <td>
                                 {parseFloat(item.timePerUnit || 0).toFixed(2)}
@@ -653,10 +653,10 @@ const OuterSubAssmebly = React.memo(
                                 </div>
                               </td>
                               <td>
-                                {(
+                                {Math.round(
                                   parseFloat(item.costPerUnit || 0) *
-                                  parseInt(item.quantity || 0)
-                                ).toFixed(2)}
+                                    parseInt(item.quantity || 0)
+                                )}
                               </td>
                               <td>
                                 {(

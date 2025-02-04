@@ -25,7 +25,7 @@ const Index = () => {
                 ))}
 
                 {/* Authenticated Routes */}
-                {authProtectedRoutes.map((route, idx) => (
+                {/* {authProtectedRoutes.map((route, idx) => (
                     <Route
                         path={route.path}
                         element={
@@ -36,7 +36,7 @@ const Index = () => {
                         key={idx}
                         exact={true}
                     />
-                ))}
+                ))} */}
             </Routes>
         </React.Fragment>
     );

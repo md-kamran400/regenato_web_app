@@ -19,6 +19,7 @@ import {
   NavLink,
 } from "reactstrap";
 import "./parts.css";
+import defatulImage from "../../../assets/images/brands/Parts_default_image.png";
 import { useDropzone } from "react-dropzone";
 import BreadCrumb from "../../../Components/Common/BreadCrumb";
 import RmVariable from "./RmVariable";
@@ -58,9 +59,7 @@ const SinglePart = () => {
   const [partImage, setPartImage] = useState(null);
   const [costPerUnit, setCostPerUnit] = useState(null);
 
-  const defaultImageSrc =
-    // "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS-RcH3_rFP8ZmSEgjhZy5pv4O4bLl-SwZGsA&s";
-    "https://encrypted-tbn3.gstatic.com/images?q=tbn:ANd9GcSrvV7VFmPY5PGdfMH0XskLzPsebL1LFrrfbzALx8zf3sKIC3Bv";
+  const defaultImageSrc = defatulImage;
 
   // image uploading part
   const [showUploadModal, setShowUploadModal] = useState(false);

@@ -27,12 +27,12 @@ import { FiEdit } from "react-icons/fi";
 import Autocomplete from "@mui/material/Autocomplete";
 import TextField from "@mui/material/TextField";
 import { FiSettings } from "react-icons/fi";
-import RawMaterial from "../ExpandFolders/RawMaterial";
-import Shipment from "../ExpandFolders/Shipment";
-import Overheads from "../ExpandFolders/Overheads";
+import RawMaterial from "./ExpandFolders/RawMaterial";
+import Shipment from "./ExpandFolders/Shipment";
+import Overheads from "./ExpandFolders/Overheads";
 import { useParams } from "react-router-dom";
 import { MdOutlineDelete } from "react-icons/md";
-import Manufacturing from "../ExpandFolders/Manufacturing";
+import Manufacturing from "./ExpandFolders/Manufacturing";
 import FeatherIcon from "feather-icons-react";
 import { ToastContainer, toast } from "react-toastify";
 import HoursPlanningTab from "../HoursPlanningTab";
@@ -983,7 +983,7 @@ const PartsTable = React.memo(
                     type="number"
                     step="any"
                     id="costPerUnit"
-                    value={costPerUnit}
+                    value={Math.round(costPerUnit)}
                     onChange={(e) => setCostPerUnit(e.target.value)}
                     // required
                     onWheel={(e) => e.target.blur()}
@@ -1003,7 +1003,7 @@ const PartsTable = React.memo(
                     type="number"
                     step="any"
                     id="timePerUnit"
-                    value={timePerUnit}
+                    value={Math.round(timePerUnit)}
                     onChange={(e) => setTimePerUnit(e.target.value)}
                     // required
                     onWheel={(e) => e.target.blur()}

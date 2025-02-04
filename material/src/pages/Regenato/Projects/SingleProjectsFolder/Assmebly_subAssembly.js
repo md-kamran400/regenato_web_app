@@ -24,31 +24,35 @@ import {
 import { MdOutlineDelete } from "react-icons/md";
 import FeatherIcon from "feather-icons-react";
 import { useParams } from "react-router-dom";
-import RawMaterial from "./ExpandFolders/RawMaterial";
-import Manufacturing from "./ExpandFolders/Manufacturing";
-import Shipment from "./ExpandFolders/Shipment";
-import Overheads from "./ExpandFolders/Overheads";
+import RawMaterial from "./assembly_Sub_ExpandFolders/RawMaterial";
+import Manufacturing from "./assembly_Sub_ExpandFolders/Manufacturing";
+import Shipment from "./assembly_Sub_ExpandFolders/Shipment";
+import Overheads from "./assembly_Sub_ExpandFolders/Overheads";
 import Autocomplete from "@mui/material/Autocomplete";
 import TextField from "@mui/material/TextField";
 import { FiSettings } from "react-icons/fi";
 import { useLocation } from "react-router-dom";
 import { FaEdit } from "react-icons/fa";
 import { toast } from "react-toastify";
-
-const SingleSubAssembly = () => {
+const Assmebly_subAssembly = ({
+  projectId,
+  subAssembly,
+  assemblyId,
+  onupdateAssmebly,
+}) => {
+  console.log("sub assmenly id", subAssembly._id);
+  console.log("sub project id", projectId);
+  console.log("assembly id", assemblyId);
+  // console.log("sub assmenly main id", subAssembly);
   const { _id } = useParams();
-
   const location = useLocation();
   const subAssemblyName = location.state?.subAssemblyName || "";
-
   const [subAssemblyList, setsubAssemblyList] = useState([]);
   const [modalAdd, setModalAdd] = useState(false);
-  // const [partsListItems, setPartsListsItems] = useState([]);
   const [partsListItems, setPartsListItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [partsData, setPartsData] = useState([]);
-  const [partDetails, setPartDetails] = useState([]);
   const [listData, setListData] = useState([]);
   const [posting, setPosting] = useState(false);
   // Assuming parts array is populated
@@ -56,30 +60,18 @@ const SingleSubAssembly = () => {
   const [parts, setParts] = useState([]);
   const [selectedPartData, setSelectedPartData] = useState(parts[0]);
   const [manufacturingVariables, setManufacturingVariables] = useState([]);
-  const [expandedRows, setExpandedRows] = useState({});
   const [expandedRowId, setExpandedRowId] = useState(null);
   const [costPerUnit, setCostPerUnit] = useState("");
   const [timePerUnit, setTimePerUnit] = useState("");
   const [detailedPartData, setDetailedPartData] = useState({});
-  const [selectedId, setSelectedId] = useState(null);
   const [projectName, setProjectName] = useState("");
-  const [projectType, setprojectType] = useState("");
   const [partId, setPartId] = useState("");
-  const [partsDisplay, setPartsDisplay] = useState([]);
-  const [assemblyItems, setAssemblyItems] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [partsListItemsUpdated, setPartsListItemsUpdated] = useState(false);
   const [codeName, setCodeName] = useState("");
-  const [editModal, setEditModal] = useState(false);
   // const [editModal, setEditModal] = useState(false);
-  const [subAssemblyListName, setsubAssemblyListName] = useState("");
-  const [selectedPartsList, setSelectedPartsList] = useState(null);
 
   const [editQuantityModal, setEditQuantityModal] = useState(false);
   const [itemToEdit, setItemToEdit] = useState(null);
-
-  const [totalCost, setTotalCost] = useState(0);
-  const [totalHours, setTotalHours] = useState(0);
 
   const [deleteModal, setDeleteModal] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
@@ -87,67 +79,13 @@ const SingleSubAssembly = () => {
     setModalAdd(!modalAdd);
   };
 
-  // const fetchSubAssemblyData = async () => {
-  //   try {
-  //     const response = await fetch(
-  //       `${process.env.REACT_APP_BASE_URL}/api/subAssembly/${_id}`
-  //     );
-  //     const data = await response.json();
-  //     setsubAssemblyList(data);
-  //     setProjectName(data.subAssemblyListFirst);
-  //     console.log(data);
-  //   } catch (error) {
-  //     console.error("Error fetching sub-assemblies:", error);
-  //   }
-  // };
-  // useEffect(() => {
-  //   fetchSubAssemblyData();
-  // }, []);
-
-  const fetchSubAssembly = async () => {
-    try {
-      const response = await fetch(
-        `${process.env.REACT_APP_BASE_URL}/api/subAssembly/${_id}`
-      );
-      const data = await response.json();
-      setsubAssemblyList(data);
-      setProjectName(data.subAssemblyListFirst);
-      setPartsListItems(data.partsListItems || []); // Set to empty array if undefined
-      console.log("partListItems", data.partsListItems);
-      console.log(data);
-    } catch (error) {
-      console.error("Error fetching sub-assemblies:", error);
-      setPartsListItems([]); // Set to empty array if there's an error
-    }
-  };
-
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
-      await fetchSubAssembly();
       setIsLoading(false);
     };
     fetchData();
   }, [_id]);
-
-  // useEffect(() => {
-  //   const fetchPartsListItems = async () => {
-  //     try {
-  //       const response = await fetch(
-  //         `${process.env.REACT_APP_BASE_URL}/api/subAssembly/${_id}/subAssemblyListFirst/${subAssemblyList._id}/items`
-  //       );
-  //       if (!response.ok) {
-  //         throw new Error("Network response was not ok");
-  //       }
-  //       const data = await response.json();
-  //       setPartsListsItems(data);
-  //     } catch (error) {
-  //       console.error("Error fetching parts list items:", error);
-  //     }
-  //   };
-
-  //   fetchPartsListItems();
-  // }, [_id]);
 
   useEffect(() => {
     const fetchParts = async () => {
@@ -279,7 +217,6 @@ const SingleSubAssembly = () => {
   const handleSubmit = async (event) => {
     event.preventDefault();
     setIsLoading(true);
-
     const payload = {
       partId: selectedPartData?.id || null,
       partName: selectedPartData?.partName || "",
@@ -292,70 +229,45 @@ const SingleSubAssembly = () => {
       shipmentVariables: detailedPartData.shipmentVariables || [],
       overheadsAndProfits: detailedPartData.overheadsAndProfits || [],
     };
-
     try {
       const response = await fetch(
-        `${process.env.REACT_APP_BASE_URL}/api/subAssembly/${_id}/partsListItems`,
+        `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${projectId}/assemblyList/${assemblyId}/subAssemblies/${subAssembly._id}/partsListItems`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         }
       );
-
       if (!response.ok) {
         throw new Error("Failed to add part. Please check your input.");
       }
-
       const { data: newPart } = await response.json();
-
       // Update the parts list in the state directly
       setPartsListItems((prevItems) => [...prevItems, newPart]);
-
-      // Optionally, call fetchSubAssembly to refresh all data
-      await fetchSubAssembly();
-
+      //   Optionally, call fetchSubAssembly to refresh all data
+      onupdateAssmebly(newPart);
       // Reset form and state
+
       setModalAdd(false);
       setSelectedPartData(null);
       setCostPerUnit("");
       setTimePerUnit("");
       setQuantity(0);
       setDetailedPartData({});
+      toast.success("Part Add successfully");
     } catch (error) {
       console.error("Error:", error);
+      toast.error("Failed to add part. Please try again.");
       setError(error.message || "Failed to add part. Please try again.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  useEffect(() => {
-    const calculateTotals = () => {
-      const newTotalCost = partsListItems.reduce(
-        (acc, item) =>
-          acc +
-          parseFloat(item.costPerUnit || 0) * parseInt(item.quantity || 0),
-        0
-      );
-      const newTotalHours = partsListItems.reduce(
-        (acc, item) =>
-          acc +
-          parseFloat(item.timePerUnit || 0) * parseInt(item.quantity || 0),
-        0
-      );
-
-      setTotalCost(newTotalCost);
-      setTotalHours(formatTime(newTotalHours));
-    };
-
-    calculateTotals();
-  }, [partsListItems]);
-
   const handleDeletePart = async () => {
     try {
       const response = await fetch(
-        `${process.env.REACT_APP_BASE_URL}/api/subAssembly/${_id}/parts/${itemToDelete._id}`,
+        `${process.env.REACT_APP_BASE_URL}/api/assmebly/${_id}/subAssemblies/${subAssembly._id}/parts/${itemToDelete._id}`,
         {
           method: "DELETE",
         }
@@ -367,11 +279,13 @@ const SingleSubAssembly = () => {
       setPartsListItems((prevItems) =>
         prevItems.filter((item) => item._id !== itemToDelete._id)
       );
+      onupdateAssmebly(data);
       setDeleteModal(false);
       setItemToDelete(null);
+      toast.success("Part Add Delete SuccessFully");
     } catch (error) {
+      toast.error("Error deleting part");
       console.error("Error deleting part:", error);
-      // Handle error (e.g., show an error message to the user)
     }
   };
 
@@ -435,8 +349,6 @@ const SingleSubAssembly = () => {
     }
   };
 
-  console.log("Main value of pats list ", partsListItems);
-
   return (
     <>
       <div style={{ padding: "1.5rem" }}>
@@ -451,89 +363,45 @@ const SingleSubAssembly = () => {
           <Row>
             <Col lg={12}>
               <Card>
-                <CardBody>
+                <CardBody key={subAssembly._id}>
                   <div
                     style={{
-                      padding: "10px 15px",
-                      borderRadius: "5px",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      backgroundColor: "#f8f9fa",
-                      boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.1)",
+                      padding: "5px 10px 0px 10px",
+                      borderRadius: "3px",
                     }}
+                    className="button-group flex justify-content-between align-items-center"
                   >
-                    {/* Left Section */}
-                    <div style={{ display: "flex" }}>
-                      <ul
-                        style={{
-                          listStyleType: "none",
-                          padding: 0,
-                          fontWeight: "600",
-                        }}
-                      >
-                        <li style={{ fontSize: "22px", marginBottom: "5px" }}>
-                          {subAssemblyName}
-                        </li>
-                        <li style={{ fontSize: "18px" }}>
-                          <span className="badge bg-danger-subtle text-danger">
-                            Sub Assembly
-                          </span>
-                        </li>
-                      </ul>
-                      <div
-                        style={{
-                          display: "flex",
-                          gap: "20px",
-                          marginTop: "10px",
-                          marginLeft: "70px",
-                        }}
-                      >
-                        <div>
-                          <h3 style={{ fontSize: "16px", marginBottom: "5px" }}>
-                            Total Cost
-                          </h3>
-                          <p
-                            style={{
-                              margin: 0,
-                              fontSize: "14px",
-                              color: "#6c757d",
-                            }}
-                          >
-                            <p>{totalCost.toFixed(2)}</p>
-                          </p>
-                        </div>
+                    <ul
+                      style={{
+                        listStyleType: "none",
+                        padding: 0,
+                        fontWeight: "600",
+                      }}
+                    >
+                      <li style={{ fontSize: "25px", marginBottom: "5px" }}>
+                        {subAssembly.subAssemblyName}
+                      </li>
 
-                        <div>
-                          <h3 style={{ fontSize: "16px", marginBottom: "5px" }}>
-                            Total Hours
-                          </h3>
-                          <p
-                            style={{
-                              margin: 0,
-                              fontSize: "14px",
-                              color: "#6c757d",
-                            }}
-                          >
-                            <p>{totalHours}</p>
-                          </p>
-                        </div>
-                      </div>
-                    </div>
+                      <li style={{ fontSize: "19px" }}>
+                        <span class="badge bg-danger-subtle text-danger">
+                          Sub Assmebly
+                        </span>
+                      </li>
+                    </ul>
 
-                    {/* Right Section (Dropdown) */}
                     <UncontrolledDropdown direction="left">
                       <DropdownToggle
                         tag="button"
-                        className="btn btn-link text-muted p-1 shadow-none"
+                        className="btn btn-link text-muted p-1 mt-n2 py-0 text-decoration-none fs-15 shadow-none"
                       >
                         <FeatherIcon
+                          style={{ fontWeight: "600" }}
                           icon="more-horizontal"
                           className="icon-sm"
                         />
                       </DropdownToggle>
 
-                      <DropdownMenu className="dropdown-menu-end">
+                      <DropdownMenu className="dropdown-menu-start">
                         <DropdownItem href="#">
                           <i className="ri-edit-2-line align-bottom me-2 text-muted"></i>{" "}
                           Edit
@@ -549,7 +417,7 @@ const SingleSubAssembly = () => {
                     </UncontrolledDropdown>
                   </div>
 
-                  <div className="button-group mt-3">
+                  <div className="button-group">
                     <Button
                       color="success"
                       className="add-btn"
@@ -589,8 +457,8 @@ const SingleSubAssembly = () => {
                             </td>
                           </tr>
                         ) : (
-                          partsListItems &&
-                          partsListItems.map((item) => (
+                          subAssembly.partsListItems &&
+                          subAssembly.partsListItems.map((item) => (
                             <React.Fragment key={item._id}>
                               <tr
                                 onClick={() =>
@@ -611,9 +479,7 @@ const SingleSubAssembly = () => {
                                   {item.codeName || ""}
                                 </td>
                                 <td>
-                                  {Math.round(
-                                    parseFloat(item.costPerUnit || 0)
-                                  )}
+                                  {parseFloat(item.costPerUnit || 0).toFixed(2)}
                                 </td>
                                 <td>{formatTime(item.timePerUnit || 0)}</td>
                                 <td>
@@ -634,10 +500,10 @@ const SingleSubAssembly = () => {
                                   </div>
                                 </td>
                                 <td>
-                                  {Math.round(
+                                  {(
                                     parseFloat(item.costPerUnit || 0) *
-                                      parseInt(item.quantity || 0)
-                                  )}
+                                    parseInt(item.quantity || 0)
+                                  ).toFixed(2)}
                                 </td>
                                 <td>
                                   {formatTime(
@@ -649,8 +515,8 @@ const SingleSubAssembly = () => {
                                 <td className="action-cell">
                                   <div className="action-buttons">
                                     {/* <span>
-                                    <FiEdit size={20} />
-                                  </span> */}
+                                        <FiEdit size={20} />
+                                      </span> */}
                                     <span
                                       style={{
                                         color: "red",
@@ -696,10 +562,11 @@ const SingleSubAssembly = () => {
                                         partName={item.partName}
                                         rmVariables={item.rmVariables || []}
                                         projectId={_id}
-                                        partId={item._id}
-                                        subAssemblyId={_id}
+                                        partId={item._id} //shai h
+                                        assemblyId={assemblyId}
+                                        subAssemblyId={subAssembly._id}
                                         source="subAssemblyListFirst"
-                                        onUpdatePrts={fetchSubAssembly}
+                                        onUpdatePrts={onupdateAssmebly}
                                         quantity={item.quantity}
                                       />
 
@@ -710,9 +577,10 @@ const SingleSubAssembly = () => {
                                         }
                                         partId={item._id}
                                         quantity={item.quantity}
-                                        subAssemblyId={_id}
+                                        assemblyId={assemblyId}
+                                        subAssemblyId={subAssembly._id}
                                         source="subAssemblyListFirst"
-                                        onUpdatePrts={fetchSubAssembly}
+                                        onUpdatePrts={onupdateAssmebly}
                                       />
 
                                       <Shipment
@@ -722,21 +590,23 @@ const SingleSubAssembly = () => {
                                         }
                                         partId={item._id}
                                         quantity={item.quantity}
-                                        subAssemblyId={_id}
+                                        assemblyId={assemblyId}
+                                        subAssemblyId={subAssembly._id}
                                         source="subAssemblyListFirst"
-                                        onUpdatePrts={fetchSubAssembly}
+                                        onUpdatePrts={onupdateAssmebly}
                                       />
                                       <Overheads
                                         partName={item.partName}
                                         projectId={_id}
                                         partId={item._id}
                                         quantity={item.quantity}
-                                        subAssemblyId={_id}
+                                        assemblyId={assemblyId}
+                                        subAssemblyId={subAssembly._id}
                                         overheadsAndProfits={
                                           item.overheadsAndProfits
                                         }
                                         source="subAssemblyListFirst"
-                                        onUpdatePrts={fetchSubAssembly}
+                                        onUpdatePrts={onupdateAssmebly}
                                       />
                                     </div>
                                   </td>
@@ -754,6 +624,7 @@ const SingleSubAssembly = () => {
           </Row>
         </Col>
       </div>
+
       <Modal isOpen={modalAdd} toggle={toggleAddModal}>
         <ModalHeader toggle={toggleAddModal}>Add sub Assembly List</ModalHeader>
         <ModalBody>
@@ -1034,7 +905,6 @@ const SingleSubAssembly = () => {
                 </AccordionBody>
               </AccordionItem>
             </UncontrolledAccordion> */}
-
             <Button
               type="submit"
               color="primary"
@@ -1091,7 +961,7 @@ const SingleSubAssembly = () => {
               }
               required
             />
-            <Button type="submit" color="primary" className="mt-3">
+            <Button type="submit" color="primary">
               Update Quantity
             </Button>
           </form>
@@ -1101,4 +971,4 @@ const SingleSubAssembly = () => {
   );
 };
 
-export default SingleSubAssembly;
+export default Assmebly_subAssembly;

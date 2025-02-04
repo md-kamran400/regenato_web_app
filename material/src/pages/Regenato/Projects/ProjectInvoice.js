@@ -28,7 +28,6 @@ import * as Yup from "yup";
 
 //redux
 import { useDispatch } from "react-redux";
-import { addNewInvoice as onAddNewInvoice } from "../../../slices/thunks";
 
 const ProjectInvoice = () => {
   const dispatch = useDispatch();
@@ -182,7 +181,6 @@ const ProjectInvoice = () => {
         shipping_taxno: values.shipping_taxno,
         product_name: values.product_name,
       };
-      dispatch(onAddNewInvoice(newInvoice));
       history("/apps-invoices-list");
       validation.resetForm();
     },

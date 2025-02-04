@@ -27,18 +27,26 @@ import FeatherIcon from "feather-icons-react";
 import Autocomplete from "@mui/material/Autocomplete";
 import TextField from "@mui/material/TextField";
 import { FiSettings } from "react-icons/fi";
-import RawMaterial from "../ExpandFolders/RawMaterial";
-import Shipment from "../ExpandFolders/Shipment";
-import Overheads from "../ExpandFolders/Overheads";
+import RawMaterial from "./assemblyExpandFolders/RawMaterial";
+import Shipment from "./assemblyExpandFolders/Shipment";
+import Overheads from "./assemblyExpandFolders/Overheads";
 import { useParams } from "react-router-dom";
 import { MdOutlineDelete } from "react-icons/md";
-import Manufacturing from "../ExpandFolders/Manufacturing";
-import SubAssemblyTable from "./SubAssemblyTable";
-import AssmblyMultyPart from "./AssmblyMultyPart";
+import Manufacturing from "./assemblyExpandFolders/Manufacturing";
+// import SubAssemblyTable from "./SubAssemblyTable";
+// import AssmblyMultyPart from "./AssmblyMultyPart";
 import { ToastContainer, toast } from "react-toastify"; // Add this import
+import { FaEdit } from "react-icons/fa";
+import Assmebly_subAssembly from "./Assmebly_subAssembly";
 
 const AssemblyTable = React.memo(
-  ({ assemblypartsList, onAddPart, onUpdatePrts }) => {
+  ({
+    assemblypartsList,
+    onAddPart,
+    onUpdatePrts,
+    projectId,
+    assemblypartsListId,
+  }) => {
     const { _id } = useParams();
     const [modalAdd, setModalAdd] = useState(false);
     const [modal_delete, setModalDelete] = useState(false);
@@ -69,6 +77,7 @@ const AssemblyTable = React.memo(
     const [partId, setPartId] = useState("");
     const [partsListItems, setPartsListsItems] = useState([]);
     const [assemblyItems, setAssemblyItems] = useState([]);
+    const [isLoading, setIsLoading] = useState(false);
 
     const [subAssemblyItems, setSubAssemblyItems] = useState([]);
     const [partsAssmeblyItems, setpartsAssmeblyItems] = useState([]);
@@ -117,28 +126,6 @@ const AssemblyTable = React.memo(
       };
     }, []);
 
-    // Function to fetch existing sub assembly lists
-    // const fetchExistingSubAssemblyLists = useCallback(async () => {
-    //   try {
-    //     const response = await fetch(
-    //       ${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/assemblyPartsLists/${assemblypartsList._id}/subAssemblyPartsLists
-    //     );
-    //     const data = await response.json();
-    //     if (Array.isArray(data)) {
-    //       setExistingSubAssemblyLists(data);
-    //     } else {
-    //       console.error(
-    //         "Expected an array of sub-assembly lists, but received:",
-    //         data
-    //       );
-    //       setExistingSubAssemblyLists([]);
-    //     }
-    //   } catch (error) {
-    //     console.error("Error fetching existing sub assembly lists:", error);
-    //     setExistingSubAssemblyLists([]);
-    //   }
-    // }, [_id]);
-
     const fetchExistingSubAssemblyLists = useCallback(async () => {
       if (isFetching) return; // Prevent multiple concurrent requests
       setIsFetching(true);
@@ -170,6 +157,18 @@ const AssemblyTable = React.memo(
       }
     }, [_id, assemblypartsList]);
 
+    const handleRowClickParts = async (rowId, partName) => {
+      setExpandedRowId(expandedRowId === rowId ? null : rowId);
+
+      const matchingPart = parts.find((part) => part.partName === partName);
+      if (matchingPart) {
+        await fetchDetailedPartData(partName); // Fetch data for the selected part
+      } else {
+        console.error("Part not found in parts list.");
+        setDetailedPartData({}); // Clear data if not found
+      }
+    };
+
     // }, [_id, existingSubAssemblyLists]);
 
     useEffect(() => {
@@ -179,90 +178,6 @@ const AssemblyTable = React.memo(
     useEffect(() => {
       // This will cause a re-render when existingSubAssemblyLists changes
     }, [existingSubAssemblyLists]);
-
-    //  =================  **********11*===========
-    const handleUpdateAssemblyLists = useCallback((updatedAssembly) => {
-      setSubAssemblyItems((prevItems) =>
-        prevItems.map((item) =>
-          item._id === updatedAssembly._id ? updatedAssembly : item
-        )
-      );
-    }, []);
-
-    const handleAddAssembly = useCallback((newAssembly) => {
-      setSubAssemblyItems((prevAssemblyLists) => [
-        ...prevAssemblyLists,
-        newAssembly,
-      ]);
-    }, []);
-
-    const SubrenderAssemblyContent = useCallback(() => {
-      return (
-        <div className="assembly-lists">
-          {Array.isArray(subAssemblyItems) && subAssemblyItems.length > 0 ? (
-            subAssemblyItems.map((subAssemblyItem, index) => (
-              <div key={index} className="parts-list">
-                <SubAssemblyTable
-                  key={index}
-                  subAssemblyItems={subAssemblyItem}
-                  assemblyId={assemblypartsList._id}
-                  // onUpdateSubAssembly={handleSubAssemblyUpdate}
-                  onUpdatePrts={onUpdatePrts}
-                  onAddAssembly={handleAddAssembly}
-                />
-              </div>
-            ))
-          ) : (
-            <div>No sub-assemblies available.</div>
-          )}
-        </div>
-      );
-    }, [subAssemblyItems, handleUpdateAssemblyLists, handleAddAssembly]);
-    //  =================  **********11*===========
-
-    //  =================  ********22*===========
-    const MulityhandleUpdateAssemblyLists = useCallback((updatedAssembly) => {
-      setpartsAssmeblyItems((prevItems) =>
-        prevItems.map((item) =>
-          item._id === updatedAssembly._id ? updatedAssembly : item
-        )
-      );
-    }, []);
-
-    const MulityhandleAddAssembly = useCallback((newAssembly) => {
-      setpartsAssmeblyItems((prevAssemblyLists) => [
-        ...prevAssemblyLists,
-        newAssembly,
-      ]);
-    }, []);
-
-    const MulitySubrenderAssemblyContent = useCallback(() => {
-      return (
-        <div className="assembly-lists">
-          {Array.isArray(partsAssmeblyItems) &&
-          partsAssmeblyItems.length > 0 ? (
-            partsAssmeblyItems.map((partsAssmeblyItem, index) => (
-              <div key={index} className="parts-list">
-                <AssmblyMultyPart
-                  key={index}
-                  partsAssmeblyItems={partsAssmeblyItem}
-                  assemblyId={assemblypartsList._id}
-                  // onUpdateSubAssembly={handleMultySubAssemblyUpdate}
-                  onUpdatePrts={onUpdatePrts}
-                  onAddAssembly={MulityhandleAddAssembly}
-                />
-              </div>
-            ))
-          ) : (
-            <div>No sub-Parts assembly available.</div>
-          )}
-        </div>
-      );
-    }, [
-      partsAssmeblyItems,
-      MulityhandleUpdateAssemblyLists,
-      MulityhandleAddAssembly,
-    ]);
 
     //  =================  *****************===========
 
@@ -581,7 +496,7 @@ const AssemblyTable = React.memo(
 
         const data = await response.json();
         onUpdatePrts(data);
-        toast.success('Assembly Updated Successfully')
+        toast.success("Assembly Updated Successfully");
         toggleEditModal(false);
       } catch (error) {
         console.error("Error updating parts list:", error);
@@ -737,13 +652,36 @@ const AssemblyTable = React.memo(
       }
     };
 
+    const formatTime = (time) => {
+      if (time === 0) {
+        return 0;
+      }
+
+      let result = "";
+
+      const hours = Math.floor(time);
+      const minutes = Math.round((time - hours) * 60);
+
+      if (hours > 0) {
+        result += `${hours}h `;
+      }
+
+      if (minutes > 0 || (hours === 0 && minutes !== 0)) {
+        result += `${minutes}m`;
+      }
+
+      return result.trim();
+    };
+
+    console.log("assmebly items", assemblypartsList);
+
     return (
       <Col
         lg={12}
         style={{
           boxSizing: "border-box",
           borderTop: "20px solid rgb(75, 56, 179)",
-          
+
           borderRadius: "5px",
         }}
       >
@@ -767,7 +705,7 @@ const AssemblyTable = React.memo(
                     }}
                   >
                     <li style={{ fontSize: "25px", marginBottom: "10px" }}>
-                      {assemblypartsList.assemblyListName}
+                      {assemblypartsList.AssemblyName}
                     </li>
 
                     <li style={{ fontSize: "19px" }}>
@@ -790,8 +728,6 @@ const AssemblyTable = React.memo(
                     </DropdownToggle>
 
                     <DropdownMenu className="dropdown-menu-start">
-                      
-
                       <DropdownItem
                         href="#"
                         onClick={() => toggleEditModal(assemblypartsList)}
@@ -819,7 +755,10 @@ const AssemblyTable = React.memo(
                   <Button
                     className="add-btn"
                     onClick={toggleAddModalPartAssembly}
-                    style={{backgroundColor:'rgb(69, 203, 133)', color: "white" }}
+                    style={{
+                      backgroundColor: "rgb(69, 203, 133)",
+                      color: "white",
+                    }}
                   >
                     <i className="ri-add-line align-bottom me-1"></i> Add Part
                     List
@@ -828,18 +767,218 @@ const AssemblyTable = React.memo(
                     color="danger"
                     className="add-btn"
                     onClick={toggleAddModalsubAssembly}
-                    style={{ backgroundColor: "rgb(240, 101, 72)", color: "white" }}
+                    style={{
+                      backgroundColor: "rgb(240, 101, 72)",
+                      color: "white",
+                    }}
                   >
                     <i className="ri-add-line align-bottom me-1"></i> Add Sub
                     Assembly
                   </Button>
                 </div>
-               
-                {SubrenderAssemblyContent()}
 
-                {MulitySubrenderAssemblyContent()}
-               
-                
+                <div className="table-wrapper">
+                  <table className="project-table">
+                    <thead>
+                      <tr>
+                        <th onClick={() => handleRowClickParts("name")}>
+                          Name
+                        </th>
+                        <th>Cost Per Unit</th>
+                        <th>Machining Hours</th>
+                        <th>Quantity</th>
+                        <th>Total Cost</th>
+                        <th>Total Machining Hours</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {isLoading ? (
+                        <tr>
+                          <td colSpan={8} className="text-center">
+                            <div
+                              className="spinner-border text-primary"
+                              role="status"
+                            >
+                              <span className="visually-hidden">
+                                Loading...
+                              </span>
+                            </div>
+                          </td>
+                        </tr>
+                      ) : (
+                        assemblypartsList.partsListItems?.map((item) => (
+                          <React.Fragment key={item._id}>
+                            <tr
+                              onClick={() =>
+                                handleRowClickParts(item._id, item.partName)
+                              }
+                              className={
+                                expandedRowId === item._id ? "expanded" : ""
+                              }
+                            >
+                              <td
+                                style={{
+                                  cursor: "pointer",
+                                  color: "#64B5F6",
+                                }}
+                                className="parent_partName"
+                              >
+                                {item.partName} ({item.Uid || ""}){" "}
+                                {item.codeName || ""}
+                              </td>
+                              <td>
+                                {Math.round(parseFloat(item.costPerUnit || 0))}
+                              </td>
+                              <td>{formatTime(item.timePerUnit || 0)}</td>
+                              <td>
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    width: "60%",
+                                  }}
+                                >
+                                  {parseInt(item.quantity || 0)}
+                                  <button
+                                    className="btn btn-sm btn-success edit-item-btn"
+                                    onClick={() => handleEditQuantity(item)}
+                                  >
+                                    <FaEdit />-
+                                  </button>
+                                </div>
+                              </td>
+                              <td>
+                                {Math.round(
+                                  parseFloat(item.costPerUnit || 0) *
+                                    parseInt(item.quantity || 0)
+                                )}
+                              </td>
+                              <td>
+                                {formatTime(
+                                  parseFloat(item.timePerUnit || 0) *
+                                    parseInt(item.quantity || 0)
+                                )}
+                              </td>
+
+                              <td className="action-cell">
+                                <div className="action-buttons">
+                                  {/* <span>
+                                    <FiEdit size={20} />
+                                  </span> */}
+                                  <span
+                                    style={{
+                                      color: "red",
+                                      cursor: "pointer",
+                                    }}
+                                  >
+                                    <MdOutlineDelete
+                                      size={25}
+                                      onClick={() => {
+                                        setDeleteModal(true);
+                                        setItemToDelete(item);
+                                      }}
+                                    />
+                                  </span>
+                                </div>
+                              </td>
+                            </tr>
+                            {expandedRowId === item._id && (
+                              <tr className="details-row">
+                                <td colSpan={6}>
+                                  <div className="details-box">
+                                    <h5
+                                      className="mb-3 d-flex align-items-center"
+                                      style={{
+                                        fontWeight: "bold",
+                                        color: "#333",
+                                      }}
+                                    >
+                                      <FiSettings
+                                        style={{
+                                          fontSize: "1.2rem",
+                                          marginRight: "10px",
+                                          color: "#2563eb",
+                                          fontWeight: "bold",
+                                        }}
+                                      />
+                                      {item.partName}
+                                    </h5>
+
+                                    {/* Raw Materials Section */}
+
+                                    <RawMaterial
+                                      partName={item.partName}
+                                      rmVariables={item.rmVariables || []}
+                                      projectId={_id}
+                                      partId={item._id}
+                                      subAssemblyId={_id}
+                                      source="subAssemblyListFirst"
+                                      onUpdatePrts={onUpdatePrts}
+                                      quantity={item.quantity}
+                                    />
+
+                                    <Manufacturing
+                                      partName={item.partName}
+                                      manufacturingVariables={
+                                        item.manufacturingVariables || []
+                                      }
+                                      partId={item._id}
+                                      quantity={item.quantity}
+                                      subAssemblyId={_id}
+                                      source="subAssemblyListFirst"
+                                      onUpdatePrts={onUpdatePrts}
+                                    />
+
+                                    <Shipment
+                                      partName={item.partName}
+                                      shipmentVariables={
+                                        item.shipmentVariables || []
+                                      }
+                                      partId={item._id}
+                                      quantity={item.quantity}
+                                      subAssemblyId={_id}
+                                      source="subAssemblyListFirst"
+                                      onUpdatePrts={onUpdatePrts}
+                                    />
+                                    <Overheads
+                                      partName={item.partName}
+                                      projectId={_id}
+                                      partId={item._id}
+                                      quantity={item.quantity}
+                                      subAssemblyId={_id}
+                                      overheadsAndProfits={
+                                        item.overheadsAndProfits
+                                      }
+                                      source="subAssemblyListFirst"
+                                      onUpdatePrts={onUpdatePrts}
+                                    />
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                          </React.Fragment>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {Array.isArray(assemblypartsList?.subAssemblies) &&
+                  assemblypartsList.subAssemblies.length > 0 && (
+                    <>
+                      {assemblypartsList.subAssemblies.map((subAssembly) => (
+                        <Assmebly_subAssembly
+                          key={subAssembly._id}
+                          projectId={projectId}
+                          subAssembly={subAssembly}
+                          assemblyId={assemblypartsListId}
+                          onupdateAssmebly={onUpdatePrts}
+                          // onupdateAssmebly={fetchAssembly}
+                        />
+                      ))}
+                    </>
+                  )}
               </CardBody>
             </Card>
           </Col>
@@ -1211,11 +1350,10 @@ const AssemblyTable = React.memo(
                   </Label>
                   <div className="mt-1">
                     <select
-                     style={{ width: "410px" }}
+                      style={{ width: "410px" }}
                       className="form-select"
                       value={selectedSubAssemblyList}
                       onChange={(e) => {
-
                         setSelectedSubAssemblyList(e.target.value);
                         setIsAddingNewSubAssembly(false);
                       }}

@@ -24,10 +24,10 @@ import {
 import { MdOutlineDelete } from "react-icons/md";
 import FeatherIcon from "feather-icons-react";
 import { useParams } from "react-router-dom";
-import RawMaterial from "../../Projects/AssemblyExpandFolder/RawMaterial";
-import Manufacturing from "../../Projects/AssemblyExpandFolder/Manufacturing";
-import Shipment from "../../Projects/AssemblyExpandFolder/Shipment";
-import Overheads from "../../Projects/AssemblyExpandFolder/Overheads";
+import RawMaterial from "./AssemblyExpandFolder/RawMaterial";
+import Manufacturing from "./AssemblyExpandFolder/Manufacturing";
+import Shipment from "./AssemblyExpandFolder/Shipment";
+import Overheads from "./AssemblyExpandFolder/Overheads";
 import Autocomplete from "@mui/material/Autocomplete";
 import TextField from "@mui/material/TextField";
 import { FiSettings } from "react-icons/fi";
@@ -211,7 +211,7 @@ const SingleAssmeblyList = () => {
   const fetchDetailedPartData = useCallback(async (partName) => {
     try {
       const response = await fetch(
-       ` ${process.env.REACT_APP_BASE_URL}/api/parts`
+        ` ${process.env.REACT_APP_BASE_URL}/api/parts`
       );
       const data = await response.json();
       const partData = data.find((part) => part.partName === partName);
@@ -461,7 +461,7 @@ const SingleAssmeblyList = () => {
 
                       <li style={{ fontSize: "19px" }}>
                         <span class="badge bg-primary-subtle text-primary">
-                          Assmebly
+                          Assembly
                         </span>
                       </li>
                     </ul>
@@ -504,7 +504,7 @@ const SingleAssmeblyList = () => {
                     </Button>
 
                     <Button
-                      color="primary"
+                      color="danger"
                       className="add-btn"
                       onClick={() => setAddSubAssemblyModal(true)}
                     >
@@ -565,7 +565,9 @@ const SingleAssmeblyList = () => {
                                   {item.codeName || ""}
                                 </td>
                                 <td>
-                                  {parseFloat(item.costPerUnit || 0).toFixed(2)}
+                                  {Math.round(
+                                    parseFloat(item.costPerUnit || 0)
+                                  )}
                                 </td>
                                 <td>{formatTime(item.timePerUnit || 0)}</td>
                                 <td>
@@ -586,10 +588,10 @@ const SingleAssmeblyList = () => {
                                   </div>
                                 </td>
                                 <td>
-                                  {(
+                                  {Math.round(
                                     parseFloat(item.costPerUnit || 0) *
-                                    parseInt(item.quantity || 0)
-                                  ).toFixed(2)}
+                                      parseInt(item.quantity || 0)
+                                  )}
                                 </td>
                                 <td>
                                   {formatTime(
@@ -710,9 +712,9 @@ const SingleAssmeblyList = () => {
             {subAssemblyList.map((subAssembly) => (
               <Assmebly_subAssembly
                 key={subAssembly._id}
-                assemblyId = {_id}
+                assemblyId={_id}
                 subAssembly={subAssembly}
-                onupdateAssmebly = {fetchAssembly}
+                onupdateAssmebly={fetchAssembly}
               />
             ))}
           </div>
