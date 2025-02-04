@@ -7,10 +7,48 @@ import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
 import FormControl from "@mui/material/FormControl";
 import ListItemText from "@mui/material/ListItemText";
-import Select from "@mui/material/Select";
-import Checkbox from "@mui/material/Checkbox";
-
+// import Select from "@mui/material/Select";
+// import Checkbox from "@mui/material/Checkbox";
+import Select from "react-select";
 // third party impprts
+
+// Custom styles
+const customStyles = {
+  control: (provided) => ({
+    ...provided,
+    width: "20rem",
+    height: "40px",
+    overflow: "hidden", // Prevents height increase
+  }),
+  valueContainer: (provided) => ({
+    ...provided,
+    overflowX: "auto", // Allow horizontal scrolling
+    whiteSpace: "nowrap",
+    flexWrap: "nowrap", // Prevents wrapping
+  }),
+  multiValue: (provided) => ({
+    ...provided,
+    display: "inline-flex",
+    maxWidth: "150px", // Limit the display size
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  }),
+  multiValueLabel: (provided) => ({
+    ...provided,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  }),
+};
+
+const projectTypeOptions = [
+  { value: "External PO", label: "External PO" },
+  { value: "Internal PO", label: "Internal PO" },
+  { value: "PO Type 1", label: "PO Type 1" },
+  { value: "PO Type 2", label: "PO Type 2" },
+];
+
 import { Link } from "react-router-dom";
 // import { ToastContainer } from "react-toastify";
 import {
@@ -46,6 +84,8 @@ import DeleteModal from "../../../Components/Common/DeleteModal";
 import PaginatedList from "../Pagination/PaginatedList";
 
 const List = () => {
+  // const [filt, setFilteredData] = useState([]);
+  const [initialLoad, setInitialLoad] = useState(true);
   const [modal_list, setModalList] = useState(false);
   const [modal_edit, setModalEdit] = useState(false);
   const [modal_delete, setModalDelete] = useState(false);
@@ -68,7 +108,7 @@ const List = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [projectType, setProjectType] = useState("");
-  const [filterType, setFilterType] = useState("");
+  const [filterType, setFilterType] = useState([]);
   const itemsPerPage = 25;
   const [formData, setFormData] = useState({
     projectName: "",
@@ -83,7 +123,6 @@ const List = () => {
   const [daysToWork, setDaysToWork] = useState({});
   const [manufacturingData, setManufacturingData] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
 
   const fetchManufacturingData = useCallback(async () => {
     setLoading(true);
@@ -130,6 +169,27 @@ const List = () => {
   const handleFilterChange = (e) => {
     setFilterType(e.target.value);
   };
+
+  // const handleFilterChange = (selectedOptions) => {
+  //   const selectedValues = selectedOptions
+  //     ? selectedOptions.map((opt) => opt.value)
+  //     : [];
+
+  //   // Update the filterType state with the selected values
+  //   setFilterType(selectedValues);
+
+  //   // Filter the projectListsData based on selected PO types
+  //   const filteredProjects = projectListsData.filter(
+  //     (item) =>
+  //       !selectedValues.length || selectedValues.includes(item.projectType)
+  //   );
+
+  //   // Update the projectListsData state with filtered projects
+  //   setprojectListsData(filteredProjects);
+
+  //   // Update the UI to reflect the selected options
+  //   setProjectType(selectedValues.join(", "));
+  // };
 
   const handleSingleProjectTotalCount = (newTotal) => {
     setTotalCostCount(newTotal);
@@ -184,6 +244,10 @@ const List = () => {
       }
       const data = await response.json();
       setprojectListsData(data);
+      if (initialLoad) {
+        setFilterType(""); // Set filter to empty string on initial load
+        setInitialLoad(false);
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -200,11 +264,42 @@ const List = () => {
   //   item.projectName.toLowerCase().includes(searchTerm.toLowerCase())
   // );
   // Modify the filteredData calculation:
+  // const filteredData = projectListsData.filter(
+  //   (item) =>
+  //     item?.projectName?.toLowerCase().includes(searchTerm.toLowerCase()) &&
+  //     (filterType === "" || item.projectType === filterType)
+  // );
+
+  // const filteredData = projectListsData.filter(
+  //   (item) =>
+  //     searchTerm.length === 0 || // If no search term, show all
+  //     searchTerm.some((term) =>
+  //       item?.projectName?.toLowerCase().includes(term.toLowerCase())
+  //     )
+  // );
   const filteredData = projectListsData.filter(
     (item) =>
-      item?.projectName?.toLowerCase().includes(searchTerm.toLowerCase()) &&
+      (searchTerm.length === 0 ||
+        searchTerm.some((term) =>
+          item.projectName.toLowerCase().includes(term.toLowerCase())
+        )) &&
       (filterType === "" || item.projectType === filterType)
+    // ((filterType === "" && true) ||
+    //   (filterType !== "" && item.projectType === filterType))
   );
+
+  const projectOptions = projectListsData.map((project) => ({
+    value: project.projectName,
+    label: project.projectName,
+  }));
+
+  const handleSearchChange = (selectedOptions) => {
+    const selectedValues = selectedOptions
+      ? selectedOptions.map((opt) => opt.value)
+      : [];
+    setSearchTerm(selectedValues); // Now searchTerm is an array
+    setCurrentPage(1);
+  };
 
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
   const paginatedData = filteredData.slice(
@@ -418,41 +513,29 @@ const List = () => {
         <div className="col-sm-7 ms-auto">
           <div className="d-flex justify-content-sm-end gap-2 align-items-center">
             <div className="search-box ms-2 col-sm-5 d-flex align-items-center">
-              <Input
-                type="text"
+              <Select
+                options={projectOptions}
+                isMulti
+                isClearable
                 placeholder="Search..."
-                value={searchTerm}
-                onChange={handleSearch}
-                style={{ width: "20rem", height: "40px" }}
+                onChange={handleSearchChange}
+                styles={customStyles}
               />
-              <i
-                className="ri-search-line search-icon ml-2"
-                style={{ marginTop: "-1px" }}
-              ></i>
             </div>
             <div className="col-sm-auto">
-              <FormControl style={{ width: "15rem", height: "40px" }}>
-                <InputLabel
-                  id="demo-simple-select-label"
-                  style={{ marginTop: "-6px" }}
-                >
-                  Filter by PO Type
-                </InputLabel>
-                <Select
-                  labelId="demo-simple-select-label"
-                  id="demo-simple-select"
-                  value={filterType}
-                  onChange={handleFilterChange}
-                  label="Filter by PO Type"
-                  style={{ height: "40px" }}
-                >
-                  <MenuItem value="">All Types</MenuItem>
-                  <MenuItem value="External PO">External PO</MenuItem>
-                  <MenuItem value="Internal PO">Internal PO</MenuItem>
-                  <MenuItem value="PO Type 1">PO Type 1</MenuItem>
-                  <MenuItem value="PO Type 2">PO Type 2</MenuItem>
-                </Select>
-              </FormControl>
+              <Select
+                options={projectTypeOptions}
+                isClearable
+                placeholder="Select Project Type"
+                onChange={(selectedOption) => {
+                  if (selectedOption) {
+                    setFilterType(selectedOption.value);
+                  } else {
+                    setFilterType("");
+                  }
+                }}
+                styles={customStyles}
+              />
             </div>
           </div>
         </div>
@@ -532,11 +615,6 @@ const List = () => {
                         </DropdownToggle>
 
                         <DropdownMenu className="dropdown-menu-end">
-                          {/* <DropdownItem onClick={() => toggleEditModal(item)}>
-                            <i className="ri-pencil-fill align-bottom me-2 text-muted"></i>{" "}
-                            Edit
-                          </DropdownItem>
-                          <div className="dropdown-divider"></div> */}
                           <DropdownItem
                             href="#"
                             onClick={() => {
@@ -618,7 +696,7 @@ const List = () => {
               </Input>
             </div>
             <Button type="submit" color="primary" disabled={isSubmitting}>
-            {isSubmitting ? 'Adding...' : 'Add Project'}
+              {isSubmitting ? "Adding..." : "Add Project"}
             </Button>
           </ModalBody>
         </form>

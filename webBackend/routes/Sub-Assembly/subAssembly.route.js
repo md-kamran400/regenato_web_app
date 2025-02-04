@@ -62,7 +62,7 @@ subAssemblyRoutes.get("/:_id", async (req, res) => {
     });
 
     // Update the sub-assembly document with calculated values
-    subAssembly.totalCost = totalCost;
+    subAssembly.costPerUnit = costPerUnit;
     subAssembly.timePerUnit = timePerUnit;
     subAssembly.machineHours = machineHours;
     subAssembly.updatedAt = new Date();

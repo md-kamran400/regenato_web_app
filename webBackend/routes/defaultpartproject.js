@@ -869,6 +869,8 @@ partproject.post(
   }
 );
 
+// Add this new route after the existing GET route for projects
+
 // edit for this
 // put the quNITTY
 
@@ -1298,6 +1300,480 @@ partproject.put(
     }
   }
 );
+
+// for assmebly
+partproject.get(
+  "/projects/:projectId/assemblyList/:subAssemblyId/subAssemblies",
+  async (req, res) => {
+    try {
+      const { projectId, subAssemblyId } = req.params;
+
+      // Validate project ID and subAssemblyId
+      if (!mongoose.Types.ObjectId.isValid(projectId)) {
+        return res.status(400).json({ error: "Invalid project ID format" });
+      }
+      if (!mongoose.Types.ObjectId.isValid(subAssemblyId)) {
+        return res.status(400).json({ error: "Invalid subAssemblyId format" });
+      }
+
+      // Find the project by ID
+      const project = await PartListProjectModel.findById(projectId);
+      if (!project) {
+        return res.status(404).json({ error: "Project not found" });
+      }
+
+      // Find the specific assemblyList item
+      const assemblyList = project.assemblyList.find(
+        (item) => item._id.toString() === subAssemblyId
+      );
+
+      if (!assemblyList) {
+        return res.status(404).json({ error: "assemblyList item not found" });
+      }
+
+      // Fetch subAssemblies
+      const subAssemblies = assemblyList.subAssemblies;
+
+      res.status(200).json({
+        status: "success",
+        message: "SubAssemblies retrieved successfully",
+        data: subAssemblies,
+      });
+    } catch (error) {
+      console.error(error);
+      res
+        .status(500)
+        .json({ error: "An error occurred while fetching subAssemblies" });
+    }
+  }
+);
+
+// Add this new route after the existing POST route for subAssemblyListFirst
+partproject.post(
+  "/projects/:projectId/assemblyList/:assemblyId/subAssemblies/:subAssemblyId/partsListItems",
+  async (req, res) => {
+    try {
+      const { projectId, assemblyId, subAssemblyId } = req.params;
+      const {
+        partName,
+        codeName,
+        costPerUnit,
+        timePerUnit,
+        quantity,
+        rmVariables,
+        manufacturingVariables,
+        shipmentVariables,
+        overheadsAndProfits,
+      } = req.body;
+
+      // Validate IDs
+      if (!mongoose.Types.ObjectId.isValid(projectId)) {
+        return res.status(400).json({ error: "Invalid project ID format" });
+      }
+      if (!mongoose.Types.ObjectId.isValid(assemblyId)) {
+        return res.status(400).json({ error: "Invalid assembly ID format" });
+      }
+      if (!mongoose.Types.ObjectId.isValid(subAssemblyId)) {
+        return res
+          .status(400)
+          .json({ error: "Invalid sub-assembly ID format" });
+      }
+
+      // Find the project
+      const project = await PartListProjectModel.findOne({
+        _id: projectId,
+        "assemblyList._id": assemblyId,
+        "assemblyList.subAssemblies._id": subAssemblyId,
+      });
+
+      if (!project) {
+        return res
+          .status(404)
+          .json({ error: "Project, Assembly, or Sub-Assembly not found" });
+      }
+
+      // Find the specific assembly list
+      const assemblyList = project.assemblyList.find(
+        (assembly) => assembly._id.toString() === assemblyId
+      );
+
+      if (!assemblyList) {
+        return res.status(404).json({ error: "Assembly not found" });
+      }
+
+      // Find the specific sub-assembly list
+      const subAssembly = assemblyList.subAssemblies.find(
+        (sub) => sub._id.toString() === subAssemblyId
+      );
+
+      if (!subAssembly) {
+        return res.status(404).json({ error: "Sub-Assembly not found" });
+      }
+
+      // Create a new part item
+      const newPartItem = {
+        Uid: codeName || "",
+        partName,
+        codeName,
+        costPerUnit,
+        timePerUnit,
+        quantity,
+        rmVariables: rmVariables || [],
+        manufacturingVariables: manufacturingVariables || [],
+        shipmentVariables: shipmentVariables || [],
+        overheadsAndProfits: overheadsAndProfits || [],
+      };
+
+      // Add the new part item to the sub-assembly's partsListItems array
+      subAssembly.partsListItems.push(newPartItem);
+
+      // Save the updated project
+      const updatedProject = await project.save();
+
+      res.status(201).json({
+        status: "success",
+        message: "New part item added successfully",
+        data: updatedProject.assemblyList
+          .find((assembly) => assembly._id.toString() === assemblyId)
+          .subAssemblies.find((sub) => sub._id.toString() === subAssemblyId),
+      });
+    } catch (error) {
+      console.error(error);
+      res
+        .status(500)
+        .json({ error: "An error occurred while adding the part item" });
+    }
+  }
+);
+
+// put for assmeblies raw matarials
+partproject.put(
+  "/projects/:projectId/assemblyList/:assemblyListId/subassemblies/:subAssembliesId/partsListItems/:partsListItemsId/rmVariables/:rmVariablesId",
+  async (req, res) => {
+    const {
+      projectId,
+      assemblyListId,
+      subAssembliesId,
+      partsListItemsId,
+      rmVariablesId,
+    } = req.params;
+    const { name, netWeight, pricePerKg, totalRate } = req.body;
+
+    try {
+      // Validate project ID and other IDs
+      if (!mongoose.Types.ObjectId.isValid(projectId)) {
+        return res.status(400).json({ error: "Invalid project ID format" });
+      }
+      if (!mongoose.Types.ObjectId.isValid(assemblyListId)) {
+        return res
+          .status(400)
+          .json({ error: "Invalid assemblyList ID format" });
+      }
+      if (!mongoose.Types.ObjectId.isValid(subAssembliesId)) {
+        return res
+          .status(400)
+          .json({ error: "Invalid subAssemblies ID format" });
+      }
+      if (!mongoose.Types.ObjectId.isValid(partsListItemsId)) {
+        return res
+          .status(400)
+          .json({ error: "Invalid partsListItems ID format" });
+      }
+      if (!mongoose.Types.ObjectId.isValid(rmVariablesId)) {
+        return res.status(400).json({ error: "Invalid rmVariables ID format" });
+      }
+
+      // Find the project, assembly list, subassembly, and part item
+      const project = await PartListProjectModel.findOne({
+        _id: projectId,
+        "assemblyList._id": assemblyListId,
+        "assemblyList.subAssemblies._id": subAssembliesId,
+        "assemblyList.subAssemblies.partsListItems._id": partsListItemsId,
+      });
+
+      if (!project) {
+        return res
+          .status(404)
+          .json({ error: "Project or related data not found" });
+      }
+
+      // Find the part item by partsListItemsId
+      const assemblyList = project.assemblyList.find(
+        (a) => a._id.toString() === assemblyListId
+      );
+      const subAssembly = assemblyList.subAssemblies.find(
+        (s) => s._id.toString() === subAssembliesId
+      );
+      const partsListItem = subAssembly.partsListItems.find(
+        (p) => p._id.toString() === partsListItemsId
+      );
+
+      // Find the rmVariable within the part item
+      const rmVariable = partsListItem.rmVariables.id(rmVariablesId);
+
+      if (!rmVariable) {
+        return res.status(404).json({ error: "rmVariable not found" });
+      }
+
+      // Update the rmVariable with the provided data
+      rmVariable.name = name || rmVariable.name;
+      rmVariable.netWeight = netWeight || rmVariable.netWeight;
+      rmVariable.pricePerKg = pricePerKg || rmVariable.pricePerKg;
+      rmVariable.totalRate = totalRate || rmVariable.totalRate;
+
+      // Save the updated project
+      await project.save();
+
+      res
+        .status(200)
+        .json({ message: "rmVariable updated successfully", data: rmVariable });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  }
+);
+
+partproject.put(
+  "/projects/:projectId/assemblyList/:assemblyListId/subassemblies/:subAssembliesId/partsListItems/:partsListItemsId/manufacturingVariables/:manufacturingVariablesId",
+  async (req, res) => {
+    const {
+      projectId,
+      assemblyListId,
+      subAssembliesId,
+      partsListItemsId,
+      manufacturingVariablesId,
+    } = req.params;
+    const { name, hours, times, hourlyRate, totalRate } = req.body;
+
+    try {
+      // Validate project ID and other IDs
+      if (!mongoose.Types.ObjectId.isValid(projectId)) {
+        return res.status(400).json({ error: "Invalid project ID format" });
+      }
+      if (!mongoose.Types.ObjectId.isValid(assemblyListId)) {
+        return res
+          .status(400)
+          .json({ error: "Invalid assemblyList ID format" });
+      }
+      if (!mongoose.Types.ObjectId.isValid(subAssembliesId)) {
+        return res
+          .status(400)
+          .json({ error: "Invalid subAssemblies ID format" });
+      }
+      if (!mongoose.Types.ObjectId.isValid(partsListItemsId)) {
+        return res
+          .status(400)
+          .json({ error: "Invalid partsListItems ID format" });
+      }
+      if (!mongoose.Types.ObjectId.isValid(manufacturingVariablesId)) {
+        return res
+          .status(400)
+          .json({ error: "Invalid manufacturingVariables ID format" });
+      }
+
+      // Find the project, assembly list, subassembly, and part item
+      const project = await PartListProjectModel.findOne({
+        _id: projectId,
+        "assemblyList._id": assemblyListId,
+        "assemblyList.subAssemblies._id": subAssembliesId,
+        "assemblyList.subAssemblies.partsListItems._id": partsListItemsId,
+      });
+
+      // Find the manufacturingVariables entry and update it
+      const partItem = project.assemblyList
+        .find((assembly) => assembly._id.toString() === assemblyListId)
+        .subAssemblies.find(
+          (subAssembly) => subAssembly._id.toString() === subAssembliesId
+        )
+        .partsListItems.find((item) => item._id.toString() === partsListItemsId)
+        .manufacturingVariables.id(manufacturingVariablesId);
+
+      if (!partItem) {
+        return res
+          .status(404)
+          .json({ error: "Manufacturing Variable not found" });
+      }
+
+      // Update the manufacturing variable
+      partItem.name = name;
+      partItem.hours = hours;
+      partItem.times = times;
+      partItem.hourlyRate = hourlyRate;
+      partItem.totalRate = totalRate;
+
+      // Save the updated project
+      await project.save();
+
+      res.status(200).json({
+        message: "Manufacturing Variable updated successfully",
+        data: partItem,
+      });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Server error" });
+    }
+  }
+);
+
+partproject.put(
+  "/projects/:projectId/assemblyList/:assemblyListId/subassemblies/:subAssembliesId/partsListItems/:partsListItemsId/shipmentVariables/:shipmentVariablesId",
+  async (req, res) => {
+    const {
+      projectId,
+      assemblyListId,
+      subAssembliesId,
+      partsListItemsId,
+      shipmentVariablesId,
+    } = req.params;
+    const { name, hourlyRate, totalRate } = req.body;
+
+    try {
+      // Validate project ID and other IDs
+      if (!mongoose.Types.ObjectId.isValid(projectId)) {
+        return res.status(400).json({ error: "Invalid project ID format" });
+      }
+      if (!mongoose.Types.ObjectId.isValid(assemblyListId)) {
+        return res
+          .status(400)
+          .json({ error: "Invalid assemblyList ID format" });
+      }
+      if (!mongoose.Types.ObjectId.isValid(subAssembliesId)) {
+        return res
+          .status(400)
+          .json({ error: "Invalid subAssemblies ID format" });
+      }
+      if (!mongoose.Types.ObjectId.isValid(partsListItemsId)) {
+        return res
+          .status(400)
+          .json({ error: "Invalid partsListItems ID format" });
+      }
+      if (!mongoose.Types.ObjectId.isValid(shipmentVariablesId)) {
+        return res
+          .status(400)
+          .json({ error: "Invalid shipmentVariables ID format" });
+      }
+
+      // Find the project, assembly list, subassembly, and part item
+      const project = await PartListProjectModel.findOne({
+        _id: projectId,
+        "assemblyList._id": assemblyListId,
+        "assemblyList.subAssemblies._id": subAssembliesId,
+        "assemblyList.subAssemblies.partsListItems._id": partsListItemsId,
+      });
+
+      // Find the shipmentVariables entry and update it
+      const partItem = project.assemblyList
+        .find((assembly) => assembly._id.toString() === assemblyListId)
+        .subAssemblies.find(
+          (subAssembly) => subAssembly._id.toString() === subAssembliesId
+        )
+        .partsListItems.find((item) => item._id.toString() === partsListItemsId)
+        .shipmentVariables.id(shipmentVariablesId);
+
+      if (!partItem) {
+        return res.status(404).json({ error: "Shipment Variable not found" });
+      }
+
+      // Update the shipment variable
+      partItem.name = name;
+      partItem.hourlyRate = hourlyRate;
+      partItem.totalRate = totalRate;
+
+      // Save the updated project
+      await project.save();
+
+      res.status(200).json({
+        message: "Shipment Variable updated successfully",
+        data: partItem,
+      });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Server error" });
+    }
+  }
+);
+
+partproject.put(
+  "/projects/:projectId/assemblyList/:assemblyListId/subassemblies/:subAssembliesId/partsListItems/:partsListItemsId/overheadsAndProfits/:overheadsAndProfitsId",
+  async (req, res) => {
+    const {
+      projectId,
+      assemblyListId,
+      subAssembliesId,
+      partsListItemsId,
+      overheadsAndProfitsId,
+    } = req.params;
+    const { name, percentage, totalRate } = req.body;
+
+    try {
+      // Validate project ID and other IDs
+      if (!mongoose.Types.ObjectId.isValid(projectId)) {
+        return res.status(400).json({ error: "Invalid project ID format" });
+      }
+      if (!mongoose.Types.ObjectId.isValid(assemblyListId)) {
+        return res
+          .status(400)
+          .json({ error: "Invalid assemblyList ID format" });
+      }
+      if (!mongoose.Types.ObjectId.isValid(subAssembliesId)) {
+        return res
+          .status(400)
+          .json({ error: "Invalid subAssemblies ID format" });
+      }
+      if (!mongoose.Types.ObjectId.isValid(partsListItemsId)) {
+        return res
+          .status(400)
+          .json({ error: "Invalid partsListItems ID format" });
+      }
+      if (!mongoose.Types.ObjectId.isValid(overheadsAndProfitsId)) {
+        return res
+          .status(400)
+          .json({ error: "Invalid overheadsAndProfits ID format" });
+      }
+
+      // Find the project, assembly list, subassembly, and part item
+      const project = await PartListProjectModel.findOne({
+        _id: projectId,
+        "assemblyList._id": assemblyListId,
+        "assemblyList.subAssemblies._id": subAssembliesId,
+        "assemblyList.subAssemblies.partsListItems._id": partsListItemsId,
+      });
+
+      // Find the overheadsAndProfits entry and update it
+      const partItem = project.assemblyList
+        .find((assembly) => assembly._id.toString() === assemblyListId)
+        .subAssemblies.find(
+          (subAssembly) => subAssembly._id.toString() === subAssembliesId
+        )
+        .partsListItems.find((item) => item._id.toString() === partsListItemsId)
+        .overheadsAndProfits.id(overheadsAndProfitsId);
+
+      if (!partItem) {
+        return res
+          .status(404)
+          .json({ error: "Overheads and Profits entry not found" });
+      }
+
+      // Update the overheads and profits
+      partItem.name = name;
+      partItem.percentage = percentage;
+      partItem.totalRate = totalRate;
+
+      // Save the updated project
+      await project.save();
+
+      res.status(200).json({
+        message: "Overheads and Profits updated successfully",
+        data: partItem,
+      });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Server error" });
+    }
+  }
+);
+
 module.exports = partproject;
 
 // ============================================ ASSEMBLY CODE START ===============================

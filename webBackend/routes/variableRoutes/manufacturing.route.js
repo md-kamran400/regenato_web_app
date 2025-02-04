@@ -247,4 +247,27 @@ manufacturRouter.get("/category/:categoryId", async (req, res) => {
   }
 });
 
+
+// Add this new route after the existing ones
+
+// GET request to retrieve all category IDs
+manufacturRouter.get("/all-category-ids", async (req, res) => {
+  try {
+    const allCategoryIds = await ManufacturingModel.distinct('categoryId');
+    
+    if (allCategoryIds.length === 0) {
+      return res.status(404).json({
+        msg: "No categories found",
+      });
+    }
+
+    res.status(200).json({
+      msg: "All category IDs retrieved successfully",
+      categoryIds: allCategoryIds,
+    });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
 module.exports = { manufacturRouter };

@@ -1,16 +1,3 @@
-// import React from "react";
-// import UserHandle from "./UserHandle";
-
-// const User_Management = () => {
-//   return (
-//     <div>
-//       <UserHandle />
-//     </div>
-//   );
-// };
-
-// export default User_Management;
-
 import React from "react";
 import UserHandle from "./UserHandle";
 import { Container} from "reactstrap";

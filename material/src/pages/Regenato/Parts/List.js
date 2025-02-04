@@ -96,6 +96,7 @@ const List = () => {
 
   const [warningModal, setWarningModal] = useState(false);
   const [warningData, setWarningData] = useState("");
+  const [missingCategoryData, setmissingCategoryData] = useState("");
 
   const toggleModal = () => {
     setModalList(!modal_list);
@@ -512,6 +513,7 @@ const List = () => {
         // Handle warning or success
         if (data.duplicateCount > 0) {
           setWarningData(data.duplicateIds.join(", "));
+          setmissingCategoryData(data.missingCategoryIds.join(", "));
           setWarningModal(true);
         } else {
           toast.success("File uploaded successfully!");
@@ -522,6 +524,7 @@ const List = () => {
 
         setUploadedFile(null); // Reset the uploaded file after successful upload
         toggleModalUpload(); // Close the upload modal automatically
+        toast.success("File uploaded successfully!");
       } catch (error) {
         console.error("Error uploading file:", error);
         toast.error("Failed to upload file. Please try again.");
@@ -1266,10 +1269,8 @@ const List = () => {
         </ModalFooter>
       </Modal>
 
-      
-
       {/* warnind modal for uplaoding the duplicate id for excel */}
-      <Modal
+      {/* <Modal
         isOpen={warningModal}
         toggle={() => setWarningModal(false)}
         centered
@@ -1295,6 +1296,62 @@ const List = () => {
                 </li>
               ))}
           </ol>
+        </ModalBody>
+        <ModalFooter>
+          <Button color="secondary" onClick={() => setWarningModal(false)}>
+            Close
+          </Button>
+        </ModalFooter>
+      </Modal> */}
+      <Modal
+        isOpen={warningModal}
+        toggle={() => setWarningModal(false)}
+        centered
+      >
+        <ModalHeader toggle={() => setWarningModal(false)}>
+          <span style={{ display: "flex", alignItems: "center" }}>
+            <i
+              className="ri-error-warning-line"
+              style={{ color: "#f0ad4e", marginRight: "8px" }}
+            ></i>
+            Warning
+          </span>
+        </ModalHeader>
+        <ModalBody
+          style={{
+            maxHeight: "400px", // Fixed height
+            overflowY: "auto", // Scrollable if content exceeds height
+          }}
+        >
+          <h5 style={{ color: "#555" }}>Upload Partially Successful</h5>
+          {warningData && (
+            <>
+              <p style={{ color: "#555", marginTop: "1rem" }}>
+                Duplicate IDs skipped:
+              </p>
+              <ol style={{ paddingLeft: "1.5rem", color: "#333" }}>
+                {warningData.split(", ").map((id, index) => (
+                  <li key={index} style={{ marginBottom: "0.5rem" }}>
+                    {id}
+                  </li>
+                ))}
+              </ol>
+            </>
+          )}
+          {missingCategoryData && (
+            <>
+              <p style={{ color: "#555", marginTop: "1rem" }}>
+                Variables missing from Database:
+              </p>
+              <ol style={{ paddingLeft: "1.5rem", color: "#333" }}>
+                {missingCategoryData.split(", ").map((id, index) => (
+                  <li key={index} style={{ marginBottom: "0.5rem" }}>
+                    {id}
+                  </li>
+                ))}
+              </ol>
+            </>
+          )}
         </ModalBody>
         <ModalFooter>
           <Button color="secondary" onClick={() => setWarningModal(false)}>
