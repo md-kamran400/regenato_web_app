@@ -1154,7 +1154,7 @@ PartRoutes.get("/categoryshipment/:categoryId", async (req, res) => {
 
 //     for (const row of sheetData) {
 //       const id = row["id"];
-//       const partName = row["partName "] || row["partName"];
+//       const partName = row["partName"] || row["partName "];
 //       const qty = row["Qty."] || row["Qty"];
 
 //       if (!id || !partName || !qty) {
@@ -1179,9 +1179,13 @@ PartRoutes.get("/categoryshipment/:categoryId", async (req, res) => {
 //       const validOverheadsAndProfits = [];
 
 //       for (const [key, value] of Object.entries(row)) {
-//         if (key.startsWith("C") && value > 0) {
+//         if (!value) continue; // Skip empty values
+
+//         const cleanedKey = key.split(" - ")[0]; // Extract C1, B1, E1, F1, etc.
+
+//         if (cleanedKey.startsWith("C") && value > 0) {
 //           const manufacturingEntry = await ManufacturingModel.findOne({
-//             categoryId: key,
+//             categoryId: cleanedKey,
 //           });
 //           if (manufacturingEntry) {
 //             validManufacturingVariables.push({
@@ -1192,8 +1196,10 @@ PartRoutes.get("/categoryshipment/:categoryId", async (req, res) => {
 //               totalRate: (value / 60) * manufacturingEntry.hourlyrate,
 //             });
 //           }
-//         } else if (key.startsWith("B") && value > 0) {
-//           const rmEntry = await RmVariableModel.findOne({ categoryId: key });
+//         } else if (cleanedKey.startsWith("B") && value > 0) {
+//           const rmEntry = await RmVariableModel.findOne({
+//             categoryId: cleanedKey,
+//           });
 //           if (rmEntry) {
 //             validRmVariables.push({
 //               categoryId: rmEntry.categoryId,
@@ -1203,7 +1209,7 @@ PartRoutes.get("/categoryshipment/:categoryId", async (req, res) => {
 //               totalRate: value * rmEntry.price,
 //             });
 //           }
-//         } else if (key === "FC") {
+//         } else if (cleanedKey === "FC") {
 //           const rmEntry = await RmVariableModel.findOne({ categoryId: "FC" });
 //           if (!rmEntry) {
 //             console.warn(`No RM entry found for categoryId: FC`);
@@ -1216,9 +1222,9 @@ PartRoutes.get("/categoryshipment/:categoryId", async (req, res) => {
 //             pricePerKg: 0,
 //             totalRate: value,
 //           });
-//         } else if (key.startsWith("E") && value > 0) {
+//         } else if (cleanedKey.startsWith("E") && value > 0) {
 //           const shipmentEntry = await ShipmentModel.findOne({
-//             categoryId: key,
+//             categoryId: cleanedKey,
 //           });
 //           if (shipmentEntry) {
 //             validShipmentVariables.push({
@@ -1227,9 +1233,9 @@ PartRoutes.get("/categoryshipment/:categoryId", async (req, res) => {
 //               hourlyRate: value,
 //             });
 //           }
-//         } else if (key.startsWith("F") && value > 0) {
+//         } else if (cleanedKey.startsWith("F") && value > 0) {
 //           const overheadsEntry = await OverheadsModel.findOne({
-//             categoryId: key,
+//             categoryId: cleanedKey,
 //           });
 //           if (overheadsEntry) {
 //             validOverheadsAndProfits.push({
@@ -1265,7 +1271,6 @@ PartRoutes.get("/categoryshipment/:categoryId", async (req, res) => {
 //         (sum, item) => sum + item.totalRate,
 //         0
 //       );
-
 //       const totalSum = allThree + overheadsTotalRate;
 //       const totalHours = validManufacturingVariables.reduce(
 //         (sum, item) => sum + item.hours,
@@ -1306,6 +1311,7 @@ PartRoutes.get("/categoryshipment/:categoryId", async (req, res) => {
 //   }
 // });
 
+
 PartRoutes.post("/uploadexcel", upload.single("file"), async (req, res) => {
   try {
     if (!req.file) {
@@ -1314,7 +1320,9 @@ PartRoutes.post("/uploadexcel", upload.single("file"), async (req, res) => {
 
     const workbook = xlsx.read(req.file.buffer, { type: "buffer" });
     const sheetName = workbook.SheetNames[0];
-    const sheetData = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
+    const sheetData = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName], {
+      defval: "",
+    });
 
     if (sheetData.length === 0) {
       return res
@@ -1322,8 +1330,56 @@ PartRoutes.post("/uploadexcel", upload.single("file"), async (req, res) => {
         .json({ message: "The uploaded Excel file is empty" });
     }
 
+    // Fetch all category data and existing part IDs in one go
+    const [
+      manufacturingCategories,
+      rmCategories,
+      overheadsCategories,
+      shipmentCategories,
+      existingPartIds,
+    ] = await Promise.all([
+      ManufacturingModel.find({}, "categoryId name hourlyrate").lean(),
+      RmVariableModel.find({}, "categoryId name price").lean(),
+      OverheadsModel.find({}, "categoryId name").lean(),
+      ShipmentModel.find({}, "categoryId name").lean(),
+      PartsModel.distinct("id"),
+    ]);
+
+    // Create lookup maps for faster access
+    const categoryLookups = {
+      manufacturing: new Map(
+        manufacturingCategories.map((item) => [item.categoryId, item])
+      ),
+      rm: new Map(rmCategories.map((item) => [item.categoryId, item])),
+      overheads: new Map(
+        overheadsCategories.map((item) => [item.categoryId, item])
+      ),
+      shipment: new Map(
+        shipmentCategories.map((item) => [item.categoryId, item])
+      ),
+    };
+
+    const existingPartsSet = new Set(existingPartIds);
+
+    // Extract category IDs from the first row of the Excel file (keys)
+    const excelCategoryIds = Object.keys(sheetData[0])
+      .map((key) => key.split(" - ")[0].trim())
+      .filter((id) => id && /^[A-Z]\d+$/.test(id)); // Keep only valid category IDs
+
+    const allCategoryIds = new Set([
+      ...manufacturingCategories.map((item) => item.categoryId),
+      ...rmCategories.map((item) => item.categoryId),
+      ...overheadsCategories.map((item) => item.categoryId),
+      ...shipmentCategories.map((item) => item.categoryId),
+    ]);
+
+    const missingCategoryIds = excelCategoryIds.filter(
+      (id) => !allCategoryIds.has(id)
+    );
+
     const processedParts = [];
     const duplicateParts = [];
+    const operations = [];
 
     for (const row of sheetData) {
       const id = row["id"];
@@ -1337,8 +1393,7 @@ PartRoutes.post("/uploadexcel", upload.single("file"), async (req, res) => {
         continue;
       }
 
-      const existingPart = await PartsModel.findOne({ id });
-      if (existingPart) {
+      if (existingPartsSet.has(id)) {
         duplicateParts.push(id);
         continue;
       }
@@ -1354,12 +1409,11 @@ PartRoutes.post("/uploadexcel", upload.single("file"), async (req, res) => {
       for (const [key, value] of Object.entries(row)) {
         if (!value) continue; // Skip empty values
 
-        const cleanedKey = key.split(" - ")[0]; // Extract C1, B1, E1, F1, etc.
+        const cleanedKey = key.split(" - ")[0].trim();
 
         if (cleanedKey.startsWith("C") && value > 0) {
-          const manufacturingEntry = await ManufacturingModel.findOne({
-            categoryId: cleanedKey,
-          });
+          const manufacturingEntry =
+            categoryLookups.manufacturing.get(cleanedKey);
           if (manufacturingEntry) {
             validManufacturingVariables.push({
               categoryId: manufacturingEntry.categoryId,
@@ -1370,9 +1424,7 @@ PartRoutes.post("/uploadexcel", upload.single("file"), async (req, res) => {
             });
           }
         } else if (cleanedKey.startsWith("B") && value > 0) {
-          const rmEntry = await RmVariableModel.findOne({
-            categoryId: cleanedKey,
-          });
+          const rmEntry = categoryLookups.rm.get(cleanedKey);
           if (rmEntry) {
             validRmVariables.push({
               categoryId: rmEntry.categoryId,
@@ -1383,22 +1435,18 @@ PartRoutes.post("/uploadexcel", upload.single("file"), async (req, res) => {
             });
           }
         } else if (cleanedKey === "FC") {
-          const rmEntry = await RmVariableModel.findOne({ categoryId: "FC" });
-          if (!rmEntry) {
-            console.warn(`No RM entry found for categoryId: FC`);
-            continue;
+          const rmEntry = categoryLookups.rm.get("FC");
+          if (rmEntry) {
+            validRmVariables.push({
+              categoryId: rmEntry.categoryId,
+              name: rmEntry.name,
+              netWeight: 0,
+              pricePerKg: 0,
+              totalRate: value,
+            });
           }
-          validRmVariables.push({
-            categoryId: rmEntry.categoryId,
-            name: rmEntry.name,
-            netWeight: 0,
-            pricePerKg: 0,
-            totalRate: value,
-          });
         } else if (cleanedKey.startsWith("E") && value > 0) {
-          const shipmentEntry = await ShipmentModel.findOne({
-            categoryId: cleanedKey,
-          });
+          const shipmentEntry = categoryLookups.shipment.get(cleanedKey);
           if (shipmentEntry) {
             validShipmentVariables.push({
               categoryId: shipmentEntry.categoryId,
@@ -1407,9 +1455,7 @@ PartRoutes.post("/uploadexcel", upload.single("file"), async (req, res) => {
             });
           }
         } else if (cleanedKey.startsWith("F") && value > 0) {
-          const overheadsEntry = await OverheadsModel.findOne({
-            categoryId: cleanedKey,
-          });
+          const overheadsEntry = categoryLookups.overheads.get(cleanedKey);
           if (overheadsEntry) {
             validOverheadsAndProfits.push({
               categoryId: overheadsEntry.categoryId,
@@ -1435,7 +1481,6 @@ PartRoutes.post("/uploadexcel", upload.single("file"), async (req, res) => {
       );
 
       const allThree = manufacturingTotalRate + rmTotalRate + shipmentTotalRate;
-
       validOverheadsAndProfits.forEach((overhead) => {
         overhead.totalRate = Math.round((overhead.percentage / 100) * allThree);
       });
@@ -1467,9 +1512,19 @@ PartRoutes.post("/uploadexcel", upload.single("file"), async (req, res) => {
         overheadsAndProfits: validOverheadsAndProfits,
       };
 
-      const part = new PartsModel(partData);
-      await part.save();
-      processedParts.push(part);
+      processedParts.push(id);
+
+      operations.push({
+        insertOne: { document: partData },
+      });
+
+      // Add to existing parts set to avoid duplicates
+      existingPartsSet.add(id);
+    }
+
+    // Perform bulk write to MongoDB
+    if (operations.length > 0) {
+      await PartsModel.bulkWrite(operations, { ordered: false });
     }
 
     res.status(201).json({
@@ -1477,6 +1532,7 @@ PartRoutes.post("/uploadexcel", upload.single("file"), async (req, res) => {
       processedCount: processedParts.length,
       duplicateCount: duplicateParts.length,
       duplicateIds: duplicateParts,
+      missingCategoryIds,
     });
   } catch (error) {
     console.error("Error processing file:", error.message);
