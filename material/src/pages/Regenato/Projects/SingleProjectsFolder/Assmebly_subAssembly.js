@@ -40,9 +40,9 @@ const Assmebly_subAssembly = ({
   assemblyId,
   onupdateAssmebly,
 }) => {
-  console.log("sub assmenly id", subAssembly._id);
+  // console.log("sub assmenly id", subAssembly._id);
   console.log("sub project id", projectId);
-  console.log("assembly id", assemblyId);
+  // console.log("assembly id", assemblyId);
   // console.log("sub assmenly main id", subAssembly);
   const { _id } = useParams();
   const location = useLocation();
@@ -561,7 +561,9 @@ const Assmebly_subAssembly = ({
                                       <RawMaterial
                                         partName={item.partName}
                                         rmVariables={item.rmVariables || []}
-                                        projectId={_id}
+                                        // projectId={_id}
+                                        subAssembly={subAssembly}
+                                        projectId={projectId}
                                         partId={item._id} //shai h
                                         assemblyId={assemblyId}
                                         subAssemblyId={subAssembly._id}
@@ -575,10 +577,12 @@ const Assmebly_subAssembly = ({
                                         manufacturingVariables={
                                           item.manufacturingVariables || []
                                         }
-                                        partId={item._id}
-                                        quantity={item.quantity}
+                                        subAssembly={subAssembly}
+                                        projectId={projectId}
+                                        partId={item._id} //shai h
                                         assemblyId={assemblyId}
                                         subAssemblyId={subAssembly._id}
+                                        quantity={item.quantity}
                                         source="subAssemblyListFirst"
                                         onUpdatePrts={onupdateAssmebly}
                                       />
@@ -588,8 +592,9 @@ const Assmebly_subAssembly = ({
                                         shipmentVariables={
                                           item.shipmentVariables || []
                                         }
-                                        partId={item._id}
                                         quantity={item.quantity}
+                                        projectId={projectId}
+                                        partId={item._id} //shai h
                                         assemblyId={assemblyId}
                                         subAssemblyId={subAssembly._id}
                                         source="subAssemblyListFirst"
@@ -597,9 +602,9 @@ const Assmebly_subAssembly = ({
                                       />
                                       <Overheads
                                         partName={item.partName}
-                                        projectId={_id}
-                                        partId={item._id}
                                         quantity={item.quantity}
+                                        projectId={projectId}
+                                        partId={item._id} //shai h
                                         assemblyId={assemblyId}
                                         subAssemblyId={subAssembly._id}
                                         overheadsAndProfits={

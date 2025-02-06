@@ -9,11 +9,12 @@ import "react-toastify/dist/ReactToastify.css";
 const Shipment = ({
   partName,
   shipmentVariables,
+  projectId,
   partId,
+  assemblyId,
+  subAssemblyId,
   onUpdatePrts,
   quantity,
-  subAssemblyId,
-  assemblyId,
 }) => {
   const [modal_edit, setModalEdit] = useState(false);
   const [modal_delete, setModalDelete] = useState(false);
@@ -95,7 +96,7 @@ const Shipment = ({
     console.log("editId (shipmentVariableId):", editId);
 
     try {
-      const endpoint = `${process.env.REACT_APP_BASE_URL}/api/assmebly/${assemblyId}/subAssemblies/${subAssemblyId}/parts/${partId}/shipmentVariables/${editId}`;
+      const endpoint = `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${projectId}/assemblyList/${assemblyId}/subassemblies/${subAssemblyId}/partsListItems/${partId}/shipmentVariables/${editId}`;
       console.log("🚀 PUT Request to:", endpoint);
 
       const response = await fetch(endpoint, {

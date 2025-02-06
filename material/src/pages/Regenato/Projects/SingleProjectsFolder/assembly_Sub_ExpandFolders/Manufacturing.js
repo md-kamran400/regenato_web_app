@@ -7,12 +7,17 @@ import { Button, Modal, ModalBody, ModalFooter, ModalHeader } from "reactstrap";
 const Manufacturing = ({
   partName,
   manufacturingVariables,
+  projectId,
   partId,
   assemblyId,
   subAssemblyId,
   onUpdatePrts,
   quantity,
 }) => {
+  console.log("Project_id", projectId);
+  console.log("parts id", partId);
+  console.log("assmeblyId", assemblyId);
+  console.log("Sub assmeblyId ", subAssemblyId);
   const [modal_edit, setModalEdit] = useState(false);
   const [modal_delete, setModalDelete] = useState(false);
   const [posting, setPosting] = useState(false);
@@ -108,14 +113,9 @@ const Manufacturing = ({
     setPosting(true);
     setError(null);
 
-    console.log("🔍 Debugging IDs:");
-    console.log("subAssemblyId:", subAssemblyId);
-    console.log("subAssemblyId:", assemblyId);
-    console.log("partId:", partId);
-    console.log("editId (manufacturingVariableId):", editId);
 
     try {
-      const endpoint = `${process.env.REACT_APP_BASE_URL}/api/assmebly/${assemblyId}/subAssemblies/${subAssemblyId}/parts/${partId}/manufacturingVariables/${editId}`;
+      const endpoint = `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${projectId}/assemblyList/${assemblyId}/subassemblies/${subAssemblyId}/partsListItems/${partId}/manufacturingVariables/${editId}`;
       console.log("🚀 PUT Request to:", endpoint);
 
       const response = await fetch(endpoint, {
