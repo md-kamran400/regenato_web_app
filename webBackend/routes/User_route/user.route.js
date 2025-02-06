@@ -4,7 +4,7 @@ const mongoose = require("mongoose");
 const UserModal = require("../../model/UserModal/usermodal");
 const jwt = require("jsonwebtoken");
 
-// sign up route
+// Sign Up Route (No Hashing)
 UserRouter.post("/signup", async (req, res) => {
   const { name, email, password, role, employeeId } = req.body;
 
@@ -15,19 +15,15 @@ UserRouter.post("/signup", async (req, res) => {
       return res.status(400).json({ message: "Email already registered" });
     }
 
-    // Create new user
     const newUser = new UserModal({
       name,
       email,
-      password,
+      password, // Storing password as plain text (not recommended)
       role,
       employeeId,
     });
-
-    // Save the new user to the database
     await newUser.save();
 
-    // Send a success response without JWT
     res.json({ message: "User registered successfully" });
   } catch (error) {
     console.error(error);
@@ -35,25 +31,27 @@ UserRouter.post("/signup", async (req, res) => {
   }
 });
 
-// Login Route
+// Login Route (Plain Text Password Comparison)
 UserRouter.post("/login", async (req, res) => {
-  const { email, password } = req.body;
+  const {email, password } = req.body;
   try {
+    console.log("Login request received:", req.body);
     const user = await UserModal.findOne({ email });
     if (!user) return res.status(400).json({ message: "User not found" });
 
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid)
-      return res.status(400).json({ message: "Invalid credentials" });
+    console.log("User found:", user);
 
-    const token = jwt.sign(
-      { id: user._id, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: "1h" }
-    );
-    res.json({ token, user });
+    // Directly compare passwords (plain text)
+    if (password !== user.password) {
+      return res.status(400).json({ message: "Invalid credentials" });
+    }
+
+    const token = jwt.sign({ id: user._id, role: user.role }, "regnato_web");
+
+    res.json({ token, user  });
   } catch (error) {
-    res.status(500).json({ message: "Server error" });
+    console.error("Error in login:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 });
 
