@@ -46,6 +46,7 @@ app.use("/api/overheadsAndProfit", OverheadsRouter);
 app.use("/api/general", GeneralRouter);
 app.use("/api/manufacturingStatics", manufacturingStaticRouter);
 
+// Use PartRoutes for handling part-related route
 // Use PartRoutes for handling part-related routes
 app.use("/api/parts", PartRoutes); // Corrected the route
 
