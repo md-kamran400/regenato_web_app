@@ -98,6 +98,10 @@ const List = () => {
   const [warningData, setWarningData] = useState("");
   const [missingCategoryData, setmissingCategoryData] = useState("");
 
+  // select delete
+  const [selectedRows, setSelectedRows] = useState([]); // Tracks
+  const [selectAll, setSelectAll] = useState(false); // Tracks if the "Select All" checkbox is checked
+
   const toggleModal = () => {
     setModalList(!modal_list);
   };
@@ -575,6 +579,56 @@ const List = () => {
     setDragOver(false);
   };
 
+  // select dlete
+
+  // Handles "Select All" checkbox
+  const handleSelectAll = () => {
+    setSelectAll(!selectAll);
+    setSelectedRows(!selectAll ? listData.map((item) => item._id) : []);
+  };
+
+  // Handles individual checkbox selection
+  const handleRowSelect = (id) => {
+    setSelectedRows((prevSelected) =>
+      prevSelected.includes(id)
+        ? prevSelected.filter((rowId) => rowId !== id)
+        : [...prevSelected, id]
+    );
+  };
+
+  // Handles delete functionality
+  const handleDeleteSelect = async () => {
+    try {
+      if (selectAll) {
+        // Delete all parts
+        const response = await fetch(
+          `${process.env.REACT_APP_BASE_URL}/api/parts`,
+          {
+            method: "DELETE",
+          }
+        );
+        if (!response.ok) throw new Error("Failed to delete all parts");
+        toast.success("All parts deleted successfully");
+      } else {
+        // Delete selected parts
+        const deletePromises = selectedRows.map((_id) =>
+          fetch(`${process.env.REACT_APP_BASE_URL}/api/parts/${_id}`, {
+            method: "DELETE",
+          })
+        );
+        await Promise.all(deletePromises);
+        toast.success("Selected parts deleted successfully");
+      }
+      // Refresh data
+      fetchData();
+      setSelectedRows([]);
+      setSelectAll(false);
+    } catch (error) {
+      console.error("Error deleting parts:", error);
+      toast.error("Failed to delete parts. Please try again.");
+    }
+  };
+
   return (
     <React.Fragment>
       <ToastContainer closeButton={false} />
@@ -648,6 +702,12 @@ const List = () => {
                 </Select>
               </FormControl>
             </div>
+
+            {selectedRows.length > 0 && (
+              <Button color="danger" onClick={handleDeleteSelect}>
+                Delete Selected
+              </Button>
+            )}
           </div>
         </div>
       </Row>
@@ -664,6 +724,14 @@ const List = () => {
         <table className="table table-striped">
           <thead>
             <tr>
+              <th>
+                <input
+                  type="checkbox"
+                  checked={selectAll}
+                  onChange={handleSelectAll}
+                />
+              </th>
+              <th>Date</th>
               <th>Name</th>
               <th>Part Type</th>
               <th>Drawing Number</th>
@@ -679,6 +747,14 @@ const List = () => {
           <tbody>
             {paginatedData.map((item, index) => (
               <tr key={index}>
+                <td>
+                  <input
+                    type="checkbox"
+                    checked={selectedRows.includes(item._id)}
+                    onChange={() => handleRowSelect(item._id)}
+                  />
+                </td>
+                <td>{new Date(item.createdAt).toISOString().split("T")[0]}</td>
                 <td>
                   {item.partType === "Make" ? (
                     <Link

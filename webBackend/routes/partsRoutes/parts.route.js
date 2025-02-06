@@ -148,6 +148,22 @@ PartRoutes.put("/:_id", async (req, res) => {
   }
 });
 
+// delete all arts
+PartRoutes.delete("/", async (req, res) => {
+  try {
+    const result = await PartsModel.deleteMany({}); // Deletes all documents in the collection
+    res.status(200).json({
+      message: "All parts have been deleted successfully.",
+      deletedCount: result.deletedCount, // Number of documents deleted
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "An error occurred while deleting parts.",
+      error: error.message,
+    });
+  }
+});
+
 // GET - Retrieve all parts
 
 PartRoutes.get("/", async (req, res) => {
@@ -1310,7 +1326,6 @@ PartRoutes.get("/categoryshipment/:categoryId", async (req, res) => {
 //     res.status(500).json({ message: error.message });
 //   }
 // });
-
 
 PartRoutes.post("/uploadexcel", upload.single("file"), async (req, res) => {
   try {
