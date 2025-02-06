@@ -856,19 +856,22 @@ const PartsTable = React.memo(
                               </td>
                               <td>{parseFloat(item.costPerUnit || 0)}</td>
                               <td>{formatTime(item.timePerUnit || 0)}</td>
-                              <td
-                                style={{
-                                gap:'20px'
-                                }}
-                              >
-                                {parseInt(item.quantity || 0)}
-                                <button
-                                  className="btn btn-sm btn-success edit-item-btn "
-                                  style={{marginLeft:'5px'}}
-                                  onClick={() => handleEditQuantity(item)}
+                              <td>
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    width: "60%",
+                                  }}
                                 >
-                                  <FaEdit />
-                                </button>
+                                  {parseInt(item.quantity || 0)}
+                                  <button
+                                    className="btn btn-sm btn-success edit-item-btn "
+                                    onClick={() => handleEditQuantity(item)}
+                                  >
+                                    <FaEdit />
+                                  </button>
+                                </div>
                               </td>
 
                               <td>

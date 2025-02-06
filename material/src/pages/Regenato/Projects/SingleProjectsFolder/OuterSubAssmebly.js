@@ -648,7 +648,7 @@ const OuterSubAssmebly = React.memo(
                                     className="btn btn-sm btn-success edit-item-btn"
                                     onClick={() => handleEditQuantity(item)}
                                   >
-                                    <FaEdit />-
+                                    <FaEdit />
                                   </button>
                                 </div>
                               </td>

@@ -170,27 +170,7 @@ const List = () => {
     setFilterType(e.target.value);
   };
 
-  // const handleFilterChange = (selectedOptions) => {
-  //   const selectedValues = selectedOptions
-  //     ? selectedOptions.map((opt) => opt.value)
-  //     : [];
-
-  //   // Update the filterType state with the selected values
-  //   setFilterType(selectedValues);
-
-  //   // Filter the projectListsData based on selected PO types
-  //   const filteredProjects = projectListsData.filter(
-  //     (item) =>
-  //       !selectedValues.length || selectedValues.includes(item.projectType)
-  //   );
-
-  //   // Update the projectListsData state with filtered projects
-  //   setprojectListsData(filteredProjects);
-
-  //   // Update the UI to reflect the selected options
-  //   setProjectType(selectedValues.join(", "));
-  // };
-
+ 
   const handleSingleProjectTotalCount = (newTotal) => {
     setTotalCostCount(newTotal);
   };
@@ -260,23 +240,7 @@ const List = () => {
   }, [fetchData]);
 
   // Filtered and Paginated Data
-  // const filteredData = projectListsData.filter((item) =>
-  //   item.projectName.toLowerCase().includes(searchTerm.toLowerCase())
-  // );
-  // Modify the filteredData calculation:
-  // const filteredData = projectListsData.filter(
-  //   (item) =>
-  //     item?.projectName?.toLowerCase().includes(searchTerm.toLowerCase()) &&
-  //     (filterType === "" || item.projectType === filterType)
-  // );
-
-  // const filteredData = projectListsData.filter(
-  //   (item) =>
-  //     searchTerm.length === 0 || // If no search term, show all
-  //     searchTerm.some((term) =>
-  //       item?.projectName?.toLowerCase().includes(term.toLowerCase())
-  //     )
-  // );
+  
   const filteredData = projectListsData.filter(
     (item) =>
       (searchTerm.length === 0 ||
@@ -564,6 +528,7 @@ const List = () => {
                   >
                     Name
                   </th>
+                  <th className="child_parts">Date</th>
                   <th className="child_parts">Production Order-Types</th>
                   <th className="child_parts">Total Cost</th>
                   <th className="child_parts">Total Hour</th>
@@ -589,6 +554,9 @@ const List = () => {
                       <Link to={`/projectSection/${item._id}`}>
                         {item.projectName}
                       </Link>
+                    </td>
+                    <td>
+                      {new Date(item.createdAt).toISOString().split("T")[0]}
                     </td>
                     <td>{item.projectType}</td>
                     <td>{Math.ceil(item.costPerUnit)}</td>

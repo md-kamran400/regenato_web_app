@@ -8,7 +8,9 @@ import React, {
 import { Link } from "react-router-dom";
 import { debounce } from "lodash";
 import { Spinner } from "reactstrap";
+import { RiDeleteBin6Line } from "react-icons/ri";
 import "./project.css";
+
 import {
   Card,
   CardBody,
@@ -30,7 +32,7 @@ import {
 } from "reactstrap";
 import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
-import Select from "@mui/material/Select";
+// import Select from "@mui/material/Select";
 import FormControl from "@mui/material/FormControl";
 import DeleteModal from "../../../Components/Common/DeleteModal";
 import { ToastContainer, toast } from "react-toastify";
@@ -38,13 +40,49 @@ import FeatherIcon from "feather-icons-react/build/FeatherIcon";
 import Autocomplete from "@mui/material/Autocomplete";
 import TextField from "@mui/material/TextField";
 import PaginatedList from "../Pagination/PaginatedList";
-// import { useCalculation } from "../../../Components/context/CalculationContext";
+import Select from "react-select";
+
+const customStyles = {
+  control: (provided) => ({
+    ...provided,
+    width: "20rem",
+    height: "40px",
+    overflow: "hidden", // Prevents height increase
+  }),
+  valueContainer: (provided) => ({
+    ...provided,
+    overflowX: "auto", // Allow horizontal scrolling
+    whiteSpace: "nowrap",
+    flexWrap: "nowrap", // Prevents wrapping
+  }),
+  multiValue: (provided) => ({
+    ...provided,
+    display: "inline-flex",
+    maxWidth: "150px", // Limit the display size
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  }),
+  multiValueLabel: (provided) => ({
+    ...provided,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  }),
+};
+const partTypeOptions = [
+  { value: "Make", label: "Make" },
+  { value: "Purchase", label: "Purchase" },
+];
+
 const categories = [{ name: "Make" }, { name: "Purchase" }];
+import { FaSort } from "react-icons/fa";
 
 const List = () => {
   const [selectedPartId, setSelectedPartId] = useState(
     localStorage.getItem("selectedPartId")
   );
+  const [initialLoad, setInitialLoad] = useState(true);
   const [partType, setPartType] = useState("");
   //   const [modal_category, setModal_category] = useState(false);
   const [modal_list, setModalList] = useState(false);
@@ -57,6 +95,7 @@ const List = () => {
   const [newCodeName, setnewCodeName] = useState(""); // For storing new part name
   const [newclientNumber, setnewclientNumber] = useState(""); // For storing new part name
   const [listData, setListData] = useState([]); // Local state to store project list
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [loading, setLoading] = useState(true); // State to manage loading state
   const [error, setError] = useState(null); // State for handling errors
   const [editId, setEditId] = useState(null); // ID for the item being edited
@@ -70,7 +109,7 @@ const List = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 25;
-  const [modal_duplicate, setModalDuplicate] = useState(false); // For duplicate modal
+  const [modal_duplicate, setModalDuplicate] = useState(false); 
   const [duplicatePartData, setDuplicatePartData] = useState({
     partName: "",
     id: "",
@@ -99,8 +138,10 @@ const List = () => {
   const [missingCategoryData, setmissingCategoryData] = useState("");
 
   // select delete
-  const [selectedRows, setSelectedRows] = useState([]); // Tracks
-  const [selectAll, setSelectAll] = useState(false); // Tracks if the "Select All" checkbox is checked
+  const [sortedData, setSortedData] = useState([]); // Data sorted for display
+  const [sortOrder, setSortOrder] = useState(null); // 'asc' for ascending, 'desc' for descending, null for default
+  const [selectedRows, setSelectedRows] = useState([]); // Tracks selected rows
+  const [selectAll, setSelectAll] = useState(false);
 
   const toggleModal = () => {
     setModalList(!modal_list);
@@ -146,20 +187,25 @@ const List = () => {
     setError(null);
     try {
       const response = await fetch(
-        `${process.env.REACT_APP_BASE_URL}/api/parts`
+        `${process.env.REACT_APP_BASE_URL}/api/parts?filterType=${filterType}`
       );
       if (!response.ok) {
         throw new Error("Failed to fetch parts");
       }
       const data = await response.json();
       setListData(data);
+      if (initialLoad) {
+        setFilterType(""); // Set filter to empty string on initial load
+        setInitialLoad(false);
+      }
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [filterType]);
 
+  
   useEffect(() => {
     if (selectedPartId) {
       fetchData();
@@ -170,6 +216,10 @@ const List = () => {
       fetchData();
     }
   }, [selectedPartId]);
+
+  useEffect(() => {
+    setSortedData(listData);
+  }, [listData]);
 
   // New function to fetch a single part
   const fetchSelectedPart = async () => {
@@ -197,25 +247,37 @@ const List = () => {
     localStorage.setItem("selectedPartId", id);
   };
 
-  const filteredData = useMemo(() => {
-    if (!listData) return [];
+  const handleSortByDate = () => {
+    let sorted;
+  
+    if (sortOrder === "asc") {
+      // Sort in descending order
+      sorted = [...listData].sort(
+        (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+      );
+      setSortOrder("desc");
+    } else {
+      // Default to ascending order
+      sorted = [...listData].sort(
+        (a, b) => new Date(a.createdAt) - new Date(b.createdAt)
+      );
+      setSortOrder("asc");
+    }
+  
+    setListData(sorted);
+  };
+  
+  const filteredData = listData.filter(
+    (item) =>
+      (searchTerm.length === 0 ||
+        searchTerm.some((term) =>
+          item.partName.toLowerCase().includes(term.toLowerCase())
+        )) &&
+      (filterType === "" || item.partType === filterType)
+    // ((filterType === "" && true) ||
+    //   (filterType !== "" && item.projectType === filterType))
+  );
 
-    const filteredItems = listData.filter((item) => {
-      if (!item.partName) {
-        console.warn(`Item missing partName: ${JSON.stringify(item)}`);
-        return false;
-      }
-
-      const partNameMatch = item.partName
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase());
-      const filterTypeMatch = filterType === "" || item.partType === filterType;
-
-      return partNameMatch && filterTypeMatch;
-    });
-
-    return filteredItems;
-  }, [listData, searchTerm, filterType]);
 
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
   const paginatedData = filteredData.slice(
@@ -224,9 +286,11 @@ const List = () => {
   );
 
   const handleSearch = (e) => {
-    setSearchTerm(e.target.value);
-    setCurrentPage(1); // Reset to the first page on search
-  };
+  const value = e.target.value;
+  setSearchTerm(value); // Reset searchTerm when input is cleared
+  setCurrentPage(1); // Reset to the first page
+};
+
 
   const handlePageChange = (page) => {
     setCurrentPage(page);
@@ -236,6 +300,21 @@ const List = () => {
     const inputValue = e.target.value;
     setnewCodeName(inputValue === "" ? "-" : inputValue);
   };
+
+  const handleSearchChange = (selectedOptions) => {
+    const selectedValues = selectedOptions
+      ? selectedOptions.map((opt) => opt.value)
+      : [];
+    setSearchTerm(selectedValues); // Now searchTerm is an array
+    setCurrentPage(1); // Reset to page 1 when filtering
+  };
+  
+  
+
+  const partOptions = listData.map((project) => ({
+    value: project.partName,
+    label: project.partName,
+  }));
 
   const handleAddPart = async () => {
     // Extract only the numeric part of the ID
@@ -598,36 +677,35 @@ const List = () => {
 
   // Handles delete functionality
   const handleDeleteSelect = async () => {
-    try {
-      if (selectAll) {
-        // Delete all parts
-        const response = await fetch(
-          `${process.env.REACT_APP_BASE_URL}/api/parts`,
-          {
-            method: "DELETE",
-          }
-        );
-        if (!response.ok) throw new Error("Failed to delete all parts");
-        toast.success("All parts deleted successfully");
-      } else {
-        // Delete selected parts
-        const deletePromises = selectedRows.map((_id) =>
-          fetch(`${process.env.REACT_APP_BASE_URL}/api/parts/${_id}`, {
-            method: "DELETE",
-          })
-        );
-        await Promise.all(deletePromises);
-        toast.success("Selected parts deleted successfully");
-      }
-      // Refresh data
-      fetchData();
-      setSelectedRows([]);
-      setSelectAll(false);
-    } catch (error) {
-      console.error("Error deleting parts:", error);
-      toast.error("Failed to delete parts. Please try again.");
+    if (selectAll) {
+      // Delete all parts
+      const response = await fetch(
+        `${process.env.REACT_APP_BASE_URL}/api/parts`,
+        {
+          method: "DELETE",
+        }
+      );
+      if (!response.ok) throw new Error("Failed to delete all parts");
+      toast.success("All parts deleted successfully");
+    } else {
+      // Delete selected parts
+      const deletePromises = selectedRows.map((_id) =>
+        fetch(`${process.env.REACT_APP_BASE_URL}/api/parts/${_id}`, {
+          method: "DELETE",
+        })
+      );
+      await Promise.all(deletePromises);
+      toast.success("Selected parts deleted successfully");
     }
+    // Refresh data
+    fetchData();
+    setSelectedRows([]);
+    setSelectAll(false);
+    setShowDeleteModal(false);
   };
+
+  console.log("Filter applied: ", filterType, filteredData);
+
 
   return (
     <React.Fragment>
@@ -663,50 +741,47 @@ const List = () => {
         </div>
         <div className="col-sm-7 ms-auto">
           <div className="d-flex justify-content-sm-end gap-2 align-items-center">
-            <div className="search-box ms-1 col-sm-5 d-flex align-items-center">
-              <Input
-                type="text"
+            <div className="search-box col-sm-5 d-flex align-items-center ">
+              <Select
+                options={partOptions}
+                isMulti
+                isClearable
                 placeholder="Search..."
-                value={searchTerm}
-                onChange={handleSearch}
-                style={{ width: "20rem", height: "40px" }}
+                onChange={handleSearchChange}
+                styles={customStyles}
               />
-              <i
-                className="ri-search-line search-icon ml-2"
-                style={{ marginTop: "-1px" }}
-              ></i>
+             
             </div>
 
             <div className="col-sm-auto">
-              <FormControl style={{ width: "15rem", height: "40px" }}>
-                <InputLabel
-                  id="demo-simple-select-label"
-                  style={{ marginTop: "-6px" }}
-                >
-                  Filter by Part Type
-                </InputLabel>
-                <Select
-                  labelId="demo-simple-select-label"
-                  id="demo-simple-select"
-                  value={filterType}
-                  onChange={(e) => {
-                    setFilterType(e.target.value);
-                    setCurrentPage(1); // Reset to page 1 when applying a new filter
-                  }}
-                  label="Filter by Part Type"
-                  style={{ height: "40px" }}
-                >
-                  <MenuItem value="">All Types</MenuItem>
-                  <MenuItem value="Make">Make</MenuItem>
-                  <MenuItem value="Purchase">Purchase</MenuItem>
-                </Select>
-              </FormControl>
-            </div>
+              
 
+              <Select
+                options={partTypeOptions}
+                isClearable
+                placeholder="Select Part Type"
+                onChange={(selectedOption) => {
+                  if (selectedOption) {
+                    setFilterType(selectedOption.value);
+                  } else {
+                    setFilterType("");
+                  }
+                }}
+                styles={customStyles}
+              />
+             
+
+            </div>
             {selectedRows.length > 0 && (
-              <Button color="danger" onClick={handleDeleteSelect}>
-                Delete Selected
-              </Button>
+              <div className="d-flex justify-content-end">
+                <Button
+                  color="danger"
+                  className="d-flex align-items-center gap-2 shadow"
+                  onClick={() => setShowDeleteModal(true)}
+                >
+                  <RiDeleteBin6Line size={20} />
+                </Button>
+              </div>
             )}
           </div>
         </div>
@@ -724,14 +799,19 @@ const List = () => {
         <table className="table table-striped">
           <thead>
             <tr>
-              <th>
+              <th style={{ cursor: "pointer" }}>
                 <input
                   type="checkbox"
                   checked={selectAll}
                   onChange={handleSelectAll}
                 />
               </th>
-              <th>Date</th>
+              <th style={{ cursor: "pointer" }}>
+                <span style={{ marginLeft: "5px", marginRight: "10px" }}>
+                  Date
+                </span>
+                <FaSort size={15} onClick={handleSortByDate} />
+              </th>
               <th>Name</th>
               <th>Part Type</th>
               <th>Drawing Number</th>
@@ -1346,39 +1426,6 @@ const List = () => {
       </Modal>
 
       {/* warnind modal for uplaoding the duplicate id for excel */}
-      {/* <Modal
-        isOpen={warningModal}
-        toggle={() => setWarningModal(false)}
-        centered
-      >
-        <ModalHeader toggle={() => setWarningModal(false)}>
-          <span style={{ display: "flex", alignItems: "center" }}>
-            <i
-              className="ri-error-warning-line"
-              style={{ color: "#f0ad4e", marginRight: "8px" }}
-            ></i>
-            Warning
-          </span>
-        </ModalHeader>
-        <ModalBody>
-          <p style={{ color: "#555" }}>
-            Upload partially successful. Duplicate IDs skipped:
-          </p>
-          <ol style={{ paddingLeft: "1.5rem", color: "#333" }}>
-            {warningData &&
-              warningData.split(", ").map((id, index) => (
-                <li key={index} style={{ marginBottom: "0.5rem" }}>
-                  {id}
-                </li>
-              ))}
-          </ol>
-        </ModalBody>
-        <ModalFooter>
-          <Button color="secondary" onClick={() => setWarningModal(false)}>
-            Close
-          </Button>
-        </ModalFooter>
-      </Modal> */}
       <Modal
         isOpen={warningModal}
         toggle={() => setWarningModal(false)}
@@ -1432,6 +1479,28 @@ const List = () => {
         <ModalFooter>
           <Button color="secondary" onClick={() => setWarningModal(false)}>
             Close
+          </Button>
+        </ModalFooter>
+      </Modal>
+
+      {/* delete all modal  */}
+      <Modal
+        isOpen={showDeleteModal}
+        toggle={() => setShowDeleteModal(false)}
+        centered
+      >
+        <ModalHeader toggle={() => setShowDeleteModal(false)}>
+          Confirm Deletion
+        </ModalHeader>
+        <ModalBody>
+          Are you sure you want to delete the selected parts?
+        </ModalBody>
+        <ModalFooter>
+          <Button color="danger" onClick={handleDeleteSelect}>
+            Delete
+          </Button>
+          <Button color="secondary" onClick={() => setShowDeleteModal(false)}>
+            Cancel
           </Button>
         </ModalFooter>
       </Modal>
