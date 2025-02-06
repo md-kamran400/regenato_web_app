@@ -761,7 +761,6 @@ const AssemblyTable = React.memo(
                     }}
                   >
                     <i className="ri-add-line align-bottom me-1"></i> Add Part
-                    List
                   </Button>
                   <Button
                     color="danger"

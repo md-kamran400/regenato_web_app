@@ -8,9 +8,10 @@ import "react-toastify/dist/ReactToastify.css";
 const RawMaterial = ({
   partName,
   rmVariables,
+  projectId,
   partId,
-  subAssemblyId,
   assemblyId,
+  subAssemblyId,
   onUpdatePrts,
   quantity,
 }) => {
@@ -89,7 +90,7 @@ const RawMaterial = ({
     console.log("editId (Raw sasmeblyid):", assemblyId);
     // /projects/:projectId/assemblyList/:assemblyListId/subassemblies/:subAssembliesId/partsListItems/:partsListItemsId/rmVariables/:rmVariablesId
     try {
-      const endpoint = `${process.env.REACT_APP_BASE_URL}/api/assmebly/${assemblyId}/subAssemblies/${subAssemblyId}/parts/${partId}/rmVariables/${editId}`;
+      const endpoint = `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${projectId}/assemblyList/${assemblyId}/subassemblies/${subAssemblyId}/partsListItems/${partId}/rmVariables/${editId}`;
       console.log("🚀 PUT Request to:", endpoint);
 
       const response = await fetch(endpoint, {

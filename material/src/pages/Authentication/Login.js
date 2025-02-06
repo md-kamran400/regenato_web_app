@@ -1,7 +1,4 @@
-// File: Login.js
-
-// import { Link } from 'feather-icons-react/build/IconComponents';
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import React, { useEffect, useState } from "react";
 import {
   Card,
@@ -13,7 +10,6 @@ import {
   Row,
   Button,
   Form,
-  FormFeedback,
   Alert,
   Spinner,
 } from "reactstrap";
@@ -23,26 +19,40 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [token, setToken] = useState(localStorage.getItem("token") || null);
+  const navigate = useNavigate();
+
+  // Redirect if token exists
+  useEffect(() => {
+    if (token) {
+      console.log("Token found, redirecting...");
+      navigate("/regenato-home");
+    }
+  }, [token, navigate]); // Depend on token so it re-runs when it updates
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError("");
 
-    if (email !== "admin@ccmpl.com" || password !== "12345") {
-      setError("Invalid email or password");
-      setLoading(false);
-      return;
-    }
-
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const response = await fetch(
+        `${process.env.REACT_APP_BASE_URL}/api/userManagement/login`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        }
+      );
 
-      // Redirect to Regenato home page
-      window.location.href = "/regenato-home";
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || "Login failed");
+
+      // Store token and update state
+      localStorage.setItem("token", data.token);
+      setToken(data.token); // This will trigger useEffect
     } catch (err) {
-      setError("Failed to log in");
+      setError(err.message || "Invalid email or password");
     } finally {
       setLoading(false);
     }
@@ -66,10 +76,11 @@ const Login = () => {
             <Card className="mt-4">
               <CardBody className="p-4">
                 <div className="text-center mt-2">
-                  <h5 className="text-primary">Welcome Back !</h5>
-                  <p className="text-muted">Sign in to continue to CCMPL.</p>
+                  <h5 className="text-primary">Welcome Back!</h5>
+                  <p className="text-muted">Login to continue to CCMPL.</p>
                 </div>
                 {error && <Alert color="danger">{error}</Alert>}
+
                 <Form onSubmit={handleSubmit}>
                   <div className="mb-3">
                     <Label htmlFor="email" className="form-label">
@@ -78,43 +89,39 @@ const Login = () => {
                     <Input
                       name="email"
                       className="form-control"
-                      placeholder="admin@ccmpl.com"
+                      placeholder="Email"
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
                     />
                   </div>
+
                   <div className="mb-3">
-                    <Label className="form-label" htmlFor="password-input">
+                    <Label className="form-label" htmlFor="password">
                       Password
                     </Label>
                     <Input
                       name="password"
-                      value={password}
                       type="password"
-                      className="form-control pe-5"
-                      placeholder="12345"
+                      className="form-control"
+                      placeholder="Password"
+                      value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
                     />
                   </div>
+
                   <div className="mt-4">
-                    <Link>
-                      <Button
-                        color="success"
-                        className="btn btn-success w-100"
-                        type="submit"
-                        disabled={loading}
-                      >
-                        {loading ? (
-                          <Spinner size="sm" className="me-2">
-                            Loading...
-                          </Spinner>
-                        ) : null}
-                        Sign In
-                      </Button>
-                    </Link>
+                    <Button
+                      color="success"
+                      className="btn btn-success w-100"
+                      type="submit"
+                      disabled={loading}
+                    >
+                      {loading ? <Spinner size="sm" className="me-2" /> : null}
+                      {loading ? "Logging in..." : "Login"}
+                    </Button>
                   </div>
                 </Form>
               </CardBody>

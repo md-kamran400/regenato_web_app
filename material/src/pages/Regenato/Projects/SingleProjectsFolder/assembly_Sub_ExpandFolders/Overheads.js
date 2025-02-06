@@ -9,6 +9,7 @@ import "react-toastify/dist/ReactToastify.css";
 const Overheads = ({
   partName,
   overheadsAndProfits,
+  projectId,
   partId,
   assemblyId,
   subAssemblyId,
@@ -91,13 +92,8 @@ const Overheads = ({
     setPosting(true);
     setError(null);
 
-    console.log("🔍 Debugging IDs:");
-    console.log("subAssemblyId:", subAssemblyId);
-    console.log("partId:", partId);
-    console.log("editId (shipmentVariableId):", editId);
-
     try {
-      const endpoint = `${process.env.REACT_APP_BASE_URL}/api/assmebly/${assemblyId}/subAssemblies/${subAssemblyId}/parts/${partId}/overheadsAndProfits/${editId}`;
+      const endpoint = `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${projectId}/assemblyList/${assemblyId}/subassemblies/${subAssemblyId}/partsListItems/${partId}/overheadsAndProfits/${editId}`;
       console.log("🚀 PUT Request to:", endpoint);
 
       const response = await fetch(endpoint, {
