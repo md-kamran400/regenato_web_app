@@ -149,6 +149,7 @@ import SingleSubAssembly from "../pages/Regenato/MultyUseAssmebly/SubAssmeblies/
 import SinglePartsList from "../pages/Regenato/MultyUseAssmebly/Parts-Lists/SinglePartsList";
 import SingleAssmeblyList from "../pages/Regenato/MultyUseAssmebly/Assmeblies/SingleAssmeblyList";
 import UserHandle from "../pages/Regenato/User_Management/UserHandle";
+import HoursPlanningTab from "../pages/Regenato/Projects/HoursPlanningTab";
 // import ProjectSection from "../pages/Regenato/Projects/ProjectSection";
 
 
@@ -185,6 +186,7 @@ const publicRoutes = [
   { path: "/regenato-bom", component: <BomNav /> },
   { path: "/regenato-variables", component: <Variables /> },
   { path: "/singlepart/:_id", component: <SinglePart /> },
+  { path: "/hoursplanningtab/:_id", component: <HoursPlanningTab /> },
 
   { path: "/singleproject/:_id", component: <SingeProject /> },
   { path: "/projectSection/:_id", component: <ProjectSection /> },
@@ -201,6 +203,8 @@ const publicRoutes = [
   // {path: "/regenato-single-parts", component: <SinglePartsList/>},
   // {path: "/regenato-single-assmebly", component: <SingleAssmeblyList/>},
   // {path: "/regenato-single-assmebly", component: <SingleAssmeblyList/>},
+
+ 
 
 
   { path: "/regenato-user-management", component: <UserHandle /> },

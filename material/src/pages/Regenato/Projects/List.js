@@ -82,9 +82,11 @@ import { Puff } from "react-loader-spinner";
 // component import
 import DeleteModal from "../../../Components/Common/DeleteModal";
 import PaginatedList from "../Pagination/PaginatedList";
+import { FaSort } from "react-icons/fa";
 
 const List = () => {
   // const [filt, setFilteredData] = useState([]);
+  const [sortOrder, setSortOrder] = useState(null);
   const [initialLoad, setInitialLoad] = useState(true);
   const [modal_list, setModalList] = useState(false);
   const [modal_edit, setModalEdit] = useState(false);
@@ -123,7 +125,7 @@ const List = () => {
   const [daysToWork, setDaysToWork] = useState({});
   const [manufacturingData, setManufacturingData] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
+  const [selectedItems, setSelectedItems] = useState([]);
   const fetchManufacturingData = useCallback(async () => {
     setLoading(true);
     try {
@@ -170,7 +172,27 @@ const List = () => {
     setFilterType(e.target.value);
   };
 
- 
+  // const handleFilterChange = (selectedOptions) => {
+  //   const selectedValues = selectedOptions
+  //     ? selectedOptions.map((opt) => opt.value)
+  //     : [];
+
+  //   // Update the filterType state with the selected values
+  //   setFilterType(selectedValues);
+
+  //   // Filter the projectListsData based on selected PO types
+  //   const filteredProjects = projectListsData.filter(
+  //     (item) =>
+  //       !selectedValues.length || selectedValues.includes(item.projectType)
+  //   );
+
+  //   // Update the projectListsData state with filtered projects
+  //   setprojectListsData(filteredProjects);
+
+  //   // Update the UI to reflect the selected options
+  //   setProjectType(selectedValues.join(", "));
+  // };
+
   const handleSingleProjectTotalCount = (newTotal) => {
     setTotalCostCount(newTotal);
   };
@@ -240,7 +262,23 @@ const List = () => {
   }, [fetchData]);
 
   // Filtered and Paginated Data
-  
+  // const filteredData = projectListsData.filter((item) =>
+  //   item.projectName.toLowerCase().includes(searchTerm.toLowerCase())
+  // );
+  // Modify the filteredData calculation:
+  // const filteredData = projectListsData.filter(
+  //   (item) =>
+  //     item?.projectName?.toLowerCase().includes(searchTerm.toLowerCase()) &&
+  //     (filterType === "" || item.projectType === filterType)
+  // );
+
+  // const filteredData = projectListsData.filter(
+  //   (item) =>
+  //     searchTerm.length === 0 || // If no search term, show all
+  //     searchTerm.some((term) =>
+  //       item?.projectName?.toLowerCase().includes(term.toLowerCase())
+  //     )
+  // );
   const filteredData = projectListsData.filter(
     (item) =>
       (searchTerm.length === 0 ||
@@ -257,14 +295,65 @@ const List = () => {
     label: project.projectName,
   }));
 
+  // const handleSearchChange = (selectedOptions) => {
+  //   const selectedValues = selectedOptions
+  //     ? selectedOptions.map((opt) => opt.value)
+  //     : [];
+  //   setSearchTerm(selectedValues); // Now searchTerm is an array
+  //   setCurrentPage(1);
+  // };
   const handleSearchChange = (selectedOptions) => {
     const selectedValues = selectedOptions
       ? selectedOptions.map((opt) => opt.value)
       : [];
-    setSearchTerm(selectedValues); // Now searchTerm is an array
+    setSearchTerm(selectedValues);
     setCurrentPage(1);
+    setSelectedItems(selectedValues);
   };
 
+  // const calculateTotalSum = () => {
+  //   let totalCost = 0;
+  //   let totalHours = 0;
+
+  //   selectedItems.forEach((selectedProject) => {
+  //     const project = projectListsData.find(
+  //       (item) => item.projectName === selectedProject
+  //     );
+  //     if (project) {
+  //       totalCost += project.costPerUnit;
+  //       totalHours += project.timePerUnit;
+  //     }
+  //   });
+
+  //   return { totalCost, totalHours };
+  // };
+
+  const calculateTotalSum = () => {
+    const totalCost = paginatedData.reduce(
+      (sum, item) => sum + Math.ceil(item.costPerUnit),
+      0
+    );
+    const totalHours = paginatedData.reduce(
+      (sum, item) => sum + item.timePerUnit,
+      0
+    );
+
+    const machineHours = manufacturingData.reduce((acc, machine) => {
+      acc[machine.name] = paginatedData.reduce(
+        (sum, item) =>
+          sum +
+          (item.machineHours && item.machineHours[machine.name]
+            ? item.machineHours[machine.name]
+            : 0),
+        0
+      );
+      return acc;
+    }, {});
+
+    return { totalCost, totalHours, machineHours };
+  };
+
+  // has context menu
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
   const paginatedData = filteredData.slice(
     (currentPage - 1) * itemsPerPage,
@@ -320,6 +409,26 @@ const List = () => {
         toggleModal();
       }
     }
+  };
+
+  const handleSortByDate = () => {
+    let sorted;
+
+    if (sortOrder === "asc") {
+      // Sort in descending order
+      sorted = [...projectListsData].sort(
+        (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+      );
+      setSortOrder("desc");
+    } else {
+      // Default to ascending order
+      sorted = [...projectListsData].sort(
+        (a, b) => new Date(a.createdAt) - new Date(b.createdAt)
+      );
+      setSortOrder("asc");
+    }
+
+    setprojectListsData(sorted);
   };
 
   const handleEditSubmit = async (e) => {
@@ -436,25 +545,34 @@ const List = () => {
       : 0;
   };
 
+  // const formatTime = (time) => {
+  //   if (time === 0) {
+  //     return 0;
+  //   }
+
+  //   let result = "";
+
+  //   const hours = Math.floor(time);
+  //   const minutes = Math.round((time - hours) * 60);
+
+  //   if (hours > 0) {
+  //     result += `${hours}h `;
+  //   }
+
+  //   if (minutes > 0 || (hours === 0 && minutes !== 0)) {
+  //     result += `${minutes}m`;
+  //   }
+
+  //   return result.trim();
+  // };
+
   const formatTime = (time) => {
     if (time === 0) {
-      return 0;
+      return "0 m";
     }
 
-    let result = "";
-
-    const hours = Math.floor(time);
-    const minutes = Math.round((time - hours) * 60);
-
-    if (hours > 0) {
-      result += `${hours}h `;
-    }
-
-    if (minutes > 0 || (hours === 0 && minutes !== 0)) {
-      result += `${minutes}m`;
-    }
-
-    return result.trim();
+    const totalMinutes = Math.round(time * 60); // Convert hours to minutes
+    return `${totalMinutes} m`;
   };
 
   return (
@@ -513,8 +631,7 @@ const List = () => {
             </div>
           </div>
         )}
-
-        <div className="table-container">
+        {/* <div className="table-container">
           <div className="table-responsive">
             <table className="table table-striped">
               <thead>
@@ -604,13 +721,160 @@ const List = () => {
                         </DropdownMenu>
                       </UncontrolledDropdown>
                     </td>
+                    
                   </tr>
                 ))}
+                
               </tbody>
             </table>
           </div>
-        </div>
+        </div> */}
+        <div className="table-container">
+          <div className="table-responsive">
+            <table className="table table-striped">
+              <thead>
+                <tr>
+                  <th
+                    className="sticky-col"
+                    style={{
+                      backgroundColor: "rgb(228, 228, 228)",
+                      width: "250rem",
+                    }}
+                  >
+                    Name
+                  </th>
+                  {/* <th className="child_parts">Date</th> */}
+                  <th className="child_parts" style={{ cursor: "pointer" }}>
+                    <span style={{ marginLeft: "5px", marginRight: "10px" }}>
+                      Date
+                    </span>
+                    <FaSort size={15} onClick={handleSortByDate} />
+                  </th>
+                  <th className="child_parts">Production Order-Types</th>
+                  <th className="child_parts">Total Cost</th>
+                  <th className="child_parts">Total Hour</th>
+                  {manufacturingData.map((item) => (
+                    <th key={item._id} className="child_parts">
+                      {item.name}
+                    </th>
+                  ))}
+                  <th className="sticky-col">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paginatedData.map((item, index) => (
+                  <tr key={index}>
+                    <td
+                      className="sticky-col"
+                      style={{
+                        color: "blue",
+                        textDecoration: "underline",
+                        backgroundColor: "rgb(231, 229, 229)",
+                      }}
+                    >
+                      <Link to={`/projectSection/${item._id}`}>
+                        {item.projectName}
+                      </Link>
+                    </td>
+                    <td>
+                      {new Date(item.createdAt).toISOString().split("T")[0]}
+                    </td>
+                    <td>{item.projectType}</td>
+                    <td>{Math.ceil(item.costPerUnit)}</td>
+                    <td>{formatTime(item.timePerUnit)}</td>
+                    {manufacturingData.map((machine) => (
+                      <td key={machine._id}>
+                        {formatTime(
+                          item.machineHours && item.machineHours[machine.name]
+                            ? item.machineHours[machine.name]
+                            : 0
+                        )}
+                      </td>
+                    ))}
+                    <td className="sticky-col">
+                      <UncontrolledDropdown direction="start">
+                        <DropdownToggle
+                          tag="button"
+                          className="btn btn-link text-muted p-1 mt-n2 py-0 text-decoration-none fs-15 shadow-none"
+                        >
+                          <FeatherIcon
+                            icon="more-horizontal"
+                            className="icon-sm"
+                          />
+                        </DropdownToggle>
 
+                        <DropdownMenu className="dropdown-menu-end">
+                          <DropdownItem
+                            href="#"
+                            onClick={() => {
+                              setSelectedId(item._id);
+                              tog_delete();
+                            }}
+                          >
+                            <i className="ri-delete-bin-fill align-bottom me-2 text-muted"></i>{" "}
+                            Remove
+                          </DropdownItem>
+                          <div className="dropdown-divider"></div>
+                          <DropdownItem
+                            href="#"
+                            onClick={() => handleDuplicateProject(item)}
+                          >
+                            <i className="ri-file-copy-line align-bottom me-2 text-muted"></i>{" "}
+                            Duplicate
+                          </DropdownItem>
+                        </DropdownMenu>
+                      </UncontrolledDropdown>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td
+                    className="sticky-col"
+                    style={{
+                      backgroundColor: "rgb(228, 228, 228)",
+                      fontWeight: "bold",
+                    }}
+                  >
+                    Total Sum
+                  </td>
+                  <td>--</td>
+                  <td>--</td>
+                  <td>{calculateTotalSum().totalCost}</td>
+                  <td>{formatTime(calculateTotalSum().totalHours)}</td>
+                  {manufacturingData.map((machine) => (
+                    <td key={machine._id}>
+                      {formatTime(
+                        calculateTotalSum().machineHours[machine.name] || 0
+                      )}
+                    </td>
+                  ))}
+                  <td className="sticky-col">--</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+        ;
+        {/* <div className="table-responsive">
+            <thead>
+              <th
+                className="sticky-col"
+                style={{ backgroundColor: "rgb(228, 228, 228)" }}
+              >
+                Total Sum
+              </th>
+              <th className="child_parts">Total Cost</th>
+              <th className="child_parts">Total Hours</th>
+            </thead>
+            <tbody>
+              <td></td>
+              <td>{calculateTotalSum().totalCost}</td>
+              <td>{calculateTotalSum().totalHours}</td>
+            </tbody>
+          </div> */}
+        {/* </div> */}
         <PaginatedList
           totalPages={totalPages}
           currentPage={currentPage}

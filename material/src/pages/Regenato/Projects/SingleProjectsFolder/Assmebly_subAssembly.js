@@ -289,25 +289,34 @@ const Assmebly_subAssembly = ({
     }
   };
 
+  // const formatTime = (time) => {
+  //   if (time === 0) {
+  //     return 0;
+  //   }
+
+  //   let result = "";
+
+  //   const hours = Math.floor(time);
+  //   const minutes = Math.round((time - hours) * 60);
+
+  //   if (hours > 0) {
+  //     result += `${hours}h `;
+  //   }
+
+  //   if (minutes > 0 || (hours === 0 && minutes !== 0)) {
+  //     result += `${minutes}m`;
+  //   }
+
+  //   return result.trim();
+  // };
+
   const formatTime = (time) => {
     if (time === 0) {
-      return 0;
+      return "0 m";
     }
 
-    let result = "";
-
-    const hours = Math.floor(time);
-    const minutes = Math.round((time - hours) * 60);
-
-    if (hours > 0) {
-      result += `${hours}h `;
-    }
-
-    if (minutes > 0 || (hours === 0 && minutes !== 0)) {
-      result += `${minutes}m`;
-    }
-
-    return result.trim();
+    const totalMinutes = Math.round(time * 60); // Convert hours to minutes
+    return `${totalMinutes} m`;
   };
 
   const handleEditQuantity = (item) => {
@@ -479,7 +488,7 @@ const Assmebly_subAssembly = ({
                                   {item.codeName || ""}
                                 </td>
                                 <td>
-                                  {parseFloat(item.costPerUnit || 0).toFixed(2)}
+                                  {parseFloat(item.costPerUnit || 0)}
                                 </td>
                                 <td>{formatTime(item.timePerUnit || 0)}</td>
                                 <td>
@@ -503,7 +512,7 @@ const Assmebly_subAssembly = ({
                                   {(
                                     parseFloat(item.costPerUnit || 0) *
                                     parseInt(item.quantity || 0)
-                                  ).toFixed(2)}
+                                  )}
                                 </td>
                                 <td>
                                   {formatTime(

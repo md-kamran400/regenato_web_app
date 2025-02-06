@@ -427,6 +427,15 @@ const AssmblyMultyPart = React.memo(
       }
     };
 
+    const formatTime = (time) => {
+      if (time === 0) {
+        return "0 m";
+      }
+    
+      const totalMinutes = Math.round(time * 60); // Convert hours to minutes
+      return `${totalMinutes} m`;
+    };
+
     return (
       <>
         {isLoading && (
@@ -493,10 +502,10 @@ const AssmblyMultyPart = React.memo(
                                 {item.partName} ({item.Uid || ""}) {item.codeName || ""}
                               </td>
                               <td>
-                                {parseFloat(item.costPerUnit || 0).toFixed(2)}
+                                {parseFloat(item.costPerUnit || 0)}
                               </td>
                               <td>
-                                {parseFloat(item.timePerUnit || 0).toFixed(2)}
+                                {formatTime(item.timePerUnit || 0)}
                               </td>
                               <td>{parseInt(item.quantity || 0)}</td>
                               <td>
@@ -506,10 +515,10 @@ const AssmblyMultyPart = React.memo(
                                 ).toFixed(2)}
                               </td>
                               <td>
-                                {(
+                                {formatTime(
                                   parseFloat(item.timePerUnit || 0) *
                                   parseInt(item.quantity || 0)
-                                ).toFixed(2)}
+                                )}
                               </td>
 
                               <td className="action-cell">

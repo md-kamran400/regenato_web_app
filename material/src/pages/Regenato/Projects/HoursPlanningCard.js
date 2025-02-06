@@ -15,24 +15,31 @@ const HoursPlanningCard = ({ partName, manufacturingVariables, quantity }) => {
     }))
   );
 
+  // const formatTime = (time) => {
+  //   if (time === 0) return 0;
+  //   let result = "";
+  //   const hours = Math.floor(time);
+  //   const minutes = Math.round((time - hours) * 60);
+  //   if (hours >= 24) {
+  //     const days = Math.floor(hours / 24);
+  //     const remainingHours = hours % 24;
+  //     if (days > 0) result += `${days}d `;
+  //     if (remainingHours > 0) result += `${remainingHours}h `;
+  //     if (minutes > 0) result += `${minutes}m`;
+  //     return result.trim();
+  //   }
+  //   if (hours > 0) result += `${hours}h `;
+  //   if (minutes > 0) result += `${minutes}m`;
+  //   return result.trim();
+  // };
   const formatTime = (time) => {
-    if (time === 0) return 0;
-    let result = "";
-    const hours = Math.floor(time);
-    const minutes = Math.round((time - hours) * 60);
-    if (hours >= 24) {
-      const days = Math.floor(hours / 24);
-      const remainingHours = hours % 24;
-      if (days > 0) result += `${days}d `;
-      if (remainingHours > 0) result += `${remainingHours}h `;
-      if (minutes > 0) result += `${minutes}m`;
-      return result.trim();
+    if (time === 0) {
+      return "0 m";
     }
-    if (hours > 0) result += `${hours}h `;
-    if (minutes > 0) result += `${minutes}m`;
-    return result.trim();
+  
+    const totalMinutes = Math.round(time * 60); // Convert hours to minutes
+    return `${totalMinutes} m`;
   };
-
   const toggle = () => setIsOpen(!isOpen);
 
   const handleInputChange = (index, field, value) => {

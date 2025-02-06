@@ -895,7 +895,7 @@ const SingeProject = () => {
               </p>
             </div>
           </div>
-          <div className="button-group" style={{ marginLeft: "7.2rem" }}>
+          <div className="button-group" style={{ marginLeft: "7.9rem"}}>
             <Button
               color="danger"
               className="add-btn"

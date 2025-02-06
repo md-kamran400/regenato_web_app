@@ -286,27 +286,35 @@ const Assmebly_subAssembly = ({
     }
   };
 
+  // const formatTime = (time) => {
+  //   if (time === 0) {
+  //     return 0;
+  //   }
+
+  //   let result = "";
+
+  //   const hours = Math.floor(time);
+  //   const minutes = Math.round((time - hours) * 60);
+
+  //   if (hours > 0) {
+  //     result += `${hours}h `;
+  //   }
+
+  //   if (minutes > 0 || (hours === 0 && minutes !== 0)) {
+  //     result += `${minutes}m`;
+  //   }
+
+  //   return result.trim();
+  // };
+
   const formatTime = (time) => {
     if (time === 0) {
-      return 0;
+      return "0 m";
     }
-
-    let result = "";
-
-    const hours = Math.floor(time);
-    const minutes = Math.round((time - hours) * 60);
-
-    if (hours > 0) {
-      result += `${hours}h `;
-    }
-
-    if (minutes > 0 || (hours === 0 && minutes !== 0)) {
-      result += `${minutes}m`;
-    }
-
-    return result.trim();
+  
+    const totalMinutes = Math.round(time * 60); // Convert hours to minutes
+    return `${totalMinutes} m`;
   };
-
   const handleEditQuantity = (item) => {
     setItemToEdit(item);
     setEditQuantityModal(true);
@@ -494,18 +502,18 @@ const Assmebly_subAssembly = ({
                                       className="btn btn-sm btn-success edit-item-btn"
                                       onClick={() => handleEditQuantity(item)}
                                     >
-                                      <FaEdit />-
+                                      <FaEdit />
                                     </button>
                                   </div>
                                 </td>
-                                <td>
+                                
                                   <td>
                                     {Math.round(
                                       parseFloat(item.costPerUnit || 0) *
                                         parseInt(item.quantity || 0)
                                     )}
                                   </td>
-                                </td>
+                                
                                 <td>
                                   {formatTime(
                                     parseFloat(item.timePerUnit || 0) *

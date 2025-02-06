@@ -375,27 +375,35 @@ const SingleSubAssembly = () => {
     }
   };
 
+  // const formatTime = (time) => {
+  //   if (time === 0) {
+  //     return 0;
+  //   }
+
+  //   let result = "";
+
+  //   const hours = Math.floor(time);
+  //   const minutes = Math.round((time - hours) * 60);
+
+  //   if (hours > 0) {
+  //     result += `${hours}h `;
+  //   }
+
+  //   if (minutes > 0 || (hours === 0 && minutes !== 0)) {
+  //     result += `${minutes}m`;
+  //   }
+
+  //   return result.trim();
+  // };
+
   const formatTime = (time) => {
     if (time === 0) {
-      return 0;
+      return "0 m";
     }
-
-    let result = "";
-
-    const hours = Math.floor(time);
-    const minutes = Math.round((time - hours) * 60);
-
-    if (hours > 0) {
-      result += `${hours}h `;
-    }
-
-    if (minutes > 0 || (hours === 0 && minutes !== 0)) {
-      result += `${minutes}m`;
-    }
-
-    return result.trim();
+  
+    const totalMinutes = Math.round(time * 60); // Convert hours to minutes
+    return `${totalMinutes} m`;
   };
-
   const handleEditQuantity = (item) => {
     setItemToEdit(item);
     setEditQuantityModal(true);
@@ -500,7 +508,7 @@ const SingleSubAssembly = () => {
                               color: "#6c757d",
                             }}
                           >
-                            <p>{totalCost.toFixed(2)}</p>
+                            <p>{totalCost}</p>
                           </p>
                         </div>
 

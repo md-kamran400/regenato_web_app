@@ -30,7 +30,7 @@ import { FiSettings } from "react-icons/fi";
 import RawMaterial from "./ExpandFolders/RawMaterial";
 import Shipment from "./ExpandFolders/Shipment";
 import Overheads from "./ExpandFolders/Overheads";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { MdOutlineDelete } from "react-icons/md";
 import Manufacturing from "./ExpandFolders/Manufacturing";
 import FeatherIcon from "feather-icons-react";
@@ -510,25 +510,33 @@ const PartsTable = React.memo(
 
     // console.log(partsListItems);
 
+    // const formatTime = (time) => {
+    //   if (time === 0) {
+    //     return 0;
+    //   }
+
+    //   let result = "";
+
+    //   const hours = Math.floor(time);
+    //   const minutes = Math.round((time - hours) * 60);
+
+    //   if (hours > 0) {
+    //     result += `${hours}h `;
+    //   }
+
+    //   if (minutes > 0 || (hours === 0 && minutes !== 0)) {
+    //     result += `${minutes}m`;
+    //   }
+
+    //   return result.trim();
+    // };
     const formatTime = (time) => {
       if (time === 0) {
-        return 0;
+        return "0 m";
       }
-
-      let result = "";
-
-      const hours = Math.floor(time);
-      const minutes = Math.round((time - hours) * 60);
-
-      if (hours > 0) {
-        result += `${hours}h `;
-      }
-
-      if (minutes > 0 || (hours === 0 && minutes !== 0)) {
-        result += `${minutes}m`;
-      }
-
-      return result.trim();
+    
+      const totalMinutes = Math.round(time * 60); // Convert hours to minutes
+      return `${totalMinutes} m`;
     };
 
     return (
@@ -540,11 +548,27 @@ const PartsTable = React.memo(
             </div>
           </div>
         )}
-        <div className="button-group" style={{ marginTop: "-3.6rem" }}>
+
+        <div
+          className="button-group"
+          style={{
+            marginTop: "-4.1rem",
+            // border: "1px solid",hoursplanningtab
+            display: "flex",
+            justifyContent: "space-between",
+            padding: "0.5rem",
+          }}
+        >
           <Button color="success" className="add-btn" onClick={toggleAddModal}>
             <i className="ri-add-line align-bottom me-1"></i> Add Part
           </Button>
+          {/* <Link to={`/hoursplanningtab/${_id}`}> 
+            <Button color="success" className="add-btn">
+              <i className="ri-add-line align-bottom me-1"></i> Allocation
+            </Button>
+          </Link> */}
         </div>
+
         <Col
           lg={12}
           style={{
@@ -934,6 +958,21 @@ const PartsTable = React.memo(
                                 </td>
                               </tr>
                             )}
+
+                            {/* {expandedRowId === item._id && (
+                              <tr>
+                                <td colSpan="7">
+                                  <HoursPlanningTab
+                                    partName={item.partName}
+                                    manufacturingVariables={
+                                      item.manufacturingVariables || []
+                                    }
+                                    quantity={item.quantity}
+                                    hours={item.hours}
+                                  />
+                                </td>
+                              </tr>
+                            )} */}
 
                             {modalOpenId === item._id && (
                               <Modal
