@@ -11,9 +11,14 @@ const RawMaterial = ({
   partId,
   subAssemblyId,
   assemblyId,
+  projectId,
   onUpdatePrts,
   quantity,
 }) => {
+
+  console.log("projects id",projectId)
+  console.log("parts id", partId)
+  console.log("assmeblyid id",assemblyId)
   const [modal_edit, setModalEdit] = useState(false);
   const [modal_delete, setModalDelete] = useState(false);
   const [posting, setPosting] = useState(false);
@@ -82,14 +87,8 @@ const RawMaterial = ({
     setPosting(true);
     setError(null);
 
-    console.log("🔍 Debugging IDs:");
-    console.log("subAssemblyId:", subAssemblyId);
-    console.log("partId:", partId);
-    console.log("editId (Raw sasmeblyid):", editId);
-    console.log("editId (Raw sasmeblyid):", assemblyId);
-
     try {
-      const endpoint = `${process.env.REACT_APP_BASE_URL}/api/assmebly/${assemblyId}/subAssemblies/${subAssemblyId}/parts/${partId}/rmVariables/${editId}`;
+      const endpoint = `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${projectId}/assemblyList/${assemblyId}/partsListItems/${partId}/rawMaterials/${editId}`;
       console.log("🚀 PUT Request to:", endpoint);
 
       const response = await fetch(endpoint, {

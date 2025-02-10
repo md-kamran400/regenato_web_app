@@ -750,8 +750,13 @@ partproject.delete(
 
     try {
       // Validate project ID
-      if (!mongoose.Types.ObjectId.isValid(projectId)) {
-        return res.status(400).json({ error: "Invalid project ID format" });
+      if (
+        !mongoose.Types.ObjectId.isValid(projectId) ||
+        !mongoose.Types.ObjectId.isValid(subAssemblyId)
+      ) {
+        return res
+          .status(400)
+          .json({ error: "Invalid project ID or subAssembly ID format" });
       }
 
       // Find the project and remove the subAssemblyListFirst item
@@ -765,19 +770,9 @@ partproject.delete(
         return res.status(404).json({ error: "Project not found" });
       }
 
-      // Check if the subAssemblyListFirst item was actually removed
-      const removedItemIndex = project.subAssemblyListFirst.findIndex(
-        (item) => item._id.toString() === subAssemblyId
-      );
-      if (removedItemIndex === -1) {
-        return res
-          .status(404)
-          .json({ error: "SubAssemblyListFirst item not found" });
-      }
-
       res.status(200).json({
         status: "success",
-        message: "SubAssemblyListFirst item deleted successfully",
+        message: "subAssemblyListFirst item deleted successfully",
         data: project,
       });
     } catch (error) {
@@ -872,8 +867,89 @@ partproject.post(
 // Add this new route after the existing GET route for projects
 
 // edit for this
-// put the quNITTY
+partproject.put(
+  "/projects/:projectId/subAssemblyListFirst/:subAssemblyListFirstId",
+  async (req, res) => {
+    const { projectId, subAssemblyListFirstId } = req.params;
+    const { subAssemblyName } = req.body;
 
+    try {
+      const project = await PartListProjectModel.findById(projectId);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+
+      const subAssembly = project.subAssemblyListFirst.id(
+        subAssemblyListFirstId
+      );
+      if (!subAssembly) {
+        return res.status(404).json({ message: "Sub-assembly not found" });
+      }
+
+      // Update the subAssemblyName
+      subAssembly.subAssemblyName = subAssemblyName;
+
+      // Save the entire project back to the database
+      await project.save();
+
+      res
+        .status(200)
+        .json({ message: "Sub-assembly updated successfully", project });
+    } catch (error) {
+      res.status(500).json({ message: "Server error", error: error.message });
+    }
+  }
+);
+
+// delete for sub assmebly whole array
+// partproject.delete(
+//   "/projects/:projectId/subAssemblyListFirst/:subAssemblyListFirstId",
+//   async (req, res) => {
+//     const { projectId, subAssemblyListFirstId } = req.params;
+
+//     try {
+//       const project = await PartListProjectModel.findById(projectId);
+//       if (!project) {
+//         return res.status(404).json({ message: "Project not found" });
+//       }
+
+//       console.log("Project found");
+
+//       console.log("subAssemblyListFirst:", project.subAssemblyListFirst);
+//       console.log(
+//         "Looking for subAssemblyListFirstId:",
+//         subAssemblyListFirstId
+//       );
+
+//       const subAssemblyIndex = project.subAssemblyListFirst.findIndex(
+//         (item) => item._id.toString() === subAssemblyListFirstId
+//       );
+
+//       console.log("Found index:", subAssemblyIndex);
+
+//       if (subAssemblyIndex === -1) {
+//         return res
+//           .status(404)
+//           .json({ message: "Sub-assembly not found in the project" });
+//       }
+
+//       // Remove the subassembly from the array
+//       project.subAssemblyListFirst.splice(subAssemblyIndex, 1);
+
+//       // Save the updated project
+//       await project.save();
+
+//       res
+//         .status(200)
+//         .json({ message: "Sub-assembly removed successfully", project });
+//     } catch (error) {
+//       console.error("Error in delete route:", error);
+//       res.status(500).json({ message: "Server error", error: error.message });
+//     }
+//   }
+// );
+
+// put the quanity for sub assmebly
 partproject.put(
   "/projects/:projectId/subAssembly/:subAssemblyId/part/:partId",
   async (req, res) => {
@@ -1348,6 +1424,429 @@ partproject.get(
   }
 );
 
+// ==============================for assmebly
+
+// edit the name for awsmebly
+partproject.put(
+  "/projects/:projectId/assemblyList/:assemblyListId",
+  async (req, res) => {
+    const { projectId, assemblyListId } = req.params;
+    const { AssemblyName } = req.body;
+
+    try {
+      const project = await PartListProjectModel.findById(projectId);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+
+      const assembly = project.assemblyList.id(assemblyListId);
+      if (!assembly) {
+        return res.status(404).json({ message: "Assembly not found" });
+      }
+
+      // Update the AssemblyName
+      assembly.AssemblyName = AssemblyName;
+
+      // Save the entire project back to the database
+      await project.save();
+
+      res
+        .status(200)
+        .json({ message: "Assembly updated successfully", project });
+    } catch (error) {
+      res.status(500).json({ message: "Server error", error: error.message });
+    }
+  }
+);
+
+partproject.delete(
+  "/projects/:projectId/assemblyList/:assemblyListId",
+  async (req, res) => {
+    const { projectId, assemblyListId } = req.params;
+
+    try {
+      // Validate projectId and assemblyListId
+      if (
+        !mongoose.Types.ObjectId.isValid(projectId) ||
+        !mongoose.Types.ObjectId.isValid(assemblyListId)
+      ) {
+        return res
+          .status(400)
+          .json({ error: "Invalid project ID or assembly ID format" });
+      }
+
+      // Find the project and remove the assemblyList item
+      const project = await PartListProjectModel.findByIdAndUpdate(
+        projectId,
+        { $pull: { assemblyList: { _id: assemblyListId } } },
+        { new: true }
+      );
+
+      if (!project) {
+        return res.status(404).json({ error: "Project not found" });
+      }
+
+      res.status(200).json({
+        status: "success",
+        message: "Assembly list item deleted successfully",
+        data: project,
+      });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({
+        error: "An error occurred while deleting the assembly list item",
+      });
+    }
+  }
+);
+
+// post for assmebly parts lists
+partproject.post(
+  "/projects/:projectId/assemblyList/:assemblyId/partsListItems",
+  async (req, res) => {
+    try {
+      const { projectId, assemblyId } = req.params;
+      const {
+        partName,
+        codeName,
+        costPerUnit,
+        timePerUnit,
+        quantity,
+        rmVariables,
+        manufacturingVariables,
+        shipmentVariables,
+        overheadsAndProfits,
+      } = req.body;
+
+      // Validate IDs
+      if (!mongoose.Types.ObjectId.isValid(projectId)) {
+        return res.status(400).json({ error: "Invalid project ID format" });
+      }
+      if (!mongoose.Types.ObjectId.isValid(assemblyId)) {
+        return res.status(400).json({ error: "Invalid assembly ID format" });
+      }
+
+      // Find the project
+      const project = await PartListProjectModel.findOne({
+        _id: projectId,
+        "assemblyList._id": assemblyId,
+      });
+
+      if (!project) {
+        return res
+          .status(404)
+          .json({ error: "Project, Assembly, or Sub-Assembly not found" });
+      }
+
+      // Find the specific assembly list
+      const assemblyList = project.assemblyList.find(
+        (assembly) => assembly._id.toString() === assemblyId
+      );
+
+      if (!assemblyList) {
+        return res.status(404).json({ error: "Assembly not found" });
+      }
+
+      // Create a new part item
+      const newPartItem = {
+        Uid: codeName || "",
+        partName,
+        codeName,
+        costPerUnit,
+        timePerUnit,
+        quantity,
+        rmVariables: rmVariables || [],
+        manufacturingVariables: manufacturingVariables || [],
+        shipmentVariables: shipmentVariables || [],
+        overheadsAndProfits: overheadsAndProfits || [],
+      };
+
+      // Add the new part item to the sub-assembly's partsListItems array
+      assemblyList.partsListItems.push(newPartItem);
+
+      // Save the updated project
+      const updatedProject = await project.save();
+
+      res.status(201).json({
+        status: "success",
+        message: "New part item added successfully",
+        data: updatedProject.assemblyList.find(
+          (assembly) => assembly._id.toString() === assemblyId
+        ),
+      });
+    } catch (error) {
+      console.error(error);
+      res
+        .status(500)
+        .json({ error: "An error occurred while adding the part item" });
+    }
+  }
+);
+
+// delete for assmebly parts lists
+partproject.delete(
+  "/projects/:projectId/assemblyList/:assemblyId/partsListItems/:partsListId",
+  async (req, res) => {
+    const { projectId, assemblyId, partsListId } = req.params;
+
+    try {
+      // Find the project
+      const project = await PartListProjectModel.findById(projectId);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+
+      // Find the assembly
+      const assembly = project.assemblyList.id(assemblyId);
+      if (!assembly) {
+        return res.status(404).json({ message: "Assembly not found" });
+      }
+
+      // Remove the part from partsListItems
+      const updatedPartsList = assembly.partsListItems.filter(
+        (part) => part._id.toString() !== partsListId
+      );
+
+      if (updatedPartsList.length === assembly.partsListItems.length) {
+        return res.status(404).json({ message: "Part not found in assembly" });
+      }
+
+      // Update and save
+      assembly.partsListItems = updatedPartsList;
+      await project.save();
+
+      res.status(200).json({ message: "Part deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Internal Server Error", error });
+    }
+  }
+);
+// put for assmebly raw matarials
+// partproject.put(
+//   "/projects/:projectId/assemblyList/:assemblyListId/partsListItems/:partsListItemsId/rawMaterials/:rawMaterialsId",
+//   async (req, res) => {
+//     const { projectId, assemblyListId, partsListItemsId, rawMaterialsId } = req.params;
+//     const updatedData = req.body; // Get updated fields from request body
+
+//     try {
+//       // Find the project
+//       const project = await PartListProjectModel.findById(projectId);
+//       if (!project) {
+//         return res.status(404).json({ message: "Project not found" });
+//       }
+
+//       // Find the assembly
+//       const assembly = project.assemblyList.id(assemblyListId);
+//       if (!assembly) {
+//         return res.status(404).json({ message: "Assembly not found" });
+//       }
+
+//       // Find the partsListItem
+//       const partItem = assembly.partsListItems.id(partsListItemsId);
+//       if (!partItem) {
+//         return res.status(404).json({ message: "Part not found" });
+//       }
+
+//       // Find the raw material
+//       const rawMaterial = partItem.rmVariables.id(rawMaterialsId);
+//       if (!rawMaterial) {
+//         return res.status(404).json({ message: "Raw Material not found" });
+//       }
+
+//       // Update raw material fields
+//       Object.assign(rawMaterial, updatedData);
+
+//       // Save the document
+//       await project.save();
+
+//       res.status(200).json({ message: "Raw Material updated successfully", rawMaterial });
+//     } catch (error) {
+//       res.status(500).json({ message: "Internal Server Error", error });
+//     }
+//   }
+// );
+
+// Helper function to find project, assembly, and part
+const findProjectAssemblyPart = async (
+  projectId,
+  assemblyListId,
+  partsListItemsId
+) => {
+  const project = await PartListProjectModel.findById(projectId);
+  if (!project) throw new Error("Project not found");
+
+  const assembly = project.assemblyList.id(assemblyListId);
+  if (!assembly) throw new Error("Assembly not found");
+
+  const partItem = assembly.partsListItems.id(partsListItemsId);
+  if (!partItem) throw new Error("Part not found");
+
+  return { project, partItem };
+};
+
+// UPDATE rawMaterials inside partsListItems
+partproject.put(
+  "/projects/:projectId/assemblyList/:assemblyListId/partsListItems/:partsListItemsId/rawMaterials/:rawMaterialsId",
+  async (req, res) => {
+    const { projectId, assemblyListId, partsListItemsId, rawMaterialsId } =
+      req.params;
+    const updatedData = req.body;
+
+    try {
+      const { project, partItem } = await findProjectAssemblyPart(
+        projectId,
+        assemblyListId,
+        partsListItemsId
+      );
+      const rawMaterial = partItem.rmVariables.id(rawMaterialsId);
+      if (!rawMaterial)
+        return res.status(404).json({ message: "Raw Material not found" });
+
+      Object.assign(rawMaterial, updatedData);
+      await project.save();
+
+      res
+        .status(200)
+        .json({ message: "Raw Material updated successfully", rawMaterial });
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  }
+);
+
+// UPDATE manufacturingVariables inside partsListItems
+partproject.put(
+  "/projects/:projectId/assemblyList/:assemblyListId/partsListItems/:partsListItemsId/manufacturing/:manufacturingId",
+  async (req, res) => {
+    const { projectId, assemblyListId, partsListItemsId, manufacturingId } =
+      req.params;
+    const updatedData = req.body;
+
+    try {
+      const { project, partItem } = await findProjectAssemblyPart(
+        projectId,
+        assemblyListId,
+        partsListItemsId
+      );
+      const manufacturing = partItem.manufacturingVariables.id(manufacturingId);
+      if (!manufacturing)
+        return res
+          .status(404)
+          .json({ message: "Manufacturing Variable not found" });
+
+      Object.assign(manufacturing, updatedData);
+      await project.save();
+
+      res.status(200).json({
+        message: "Manufacturing Variable updated successfully",
+        manufacturing,
+      });
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  }
+);
+
+// UPDATE shipmentVariables inside partsListItems
+partproject.put(
+  "/projects/:projectId/assemblyList/:assemblyListId/partsListItems/:partsListItemsId/shipment/:shipmentId",
+  async (req, res) => {
+    const { projectId, assemblyListId, partsListItemsId, shipmentId } =
+      req.params;
+    const updatedData = req.body;
+
+    try {
+      const { project, partItem } = await findProjectAssemblyPart(
+        projectId,
+        assemblyListId,
+        partsListItemsId
+      );
+      const shipment = partItem.shipmentVariables.id(shipmentId);
+      if (!shipment)
+        return res.status(404).json({ message: "Shipment Variable not found" });
+
+      Object.assign(shipment, updatedData);
+      await project.save();
+
+      res
+        .status(200)
+        .json({ message: "Shipment Variable updated successfully", shipment });
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  }
+);
+
+// UPDATE overheadsAndProfits inside partsListItems
+partproject.put(
+  "/projects/:projectId/assemblyList/:assemblyListId/partsListItems/:partsListItemsId/overheads/:overheadId",
+  async (req, res) => {
+    const { projectId, assemblyListId, partsListItemsId, overheadId } =
+      req.params;
+    const updatedData = req.body;
+
+    try {
+      const { project, partItem } = await findProjectAssemblyPart(
+        projectId,
+        assemblyListId,
+        partsListItemsId
+      );
+      const overhead = partItem.overheadsAndProfits.id(overheadId);
+      if (!overhead)
+        return res.status(404).json({ message: "Overhead Variable not found" });
+
+      Object.assign(overhead, updatedData);
+      await project.save();
+
+      res
+        .status(200)
+        .json({ message: "Overhead Variable updated successfully", overhead });
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  }
+);
+
+// for sub assmebly/================================================>
+
+// edit put reiqest for the assmebly sub assmebly
+partproject.put(
+  "/projects/:projectId/assemblyList/:assemblyListId/subAssemblies/:subAssemblyListId",
+  async (req, res) => {
+    const { projectId, assemblyListId, subAssemblyListId } = req.params;
+    const { subAssemblyName } = req.body;
+
+    try {
+      const project = await PartListProjectModel.findById(projectId);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+
+      const assembly = project.assemblyList.id(assemblyListId);
+      if (!assembly) {
+        return res.status(404).json({ message: "Assembly not found" });
+      }
+
+      const subAssembly = assembly.subAssemblies.id(subAssemblyListId);
+      if (!subAssembly) {
+        return res.status(404).json({ message: "Sub-assembly not found" });
+      }
+
+      // Update the subAssemblyName
+      subAssembly.subAssemblyName = subAssemblyName;
+
+      // Save the entire project back to the database
+      await project.save();
+
+      res
+        .status(200)
+        .json({ message: "Sub-assembly updated successfully", project });
+    } catch (error) {
+      res.status(500).json({ message: "Server error", error: error.message });
+    }
+  }
+);
+
 // Add this new route after the existing POST route for subAssemblyListFirst
 partproject.post(
   "/projects/:projectId/assemblyList/:assemblyId/subAssemblies/:subAssemblyId/partsListItems",
@@ -1445,8 +1944,99 @@ partproject.post(
     }
   }
 );
+// delet for sub asmebly parts lists items
+partproject.delete(
+  "/projects/:projectId/assemblyList/:assemblyId/subAssemblies/:subAssemblyId/partsListItems/:partsListId",
+  async (req, res) => {
+    const { projectId, assemblyId, subAssemblyId, partsListId } = req.params;
 
-// put for assmeblies raw matarials
+    try {
+      // Find the project
+      const project = await PartListProjectModel.findById(projectId);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+
+      // Find the assembly
+      const assembly = project.assemblyList.id(assemblyId);
+      if (!assembly) {
+        return res.status(404).json({ message: "Assembly not found" });
+      }
+
+      // Find the sub-assembly
+      const subAssembly = assembly.subAssemblies.id(subAssemblyId);
+      if (!subAssembly) {
+        return res.status(404).json({ message: "Sub-assembly not found" });
+      }
+
+      // Remove the part from partsListItems
+      const updatedPartsList = subAssembly.partsListItems.filter(
+        (part) => part._id.toString() !== partsListId
+      );
+
+      if (updatedPartsList.length === subAssembly.partsListItems.length) {
+        return res
+          .status(404)
+          .json({ message: "Part not found in sub-assembly" });
+      }
+
+      // Update and save
+      subAssembly.partsListItems = updatedPartsList;
+      await project.save();
+
+      res.status(200).json({ message: "Part deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Internal Server Error", error });
+    }
+  }
+);
+
+// put the quanityt
+// UPDATE quantity inside partsListItems in subAssemblyList
+partproject.put(
+  "/projects/:projectId/assemblyList/:assmeblyId/partsListItems/:partId",
+  async (req, res) => {
+    try {
+      const { projectId, assmeblyId, partId } = req.params;
+      const { quantity } = req.body;
+
+      if (!quantity || quantity < 0) {
+        return res.status(400).json({ message: "Invalid quantity" });
+      }
+
+      const project = await PartListProjectModel.findById(projectId);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+
+      // Find the specific sub-assembly
+      const Assmebly = project.assemblyList.id(assmeblyId);
+      if (!Assmebly) {
+        return res.status(404).json({ message: "Assmebly not found" });
+      }
+
+      // Find the part inside the sub-assembly
+      const part = Assmebly.partsListItems.id(partId);
+      if (!part) {
+        return res.status(404).json({ message: "Part not found" });
+      }
+
+      // Update the quantity
+      part.quantity = quantity;
+
+      await project.save();
+
+      res
+        .status(200)
+        .json({ message: "Quantity updated successfully", project });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: "Internal Server Error" });
+    }
+  }
+);
+
+// put for sub assmeblies raw matarials
 partproject.put(
   "/projects/:projectId/assemblyList/:assemblyListId/subassemblies/:subAssembliesId/partsListItems/:partsListItemsId/rmVariables/:rmVariablesId",
   async (req, res) => {

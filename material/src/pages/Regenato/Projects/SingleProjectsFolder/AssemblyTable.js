@@ -50,6 +50,7 @@ const AssemblyTable = React.memo(
     const { _id } = useParams();
     const [modalAdd, setModalAdd] = useState(false);
     const [modal_delete, setModalDelete] = useState(false);
+    const [modal_delete_Assembly, setog_delete_assmebly] = useState(false);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [partsData, setPartsData] = useState([]);
@@ -57,6 +58,10 @@ const AssemblyTable = React.memo(
     const [listData, setListData] = useState([]);
     const [posting, setPosting] = useState(false);
     // Assuming parts array is populated
+
+    console.log("id id project", _id);
+    console.log("id id project", assemblypartsList._id);
+
     const [quantity, setQuantity] = useState(0);
     const [parts, setParts] = useState([]);
     const [selectedPartData, setSelectedPartData] = useState(parts[0]);
@@ -78,6 +83,9 @@ const AssemblyTable = React.memo(
     const [partsListItems, setPartsListsItems] = useState([]);
     const [assemblyItems, setAssemblyItems] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [codeName, setCodeName] = useState("");
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [itemToDelete, setItemToDelete] = useState(null);
 
     const [subAssemblyItems, setSubAssemblyItems] = useState([]);
     const [partsAssmeblyItems, setpartsAssmeblyItems] = useState([]);
@@ -92,6 +100,8 @@ const AssemblyTable = React.memo(
     const [selectedSubAssemblyList, setSelectedSubAssemblyList] =
       useState(null);
     const [isAddingNewSubAssembly, setIsAddingNewSubAssembly] = useState(false);
+
+    const [editQuantityModal, setEditQuantityModal] = useState(false);
 
     // Add this state to handle the existing assembly multi parts lists
     const [
@@ -108,8 +118,9 @@ const AssemblyTable = React.memo(
       useState("");
 
     const [editModal, setEditModal] = useState(false);
+    const [itemToEdit, setItemToEdit] = useState(null);
     // const [editModal, setEditModal] = useState(false);
-    const [assemblyListName, setassemblyListName] = useState("");
+    const [AssemblyName, setAssemblyName] = useState("");
     const [selectedPartsList, setSelectedPartsList] = useState(null);
 
     const [machinesTBU, setMachinesTBU] = useState({});
@@ -218,13 +229,13 @@ const AssemblyTable = React.memo(
     const toggleEditModal = (partsList) => {
       setEditModal(!editModal);
       setSelectedPartsList(partsList);
-      setassemblyListName(partsList.assemblyListName);
+      setAssemblyName(partsList.AssemblyName);
     };
-    // assemblyListName
+    // AssemblyName
     // useEffect to set partsListName when editModal is opened
     useEffect(() => {
       if (editModal && selectedPartsList) {
-        setassemblyListName(selectedPartsList.assemblyListName);
+        setAssemblyName(selectedPartsList.AssemblyName);
       }
     }, [editModal, selectedPartsList]);
 
@@ -245,6 +256,10 @@ const AssemblyTable = React.memo(
 
     const tog_delete = () => {
       setModalDelete(!modal_delete);
+    };
+
+    const tog_delete_assmebly = () => {
+      setog_delete_assmebly(!modal_delete_Assembly);
     };
 
     const toggleAddModal = () => {
@@ -344,14 +359,11 @@ const AssemblyTable = React.memo(
         if (selectedPart) {
           setSelectedPartData(selectedPart);
           setDetailedPartData({ ...selectedPart });
-          setCostPerUnit(
-            selectedPart.partsCalculations?.[0]?.AvgragecostPerUnit || ""
-          );
-          setTimePerUnit(
-            selectedPart.partsCalculations?.[0]?.AvgragetimePerUnit || ""
-          );
+          setCostPerUnit(selectedPart.costPerUnit || "");
+          setTimePerUnit(selectedPart.timePerUnit || "");
           setQuantity(1);
           setPartId(selectedPart.id || "");
+          setCodeName(selectedPart.codeName || "");
         } else {
           setSelectedPartData(null);
           setDetailedPartData({});
@@ -359,6 +371,7 @@ const AssemblyTable = React.memo(
           setTimePerUnit("");
           setQuantity(0);
           setPartId("");
+          setCodeName("");
         }
       } else {
         setSelectedPartData(null);
@@ -367,6 +380,7 @@ const AssemblyTable = React.memo(
         setTimePerUnit("");
         setQuantity(0);
         setPartId("");
+        setCodeName("");
       }
     };
 
@@ -412,7 +426,7 @@ const AssemblyTable = React.memo(
 
       try {
         const response = await fetch(
-          `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/assemblyPartsLists/${assemblypartsList._id}/items`,
+          `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${_id}/assemblyList/${assemblypartsList._id}/partsListItems`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -427,11 +441,13 @@ const AssemblyTable = React.memo(
           return;
         }
         const newPart = await response.json();
+        onUpdatePrts(newPart);
         await fetchProjectDetails();
         setListData((prevData) => [...prevData, newPart]);
+        toast.success("Part Add Successfully");
         setModalAdd(false);
       } catch (error) {
-        console.error("Error submitting part:", error);
+        toast.error("Failed to add part. Please try again.");
         setError("Failed to add part. Please try again.");
       }
     };
@@ -451,7 +467,7 @@ const AssemblyTable = React.memo(
       setError(null);
       try {
         const response = await fetch(
-          `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/assemblyPartsLists/${assemblypartsList._id}`,
+          `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${_id}/assemblyList/${assemblypartsList._id}/partsListItems/${itemToDelete._id}`,
           {
             method: "DELETE",
             headers: { "Content-Type": "application/json" },
@@ -466,27 +482,27 @@ const AssemblyTable = React.memo(
         // updatePartsLists(updatedProject);
         onUpdatePrts(updatedProject);
         setModalDelete(false);
+        setItemToDelete(null);
         toast.success("Records deleted successfully");
       } catch (error) {
         console.error("Error deleting part:", error);
         toast.error("Failed to delete part. Please try again.");
       }
     };
-    //  ${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/assemblyPartsLists/${assemblypartsList._id},
 
     const handleEdit = async (e) => {
       e.preventDefault();
-      // const assemblyListName = e.target.assemblyListName.value;
-      // const assemblyListName = assemblyListName;
+      // const AssemblyName = e.target.AssemblyName.value;
+      // const AssemblyName = AssemblyName;
       try {
         const response = await fetch(
-          `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/assemblyPartsLists/${assemblypartsList._id}`,
+          `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${_id}/assemblyList/${assemblypartsList._id}`,
           {
             method: "PUT",
             headers: {
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({ assemblyListName }),
+            body: JSON.stringify({ AssemblyName }),
           }
         );
 
@@ -504,22 +520,43 @@ const AssemblyTable = React.memo(
       }
     };
 
-    // updating function
-
-    const handleSubAssemblyUpdate = (updatedSubAssembly) => {
-      setSubAssemblyItems((prevItems) =>
-        prevItems.map((item) =>
-          item._id === updatedSubAssembly._id ? updatedSubAssembly : item
-        )
-      );
+    const handleEditQuantity = (item) => {
+      setItemToEdit(item);
+      setEditQuantityModal(true);
     };
 
-    const handleMultySubAssemblyUpdate = (updatedSubAssembly) => {
-      setpartsAssmeblyItems((prevItems) =>
-        prevItems.map((item) =>
-          item._id === updatedSubAssembly._id ? updatedSubAssembly : item
-        )
-      );
+    const handleSubmitEditQuantity = async () => {
+      if (!itemToEdit) return;
+
+      try {
+        const response = await fetch(
+          `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${projectId}/assemblyList/${_id}/partsListItems/${itemToEdit._id}`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ quantity: itemToEdit.quantity }),
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error("Failed to update quantity");
+        }
+        const data = await response.json();
+        setPartsListItems((prevItems) =>
+          prevItems.map((item) =>
+            item._id === itemToEdit._id
+              ? { ...item, quantity: data.quantity }
+              : item
+          )
+        );
+
+        toast.success("Quantity updated successfully");
+        setEditQuantityModal(false);
+        await fetchSubAssembly();
+      } catch (error) {
+        console.error("Error updating quantity:", error);
+        toast.error("Failed to update quantity. Please try again.");
+      }
     };
 
     const handleSubmitSubAssembly = async () => {
@@ -673,7 +710,30 @@ const AssemblyTable = React.memo(
       return result.trim();
     };
 
-    console.log("assmebly items", assemblypartsList);
+    const handleDeleteAssembly = async () => {
+      try {
+        const response = await fetch(
+          ` ${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${_id}/assemblyList/${assemblypartsList._id}`,
+          {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error("Failed to delete part");
+        }
+
+        const updatedProject = await response.json();
+        // updatePartsLists(updatedProject);
+        onUpdatePrts(updatedProject);
+        setog_delete_assmebly(false);
+        toast.success("Records Deleted Successfully");
+      } catch (error) {
+        console.error("Error deleting part:", error);
+        toast.error("Failed to delete Records. Please try again.");
+      }
+    };
 
     return (
       <Col
@@ -740,7 +800,7 @@ const AssemblyTable = React.memo(
                         href="#"
                         onClick={() => {
                           setSelectedId(assemblypartsList._id);
-                          tog_delete();
+                          tog_delete_assmebly();
                         }}
                       >
                         <i className="ri-delete-bin-6-line align-bottom me-2 text-muted"></i>{" "}
@@ -754,25 +814,13 @@ const AssemblyTable = React.memo(
                 <div className="button-group">
                   <Button
                     className="add-btn"
-                    onClick={toggleAddModalPartAssembly}
+                    onClick={toggleAddModal}
                     style={{
                       backgroundColor: "rgb(69, 203, 133)",
                       color: "white",
                     }}
                   >
                     <i className="ri-add-line align-bottom me-1"></i> Add Part
-                  </Button>
-                  <Button
-                    color="danger"
-                    className="add-btn"
-                    onClick={toggleAddModalsubAssembly}
-                    style={{
-                      backgroundColor: "rgb(240, 101, 72)",
-                      color: "white",
-                    }}
-                  >
-                    <i className="ri-add-line align-bottom me-1"></i> Add Sub
-                    Assembly
                   </Button>
                 </div>
 
@@ -874,7 +922,7 @@ const AssemblyTable = React.memo(
                                     <MdOutlineDelete
                                       size={25}
                                       onClick={() => {
-                                        setDeleteModal(true);
+                                        setModalDelete(true);
                                         setItemToDelete(item);
                                       }}
                                     />
@@ -911,7 +959,7 @@ const AssemblyTable = React.memo(
                                       rmVariables={item.rmVariables || []}
                                       projectId={_id}
                                       partId={item._id}
-                                      subAssemblyId={_id}
+                                      assemblyId={assemblypartsList._id}
                                       source="subAssemblyListFirst"
                                       onUpdatePrts={onUpdatePrts}
                                       quantity={item.quantity}
@@ -922,7 +970,9 @@ const AssemblyTable = React.memo(
                                       manufacturingVariables={
                                         item.manufacturingVariables || []
                                       }
+                                      projectId={_id}
                                       partId={item._id}
+                                      assemblyId={assemblypartsList._id}
                                       quantity={item.quantity}
                                       subAssemblyId={_id}
                                       source="subAssemblyListFirst"
@@ -934,7 +984,9 @@ const AssemblyTable = React.memo(
                                       shipmentVariables={
                                         item.shipmentVariables || []
                                       }
+                                      projectId={_id}
                                       partId={item._id}
+                                      assemblyId={assemblypartsList._id}
                                       quantity={item.quantity}
                                       subAssemblyId={_id}
                                       source="subAssemblyListFirst"
@@ -944,6 +996,7 @@ const AssemblyTable = React.memo(
                                       partName={item.partName}
                                       projectId={_id}
                                       partId={item._id}
+                                      assemblyId={assemblypartsList._id}
                                       quantity={item.quantity}
                                       subAssemblyId={_id}
                                       overheadsAndProfits={
@@ -996,11 +1049,10 @@ const AssemblyTable = React.memo(
                     {...params}
                     label="Select Part"
                     variant="outlined"
-                    required
+                    // required
                   />
                 )}
               />
-
               <div className="form-group">
                 <Label for="partId" className="form-label">
                   Part ID
@@ -1011,10 +1063,22 @@ const AssemblyTable = React.memo(
                   id="partId"
                   value={partId}
                   onChange={(e) => setPartId(e.target.value)}
-                  required
+                  // required
                 />
               </div>
-
+              <div className="form-group">
+                <Label for="codeName" className="form-label">
+                  Code Name
+                </Label>
+                <Input
+                  className="form-control"
+                  type="text"
+                  id="codeName"
+                  value={codeName}
+                  onChange={(e) => setCodeName(e.target.value)}
+                  // required
+                />
+              </div>
               <div className="form-group">
                 <Label for="costPerUnit" className="form-label">
                   Cost Per Unit
@@ -1022,13 +1086,19 @@ const AssemblyTable = React.memo(
                 <Input
                   className="form-control"
                   type="number"
+                  step="any"
                   id="costPerUnit"
-                  value={Number(costPerUnit).toFixed(2) || "0.00"}
-                  onChange={(e) => setCostPerUnit(Number(e.target.value))}
-                  required
+                  value={Math.round(costPerUnit)}
+                  onChange={(e) => setCostPerUnit(e.target.value)}
+                  // required
+                  onWheel={(e) => e.target.blur()}
+                  onKeyDown={(e) => {
+                    if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+                      e.preventDefault();
+                    }
+                  }}
                 />
               </div>
-
               <div className="form-group">
                 <Label for="timePerUnit" className="form-label">
                   Time Per Unit
@@ -1036,10 +1106,17 @@ const AssemblyTable = React.memo(
                 <Input
                   className="form-control"
                   type="number"
+                  step="any"
                   id="timePerUnit"
-                  value={Number(timePerUnit).toFixed(2) || "0.00"}
+                  value={Math.round(timePerUnit)}
                   onChange={(e) => setTimePerUnit(e.target.value)}
-                  required
+                  // required
+                  onWheel={(e) => e.target.blur()}
+                  onKeyDown={(e) => {
+                    if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+                      e.preventDefault();
+                    }
+                  }}
                 />
               </div>
 
@@ -1061,200 +1138,244 @@ const AssemblyTable = React.memo(
                   required
                 />
               </div>
-              <UncontrolledAccordion defaultOpen="1">
-                {/* Raw Materials Accordion */}
-                <AccordionItem>
-                  <AccordionHeader targetId="1">Raw Materials</AccordionHeader>
-                  <AccordionBody
-                    accordionId="1"
-                    className="accordion-body-custom"
-                  >
-                    {detailedPartData.rmVariables?.map((rm, index) => (
-                      <FormGroup key={rm._id} className="accordion-item-custom">
-                        <Label className="accordion-label">{rm.name}</Label>
-                        <Input
-                          type="number"
-                          className="accordion-input"
-                          value={rm.netWeight || ""}
-                          onChange={(e) =>
-                            setDetailedPartData((prev) => ({
-                              ...prev,
-                              rmVariables: prev.rmVariables.map((item, idx) =>
-                                idx === index
-                                  ? { ...item, netWeight: e.target.value }
-                                  : item
-                              ),
-                            }))
-                          }
-                          placeholder="Enter net weight"
-                        />
-                        <Input
-                          type="number"
-                          className="accordion-input"
-                          value={rm.pricePerKg || ""}
-                          onChange={(e) =>
-                            setDetailedPartData((prev) => ({
-                              ...prev,
-                              rmVariables: prev.rmVariables.map((item, idx) =>
-                                idx === index
-                                  ? { ...item, pricePerKg: e.target.value }
-                                  : item
-                              ),
-                            }))
-                          }
-                          placeholder="Enter price per kg"
-                        />
-                        <p className="accordion-total-rate">
-                          Total Rate: {rm.totalRate}
-                        </p>
-                      </FormGroup>
-                    ))}
-                  </AccordionBody>
-                </AccordionItem>
-
-                {/* Manufacturing Variable Accordion */}
-                <AccordionItem>
-                  <AccordionHeader targetId="2">
-                    Manufacturing Variable
-                  </AccordionHeader>
-                  <AccordionBody accordionId="2">
-                    {detailedPartData.manufacturingVariables?.map(
-                      (man, index) => (
+              <div style={{ display: "none" }}>
+                <UncontrolledAccordion defaultOpen="1">
+                  {/* Raw Materials Accordion */}
+                  <AccordionItem>
+                    <AccordionHeader targetId="1">
+                      Raw Materials
+                    </AccordionHeader>
+                    <AccordionBody
+                      accordionId="1"
+                      className="accordion-body-custom"
+                    >
+                      {detailedPartData.rmVariables?.map((rm, index) => (
                         <FormGroup
-                          key={man._id}
+                          key={rm._id}
                           className="accordion-item-custom"
                         >
-                          <Label className="accordion-label">{man.name}</Label>
+                          <Label className="accordion-label">{rm.name}</Label>
                           <Input
                             type="number"
                             className="accordion-input"
-                            value={man.hours || ""}
+                            value={rm.netWeight || ""}
                             onChange={(e) =>
                               setDetailedPartData((prev) => ({
                                 ...prev,
-                                manufacturingVariables:
-                                  prev.manufacturingVariables.map((item, idx) =>
-                                    idx === index
-                                      ? { ...item, hours: e.target.value }
-                                      : item
-                                  ),
-                              }))
-                            }
-                            placeholder="Enter hours"
-                          />
-                          <Input
-                            type="number"
-                            className="accordion-input"
-                            value={man.hourlyRate || ""}
-                            onChange={(e) =>
-                              setDetailedPartData((prev) => ({
-                                ...prev,
-                                manufacturingVariables:
-                                  prev.manufacturingVariables.map((item, idx) =>
-                                    idx === index
-                                      ? { ...item, hourlyRate: e.target.value }
-                                      : item
-                                  ),
-                              }))
-                            }
-                            placeholder="Enter hourly rate"
-                          />
-                          <p className="accordion-total-rate">
-                            Total Rate: {man.totalRate}
-                          </p>
-                        </FormGroup>
-                      )
-                    )}
-                  </AccordionBody>
-                </AccordionItem>
-
-                {/* Shipment Variable Accordion */}
-                <AccordionItem>
-                  <AccordionHeader targetId="3">
-                    Shipment Variable
-                  </AccordionHeader>
-                  <AccordionBody accordionId="3">
-                    {detailedPartData.shipmentVariables?.map((ship, index) => (
-                      <FormGroup
-                        key={ship._id}
-                        className="accordion-item-custom"
-                      >
-                        <Label className="accordion-label">{ship.name}</Label>
-                        <Input
-                          type="number"
-                          className="accordion-input"
-                          value={ship.hourlyRate || ""}
-                          onChange={(e) =>
-                            setDetailedPartData((prev) => ({
-                              ...prev,
-                              shipmentVariables: prev.shipmentVariables.map(
-                                (item, idx) =>
+                                rmVariables: prev.rmVariables.map((item, idx) =>
                                   idx === index
-                                    ? { ...item, hourlyRate: e.target.value }
+                                    ? { ...item, netWeight: e.target.value }
                                     : item
-                              ),
-                            }))
-                          }
-                          placeholder="Enter hourly rate"
-                        />
-                        <p className="accordion-total-rate">
-                          Total Rate: {ship.hourlyRate}
-                        </p>
-                      </FormGroup>
-                    ))}
-                  </AccordionBody>
-                </AccordionItem>
-
-                {/* Overheads and Profit Accordion */}
-                <AccordionItem>
-                  <AccordionHeader targetId="4">
-                    Overheads and Profit
-                  </AccordionHeader>
-                  <AccordionBody accordionId="4">
-                    {detailedPartData.overheadsAndProfits?.map(
-                      (overhead, index) => (
-                        <FormGroup
-                          key={overhead._id}
-                          className="accordion-item-custom"
-                        >
-                          <Label className="accordion-label">
-                            {overhead.name}
-                          </Label>
+                                ),
+                              }))
+                            }
+                            placeholder="Enter net weight"
+                          />
                           <Input
                             type="number"
                             className="accordion-input"
-                            value={overhead.percentage || ""}
+                            value={rm.pricePerKg || ""}
                             onChange={(e) =>
                               setDetailedPartData((prev) => ({
                                 ...prev,
-                                overheadsAndProfits:
-                                  prev.overheadsAndProfits.map((item, idx) =>
-                                    idx === index
-                                      ? { ...item, percentage: e.target.value }
-                                      : item
-                                  ),
+                                rmVariables: prev.rmVariables.map((item, idx) =>
+                                  idx === index
+                                    ? {
+                                        ...item,
+                                        pricePerKg: e.target.value,
+                                      }
+                                    : item
+                                ),
                               }))
                             }
-                            placeholder="Enter percentage"
+                            placeholder="Enter price per kg"
                           />
                           <p className="accordion-total-rate">
-                            Total Rate: {overhead.totalRate}
+                            Total Rate: {rm.totalRate}
                           </p>
                         </FormGroup>
-                      )
-                    )}
-                  </AccordionBody>
-                </AccordionItem>
-              </UncontrolledAccordion>
+                      ))}
+                    </AccordionBody>
+                  </AccordionItem>
+
+                  {/* Manufacturing Variable Accordion */}
+                  <AccordionItem>
+                    <AccordionHeader targetId="2">
+                      Manufacturing Variable
+                    </AccordionHeader>
+                    <AccordionBody accordionId="2">
+                      {detailedPartData.manufacturingVariables?.map(
+                        (man, index) => (
+                          <FormGroup
+                            key={man._id}
+                            className="accordion-item-custom"
+                          >
+                            <Label className="accordion-label">
+                              {man.name}
+                            </Label>
+                            <Input
+                              type="number"
+                              className="accordion-input"
+                              value={man.hours || ""}
+                              onChange={(e) =>
+                                setDetailedPartData((prev) => ({
+                                  ...prev,
+                                  manufacturingVariables:
+                                    prev.manufacturingVariables.map(
+                                      (item, idx) =>
+                                        idx === index
+                                          ? { ...item, hours: e.target.value }
+                                          : item
+                                    ),
+                                }))
+                              }
+                              placeholder="Enter hours"
+                            />
+                            <Input
+                              type="number"
+                              className="accordion-input"
+                              value={man.times || ""}
+                              onChange={(e) =>
+                                setDetailedPartData((prev) => ({
+                                  ...prev,
+                                  manufacturingVariables:
+                                    prev.manufacturingVariables.map(
+                                      (item, idx) =>
+                                        idx === index
+                                          ? { ...item, times: e.target.value }
+                                          : item
+                                    ),
+                                }))
+                              }
+                              placeholder="Enter Times"
+                            />
+                            <Input
+                              type="number"
+                              className="accordion-input"
+                              value={man.hourlyRate || ""}
+                              onChange={(e) =>
+                                setDetailedPartData((prev) => ({
+                                  ...prev,
+                                  manufacturingVariables:
+                                    prev.manufacturingVariables.map(
+                                      (item, idx) =>
+                                        idx === index
+                                          ? {
+                                              ...item,
+                                              hourlyRate: e.target.value,
+                                            }
+                                          : item
+                                    ),
+                                }))
+                              }
+                              placeholder="Enter hourly rate"
+                            />
+                            <p className="accordion-total-rate">
+                              Total Rate: {man.totalRate}
+                            </p>
+                          </FormGroup>
+                        )
+                      )}
+                    </AccordionBody>
+                  </AccordionItem>
+
+                  {/* Shipment Variable Accordion */}
+                  <AccordionItem>
+                    <AccordionHeader targetId="3">
+                      Shipment Variable
+                    </AccordionHeader>
+                    <AccordionBody accordionId="3">
+                      {detailedPartData.shipmentVariables?.map(
+                        (ship, index) => (
+                          <FormGroup
+                            key={ship._id}
+                            className="accordion-item-custom"
+                          >
+                            <Label className="accordion-label">
+                              {ship.name}
+                            </Label>
+                            <Input
+                              type="number"
+                              className="accordion-input"
+                              value={ship.hourlyRate || ""}
+                              onChange={(e) =>
+                                setDetailedPartData((prev) => ({
+                                  ...prev,
+                                  shipmentVariables: prev.shipmentVariables.map(
+                                    (item, idx) =>
+                                      idx === index
+                                        ? {
+                                            ...item,
+                                            hourlyRate: e.target.value,
+                                          }
+                                        : item
+                                  ),
+                                }))
+                              }
+                              placeholder="Enter hourly rate"
+                            />
+                            <p className="accordion-total-rate">
+                              Total Rate: {ship.hourlyRate}
+                            </p>
+                          </FormGroup>
+                        )
+                      )}
+                    </AccordionBody>
+                  </AccordionItem>
+
+                  {/* Overheads and Profit Accordion */}
+                  <AccordionItem>
+                    <AccordionHeader targetId="4">
+                      Overheads and Profit
+                    </AccordionHeader>
+                    <AccordionBody accordionId="4">
+                      {detailedPartData.overheadsAndProfits?.map(
+                        (overhead, index) => (
+                          <FormGroup
+                            key={overhead._id}
+                            className="accordion-item-custom"
+                          >
+                            <Label className="accordion-label">
+                              {overhead.name}
+                            </Label>
+                            <Input
+                              type="number"
+                              className="accordion-input"
+                              value={overhead.percentage || ""}
+                              onChange={(e) =>
+                                setDetailedPartData((prev) => ({
+                                  ...prev,
+                                  overheadsAndProfits:
+                                    prev.overheadsAndProfits.map((item, idx) =>
+                                      idx === index
+                                        ? {
+                                            ...item,
+                                            percentage: e.target.value,
+                                          }
+                                        : item
+                                    ),
+                                }))
+                              }
+                              placeholder="Enter percentage"
+                            />
+                            <p className="accordion-total-rate">
+                              Total Rate: {overhead.totalRate}
+                            </p>
+                          </FormGroup>
+                        )
+                      )}
+                    </AccordionBody>
+                  </AccordionItem>
+                </UncontrolledAccordion>
+              </div>
 
               <Button
+                style={{ marginLeft: "19rem" }}
                 type="submit"
                 color="primary"
-                disabled={
-                  !selectedPartData || !costPerUnit || !timePerUnit || !quantity
-                }
+                disabled={!selectedPartData || !quantity || isSubmitting}
               >
-                Add
+                {isSubmitting ? "Add" : "Add Parts"}
               </Button>
             </form>
           </ModalBody>
@@ -1290,10 +1411,10 @@ const AssemblyTable = React.memo(
                 /> */}
                 <Input
                   type="text"
-                  id="assemblyListName"
-                  name="assemblyListName"
-                  value={assemblyListName}
-                  onChange={(e) => setassemblyListName(e.target.value)}
+                  id="AssemblyName"
+                  name="AssemblyName"
+                  value={AssemblyName}
+                  onChange={(e) => setAssemblyName(e.target.value)}
                   required
                 />
               </div>
@@ -1489,6 +1610,52 @@ const AssemblyTable = React.memo(
               </ModalFooter>
             </form>
           </ModalBody>
+        </Modal>
+
+        {/* edit the quanityt  */}
+        <Modal
+          isOpen={editQuantityModal}
+          toggle={() => setEditQuantityModal(false)}
+        >
+          <ModalHeader toggle={() => setEditQuantityModal(false)}>
+            Edit Quantity
+          </ModalHeader>
+          <ModalBody>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleSubmitEditQuantity();
+              }}
+            >
+              <Input
+                type="number"
+                value={itemToEdit?.quantity || 0}
+                onChange={(e) =>
+                  setItemToEdit({
+                    ...itemToEdit,
+                    quantity: parseInt(e.target.value),
+                  })
+                }
+                required
+              />
+              <Button type="submit" color="primary" className="mt-3">
+                Update Quantity
+              </Button>
+            </form>
+          </ModalBody>
+        </Modal>
+
+        <Modal isOpen={modal_delete_Assembly} toggle={tog_delete_assmebly}>
+          <ModalHeader toggle={tog_delete_assmebly}>Confirm Delete</ModalHeader>
+          <ModalBody>Are you sure you want to delete this part?</ModalBody>
+          <ModalFooter>
+            <Button color="danger" onClick={handleDeleteAssembly}>
+              Delete
+            </Button>
+            <Button color="secondary" onClick={tog_delete_assmebly}>
+              Cancel
+            </Button>
+          </ModalFooter>
         </Modal>
       </Col>
     );

@@ -18,7 +18,7 @@ const Home = () => {
       <div className="page-content">
         <Container fluid>
           <BreadCrumb title="Home Page" pageTitle="Home" />
-          {/* <Row className="project-wrapper">
+          <Row className="project-wrapper">
             <Col xxl={8}>
               <Widgets />
               <Row lg={12}>
@@ -54,9 +54,7 @@ const Home = () => {
           <Row>
             <ActiveProjects />
             <ProjectsStatus />
-          </Row> */}
-
-          <h3 style={{alignItems: "auto"}}>coming soon</h3>
+          </Row>
         </Container>
       </div>
     </React.Fragment>

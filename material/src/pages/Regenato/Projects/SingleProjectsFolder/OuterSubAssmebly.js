@@ -76,7 +76,7 @@ const OuterSubAssmebly = React.memo(
     const [codeName, setCodeName] = useState("");
     const [editModal, setEditModal] = useState(false);
     // const [editModal, setEditModal] = useState(false);
-    const [subAssemblyListName, setsubAssemblyListName] = useState("");
+    const [subAssemblyName, setsubAssemblyName] = useState("");
     const [selectedPartsList, setSelectedPartsList] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [deleteModal, setDeleteModal] = useState(false);
@@ -99,14 +99,14 @@ const OuterSubAssmebly = React.memo(
     };
     useEffect(() => {
       if (editModal && selectedPartsList) {
-        setsubAssemblyListName(selectedPartsList.subAssemblyListName);
+        setsubAssemblyName(selectedPartsList.subAssemblyName);
       }
     }, [editModal, selectedPartsList]);
 
     const handleDelete = async () => {
       try {
         const response = await fetch(
-          ` ${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/subAssemblyListFirst/${subAssemblyItem._id}`,
+          ` ${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${_id}/subAssemblyListFirst/${subAssemblyItem._id}`,
           {
             method: "DELETE",
             headers: { "Content-Type": "application/json" },
@@ -159,17 +159,17 @@ const OuterSubAssmebly = React.memo(
 
     const handleEdit = async (e) => {
       e.preventDefault();
-      const subAssemblyListName = e.target.subAssemblyListName.value;
+      const subAssemblyName = e.target.subAssemblyName.value;
 
       try {
         const response = await fetch(
-          `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/subAssemblyListFirst/${subAssemblyItem._id}`,
+          `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${_id}/subAssemblyListFirst/${subAssemblyItem._id}`,
           {
             method: "PUT",
             headers: {
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({ subAssemblyListName }),
+            body: JSON.stringify({ subAssemblyName }),
           }
         );
 
@@ -1160,14 +1160,14 @@ const OuterSubAssmebly = React.memo(
             <ModalBody>
               <form onSubmit={handleEdit}>
                 <div className="form-group">
-                  <Label for="subAssemblyListName">
+                  <Label for="subAssemblyName">
                     Sub-Assembly List Name
                   </Label>
                   <Input
                     type="text"
-                    id="subAssemblyListName"
-                    name="subAssemblyListName"
-                    defaultValue={subAssemblyListName}
+                    id="subAssemblyName"
+                    name="subAssemblyName"
+                    defaultValue={subAssemblyName}
                     required
                   />
                 </div>

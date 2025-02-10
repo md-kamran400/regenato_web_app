@@ -69,7 +69,6 @@ const Assmebly_subAssembly = ({
   const [isLoading, setIsLoading] = useState(false);
   const [codeName, setCodeName] = useState("");
   // const [editModal, setEditModal] = useState(false);
-
   const [editQuantityModal, setEditQuantityModal] = useState(false);
   const [itemToEdit, setItemToEdit] = useState(null);
 
@@ -267,7 +266,7 @@ const Assmebly_subAssembly = ({
   const handleDeletePart = async () => {
     try {
       const response = await fetch(
-        `${process.env.REACT_APP_BASE_URL}/api/assmebly/${_id}/subAssemblies/${subAssembly._id}/parts/${itemToDelete._id}`,
+        `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${projectId}/assemblyList/${assemblyId}/subAssemblies/${subAssembly._id}/partsListItems/${itemToDelete._id}`,
         {
           method: "DELETE",
         }
@@ -323,23 +322,24 @@ const Assmebly_subAssembly = ({
     setItemToEdit(item);
     setEditQuantityModal(true);
   };
-
+  
   const handleSubmitEditQuantity = async () => {
     if (!itemToEdit) return;
-
+  
     try {
       const response = await fetch(
-        `${process.env.REACT_APP_BASE_URL}/api/subAssembly/${_id}/parts/${itemToEdit._id}`,
+        `/api/defpartproject/projects/${projectId}/assemblyList/${assemblyId}/subAssemblies/${subAssembly._id}/partsListItems/${itemToEdit._id}`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ quantity: itemToEdit.quantity }),
         }
       );
-
+  
       if (!response.ok) {
         throw new Error("Failed to update quantity");
       }
+  
       const data = await response.json();
       setPartsListItems((prevItems) =>
         prevItems.map((item) =>
@@ -348,10 +348,10 @@ const Assmebly_subAssembly = ({
             : item
         )
       );
-
+  
       toast.success("Quantity updated successfully");
       setEditQuantityModal(false);
-      await fetchSubAssembly();
+      onupdateAssmebly(data)
     } catch (error) {
       console.error("Error updating quantity:", error);
       toast.error("Failed to update quantity. Please try again.");
@@ -975,7 +975,7 @@ const Assmebly_subAssembly = ({
               }
               required
             />
-            <Button type="submit" color="primary">
+            <Button type="submit" color="primary" className="mt-3">
               Update Quantity
             </Button>
           </form>

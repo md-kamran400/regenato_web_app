@@ -13,6 +13,9 @@ const {
   manufacturRouter,
 } = require("./routes/variableRoutes/manufacturing.route");
 const { ShipmentRouter } = require("./routes/variableRoutes/shipment.route");
+const {
+  userVariableRouter,
+} = require("./routes/variableRoutes/usersVariable.route");
 const { OverheadsRouter } = require("./routes/variableRoutes/overheads.route");
 const { GeneralRouter } = require("./routes/variableRoutes/general.route");
 const { PartRoutes } = require("./routes/partsRoutes/parts.route"); // Part Routes
@@ -46,6 +49,7 @@ app.use("/api/shipment", ShipmentRouter);
 app.use("/api/overheadsAndProfit", OverheadsRouter);
 app.use("/api/general", GeneralRouter);
 app.use("/api/manufacturingStatics", manufacturingStaticRouter);
+app.use("/api/userVariable", userVariableRouter);
 
 // Use PartRoutes for handling part-related route
 // Use PartRoutes for handling part-related routes

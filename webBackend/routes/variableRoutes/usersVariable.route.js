@@ -1,11 +1,11 @@
 const { Router } = require("express");
-const ShipmentModel = require("../../model/shipmentmodel");
-const ShipmentRouter = Router();
+const userVariableModal = require("../../model/userVariableModal");
+const userVariableRouter = Router();
 
-ShipmentRouter.post("/", async (req, res) => {
+userVariableRouter.post("/", async (req, res) => {
   try {
     // Check if the categoryId already exists
-    const existingShipment = await ShipmentModel.findOne({
+    const existingShipment = await userVariableModal.findOne({
       categoryId: req.body.categoryId,
     });
 
@@ -16,7 +16,7 @@ ShipmentRouter.post("/", async (req, res) => {
       });
     }
 
-    let Shipment = new ShipmentModel(req.body);
+    let Shipment = new userVariableModal(req.body);
     await Shipment.save();
 
     res.status(201).json({
@@ -37,20 +37,33 @@ ShipmentRouter.post("/", async (req, res) => {
 });
 
 // GET request to retrieve all Shipment data (already existing)
-ShipmentRouter.get("/", async (req, res) => {
+userVariableRouter.get("/", async (req, res) => {
   try {
-    const allShipment = await ShipmentModel.find();
+    const allShipment = await userVariableModal.find();
     res.status(200).json(allShipment);
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
 });
 
+userVariableRouter.get("/:id", async (req, res) => {
+    try {
+      const userVariable = await userVariableModal.findById(req.params.id);
+      if (!userVariable) {
+        return res.status(404).json({ message: "User variable not found" });
+      }
+      res.json(userVariable);
+    } catch (error) {
+      res.status(500).json({ message: "Server error", error });
+    }
+  });
+  
+
 // PUT request to update a Shipment entry by ID
-ShipmentRouter.put("/:id", async (req, res) => {
+userVariableRouter.put("/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const updatedShipment = await ShipmentModel.findByIdAndUpdate(
+    const updatedShipment = await userVariableModal.findByIdAndUpdate(
       id,
       req.body,
       { new: true, runValidators: true }
@@ -67,10 +80,10 @@ ShipmentRouter.put("/:id", async (req, res) => {
 });
 
 // DELETE request to remove a Shipment entry by ID
-ShipmentRouter.delete("/:id", async (req, res) => {
+userVariableRouter.delete("/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const deletedShipment = await ShipmentModel.findByIdAndDelete(id);
+    const deletedShipment = await userVariableModal.findByIdAndDelete(id);
 
     if (!deletedShipment) {
       return res.status(404).json({ msg: "Shipment entry not found" });
@@ -82,4 +95,4 @@ ShipmentRouter.delete("/:id", async (req, res) => {
   }
 });
 
-module.exports = { ShipmentRouter };
+module.exports = { userVariableRouter };
