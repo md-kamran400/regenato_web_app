@@ -227,10 +227,30 @@ manufacturRouter.delete("/:id/subcategories/:subId", async (req, res) => {
   }
 });
 
+// manufacturRouter.get("/category/:categoryId", async (req, res) => {
+//   try {
+//     const { categoryId } = req.params;
+    
+//     // Find manufacturing entry by categoryId
+//     const manufacturingEntry = await ManufacturingModel.findOne({ categoryId });
+
+//     if (!manufacturingEntry) {
+//       return res.status(404).json({ msg: "Manufacturing entry not found" });
+//     }
+
+//     res.status(200).json({
+//       msg: "Manufacturing entry retrieved",
+//       manufacturingEntry,
+//     });
+//   } catch (error) {
+//     res.status(400).json({ error: error.message });
+//   }
+// });
+
 manufacturRouter.get("/category/:categoryId", async (req, res) => {
   try {
     const { categoryId } = req.params;
-    
+
     // Find manufacturing entry by categoryId
     const manufacturingEntry = await ManufacturingModel.findOne({ categoryId });
 
@@ -238,9 +258,10 @@ manufacturRouter.get("/category/:categoryId", async (req, res) => {
       return res.status(404).json({ msg: "Manufacturing entry not found" });
     }
 
+    // Return only subCategories
     res.status(200).json({
-      msg: "Manufacturing entry retrieved",
-      manufacturingEntry,
+      msg: "Subcategories retrieved",
+      subCategories: manufacturingEntry.subCategories,
     });
   } catch (error) {
     res.status(400).json({ error: error.message });

@@ -25,6 +25,7 @@ const subAssemblyRoutes = require("./routes/Sub-Assembly/subAssembly.route");
 const excelPartroutes = require("./routes/PartsExcelData/excelParts");
 const AssemblyRoutes = require("./routes/Assembly-route/assmebly.route");
 const UserRoute = require("./routes/User_route/user.route");
+const allocationRoutes = require("./routes/Allocation/allocation.routes");
 
 // MongoDB connection
 const connect = async () => {
@@ -60,6 +61,9 @@ app.use("/api/assmebly", AssemblyRoutes);
 
 // for authentication
 app.use("/api/userManagement", UserRoute);
+
+//for allocation
+app.use("/api/allocation", allocationRoutes)
 
 // app.use("/api/parts", excelPartroutes)
 
