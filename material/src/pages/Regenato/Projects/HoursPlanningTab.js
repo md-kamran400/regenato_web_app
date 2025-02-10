@@ -6,7 +6,7 @@ import { CiSignpostL1 } from "react-icons/ci";
 import { FiSettings } from "react-icons/fi";
 import { MdOutlineDelete } from "react-icons/md";
 import AllocationPlanningModal from "./Allocation/AllocationPlanningModal";
-
+// hoursplanning
 const HoursPlanningTab = () => {
   const { _id } = useParams();
   const [loading, setLoading] = useState(true);
