@@ -502,6 +502,15 @@ const OuterSubAssmebly = React.memo(
       });
     };
 
+    const formatTime = (time) => {
+      if (time === 0) {
+        return "0 m";
+      }
+    
+      const totalMinutes = Math.round(time * 60); // Convert hours to minutes
+      return `${totalMinutes} m`;
+    };
+
     return (
       <>
         {isLoading && (
@@ -633,7 +642,7 @@ const OuterSubAssmebly = React.memo(
                                 {Math.round(parseFloat(item.costPerUnit || 0))}
                               </td>
                               <td>
-                                {parseFloat(item.timePerUnit || 0).toFixed(2)}
+                                {formatTime(item.timePerUnit || 0)}
                               </td>
                               <td>
                                 <div
@@ -659,10 +668,10 @@ const OuterSubAssmebly = React.memo(
                                 )}
                               </td>
                               <td>
-                                {(
+                                {formatTime(
                                   parseFloat(item.timePerUnit || 0) *
                                   parseInt(item.quantity || 0)
-                                ).toFixed(2)}
+                                )}
                               </td>
 
                               <td className="action-cell">

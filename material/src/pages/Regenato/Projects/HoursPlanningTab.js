@@ -3,6 +3,8 @@ import { useParams } from "react-router-dom";
 import { CardBody, Col, Row, Card } from "reactstrap";
 import "./project.css";
 import { CiSignpostL1 } from "react-icons/ci";
+import { FiSettings } from "react-icons/fi";
+import { MdOutlineDelete } from "react-icons/md";
 
 const HoursPlanningTab = () => {
   const { _id } = useParams();
@@ -10,7 +12,7 @@ const HoursPlanningTab = () => {
   const [error, setError] = useState(null);
   const [partDetails, setPartDetails] = useState({
     allProjects: [],
-    assemblyPartsLists: [],
+    assemblyList: [],
     partsLists: [],
     subAssemblyListFirst: [],
   });
@@ -98,7 +100,7 @@ const HoursPlanningTab = () => {
     }
 
     if (!isMatchingPart) {
-      for (const assemblyList of partDetails.assemblyPartsLists || []) {
+      for (const assemblyList of partDetails.assemblyList || []) {
         for (const item of assemblyList.partsListItems || []) {
           if (item.partName === part.partName) {
             isMatchingPart = true;
@@ -500,6 +502,35 @@ const HoursPlanningTab = () => {
 
   const columnNames = manufacturingVariables.map((variable) => variable.name);
 
+  // const formatTime = (time) => {
+  //   if (time === 0) {
+  //     return 0;
+  //   }
+
+  //   let result = "";
+
+  //   const hours = Math.floor(time);
+  //   const minutes = Math.round((time - hours) * 60);
+
+  //   if (hours > 0) {
+  //     result += `${hours}h `;
+  //   }
+
+  //   if (minutes > 0 || (hours === 0 && minutes !== 0)) {
+  //     result += `${minutes}m`;
+  //   }
+
+  //   return result.trim();
+  // };
+  const formatTime = (time) => {
+    if (time === 0) {
+      return "0 m";
+    }
+
+    const totalMinutes = Math.round(time * 60); // Convert hours to minutes
+    return `${totalMinutes} m`;
+  };
+
   if (loading)
     return (
       <div className="loader-overlay">
@@ -523,7 +554,7 @@ const HoursPlanningTab = () => {
         <Col>
           <CardBody>
             <div className="table-wrapper">
-              {partDetails.partsLists.map((partsList) => (
+              {partDetails.partsLists?.map((partsList) => (
                 <React.Fragment key={partsList._id}>
                   <Card
                     className="mb-4"
@@ -563,30 +594,29 @@ const HoursPlanningTab = () => {
                                 >
                                   Part Name
                                 </th>
-                                {columnNames.map((item) => (
-                                  <th key={item} className="child_parts">
-                                    {item}
-                                  </th>
-                                ))}
-                              </tr>
-                              <tr className="table-row-main">
-                                <td
-                                  className="part-name-header"
-                                  style={{
-                                    backgroundColor: "#C8E6C9",
-                                    color: "black",
-                                  }}
-                                >
-                                  Months Required to complete
-                                </td>
-                                {columnNames.map((processName) => (
-                                  <td key={processName}>
-                                    {calculateMonthsRequiredForPartsList(
-                                      processName,
-                                      partsList
-                                    )}
-                                  </td>
-                                ))}
+                                <th className="child_parts">
+                                  Production Order-Types
+                                </th>
+                                <th className="child_parts">Total Cost</th>
+                                <th className="child_parts">Total Hours</th>
+
+                                {columnNames
+                                  .filter((column) =>
+                                    partsList.partsListItems.some(
+                                      (item) =>
+                                        getHoursForPartListItems(
+                                          column,
+                                          item.quantity,
+                                          item.manufacturingVariables
+                                        ) > 0
+                                    )
+                                  )
+                                  .map((column) => (
+                                    <th key={column} className="child_parts">
+                                      {column}
+                                    </th>
+                                  ))}
+                                <th>Action</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -607,15 +637,65 @@ const HoursPlanningTab = () => {
                                           item.Uid
                                         })`}
                                       </td>
-                                      {columnNames.map((column) => (
-                                        <td key={column}>
-                                          {getHoursForPartListItems(
-                                            column,
-                                            item.quantity,
-                                            item.manufacturingVariables
-                                          )}
-                                        </td>
-                                      ))}
+                                      <td className="table-row-main">
+                                        Standard
+                                      </td>
+                                      <td className="table-row-main">
+                                        {item.quantity * item.costPerUnit}
+                                      </td>
+                                      <td className="table-row-main">
+                                        {formatTime(
+                                          item.quantity * item.timePerUnit
+                                        )}
+                                      </td>
+
+                                      {columnNames
+                                        .filter((column) =>
+                                          partsList.partsListItems.some(
+                                            (item) =>
+                                              getHoursForPartListItems(
+                                                column,
+                                                item.quantity,
+                                                item.manufacturingVariables
+                                              ) > 0
+                                          )
+                                        )
+                                        .map((column) => (
+                                          <td
+                                            key={column}
+                                            className="child_parts"
+                                          >
+                                            {formatTime(
+                                              getHoursForPartListItems(
+                                                column,
+                                                item.quantity,
+                                                item.manufacturingVariables
+                                              )
+                                            )}
+                                          </td>
+                                        ))}
+                                      <td className="table-row-main">
+                                        <div className="action-buttons">
+                                          <span
+                                            style={{
+                                              color: "blue",
+                                              cursor: "pointer",
+                                              marginRight: "2px",
+                                            }}
+                                          >
+                                            <FiSettings size={20} />
+                                          </span>
+                                          <span
+                                            style={{
+                                              color: "red",
+                                              cursor: "pointer",
+                                              marginLeft: "3px",
+                                            }}
+                                          >
+                                            <MdOutlineDelete size={25} />
+                                          </span>
+                                        </div>
+                                      </td>
                                     </tr>
                                   </React.Fragment>
                                 ))
@@ -633,150 +713,6 @@ const HoursPlanningTab = () => {
                             </tbody>
                             <br />
                             <br />
-                            <tbody>
-                              <tr className="table-row-main">
-                                <td
-                                  className="part-name-header"
-                                  style={{
-                                    backgroundColor: "#C8E6C9",
-                                    color: "black",
-                                  }}
-                                >
-                                  Required Machinewise Total Hours
-                                </td>
-                                {/* {columnNames.map((processName) => (
-                                  <td key={processName}>
-                                    {calculateTotalHoursForPartsList(partsList)}
-                                  </td>
-                                ))} */}
-                                {columnNames.map((processName) => (
-                                  <td key={processName}>
-                                    {calculateTotalHoursForPartsList(partsList)[
-                                      processName
-                                    ] || 0}
-                                  </td>
-                                ))}
-                              </tr>
-                              <tr className="table-row-main">
-                                <td
-                                  className="part-name-header"
-                                  style={{
-                                    backgroundColor: "#EFEBE9",
-                                    color: "black",
-                                  }}
-                                >
-                                  Available machine hours per day
-                                </td>
-                                {columnNames.map((processName) => (
-                                  <td key={processName}>
-                                    <input
-                                      className="input-field"
-                                      type="number"
-                                      value={
-                                        machineHoursPerDay[
-                                          `${processName}_${partsList._id}`
-                                        ] || 0
-                                      }
-                                      onChange={(e) =>
-                                        handleInputChange(
-                                          e,
-                                          "machineHoursPerDay",
-                                          `${processName}_${partsList._id}`
-                                        )
-                                      }
-                                    />
-                                  </td>
-                                ))}
-                              </tr>
-                              <tr className="table-row-main">
-                                <td
-                                  className="part-name-header"
-                                  style={{
-                                    backgroundColor: "#EFEBE9",
-                                    color: "black",
-                                  }}
-                                >
-                                  Number of Machines TBU
-                                </td>
-                                {columnNames.map((processName) => (
-                                  <td key={processName}>
-                                    <input
-                                      className="input-field"
-                                      type="number"
-                                      value={
-                                        numberOfMachines[
-                                          `${processName}_${partsList._id}`
-                                        ] || 0
-                                      }
-                                      onChange={(e) =>
-                                        handleInputChange(
-                                          e,
-                                          "numberOfMachines",
-                                          `${processName}_${partsList._id}`
-                                        )
-                                      }
-                                    />
-                                  </td>
-                                ))}
-                              </tr>
-                              <tr className="table-row-main">
-                                <td
-                                  className="part-name-header"
-                                  style={{
-                                    backgroundColor: "#EFEBE9",
-                                    color: "black",
-                                  }}
-                                >
-                                  Number of Days to be worked
-                                </td>
-                                {columnNames.map((processName) => (
-                                  <td key={processName}>
-                                    <input
-                                      className="input-field"
-                                      type="number"
-                                      value={
-                                        daysToWork[
-                                          `${processName}_${partsList._id}`
-                                        ] || 0
-                                      }
-                                      onChange={(e) =>
-                                        handleInputChange(
-                                          e,
-                                          "daysToWork",
-                                          `${processName}_${partsList._id}`
-                                        )
-                                      }
-                                    />
-                                  </td>
-                                ))}
-                              </tr>
-                              <tr className="table-row-main">
-                                <td
-                                  className="part-name-header"
-                                  style={{
-                                    backgroundColor: "#EFEBE9",
-                                    color: "black",
-                                  }}
-                                >
-                                  Available machine hours per month
-                                </td>
-                                {columnNames.map((processName) => (
-                                  <td key={processName}>
-                                    {(
-                                      (machineHoursPerDay[
-                                        `${processName}_${partsList._id}`
-                                      ] || 0) *
-                                      (numberOfMachines[
-                                        `${processName}_${partsList._id}`
-                                      ] || 0) *
-                                      (daysToWork[
-                                        `${processName}_${partsList._id}`
-                                      ] || 0)
-                                    ).toFixed(2)}
-                                  </td>
-                                ))}
-                              </tr>
-                            </tbody>
                           </table>
                         </div>
                       </div>
@@ -828,11 +764,58 @@ const HoursPlanningTab = () => {
                                   >
                                     Sub-Assembly Part Name
                                   </th>
-                                  {columnNames.map((item) => (
+                                  <th className="child_parts">
+                                    Production Order-Types
+                                  </th>
+                                  <th className="child_parts">Total Cost</th>
+                                  <th className="child_parts">Total Hours</th>
+                                  {/* {columnNames.map((item) => (
                                     <th key={item} className="child_parts">
                                       {item}
                                     </th>
-                                  ))}
+                                  ))} */}
+                                  {/* {columnNames
+                                    .filter((column) =>
+                                      subAssemblyListFirst.partsListItems.some(
+                                        (item) =>
+                                          getHoursForPartListItems(
+                                            column,
+                                            item.quantity,
+                                            item.manufacturingVariables
+                                          ) > 0
+                                      )
+                                    )
+                                    .map((column) => (
+                                      <th key={column} className="child_parts">
+                                        {column}
+                                      </th>
+                                    ))} */}
+                                  {columnNames
+                                    .filter((column) =>
+                                      subAssemblyListFirst.partsListItems.some(
+                                        (item) => {
+                                          const hours =
+                                            getHoursForPartListItems(
+                                              column,
+                                              item.quantity,
+                                              item.manufacturingVariables
+                                            );
+                                          return (
+                                            hours > 0 &&
+                                            hours !== null &&
+                                            hours !== undefined &&
+                                            hours !== ""
+                                          );
+                                        }
+                                      )
+                                    )
+                                    .map((column) => (
+                                      <th key={column} className="child_parts">
+                                        {column}
+                                      </th>
+                                    ))}
+
+                                  <th>Action</th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -851,19 +834,99 @@ const HoursPlanningTab = () => {
                                             }}
                                             className="part-name"
                                           >
-                                            {`${item.partName || "N/A"}  (${
-                                              item.Uid
-                                            })`}
+                                            {`${item.partName || "N/A"} `}
                                           </td>
-                                          {columnNames.map((column) => (
-                                            <td key={column}>
-                                              {getHoursForPartListItems(
-                                                column,
-                                                item.quantity,
-                                                item.manufacturingVariables
-                                              )}
-                                            </td>
-                                          ))}
+                                          <td>Standard</td>
+                                          <td>
+                                            {item.quantity * item.costPerUnit}
+                                          </td>
+                                          <td>
+                                            {formatTime(
+                                              item.quantity * item.timePerUnit
+                                            )}
+                                          </td>
+
+                                          {columnNames
+                                            .filter((column) =>
+                                              subAssemblyListFirst.partsListItems.some(
+                                                (item) =>
+                                                  getHoursForPartListItems(
+                                                    column,
+                                                    item.quantity,
+                                                    item.manufacturingVariables
+                                                  ) > 0
+                                              )
+                                            )
+                                            .map((column) => (
+                                              <td
+                                                key={column}
+                                                className="child_parts"
+                                              >
+                                                {formatTime(
+                                                  getHoursForPartListItems(
+                                                    column,
+                                                    item.quantity,
+                                                    item.manufacturingVariables
+                                                  )
+                                                )}
+                                              </td>
+                                            ))}
+                                          {/* {columnNames
+                                            .filter((column) =>
+                                              subAssemblyListFirst.partsListItems.some(
+                                                (item) => {
+                                                  const hours =
+                                                    getHoursForPartListItems(
+                                                      column,
+                                                      item.quantity,
+                                                      item.manufacturingVariables
+                                                    );
+                                                  return (
+                                                    hours > 0 &&
+                                                    hours !== null &&
+                                                    hours !== undefined &&
+                                                    hours !== ""
+                                                  );
+                                                }
+                                              )
+                                            )
+                                            .map((column) => (
+                                              <th
+                                                key={column}
+                                                className="child_parts"
+                                              >
+                                                {formatTime(
+                                                  getHoursForPartListItems(
+                                                    column,
+                                                    item.quantity,
+                                                    item.manufacturingVariables
+                                                  )
+                                                )}
+                                              </th>
+                                            ))} */}
+
+                                          <td>
+                                            <div className="action-buttons">
+                                              <span
+                                                style={{
+                                                  color: "blue",
+                                                  cursor: "pointer",
+                                                  marginRight: "2px",
+                                                }}
+                                              >
+                                                <FiSettings size={20} />
+                                              </span>
+                                              <span
+                                                style={{
+                                                  color: "red",
+                                                  cursor: "pointer",
+                                                  marginLeft: "3px",
+                                                }}
+                                              >
+                                                <MdOutlineDelete size={25} />
+                                              </span>
+                                            </div>
+                                          </td>
                                         </tr>
                                       </React.Fragment>
                                     )
@@ -882,175 +945,6 @@ const HoursPlanningTab = () => {
                               </tbody>
                               <br />
                               <br />
-                              <tbody>
-                                <tr className="table-row-main">
-                                  <td
-                                    className="part-name-header"
-                                    style={{
-                                      backgroundColor: "#C8E6C9",
-                                      color: "black",
-                                    }}
-                                  >
-                                    Required Machinewise Total Hours
-                                  </td>
-                                  {/* {columnNames.map((processName) => (
-                  <td key={processName}>
-                    {calculateTotalHoursForSubAssemblyFirst(processName, subAssemblyListFirst)}
-                  </td>
-                ))} */}
-                                  {columnNames.map((processName) => (
-                                    <td key={processName}>
-                                      {calculateTotalHoursForSubAssemblyFirst(
-                                        processName,
-                                        subAssemblyListFirst
-                                      )}
-                                    </td>
-                                  ))}
-                                </tr>
-
-                                <tr className="table-row-main">
-                                  <td
-                                    className="part-name-header"
-                                    style={{
-                                      backgroundColor: "#EFEBE9",
-                                      color: "black",
-                                    }}
-                                  >
-                                    Available machine hours per day
-                                  </td>
-                                  {columnNames.map((processName) => (
-                                    <td key={processName}>
-                                      <input
-                                        className="input-field"
-                                        type="number"
-                                        value={
-                                          machineHoursPerDay[
-                                            `${processName}_${subAssemblyListFirst._id}`
-                                          ] || 0
-                                        }
-                                        onChange={(e) =>
-                                          handleInputChange(
-                                            e,
-                                            "machineHoursPerDay",
-                                            `${processName}_${subAssemblyListFirst._id}`
-                                          )
-                                        }
-                                      />
-                                    </td>
-                                  ))}
-                                </tr>
-
-                                <tr className="table-row-main">
-                                  <td
-                                    className="part-name-header"
-                                    style={{
-                                      backgroundColor: "#EFEBE9",
-                                      color: "black",
-                                    }}
-                                  >
-                                    Number of Machines TBU
-                                  </td>
-                                  {columnNames.map((processName) => (
-                                    <td key={processName}>
-                                      <input
-                                        className="input-field"
-                                        type="number"
-                                        value={
-                                          numberOfMachines[
-                                            `${processName}_${subAssemblyListFirst._id}`
-                                          ] || 0
-                                        }
-                                        onChange={(e) =>
-                                          handleInputChange(
-                                            e,
-                                            "numberOfMachines",
-                                            `${processName}_${subAssemblyListFirst._id}`
-                                          )
-                                        }
-                                      />
-                                    </td>
-                                  ))}
-                                </tr>
-
-                                <tr className="table-row-main">
-                                  <td
-                                    className="part-name-header"
-                                    style={{
-                                      backgroundColor: "#EFEBE9",
-                                      color: "black",
-                                    }}
-                                  >
-                                    Number of Days to be worked
-                                  </td>
-                                  {columnNames.map((processName) => (
-                                    <td key={processName}>
-                                      <input
-                                        className="input-field"
-                                        type="number"
-                                        value={
-                                          daysToWork[
-                                            `${processName}_${subAssemblyListFirst._id}`
-                                          ] || 0
-                                        }
-                                        onChange={(e) =>
-                                          handleInputChange(
-                                            e,
-                                            "daysToWork",
-                                            `${processName}_${subAssemblyListFirst._id}`
-                                          )
-                                        }
-                                      />
-                                    </td>
-                                  ))}
-                                </tr>
-
-                                <tr className="table-row-main">
-                                  <td
-                                    className="part-name-header"
-                                    style={{
-                                      backgroundColor: "#EFEBE9",
-                                      color: "black",
-                                    }}
-                                  >
-                                    Available machine hours per month
-                                  </td>
-                                  {columnNames.map((processName) => (
-                                    <td key={processName}>
-                                      {(
-                                        (machineHoursPerDay[
-                                          `${processName}_${subAssemblyListFirst._id}`
-                                        ] || 0) *
-                                        (numberOfMachines[
-                                          `${processName}_${subAssemblyListFirst._id}`
-                                        ] || 0) *
-                                        (daysToWork[
-                                          `${processName}_${subAssemblyListFirst._id}`
-                                        ] || 0)
-                                      ).toFixed(2)}
-                                    </td>
-                                  ))}
-                                </tr>
-
-                                <tr className="table-row-main">
-                                  <td
-                                    className="part-name-header"
-                                    style={{
-                                      backgroundColor: "#C8E6C9",
-                                      color: "black",
-                                    }}
-                                  >
-                                    Months Required to complete
-                                  </td>
-                                  {columnNames.map((processName) => (
-                                    <td key={processName}>
-                                      {calculateMonthsRequiredForSubAssemblyFirst(
-                                        processName,
-                                        subAssemblyListFirst
-                                      )}
-                                    </td>
-                                  ))}
-                                </tr>
-                              </tbody>
                             </table>
                           </div>
                         </div>
@@ -1060,8 +954,8 @@ const HoursPlanningTab = () => {
                 </React.Fragment>
               ))}
 
-              {!loading && !error && partDetails.assemblyPartsLists?.length > 0
-                ? partDetails.assemblyPartsLists.map((assemblyList) => (
+              {!loading && !error && partDetails.assemblyList?.length > 0
+                ? partDetails.assemblyList.map((assemblyList) => (
                     <React.Fragment key={assemblyList._id}>
                       <Card
                         className="mb-4"
@@ -1096,6 +990,42 @@ const HoursPlanningTab = () => {
                           <div className="table-wrapper">
                             <div className="table-responsive">
                               <table className="project-table">
+                                <thead className="table-header">
+                                  <tr>
+                                    <th
+                                      className="part-name-header"
+                                      style={{ backgroundColor: "#F5F5F5" }}
+                                    >
+                                      Assembly Part Name
+                                    </th>
+                                    <th className="child_parts">
+                                      Production Order-Types
+                                    </th>
+                                    <th className="child_parts">Total Cost</th>
+                                    <th className="child_parts">Total Hours</th>
+
+                                    {columnNames
+                                      .filter((column) =>
+                                        assemblyList.partsListItems.some(
+                                          (item) =>
+                                            getHoursForPartListItems(
+                                              column,
+                                              item.quantity,
+                                              item.manufacturingVariables
+                                            ) > 0
+                                        )
+                                      )
+                                      .map((column) => (
+                                        <th
+                                          key={column}
+                                          className="child_parts"
+                                        >
+                                          {column}
+                                        </th>
+                                      ))}
+                                    <th>Action</th>
+                                  </tr>
+                                </thead>
                                 <tbody>
                                   {!loading &&
                                   !error &&
@@ -1110,19 +1040,64 @@ const HoursPlanningTab = () => {
                                             }}
                                             className="part-name"
                                           >
-                                            {`${item.partName || "N/A"}  (${
-                                              item.Uid
-                                            })`}
+                                            {`${item.partName || "N/A"} `}
                                           </td>
-                                          {columnNames.map((column) => (
-                                            <td key={column}>
-                                              {getHoursForPartListItems(
-                                                column,
-                                                item.quantity,
-                                                item.manufacturingVariables
-                                              )}
-                                            </td>
-                                          ))}
+                                          <td>Standard</td>
+                                          <td>
+                                            {item.quantity * item.costPerUnit}
+                                          </td>
+                                          <td>
+                                            {formatTime(
+                                              item.quantity * item.timePerUnit
+                                            )}
+                                          </td>
+                                          {columnNames
+                                            .filter((column) =>
+                                              assemblyList.partsListItems.some(
+                                                (item) =>
+                                                  getHoursForPartListItems(
+                                                    column,
+                                                    item.quantity,
+                                                    item.manufacturingVariables
+                                                  ) > 0
+                                              )
+                                            )
+                                            .map((column) => (
+                                              <th
+                                                key={column}
+                                                className="child_parts"
+                                              >
+                                                {formatTime(
+                                                  getHoursForPartListItems(
+                                                    column,
+                                                    item.quantity,
+                                                    item.manufacturingVariables
+                                                  )
+                                                )}
+                                              </th>
+                                            ))}
+                                          <td>
+                                            <div className="action-buttons">
+                                              <span
+                                                style={{
+                                                  color: "blue",
+                                                  cursor: "pointer",
+                                                  marginRight: "2px",
+                                                }}
+                                              >
+                                                <FiSettings size={20} />
+                                              </span>
+                                              <span
+                                                style={{
+                                                  color: "red",
+                                                  cursor: "pointer",
+                                                  marginLeft: "3px",
+                                                }}
+                                              >
+                                                <MdOutlineDelete size={25} />
+                                              </span>
+                                            </div>
+                                          </td>
                                         </tr>
                                       </React.Fragment>
                                     ))
@@ -1133,7 +1108,9 @@ const HoursPlanningTab = () => {
                               </table>
                             </div>
                           </div>
-                          {assemblyList.subAssemblyPartsLists.map(
+
+                          {/* //assemblyList */}
+                          {assemblyList.subAssemblies?.map(
                             (subAssemblyList) => (
                               <React.Fragment key={subAssemblyList._id}>
                                 <br />
@@ -1153,14 +1130,43 @@ const HoursPlanningTab = () => {
                                             >
                                               Sub-Assembly Part Name
                                             </th>
-                                            {columnNames.map((item) => (
+                                            <th className="child_parts">
+                                              Production Order-Types
+                                            </th>
+                                            <th className="child_parts">
+                                              Total Cost
+                                            </th>
+                                            <th className="child_parts">
+                                              Total Hours
+                                            </th>
+                                            {/* {columnNames.map((item) => (
                                               <th
                                                 key={item}
                                                 className="child_parts"
                                               >
                                                 {item}
                                               </th>
-                                            ))}
+                                            ))} */}
+                                            {columnNames
+                                              .filter((column) =>
+                                                assemblyList.partsListItems.some(
+                                                  (item) =>
+                                                    getHoursForPartListItems(
+                                                      column,
+                                                      item.quantity,
+                                                      item.manufacturingVariables
+                                                    ) > 0
+                                                )
+                                              )
+                                              .map((column) => (
+                                                <th
+                                                  key={column}
+                                                  className="child_parts"
+                                                >
+                                                  {column}
+                                                </th>
+                                              ))}
+                                            <th>Action</th>
                                           </tr>
                                         </thead>
                                         <tbody>
@@ -1182,19 +1188,74 @@ const HoursPlanningTab = () => {
                                                     >
                                                       {`${
                                                         item.partName || "N/A"
-                                                      }  (${item.Uid})`}
+                                                      }  `}
                                                     </td>
-                                                    {columnNames.map(
-                                                      (column) => (
-                                                        <td key={column}>
-                                                          {getHoursForPartListItems(
-                                                            column,
-                                                            item.quantity,
-                                                            item.manufacturingVariables
+                                                    <td className="child_parts">
+                                                      Standard
+                                                    </td>
+                                                    <td>
+                                                      {item.quantity *
+                                                        item.costPerUnit}
+                                                    </td>
+                                                    <td>
+                                                      {formatTime(
+                                                        item.quantity *
+                                                          item.timePerUnit
+                                                      )}
+                                                    </td>
+
+                                                    {columnNames
+                                                      .filter((column) =>
+                                                        assemblyList.partsListItems.some(
+                                                          (item) =>
+                                                            getHoursForPartListItems(
+                                                              column,
+                                                              item.quantity,
+                                                              item.manufacturingVariables
+                                                            ) > 0
+                                                        )
+                                                      )
+                                                      .map((column) => (
+                                                        <td
+                                                          key={column}
+                                                          className="child_parts"
+                                                        >
+                                                          {formatTime(
+                                                            getHoursForPartListItems(
+                                                              column,
+                                                              item.quantity,
+                                                              item.manufacturingVariables
+                                                            )
                                                           )}
                                                         </td>
-                                                      )
-                                                    )}
+                                                      ))}
+                                                    <td>
+                                                      {" "}
+                                                      <div className="action-buttons">
+                                                        <span
+                                                          style={{
+                                                            color: "blue",
+                                                            cursor: "pointer",
+                                                            marginRight: "2px",
+                                                          }}
+                                                        >
+                                                          <FiSettings
+                                                            size={20}
+                                                          />
+                                                        </span>
+                                                        <span
+                                                          style={{
+                                                            color: "red",
+                                                            cursor: "pointer",
+                                                            marginLeft: "3px",
+                                                          }}
+                                                        >
+                                                          <MdOutlineDelete
+                                                            size={25}
+                                                          />
+                                                        </span>
+                                                      </div>
+                                                    </td>
                                                   </tr>
                                                 </React.Fragment>
                                               )
@@ -1219,490 +1280,10 @@ const HoursPlanningTab = () => {
                                   </div>
                                   <br />
                                   <br />
-                                  <div className="table-wrapper">
-                                    <div className="table-responsive">
-                                      <table className="table table-hover align-middle">
-                                        <thead className="table-header">
-                                          <tr>
-                                            <th
-                                              className="part-name-header"
-                                              style={{
-                                                backgroundColor: "#F5F5F5",
-                                              }}
-                                            >
-                                              Total Hours
-                                            </th>
-                                            {columnNames.map((item) => (
-                                              <th
-                                                key={item}
-                                                className="child_parts"
-                                              >
-                                                {item}
-                                              </th>
-                                            ))}
-                                          </tr>
-                                        </thead>
-                                        <tbody>
-                                          <tr className="table-row-main">
-                                            <td
-                                              className="part-name-header"
-                                              style={{
-                                                backgroundColor: "#C8E6C9",
-                                                color: "black",
-                                              }}
-                                            >
-                                              Required Machinewise Total Hours
-                                            </td>
-                                            {columnNames.map((processName) => (
-                                              <td key={processName}>
-                                                {calculateTotalHoursForSubAssembly(
-                                                  processName,
-                                                  subAssemblyList
-                                                )}
-                                              </td>
-                                            ))}
-                                          </tr>
-                                          <tr className="table-row-main">
-                                            <td
-                                              className="part-name-header"
-                                              style={{
-                                                backgroundColor: "#EFEBE9",
-                                                color: "black",
-                                              }}
-                                            >
-                                              Available machine hours per day
-                                            </td>
-                                            {columnNames.map((processName) => (
-                                              <td key={processName}>
-                                                <input
-                                                  className="input-field"
-                                                  type="number"
-                                                  value={
-                                                    machineHoursPerDay[
-                                                      `${processName}_${subAssemblyList._id}`
-                                                    ] || 0
-                                                  }
-                                                  onChange={(e) =>
-                                                    handleInputChange(
-                                                      e,
-                                                      "machineHoursPerDay",
-                                                      `${processName}_${subAssemblyList._id}`
-                                                    )
-                                                  }
-                                                />
-                                              </td>
-                                            ))}
-                                          </tr>
-                                          <tr className="table-row-main">
-                                            <td
-                                              className="part-name-header"
-                                              style={{
-                                                backgroundColor: "#EFEBE9",
-                                                color: "black",
-                                              }}
-                                            >
-                                              Number of Machines TBU
-                                            </td>
-                                            {columnNames.map((processName) => (
-                                              <td key={processName}>
-                                                <input
-                                                  className="input-field"
-                                                  type="number"
-                                                  value={
-                                                    numberOfMachines[
-                                                      `${processName}_${subAssemblyList._id}`
-                                                    ] || 0
-                                                  }
-                                                  onChange={(e) =>
-                                                    handleInputChange(
-                                                      e,
-                                                      "numberOfMachines",
-                                                      `${processName}_${subAssemblyList._id}`
-                                                    )
-                                                  }
-                                                />
-                                              </td>
-                                            ))}
-                                          </tr>
-                                          <tr className="table-row-main">
-                                            <td
-                                              className="part-name-header"
-                                              style={{
-                                                backgroundColor: "#EFEBE9",
-                                                color: "black",
-                                              }}
-                                            >
-                                              Number of Days to be worked
-                                            </td>
-                                            {columnNames.map((processName) => (
-                                              <td key={processName}>
-                                                <input
-                                                  className="input-field"
-                                                  type="number"
-                                                  value={
-                                                    daysToWork[
-                                                      `${processName}_${subAssemblyList._id}`
-                                                    ] || 0
-                                                  }
-                                                  onChange={(e) =>
-                                                    handleInputChange(
-                                                      e,
-                                                      "daysToWork",
-                                                      `${processName}_${subAssemblyList._id}`
-                                                    )
-                                                  }
-                                                />
-                                              </td>
-                                            ))}
-                                          </tr>
-                                          <tr className="table-row-main">
-                                            <td
-                                              className="part-name-header"
-                                              style={{
-                                                backgroundColor: "#EFEBE9",
-                                                color: "black",
-                                              }}
-                                            >
-                                              Available machine hours per month
-                                            </td>
-                                            {columnNames.map((processName) => (
-                                              <td key={processName}>
-                                                {(
-                                                  (machineHoursPerDay[
-                                                    `${processName}_${subAssemblyList._id}`
-                                                  ] || 0) *
-                                                  (numberOfMachines[
-                                                    `${processName}_${subAssemblyList._id}`
-                                                  ] || 0) *
-                                                  (daysToWork[
-                                                    `${processName}_${subAssemblyList._id}`
-                                                  ] || 0)
-                                                ).toFixed(2)}
-                                              </td>
-                                            ))}
-                                          </tr>
-                                          <tr className="table-row-main">
-                                            <td
-                                              className="part-name-header"
-                                              style={{
-                                                backgroundColor: "#C8E6C9",
-                                                color: "black",
-                                              }}
-                                            >
-                                              Months Required to complete
-                                            </td>
-                                            {columnNames.map((processName) => (
-                                              <td key={processName}>
-                                                {calculateMonthsRequiredForSubAssembly(
-                                                  processName,
-                                                  subAssemblyList
-                                                )}
-                                              </td>
-                                            ))}
-                                          </tr>
-                                        </tbody>
-                                      </table>
-                                    </div>
-                                  </div>
                                 </div>
                               </React.Fragment>
                             )
                           )}
-
-                          <div>
-                            {assemblyList.assemblyMultyPartsList.map(
-                              (subAssemblyList) => (
-                                <React.Fragment key={subAssemblyList._id}>
-                                  <br />
-                                  <br />
-                                  <h4>
-                                    {subAssemblyList.assemblyMultyPartsListName}
-                                  </h4>
-                                  <div className="parts-lists">
-                                    <div className="table-wrapper">
-                                      <div className="table-responsive">
-                                        <table className="table table-hover align-middle">
-                                          <thead className="table-header">
-                                            <tr>
-                                              <th
-                                                className="part-name-header"
-                                                style={{
-                                                  backgroundColor: "#F5F5F5",
-                                                }}
-                                              >
-                                                Sub-Assembly Part Name
-                                              </th>
-                                              {columnNames.map((item) => (
-                                                <th
-                                                  key={item}
-                                                  className="child_parts"
-                                                >
-                                                  {item}
-                                                </th>
-                                              ))}
-                                            </tr>
-                                          </thead>
-                                          <tbody>
-                                            {!loading &&
-                                            !error &&
-                                            subAssemblyList.partsListItems
-                                              ?.length > 0 ? (
-                                              subAssemblyList.partsListItems.map(
-                                                (item) => (
-                                                  <React.Fragment
-                                                    key={item.Uid}
-                                                  >
-                                                    <tr className="table-row-main">
-                                                      <td
-                                                        style={{
-                                                          backgroundColor:
-                                                            "#EFEBE9",
-                                                          color: "black",
-                                                        }}
-                                                        className="part-name"
-                                                      >
-                                                        {`${
-                                                          item.partName || "N/A"
-                                                        }  (${item.Uid})`}
-                                                      </td>
-                                                      {columnNames.map(
-                                                        (column) => (
-                                                          <td key={column}>
-                                                            {getHoursForPartListItems(
-                                                              column,
-                                                              item.quantity,
-                                                              item.manufacturingVariables
-                                                            )}
-                                                          </td>
-                                                        )
-                                                      )}
-                                                    </tr>
-                                                  </React.Fragment>
-                                                )
-                                              )
-                                            ) : (
-                                              <tr>
-                                                <td
-                                                  colSpan="16"
-                                                  className="text-center"
-                                                >
-                                                  {loading
-                                                    ? "Loading..."
-                                                    : error
-                                                    ? error
-                                                    : "No sub-assembly parts available"}
-                                                </td>
-                                              </tr>
-                                            )}
-                                          </tbody>
-                                        </table>
-                                      </div>
-                                    </div>
-                                    <br />
-                                    <br />
-                                    <div className="table-wrapper">
-                                      <div className="table-responsive">
-                                        <table className="table table-hover align-middle">
-                                          <thead className="table-header">
-                                            <tr>
-                                              <th
-                                                className="part-name-header"
-                                                style={{
-                                                  backgroundColor: "#F5F5F5",
-                                                }}
-                                              >
-                                                Total Hours
-                                              </th>
-                                              {columnNames.map((item) => (
-                                                <th
-                                                  key={item}
-                                                  className="child_parts"
-                                                >
-                                                  {item}
-                                                </th>
-                                              ))}
-                                            </tr>
-                                          </thead>
-                                          <tbody>
-                                            <tr className="table-row-main">
-                                              <td
-                                                className="part-name-header"
-                                                style={{
-                                                  backgroundColor: "#C8E6C9",
-                                                  color: "black",
-                                                }}
-                                              >
-                                                Required Machinewise Total Hours
-                                              </td>
-                                              {columnNames.map(
-                                                (processName) => (
-                                                  <td key={processName}>
-                                                    {calculateTotalHoursForSubAssembly(
-                                                      processName,
-                                                      subAssemblyList
-                                                    )}
-                                                  </td>
-                                                )
-                                              )}
-                                            </tr>
-                                            <tr className="table-row-main">
-                                              <td
-                                                className="part-name-header"
-                                                style={{
-                                                  backgroundColor: "#EFEBE9",
-                                                  color: "black",
-                                                }}
-                                              >
-                                                Available machine hours per day
-                                              </td>
-                                              {columnNames.map(
-                                                (processName) => (
-                                                  <td key={processName}>
-                                                    <input
-                                                      className="input-field"
-                                                      type="number"
-                                                      value={
-                                                        machineHoursPerDay[
-                                                          `${processName}_${subAssemblyList._id}`
-                                                        ] || 0
-                                                      }
-                                                      onChange={(e) =>
-                                                        handleInputChange(
-                                                          e,
-                                                          "machineHoursPerDay",
-                                                          `${processName}_${subAssemblyList._id}`
-                                                        )
-                                                      }
-                                                    />
-                                                  </td>
-                                                )
-                                              )}
-                                            </tr>
-                                            <tr className="table-row-main">
-                                              <td
-                                                className="part-name-header"
-                                                style={{
-                                                  backgroundColor: "#EFEBE9",
-                                                  color: "black",
-                                                }}
-                                              >
-                                                Number of Machines TBU
-                                              </td>
-                                              {columnNames.map(
-                                                (processName) => (
-                                                  <td key={processName}>
-                                                    <input
-                                                      className="input-field"
-                                                      type="number"
-                                                      value={
-                                                        numberOfMachines[
-                                                          `${processName}_${subAssemblyList._id}`
-                                                        ] || 0
-                                                      }
-                                                      onChange={(e) =>
-                                                        handleInputChange(
-                                                          e,
-                                                          "numberOfMachines",
-                                                          `${processName}_${subAssemblyList._id}`
-                                                        )
-                                                      }
-                                                    />
-                                                  </td>
-                                                )
-                                              )}
-                                            </tr>
-                                            <tr className="table-row-main">
-                                              <td
-                                                className="part-name-header"
-                                                style={{
-                                                  backgroundColor: "#EFEBE9",
-                                                  color: "black",
-                                                }}
-                                              >
-                                                Number of Days to be worked
-                                              </td>
-                                              {columnNames.map(
-                                                (processName) => (
-                                                  <td key={processName}>
-                                                    <input
-                                                      className="input-field"
-                                                      type="number"
-                                                      value={
-                                                        daysToWork[
-                                                          `${processName}_${subAssemblyList._id}`
-                                                        ] || 0
-                                                      }
-                                                      onChange={(e) =>
-                                                        handleInputChange(
-                                                          e,
-                                                          "daysToWork",
-                                                          `${processName}_${subAssemblyList._id}`
-                                                        )
-                                                      }
-                                                    />
-                                                  </td>
-                                                )
-                                              )}
-                                            </tr>
-                                            <tr className="table-row-main">
-                                              <td
-                                                className="part-name-header"
-                                                style={{
-                                                  backgroundColor: "#EFEBE9",
-                                                  color: "black",
-                                                }}
-                                              >
-                                                Available machine hours per
-                                                month
-                                              </td>
-                                              {columnNames.map(
-                                                (processName) => (
-                                                  <td key={processName}>
-                                                    {(
-                                                      (machineHoursPerDay[
-                                                        `${processName}_${subAssemblyList._id}`
-                                                      ] || 0) *
-                                                      (numberOfMachines[
-                                                        `${processName}_${subAssemblyList._id}`
-                                                      ] || 0) *
-                                                      (daysToWork[
-                                                        `${processName}_${subAssemblyList._id}`
-                                                      ] || 0)
-                                                    ).toFixed(2)}
-                                                  </td>
-                                                )
-                                              )}
-                                            </tr>
-                                            <tr className="table-row-main">
-                                              <td
-                                                className="part-name-header"
-                                                style={{
-                                                  backgroundColor: "#C8E6C9",
-                                                  color: "black",
-                                                }}
-                                              >
-                                                Months Required to complete
-                                              </td>
-                                              {columnNames.map(
-                                                (processName) => (
-                                                  <td key={processName}>
-                                                    {calculateMonthsRequiredForSubAssembly(
-                                                      processName,
-                                                      subAssemblyList
-                                                    )}
-                                                  </td>
-                                                )
-                                              )}
-                                            </tr>
-                                          </tbody>
-                                        </table>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </React.Fragment>
-                              )
-                            )}
-                          </div>
                         </CardBody>
                       </Card>
                     </React.Fragment>

@@ -497,34 +497,44 @@ const List = () => {
     fetchData(); // Re-fetch the entire list
   };
 
-  const formatTime = (time) => {
-    if (time === 0) {
-      return 0;
-    }
+  // const formatTime = (time) => {
+  //   if (time === 0) {
+  //     return 0;
+  //   }
 
-    let result = "";
+  //   let result = "";
 
-    const hours = Math.floor(time);
-    const minutes = Math.round((time - hours) * 60);
+  //   const hours = Math.floor(time);
+  //   const minutes = Math.round((time - hours) * 60);
 
-    if (hours >= 24) {
-      const days = Math.floor(hours / 24);
-      const remainingHours = hours % 24;
+  //   if (hours >= 24) {
+  //     const days = Math.floor(hours / 24);
+  //     const remainingHours = hours % 24;
 
-      if (days > 0) result += `${days}d `;
-      if (remainingHours > 0) result += `${remainingHours}h `;
-      if (minutes > 0) result += `${minutes}m`;
+  //     if (days > 0) result += `${days}d `;
+  //     if (remainingHours > 0) result += `${remainingHours}h `;
+  //     if (minutes > 0) result += `${minutes}m`;
 
-      return result.trim();
-    }
+  //     return result.trim();
+  //   }
 
-    if (hours > 0) result += `${hours}h `;
-    if (minutes > 0) result += `${minutes}m`;
+  //   if (hours > 0) result += `${hours}h `;
+  //   if (minutes > 0) result += `${minutes}m`;
 
-    return result.trim();
-  };
+  //   return result.trim();
+  // };
 
   // exel file drag drop
+  
+  const formatTime = (time) => {
+    if (time === 0) {
+      return "0 m";
+    }
+  
+    const totalMinutes = Math.round(time * 60); // Convert hours to minutes
+    return `${totalMinutes} m`;
+  };
+
   const handleRemoveFile = () => {
     console.log("Removing file...");
     setUploadedFile(null); // Clear the uploaded file

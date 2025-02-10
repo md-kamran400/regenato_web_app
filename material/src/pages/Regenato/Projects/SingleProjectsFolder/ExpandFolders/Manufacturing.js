@@ -587,27 +587,34 @@ const Manufacturing = ({
     }
   };
 
+  // const formatTime = (time) => {
+  //   if (time === 0) {
+  //     return 0;
+  //   }
+
+  //   let result = "";
+
+  //   const hours = Math.floor(time);
+  //   const minutes = Math.round((time - hours) * 60);
+
+  //   if (hours > 0) {
+  //     result += `${hours}h `;
+  //   }
+
+  //   if (minutes > 0 || (hours === 0 && minutes !== 0)) {
+  //     result += `${minutes}m`;
+  //   }
+
+  //   return result.trim();
+  // };
   const formatTime = (time) => {
     if (time === 0) {
-      return 0;
+      return "0 m";
     }
-
-    let result = "";
-
-    const hours = Math.floor(time);
-    const minutes = Math.round((time - hours) * 60);
-
-    if (hours > 0) {
-      result += `${hours}h `;
-    }
-
-    if (minutes > 0 || (hours === 0 && minutes !== 0)) {
-      result += `${minutes}m`;
-    }
-
-    return result.trim();
+  
+    const totalMinutes = Math.round(time * 60); // Convert hours to minutes
+    return `${totalMinutes} m`;
   };
-
   return (
     <div className="manufacturing-container">
       <h5 className="section-title">
@@ -618,7 +625,7 @@ const Manufacturing = ({
           <tr>
             <th>Name</th>
             {/* <th>Time</th> */}
-            <th>Hours</th>
+            <th>Minutes</th>
             <th>Hourly Rate</th>
             <th>Total Rate</th>
             <th>Actions</th>
