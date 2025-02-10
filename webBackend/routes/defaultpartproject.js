@@ -901,54 +901,6 @@ partproject.put(
   }
 );
 
-// delete for sub assmebly whole array
-// partproject.delete(
-//   "/projects/:projectId/subAssemblyListFirst/:subAssemblyListFirstId",
-//   async (req, res) => {
-//     const { projectId, subAssemblyListFirstId } = req.params;
-
-//     try {
-//       const project = await PartListProjectModel.findById(projectId);
-//       if (!project) {
-//         return res.status(404).json({ message: "Project not found" });
-//       }
-
-//       console.log("Project found");
-
-//       console.log("subAssemblyListFirst:", project.subAssemblyListFirst);
-//       console.log(
-//         "Looking for subAssemblyListFirstId:",
-//         subAssemblyListFirstId
-//       );
-
-//       const subAssemblyIndex = project.subAssemblyListFirst.findIndex(
-//         (item) => item._id.toString() === subAssemblyListFirstId
-//       );
-
-//       console.log("Found index:", subAssemblyIndex);
-
-//       if (subAssemblyIndex === -1) {
-//         return res
-//           .status(404)
-//           .json({ message: "Sub-assembly not found in the project" });
-//       }
-
-//       // Remove the subassembly from the array
-//       project.subAssemblyListFirst.splice(subAssemblyIndex, 1);
-
-//       // Save the updated project
-//       await project.save();
-
-//       res
-//         .status(200)
-//         .json({ message: "Sub-assembly removed successfully", project });
-//     } catch (error) {
-//       console.error("Error in delete route:", error);
-//       res.status(500).json({ message: "Server error", error: error.message });
-//     }
-//   }
-// );
-
 // put the quanity for sub assmebly
 partproject.put(
   "/projects/:projectId/subAssembly/:subAssemblyId/part/:partId",
