@@ -10,11 +10,15 @@ const Shipment = ({
   partName,
   shipmentVariables,
   partId,
+  projectId,
+  assemblyId,
   onUpdatePrts,
   quantity,
   subAssemblyId,
-  assemblyId,
 }) => {
+  console.log("projects id",projectId)
+  console.log("parts id", partId)
+  console.log("assmeblyid id",assemblyId)
   const [modal_edit, setModalEdit] = useState(false);
   const [modal_delete, setModalDelete] = useState(false);
   const [posting, setPosting] = useState(false);
@@ -95,7 +99,7 @@ const Shipment = ({
     console.log("editId (shipmentVariableId):", editId);
 
     try {
-      const endpoint = `${process.env.REACT_APP_BASE_URL}/api/assmebly/${assemblyId}/subAssemblies/${subAssemblyId}/parts/${partId}/shipmentVariables/${editId}`;
+      const endpoint = `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${projectId}/assemblyList/${assemblyId}/partsListItems/${partId}/shipment/${editId}`;
       console.log("🚀 PUT Request to:", endpoint);
 
       const response = await fetch(endpoint, {

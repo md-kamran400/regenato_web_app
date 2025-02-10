@@ -26,7 +26,6 @@ import BreadCrumb from "../../../Components/Common/BreadCrumb";
 import Autocomplete from "@mui/material/Autocomplete";
 import TextField from "@mui/material/TextField";
 import { Link, useParams } from "react-router-dom";
-import AdvanceTimeLine from "../Home/AdvanceTimeLine";
 import "./project.css";
 import { FiSettings } from "react-icons/fi";
 // import RawMaterial from "./ExpandFolders/RawMaterial";
@@ -524,13 +523,6 @@ const SingeProject = () => {
     );
   }, []);
 
-  // const handleAddAssembly = useCallback((newAssembly) => {
-  //   setassemblyLists((prevAssemblyLists) => [
-  //     ...prevAssemblyLists,
-  //     newAssembly,
-  //   ]);
-  // }, []);
-
   const renderAssemblyContent = useCallback(() => {
     return (
       <div className="assembly-lists">
@@ -538,9 +530,9 @@ const SingeProject = () => {
           <div key={index} className="assembly-list border-top-green">
             <AssemblyTable
               // assemblyList={assemblyList}
-              projectId = {_id}
+              projectId={_id}
               assemblypartsList={assemblyList}
-              assemblypartsListId = {assemblyList._id}
+              assemblypartsListId={assemblyList._id}
               updateAssemblyLists={handleUpdateAssemblyLists}
               onAddAssembly={handleAddAssembly}
               onUpdatePrts={fetchProjectDetails}
@@ -993,7 +985,7 @@ const SingeProject = () => {
 
       {/* modle for assembly */}
       {/* Modal for assembly */}
-      <Modal isOpen={modalAddassembly} toggle={toggleAddModalAssembly}>
+      {/* <Modal isOpen={modalAddassembly} toggle={toggleAddModalAssembly}>
         <ModalHeader toggle={toggleAddModalAssembly}>
           Add Assembly List
         </ModalHeader>
@@ -1048,6 +1040,48 @@ const SingeProject = () => {
             Cancel
           </Button>
         </ModalFooter>
+      </Modal> */}
+
+      <Modal isOpen={modalAddassembly} toggle={toggleAddModalAssembly}>
+        <ModalHeader toggle={toggleAddModalAssembly}>
+          Add Assembly List
+        </ModalHeader>
+        <ModalBody>
+          <Autocomplete
+            options={allAssmebly}
+            getOptionLabel={(option) =>
+              `${option.AssemblyName} - ${option.AssemblyNumber}` || ""
+            }
+            onChange={(event, newValue) => {
+              setSelectedAssmebly(newValue);
+              setAssmeblyName(newValue ? newValue.AssemblyName : "");
+              setAssmeblyNumber(newValue ? newValue.AssemblyNumber : "");
+            }}
+            value={
+              allAssmebly.find(
+                (item) =>
+                  item.AssemblyName === AssemblyName &&
+                  item.AssemblyNumber === AssemblyNumber
+              ) || null
+            }
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Select Assembly"
+                variant="outlined"
+                required
+              />
+            )}
+          />
+        </ModalBody>
+        <ModalFooter>
+          <Button color="primary" onClick={handleAddAssembly}>
+            Add
+          </Button>
+          <Button color="secondary" onClick={toggleAddModalAssembly}>
+            Cancel
+          </Button>
+        </ModalFooter>
       </Modal>
 
       {/* modal for outer sub assmebly list */}
@@ -1062,37 +1096,25 @@ const SingeProject = () => {
         <ModalBody>
           <Autocomplete
             options={allSubAssemblies}
-            getOptionLabel={(option) => option.subAssemblyName || ""}
-            onChange={handleNameChange}
+            getOptionLabel={(option) =>
+              `${option.subAssemblyName} - ${option.SubAssemblyNumber}` || ""
+            }
+            onChange={(event, newValue) => {
+              setSelectedSubAssembly(newValue);
+              setSubAssemblyName(newValue ? newValue.subAssemblyName : "");
+              setSubAssemblyNumber(newValue ? newValue.SubAssemblyNumber : "");
+            }}
             value={
               allSubAssemblies.find(
-                (item) => item.subAssemblyName === subAssemblyName
+                (item) =>
+                  item.subAssemblyName === subAssemblyName &&
+                  item.SubAssemblyNumber === subAssemblyNumber
               ) || null
             }
             renderInput={(params) => (
               <TextField
                 {...params}
                 label="Select Sub Assembly"
-                variant="outlined"
-                required
-              />
-            )}
-          />
-
-          <Autocomplete
-            className="mt-3"
-            options={allSubAssemblies}
-            getOptionLabel={(option) => option.SubAssemblyNumber || ""}
-            onChange={handleNumberChange}
-            value={
-              allSubAssemblies.find(
-                (item) => item.SubAssemblyNumber === subAssemblyNumber
-              ) || null
-            }
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                label="Select Sub Assembly Id"
                 variant="outlined"
                 required
               />

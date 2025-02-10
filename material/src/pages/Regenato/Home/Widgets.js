@@ -1,51 +1,139 @@
-// import React from 'react';
-// import { projectsWidgets } from '../../../common/data';
-// import CountUp from "react-countup";
+import React, { useEffect, useState } from "react";
+import CountUp from "react-countup";
+import FeatherIcon from "feather-icons-react";
+import { Card, CardBody, Col, Row } from "reactstrap";
 
-// //Import Icons
-// import FeatherIcon from "feather-icons-react";
-// import { Card, CardBody, Col, Row } from 'reactstrap';
+const Widgets = () => {
+  const [counts, setCounts] = useState({
+    parts: 0,
+    assembly: 0,
+    subAssembly: 0,
+    projects: 0,
+  });
+  //
+  useEffect(() => {
+    const fetchCounts = async () => {
+      try {
+        const [partsRes, assemblyRes, subAssemblyRes, projectsRes] =
+          await Promise.all([
+            fetch(`${process.env.REACT_APP_BASE_URL}/api/parts`).then((res) =>
+              res.json()
+            ),
+            fetch(`${process.env.REACT_APP_BASE_URL}/api/assmebly`).then(
+              (res) => res.json()
+            ),
+            fetch(`${process.env.REACT_APP_BASE_URL}/api/subAssembly`).then(
+              (res) => res.json()
+            ),
+            fetch(
+              `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects`
+            ).then((res) => res.json()),
+          ]);
 
-// const Widgets = () => {
-//     return (
-//         <React.Fragment>
-//             <Row>
-//                 {(projectsWidgets || []).map((item, key) => (
-//                     <Col xl={4} key={key}>
-//                         <Card className="card-animate">
-//                             <CardBody>
-//                                 <div className="d-flex align-items-center">
-//                                     <div className="avatar-sm flex-shrink-0">
-//                                         <span className={`avatar-title bg-${item.feaIconClass} rounded-2 fs-2`}>
-//                                             <FeatherIcon icon={item.feaIcon} />
-//                                         </span>
-//                                     </div>
-//                                     <div className="flex-grow-1 overflow-hidden ms-3">
-//                                         <p className="text-uppercase fw-medium text-muted text-truncate mb-3">{item.label}</p>
-//                                         <div className="d-flex align-items-center mb-3">
-//                                             <h4 className="fs-4 flex-grow-1 mb-0">
-//                                                 {item.subCounter.map((item,key)=>(<span className="counter-value me-1" data-target="825" key={key}>
-//                                                     <CountUp
-//                                                         start={0}
-//                                                         suffix={item.suffix}
-//                                                         separator={item.separator}
-//                                                         end={item.counter}
-//                                                         duration={4}
-//                                                     />
-//                                                 </span>))}
-//                                             </h4>
-//                                             <span className={"fs-12 badge bg-" + item.badgeClass+"-subtle text-"+ item.badgeClass}><i className={"fs-13 align-middle me-1 " + item.icon}></i>{item.percentage}</span>
-//                                         </div>
-//                                         <p className="text-muted text-truncate mb-0">{item.caption}</p>
-//                                     </div>
-//                                 </div>
-//                             </CardBody>
-//                         </Card>
-//                     </Col>
-//                 ))}
-//             </Row>
-//         </React.Fragment>
-//     );
-// };
+        setCounts({
+          parts: Array.isArray(partsRes) ? partsRes.length : 0,
+          assembly: Array.isArray(assemblyRes) ? assemblyRes.length : 0,
+          subAssembly: Array.isArray(subAssemblyRes)
+            ? subAssemblyRes.length
+            : 0,
+          projects: Array.isArray(projectsRes) ? projectsRes.length : 0,
+        });
+      } catch (error) {
+        console.error("Error fetching counts:", error);
+      }
+    };
+    fetchCounts();
+  }, []);
 
-// export default Widgets;
+  const projectsWidgets = [
+    {
+      id: 1,
+      feaIcon: "briefcase",
+      feaIconClass: "primary",
+      label: "Part List",
+      badgeClass: "danger",
+      icon: "ri-arrow-down-s-line",
+      percentage: "5.02 %",
+      caption: "Projects this month",
+      counter: counts.parts,
+    },
+    {
+      id: 2,
+      feaIcon: "award",
+      feaIconClass: "warning",
+      label: "Assembly List",
+      badgeClass: "success",
+      icon: "ri-arrow-up-s-line",
+      percentage: "3.58 %",
+      caption: "Leads this month",
+      counter: counts.assembly,
+    },
+    {
+      id: 3,
+      feaIcon: "clock",
+      feaIconClass: "info",
+      label: "Sub Assembly List",
+      badgeClass: "danger",
+      icon: "ri-arrow-down-s-line",
+      percentage: "10.35 %",
+      caption: "Work this month",
+      counter: counts.subAssembly,
+    },
+    {
+      id: 4,
+      feaIcon: "layers",
+      feaIconClass: "success",
+      label: "Projects List",
+      badgeClass: "primary",
+      icon: "ri-arrow-down-s-line",
+      percentage: "1.05 %",
+      caption: "Work this month",
+      counter: counts.projects,
+    },
+  ];
+
+  return (
+    <Row>
+      {projectsWidgets.map((item) => (
+        <Col xl={3} key={item.id}>
+          <Card className="card-animate">
+            <CardBody>
+              <div className="d-flex align-items-center">
+                <div className="avatar-sm flex-shrink-0">
+                  <span
+                    className={`avatar-title bg-${item.feaIconClass} rounded-2 fs-2`}
+                  >
+                    <FeatherIcon icon={item.feaIcon} />
+                  </span>
+                </div>
+                <div className="flex-grow-1 overflow-hidden ms-3">
+                  <p className="text-uppercase fw-medium text-muted text-truncate mb-3">
+                    {item.label}
+                  </p>
+                  <div className="d-flex align-items-center mb-3">
+                    <h4 className="fs-4 flex-grow-1 mb-0">
+                      <span className="counter-value me-1">
+                        <CountUp start={0} end={item.counter} duration={3} />
+                      </span>
+                    </h4>
+                    <span
+                      className={`fs-12 badge bg-${item.badgeClass}-subtle text-${item.badgeClass}`}
+                    >
+                      <i className={`fs-13 align-middle me-1 ${item.icon}`}></i>
+                      {item.percentage}
+                    </span>
+                  </div>
+                  <p className="text-muted text-truncate mb-0">
+                    {item.caption}
+                  </p>
+                </div>
+              </div>
+            </CardBody>
+          </Card>
+        </Col>
+      ))}
+    </Row>
+  );
+};
+
+export default Widgets;

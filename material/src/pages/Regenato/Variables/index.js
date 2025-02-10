@@ -327,6 +327,7 @@ import ManufacturingVariable from './ManufacturingVariable';
 import ShipmentVariable from './ShipmentVariable';
 import OverheadsVariable from './OverheadsVariable';
 import ManufacuringStatic from './ManufacuringStatic';
+import UsersListVariable from './UsersListVariable';
 
 const Variables = () => {
     const [modal_list, setmodal_list] = useState(false);
@@ -377,6 +378,8 @@ const Variables = () => {
                     <ShipmentVariable />
 
                     <OverheadsVariable />
+
+                    <UsersListVariable/>
 
                     {/* The row that was removed is no longer included */}
                 </Container>

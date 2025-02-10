@@ -170,7 +170,6 @@ const List = () => {
     setFilterType(e.target.value);
   };
 
- 
   const handleSingleProjectTotalCount = (newTotal) => {
     setTotalCostCount(newTotal);
   };
@@ -240,7 +239,7 @@ const List = () => {
   }, [fetchData]);
 
   // Filtered and Paginated Data
-  
+
   const filteredData = projectListsData.filter(
     (item) =>
       (searchTerm.length === 0 ||
@@ -522,7 +521,7 @@ const List = () => {
                   <th
                     className="sticky-col"
                     style={{
-                      backgroundColor: "rgb(228, 228, 228)",
+                      backgroundColor: "rgb(223, 223, 223)",
                       width: "250rem",
                     }}
                   >
@@ -547,8 +546,7 @@ const List = () => {
                       className="sticky-col"
                       style={{
                         color: "blue",
-                        textDecoration: "underline",
-                        backgroundColor: "rgb(231, 229, 229)",
+                        backgroundColor: "rgb(223, 223, 223)",
                       }}
                     >
                       <Link to={`/projectSection/${item._id}`}>
