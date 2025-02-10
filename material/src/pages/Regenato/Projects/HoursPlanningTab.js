@@ -5,6 +5,7 @@ import "./project.css";
 import { CiSignpostL1 } from "react-icons/ci";
 import { FiSettings } from "react-icons/fi";
 import { MdOutlineDelete } from "react-icons/md";
+import AllocationPlanningModal from "./Allocation/AllocationPlanningModal";
 
 const HoursPlanningTab = () => {
   const { _id } = useParams();
@@ -23,7 +24,79 @@ const HoursPlanningTab = () => {
   const [numberOfMachines, setNumberOfMachines] = useState({});
   const [daysToWork, setDaysToWork] = useState({});
 
-  console.log(_id);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalData, setModalData] = useState({
+    name: "",
+    projectName: "",
+    columnName: "",
+    formattedTime: 0,
+    tableInfo: null, // Add any other dynamic data needed
+    manufacturingVariable: null,
+    categoryId: "",
+  });
+
+  const getHoursForPartListItems = (
+    column,
+    quantity,
+    manufacturingVariables
+  ) => {
+    const target = manufacturingVariables.find(
+      (a) => a.name.toLowerCase() === column.toLowerCase()
+    );
+    if (target) {
+      const hours = target.hours || 0; // Default to 0 if hours is undefined or null
+      return quantity * hours;
+    } else {
+      return "-"; // Return "-" instead of NaN
+    }
+  };
+
+  const toggleModal = () => {
+    setIsModalOpen(!isModalOpen);
+  };
+
+  const handleCellClick = (
+    partName,
+    columnName,
+    manufacturingVariable,
+    tableInfo,
+    columnValue,
+    categoryId
+  ) => {
+    setModalData({
+      name: partName,
+      columnName,
+      columnValue,
+      tableInfo,
+      manufacturingVariable: manufacturingVariable
+        ? JSON.stringify(manufacturingVariable)
+        : "N/A",
+      categoryId, // Store the categoryId in modal data
+    });
+    toggleModal();
+  };
+
+  const getTableInfo = (item, column) => {
+    if (item.partName) return "partsList";
+    if (item.subAssemblyListName) return "subAssemblyListFirst";
+    if (item.assemblyListName) return "assemblyList";
+
+    return "unknown";
+  };
+
+  // const getQuantityForCell = (item, column) => {
+  //   // This function should return the quantity value for the specific cell
+  //   // based on the column and item
+  //   // You'll need to implement this logic based on your data structure
+  //   // For example:
+  //   const target = manufacturingVariables.find(
+  //     (a) => a.name.toLowerCase() === column.toLowerCase()
+  //   );
+  //   if (target) {
+  //     return item.quantity * target.hours || 0;
+  //   }
+  //   return 0;
+  // };
 
   const fetchProjectDetails = useCallback(async () => {
     setLoading(true);
@@ -34,7 +107,6 @@ const HoursPlanningTab = () => {
       );
       const data = await response.json();
       setPartDetails(data);
-      console.log(partDetails);
     } catch (error) {
       setError(error.message);
     } finally {
@@ -74,8 +146,6 @@ const HoursPlanningTab = () => {
     fetchParts();
     fetchManufacturingVariables();
   }, []);
-
-  // console.log(manufacturingVariables)
 
   const processPartsMap = parts.reduce((acc, part) => {
     let isMatchingPart = false;
@@ -157,372 +227,14 @@ const HoursPlanningTab = () => {
 
     return acc;
   }, {});
-  // console.log("processPartsMap", processPartsMap);
-  // console.log("subAssemblyListFirst:", partDetails.subAssemblyListFirst);
-
-  // const getHoursForProcess = (partName, processName) => {
-  //   const processData = processPartsMap[processName]?.find(
-  //     (item) => item.partName === partName
-  //   );
-  //   const quantity =
-  //     partDetails.allProjects.find((item) => item.partName === partName)
-  //       ?.quantity || 0;
-
-  //   if (!processData || !processData.hours) {
-  //     return "-";
-  //   }
-
-  //   const hours = processData.hours * quantity;
-
-  //   return hours.toFixed(2);
-  // };
-
-  const calculateTotalHoursForProcess = (processName) => {
-    if (!processPartsMap[processName]) return 0;
-    return processPartsMap[processName]
-      .reduce(
-        (sum, part) =>
-          sum +
-          part.hours *
-            (partDetails.allProjects.find(
-              (item) => item.partName === part.partName
-            )?.quantity || 0),
-        0
-      )
-      .toFixed(2);
-  };
-
-  const handleInputChange = (event, type, processName) => {
-    switch (type) {
-      case "machineHoursPerDay":
-        setMachineHoursPerDay((prev) => ({
-          ...prev,
-          [processName]: event.target.value ? Number(event.target.value) : 0,
-        }));
-        break;
-      case "numberOfMachines":
-        setNumberOfMachines((prev) => ({
-          ...prev,
-          [processName]: event.target.value ? Number(event.target.value) : 0,
-        }));
-        break;
-      case "daysToWork":
-        setDaysToWork((prev) => ({
-          ...prev,
-          [processName]: event.target.value ? Number(event.target.value) : 25,
-        }));
-        break;
-      default:
-        break;
-    }
-  };
-
-  // const calculateMonthsRequired = (processName) => {
-  //   const totalHours = calculateTotalHoursForProcess(processName);
-  //   const availableMachineHoursPerMonth =
-  //     (machineHoursPerDay[processName] || 0) *
-  //     (numberOfMachines[processName] || 0) *
-  //     (daysToWork[processName] || 0);
-
-  //   if (availableMachineHoursPerMonth === 0) {
-  //     return "--";
-  //   }
-
-  //   const monthsRequired = totalHours / availableMachineHoursPerMonth;
-  //   return monthsRequired.toFixed(2);
-  // };
-
-  // const getHoursForAssemblyProcess = (partName, processName) => {
-  //   const processData = processPartsMap[processName]?.find(
-  //     (item) => item.partName === partName
-  //   );
-  //   let quantity = 0;
-
-  //   partDetails.assemblyPartsLists.forEach((list) => {
-  //     list.partsListItems.forEach((item) => {
-  //       if (item.partName === partName) {
-  //         quantity += item.quantity || 0;
-  //       }
-  //     });
-  //     list.subAssemblyPartsLists.forEach((subList) => {
-  //       subList.partsListItems.forEach((item) => {
-  //         if (item.partName === partName) {
-  //           quantity += item.quantity || 0;
-  //         }
-  //       });
-  //     });
-  //   });
-
-  //   if (!processData || !processData.hours) {
-  //     return "-";
-  //   }
-
-  //   const hours = processData.hours * quantity;
-  //   return hours.toFixed(2);
-  // };
-
-  // const calculateTotalHoursForAssemblyProcess = (processName) => {
-  //   if (!processPartsMap[processName]) return 0;
-  //   return processPartsMap[processName]
-  //     .reduce(
-  //       (sum, part) =>
-  //         sum +
-  //         part.hours *
-  //           (partDetails.assemblyPartsLists
-  //             .find((list) =>
-  //               list.partsListItems.some(
-  //                 (item) => item.partName === part.partName
-  //               )
-  //             )
-  //             ?.partsListItems.find((item) => item.partName === part.partName)
-  //             ?.quantity || 0),
-  //       0
-  //     )
-  //     .toFixed(2);
-  // };
-
-  // const getHoursForSubAssemblyProcess = (partName, processName) => {
-  //   const processData = processPartsMap[processName]?.find(
-  //     (item) => item.partName === partName
-  //   );
-  //   const quantity =
-  //     partDetails.assemblyPartsLists
-  //       .find((list) =>
-  //         list.subAssemblyPartsLists.some((subList) =>
-  //           subList.partsListItems.some((item) => item.partName === partName)
-  //         )
-  //       )
-  //       ?.subAssemblyPartsLists.find((subList) =>
-  //         subList.partsListItems.some((item) => item.partName === partName)
-  //       )
-  //       ?.partsListItems.find((item) => item.partName === partName)?.quantity ||
-  //     0;
-  //   // console.log("quantity in getHoursForAssemblyProcess",quantity);
-
-  //   if (!processData || !processData.hours) {
-  //     return "-";
-  //   }
-
-  //   const hours = processData.hours * quantity;
-  //   console.log("hours in getHoursForAssemblyProcess", hours);
-
-  //   return hours.toFixed(2);
-  // };
-
-  // const calculateTotalHoursForSubAssemblyProcess = (
-  //   processName,
-  //   subAssemblyList
-  // ) => {
-  //   if (!processPartsMap[processName]) return 0;
-  //   return processPartsMap[processName]
-  //     .reduce((sum, part) => {
-  //       console.log(
-  //         "aaaaaaaaaa",
-  //         processName,
-  //         part,
-  //         subAssemblyList.partsListItems.find(
-  //           (item) => item.partName === part.partName
-  //         )?.quantity
-  //       );
-  //       return (
-  //         sum +
-  //         part.hours *
-  //           (subAssemblyList.partsListItems.find(
-  //             (item) => item.partName === part.partName
-  //           )?.quantity || 0)
-  //       );
-  //     }, 0)
-  //     .toFixed(2);
-  // };
-
-  const calculateMonthsRequiredForPartsList = (partsList) => {
-    const totalHours = calculateTotalHoursForPartsList(partsList);
-    if (totalHours === 0) {
-      return "--";
-    }
-
-    const availableMachineHoursPerMonth = manufacturingVariables.reduce(
-      (sum, variable) =>
-        sum +
-        (machineHoursPerDay[`${variable.name}_${partsList._id}`] || 0) *
-          (numberOfMachines[`${variable.name}_${partsList._id}`] || 0) *
-          (daysToWork[`${variable.name}_${partsList._id}`] || 0),
-      0
-    );
-
-    if (availableMachineHoursPerMonth === 0) {
-      return "--";
-    }
-
-    const monthsRequired = totalHours / availableMachineHoursPerMonth;
-    return monthsRequired.toFixed(2);
-  };
-
-  const calculateMonthsRequiredForSubAssembly = (
-    processName,
-    subAssemblyList
-  ) => {
-    const totalHours = subAssemblyList.partsListItems.reduce(
-      (sum, item) =>
-        sum +
-        (processPartsMap[processName]?.find(
-          (part) => part.partName === item.partName
-        )?.hours || 0) *
-          item.quantity,
-      0
-    );
-    const availableMachineHoursPerMonth =
-      (machineHoursPerDay[`${processName}_${subAssemblyList._id}`] || 0) *
-      (numberOfMachines[`${processName}_${subAssemblyList._id}`] || 0) *
-      (daysToWork[`${processName}_${subAssemblyList._id}`] || 0);
-
-    if (availableMachineHoursPerMonth === 0) {
-      return "--";
-    }
-
-    const monthsRequired = totalHours / availableMachineHoursPerMonth;
-    return monthsRequired.toFixed(2);
-  };
-
-  const calculateTotalHoursForSubAssembly = (processName, subAssemblyList) => {
-    return subAssemblyList.partsListItems
-      .reduce(
-        (sum, item) =>
-          sum +
-          (processPartsMap[processName]?.find(
-            (part) => part.partName === item.partName
-          )?.hours || 0) *
-            item.quantity,
-        0
-      )
-      .toFixed(2);
-  };
-
-  // const calculateTotalHoursForPartsList = (partsList) => {
-  //   if (
-  //     !partsList ||
-  //     !partsList.partsListItems ||
-  //     !manufacturingVariables.length
-  //   ) {
-  //     return 0;
-  //   }
-
-  //   return partsList.partsListItems
-  //     .reduce(
-  //       (sum, item) =>
-  //         sum +
-  //         (manufacturingVariables.find(
-  //           (part) => part.name === item.manufacturingVariables[0]?.name
-  //         )?.hours || 0) *
-  //           (item.quantity || 0),
-  //       0
-  //     )
-  //     .toFixed(2);
-  // };
-
-  const calculateTotalHoursForPartsList = (partsList) => {
-    if (
-      !partsList ||
-      !partsList.partsListItems ||
-      !manufacturingVariables.length
-    ) {
-      return 0;
-    }
-
-    const totalHoursPerMachine = {};
-
-    partsList.partsListItems.forEach((item) => {
-      item.manufacturingVariables.forEach((variable) => {
-        const machineName = variable.name;
-        const hours = variable.hours * (item.quantity || 0);
-
-        if (!totalHoursPerMachine[machineName]) {
-          totalHoursPerMachine[machineName] = 0;
-        }
-
-        totalHoursPerMachine[machineName] += hours;
-      });
-    });
-
-    return totalHoursPerMachine;
-  };
-
-  const getHoursForPartListItems = (
-    column,
-    quantity,
-    manufacturingVariables
-  ) => {
-    const target = manufacturingVariables.find(
-      (a) => a.name.toLowerCase() === column.toLowerCase()
-    );
-    if (target) {
-      return quantity * target.hours;
-    } else {
-      return "-";
-    }
-  };
-
-  const calculateTotalHoursForSubAssemblyFirst = (
-    processName,
-    subAssemblyListFirst
-  ) => {
-    return subAssemblyListFirst.partsListItems
-      .reduce(
-        (sum, item) =>
-          sum +
-          (processPartsMap[processName]?.find(
-            (part) => part.partName === item.partName
-          )?.hours || 0) *
-            item.quantity,
-        0
-      )
-      .toFixed(2);
-  };
-
-  const calculateMonthsRequiredForSubAssemblyFirst = (
-    processName,
-    subAssemblyListFirst
-  ) => {
-    const totalHours = calculateTotalHoursForSubAssemblyFirst(
-      processName,
-      subAssemblyListFirst
-    );
-    const availableMachineHoursPerMonth =
-      (machineHoursPerDay[`${processName}_${subAssemblyListFirst._id}`] || 0) *
-      (numberOfMachines[`${processName}_${subAssemblyListFirst._id}`] || 0) *
-      (daysToWork[`${processName}_${subAssemblyListFirst._id}`] || 0);
-
-    if (availableMachineHoursPerMonth === 0) {
-      return "--";
-    }
-
-    const monthsRequired = totalHours / availableMachineHoursPerMonth;
-    return monthsRequired.toFixed(2);
-  };
 
   const columnNames = manufacturingVariables.map((variable) => variable.name);
 
-  // const formatTime = (time) => {
-  //   if (time === 0) {
-  //     return 0;
-  //   }
-
-  //   let result = "";
-
-  //   const hours = Math.floor(time);
-  //   const minutes = Math.round((time - hours) * 60);
-
-  //   if (hours > 0) {
-  //     result += `${hours}h `;
-  //   }
-
-  //   if (minutes > 0 || (hours === 0 && minutes !== 0)) {
-  //     result += `${minutes}m`;
-  //   }
-
-  //   return result.trim();
-  // };
   const formatTime = (time) => {
+    if (time === "-" || isNaN(time)) {
+      return "-";
+    }
+
     if (time === 0) {
       return "0 m";
     }
@@ -551,8 +263,24 @@ const HoursPlanningTab = () => {
           alignItems: "center",
         }}
       >
+        <div className="project-header">
+          {/* Left Section */}
+          <div className="header-section left">
+            <h2 className="project-name" style={{ fontWeight: "bold" }}>
+              Allocation Planning
+            </h2>
+            <br />
+            <h4 className="">{partDetails.projectName}</h4>
+            <p className="po-id">
+              {" "}
+              <span style={{ fontWeight: "bold" }}>PO Type:</span>{" "}
+              {partDetails.projectType}
+            </p>
+          </div>
+        </div>
         <Col>
           <CardBody>
+            {/* Part list code start */}
             <div className="table-wrapper">
               {partDetails.partsLists?.map((partsList) => (
                 <React.Fragment key={partsList._id}>
@@ -594,9 +322,7 @@ const HoursPlanningTab = () => {
                                 >
                                   Part Name
                                 </th>
-                                <th className="child_parts">
-                                  Production Order-Types
-                                </th>
+                                <th className="child_parts">Quantity</th>
                                 <th className="child_parts">Total Cost</th>
                                 <th className="child_parts">Total Hours</th>
 
@@ -616,6 +342,7 @@ const HoursPlanningTab = () => {
                                       {column}
                                     </th>
                                   ))}
+
                                 <th>Action</th>
                               </tr>
                             </thead>
@@ -638,7 +365,7 @@ const HoursPlanningTab = () => {
                                         })`}
                                       </td>
                                       <td className="table-row-main">
-                                        Standard
+                                        {item.quantity}
                                       </td>
                                       <td className="table-row-main">
                                         {item.quantity * item.costPerUnit}
@@ -661,9 +388,44 @@ const HoursPlanningTab = () => {
                                           )
                                         )
                                         .map((column) => (
-                                          <td
+                                          <th
                                             key={column}
                                             className="child_parts"
+                                            onClick={() => {
+                                              const tableInfo = getTableInfo(
+                                                item,
+                                                column
+                                              );
+                                              const columnValue =
+                                                getHoursForPartListItems(
+                                                  column,
+                                                  item.quantity,
+                                                  item.manufacturingVariables
+                                                );
+                                              const formattedValue =
+                                                formatTime(columnValue);
+
+                                              // Fetch the manufacturingVariable and categoryId based on column
+                                              const matchingVariable =
+                                                manufacturingVariables.find(
+                                                  (variable) =>
+                                                    variable.name.toLowerCase() ===
+                                                    column.toLowerCase()
+                                                );
+                                              const categoryId =
+                                                matchingVariable?.categoryId ||
+                                                null;
+
+                                              handleCellClick(
+                                                item.partName,
+                                                column,
+                                                item.manufacturingVariables,
+                                                tableInfo,
+                                                formattedValue,
+                                                categoryId // Pass categoryId to the handler
+                                              );
+                                            }}
+                                            style={{ color: "#2563EB" }}
                                           >
                                             {formatTime(
                                               getHoursForPartListItems(
@@ -671,9 +433,10 @@ const HoursPlanningTab = () => {
                                                 item.quantity,
                                                 item.manufacturingVariables
                                               )
-                                            )}
-                                          </td>
+                                            ) || ""}
+                                          </th>
                                         ))}
+
                                       <td className="table-row-main">
                                         <div className="action-buttons">
                                           <span
@@ -734,7 +497,6 @@ const HoursPlanningTab = () => {
                     }}
                   >
                     <CardBody>
-                      {/* <h4>{subAssemblyListFirst.subAssemblyListName}</h4> */}
                       <ul
                         style={{
                           listStyleType: "none",
@@ -743,7 +505,7 @@ const HoursPlanningTab = () => {
                         }}
                       >
                         <li style={{ fontSize: "23px", marginBottom: "5px" }}>
-                          {subAssemblyListFirst.subAssemblyListName}
+                          {subAssemblyListFirst.subAssemblyName}
                         </li>
 
                         <li style={{ fontSize: "19px" }}>
@@ -764,32 +526,9 @@ const HoursPlanningTab = () => {
                                   >
                                     Sub-Assembly Part Name
                                   </th>
-                                  <th className="child_parts">
-                                    Production Order-Types
-                                  </th>
+                                  <th className="child_parts">Quantity</th>
                                   <th className="child_parts">Total Cost</th>
                                   <th className="child_parts">Total Hours</th>
-                                  {/* {columnNames.map((item) => (
-                                    <th key={item} className="child_parts">
-                                      {item}
-                                    </th>
-                                  ))} */}
-                                  {/* {columnNames
-                                    .filter((column) =>
-                                      subAssemblyListFirst.partsListItems.some(
-                                        (item) =>
-                                          getHoursForPartListItems(
-                                            column,
-                                            item.quantity,
-                                            item.manufacturingVariables
-                                          ) > 0
-                                      )
-                                    )
-                                    .map((column) => (
-                                      <th key={column} className="child_parts">
-                                        {column}
-                                      </th>
-                                    ))} */}
                                   {columnNames
                                     .filter((column) =>
                                       subAssemblyListFirst.partsListItems.some(
@@ -836,7 +575,7 @@ const HoursPlanningTab = () => {
                                           >
                                             {`${item.partName || "N/A"} `}
                                           </td>
-                                          <td>Standard</td>
+                                          <td>{item.quantity}</td>
                                           <td>
                                             {item.quantity * item.costPerUnit}
                                           </td>
@@ -858,42 +597,43 @@ const HoursPlanningTab = () => {
                                               )
                                             )
                                             .map((column) => (
-                                              <td
+                                              
+                                              <th
                                                 key={column}
                                                 className="child_parts"
-                                              >
-                                                {formatTime(
-                                                  getHoursForPartListItems(
-                                                    column,
-                                                    item.quantity,
-                                                    item.manufacturingVariables
-                                                  )
-                                                )}
-                                              </td>
-                                            ))}
-                                          {/* {columnNames
-                                            .filter((column) =>
-                                              subAssemblyListFirst.partsListItems.some(
-                                                (item) => {
-                                                  const hours =
+                                                onClick={() => {
+                                                  const tableInfo =
+                                                    getTableInfo(item, column);
+                                                  const columnValue =
                                                     getHoursForPartListItems(
                                                       column,
                                                       item.quantity,
                                                       item.manufacturingVariables
                                                     );
-                                                  return (
-                                                    hours > 0 &&
-                                                    hours !== null &&
-                                                    hours !== undefined &&
-                                                    hours !== ""
+                                                  const formattedValue =
+                                                    formatTime(columnValue);
+
+                                                  // Fetch the manufacturingVariable and categoryId based on column
+                                                  const matchingVariable =
+                                                    manufacturingVariables.find(
+                                                      (variable) =>
+                                                        variable.name.toLowerCase() ===
+                                                        column.toLowerCase()
+                                                    );
+                                                  const categoryId =
+                                                    matchingVariable?.categoryId ||
+                                                    null;
+
+                                                  handleCellClick(
+                                                    item.partName,
+                                                    column,
+                                                    item.manufacturingVariables,
+                                                    tableInfo,
+                                                    formattedValue,
+                                                    categoryId // Pass categoryId to the handler
                                                   );
-                                                }
-                                              )
-                                            )
-                                            .map((column) => (
-                                              <th
-                                                key={column}
-                                                className="child_parts"
+                                                }}
+                                                style={{ color: "#2563EB" }}
                                               >
                                                 {formatTime(
                                                   getHoursForPartListItems(
@@ -901,9 +641,9 @@ const HoursPlanningTab = () => {
                                                     item.quantity,
                                                     item.manufacturingVariables
                                                   )
-                                                )}
+                                                ) || ""}
                                               </th>
-                                            ))} */}
+                                            ))}
 
                                           <td>
                                             <div className="action-buttons">
@@ -967,7 +707,6 @@ const HoursPlanningTab = () => {
                         }}
                       >
                         <CardBody>
-                          {/* <h4>{assemblyList.assemblyListName}</h4> */}
                           <ul
                             style={{
                               listStyleType: "none",
@@ -976,9 +715,12 @@ const HoursPlanningTab = () => {
                             }}
                           >
                             <li
-                              style={{ fontSize: "25px", marginBottom: "10px" }}
+                              style={{
+                                fontSize: "23px",
+                                marginBottom: "5px",
+                              }}
                             >
-                              {assemblyList.assemblyListName}
+                              {assemblyList.AssemblyName}
                             </li>
 
                             <li style={{ fontSize: "19px" }}>
@@ -998,9 +740,7 @@ const HoursPlanningTab = () => {
                                     >
                                       Assembly Part Name
                                     </th>
-                                    <th className="child_parts">
-                                      Production Order-Types
-                                    </th>
+                                    <th className="child_parts">Quantity</th>
                                     <th className="child_parts">Total Cost</th>
                                     <th className="child_parts">Total Hours</th>
 
@@ -1042,7 +782,7 @@ const HoursPlanningTab = () => {
                                           >
                                             {`${item.partName || "N/A"} `}
                                           </td>
-                                          <td>Standard</td>
+                                          <td>{item.quantity}</td>
                                           <td>
                                             {item.quantity * item.costPerUnit}
                                           </td>
@@ -1066,6 +806,39 @@ const HoursPlanningTab = () => {
                                               <th
                                                 key={column}
                                                 className="child_parts"
+                                                onClick={() => {
+                                                  const tableInfo =
+                                                    getTableInfo(item, column);
+                                                  const columnValue =
+                                                    getHoursForPartListItems(
+                                                      column,
+                                                      item.quantity,
+                                                      item.manufacturingVariables
+                                                    );
+                                                  const formattedValue =
+                                                    formatTime(columnValue);
+
+                                                  // Fetch the manufacturingVariable and categoryId based on column
+                                                  const matchingVariable =
+                                                    manufacturingVariables.find(
+                                                      (variable) =>
+                                                        variable.name.toLowerCase() ===
+                                                        column.toLowerCase()
+                                                    );
+                                                  const categoryId =
+                                                    matchingVariable?.categoryId ||
+                                                    null;
+
+                                                  handleCellClick(
+                                                    item.partName,
+                                                    column,
+                                                    item.manufacturingVariables,
+                                                    tableInfo,
+                                                    formattedValue,
+                                                    categoryId // Pass categoryId to the handler
+                                                  );
+                                                }}
+                                                style={{ color: "#2563EB" }}
                                               >
                                                 {formatTime(
                                                   getHoursForPartListItems(
@@ -1073,7 +846,7 @@ const HoursPlanningTab = () => {
                                                     item.quantity,
                                                     item.manufacturingVariables
                                                   )
-                                                )}
+                                                ) || ""}
                                               </th>
                                             ))}
                                           <td>
@@ -1115,7 +888,29 @@ const HoursPlanningTab = () => {
                               <React.Fragment key={subAssemblyList._id}>
                                 <br />
                                 <br />
-                                <h4>{subAssemblyList.subAssemblyListName}</h4>
+                                <ul
+                                  style={{
+                                    listStyleType: "none",
+                                    padding: 0,
+                                    fontWeight: "600",
+                                  }}
+                                >
+                                  <li
+                                    style={{
+                                      fontSize: "23px",
+                                      marginBottom: "5px",
+                                    }}
+                                  >
+                                    {subAssemblyList.subAssemblyName}
+                                  </li>
+
+                                  <li style={{ fontSize: "19px" }}>
+                                    <span class="badge bg-danger-subtle text-danger">
+                                      Sub Assembly
+                                    </span>
+                                  </li>
+                                </ul>
+                                <h4></h4>
                                 <div className="parts-lists">
                                   <div className="table-wrapper">
                                     <div className="table-responsive">
@@ -1131,7 +926,7 @@ const HoursPlanningTab = () => {
                                               Sub-Assembly Part Name
                                             </th>
                                             <th className="child_parts">
-                                              Production Order-Types
+                                              Quantity
                                             </th>
                                             <th className="child_parts">
                                               Total Cost
@@ -1139,14 +934,7 @@ const HoursPlanningTab = () => {
                                             <th className="child_parts">
                                               Total Hours
                                             </th>
-                                            {/* {columnNames.map((item) => (
-                                              <th
-                                                key={item}
-                                                className="child_parts"
-                                              >
-                                                {item}
-                                              </th>
-                                            ))} */}
+
                                             {columnNames
                                               .filter((column) =>
                                                 assemblyList.partsListItems.some(
@@ -1191,7 +979,7 @@ const HoursPlanningTab = () => {
                                                       }  `}
                                                     </td>
                                                     <td className="child_parts">
-                                                      Standard
+                                                      {item.quantity}
                                                     </td>
                                                     <td>
                                                       {item.quantity *
@@ -1216,9 +1004,49 @@ const HoursPlanningTab = () => {
                                                         )
                                                       )
                                                       .map((column) => (
-                                                        <td
+                                                        <th
                                                           key={column}
                                                           className="child_parts"
+                                                          onClick={() => {
+                                                            const tableInfo =
+                                                              getTableInfo(
+                                                                item,
+                                                                column
+                                                              );
+                                                            const columnValue =
+                                                              getHoursForPartListItems(
+                                                                column,
+                                                                item.quantity,
+                                                                item.manufacturingVariables
+                                                              );
+                                                            const formattedValue =
+                                                              formatTime(
+                                                                columnValue
+                                                              );
+
+                                                            // Fetch the manufacturingVariable and categoryId based on column
+                                                            const matchingVariable =
+                                                              manufacturingVariables.find(
+                                                                (variable) =>
+                                                                  variable.name.toLowerCase() ===
+                                                                  column.toLowerCase()
+                                                              );
+                                                            const categoryId =
+                                                              matchingVariable?.categoryId ||
+                                                              null;
+
+                                                            handleCellClick(
+                                                              item.partName,
+                                                              column,
+                                                              item.manufacturingVariables,
+                                                              tableInfo,
+                                                              formattedValue,
+                                                              categoryId // Pass categoryId to the handler
+                                                            );
+                                                          }}
+                                                          style={{
+                                                            color: "#2563EB",
+                                                          }}
                                                         >
                                                           {formatTime(
                                                             getHoursForPartListItems(
@@ -1226,8 +1054,8 @@ const HoursPlanningTab = () => {
                                                               item.quantity,
                                                               item.manufacturingVariables
                                                             )
-                                                          )}
-                                                        </td>
+                                                          ) || ""}
+                                                        </th>
                                                       ))}
                                                     <td>
                                                       {" "}
@@ -1295,6 +1123,27 @@ const HoursPlanningTab = () => {
           </CardBody>
         </Col>
       </Row>
+
+      {/*       
+      <AllocationPlanningModal
+        isOpen={isModalOpen}
+        toggle={toggleModal}
+        name={modalData.name}
+        manufacturingVariables={modalData.manufacturingVariable}
+        columnName={modalData.columnName}
+        columnValue={modalData.columnValue} // Pass column value to the modal
+        tableInfo={modalData.tableInfo}
+      /> */}
+      <AllocationPlanningModal
+        isOpen={isModalOpen}
+        toggle={toggleModal}
+        name={modalData.name}
+        manufacturingVariables={modalData.manufacturingVariable}
+        columnName={modalData.columnName}
+        columnValue={modalData.columnValue}
+        tableInfo={modalData.tableInfo}
+        categoryId={modalData.categoryId} // Pass categoryId to the modal
+      />
     </div>
   );
 };

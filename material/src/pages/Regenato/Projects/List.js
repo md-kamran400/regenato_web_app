@@ -567,8 +567,12 @@ const List = () => {
   // };
 
   const formatTime = (time) => {
+    if (time === "-" || isNaN(time)) {
+      return "-";
+    }
+
     if (time === 0) {
-      return "0 m";
+      return "-";
     }
 
     const totalMinutes = Math.round(time * 60); // Convert hours to minutes
@@ -856,7 +860,7 @@ const List = () => {
             </table>
           </div>
         </div>
-        ;
+        
         {/* <div className="table-responsive">
             <thead>
               <th
