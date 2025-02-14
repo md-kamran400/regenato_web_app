@@ -60,8 +60,8 @@ const AssemblyTable = React.memo(
     const [posting, setPosting] = useState(false);
     // Assuming parts array is populated
 
-    console.log("id id project", _id);
-    console.log("id id project", assemblypartsList._id);
+    // console.log("id id project", _id);
+    // console.log("id id project", assemblypartsList._id);
 
     const [quantity, setQuantity] = useState(0);
     const [parts, setParts] = useState([]);
@@ -157,10 +157,10 @@ const AssemblyTable = React.memo(
             setExistingSubAssemblyLists(data);
           }
         } else {
-          console.error(
-            "Expected an array of sub-assembly lists, but received:",
-            data
-          );
+          // console.error(
+          //   "Expected an array of sub-assembly lists, but received:",
+          //   data
+          // );
           if (mountedRef.current) {
             setExistingSubAssemblyLists([]);
           }
@@ -897,7 +897,7 @@ const AssemblyTable = React.memo(
                                     className="btn btn-sm btn-success edit-item-btn"
                                     onClick={() => handleEditQuantity(item)}
                                   >
-                                    <FaEdit />-
+                                    <FaEdit />
                                   </button>
                                 </div>
                               </td>

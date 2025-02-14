@@ -56,6 +56,22 @@ const AllocationPlanningSchema = new mongoose.Schema(
           type: String,
           required: true,
         },
+        projectId: {
+          type: String, // Add project ID to track project
+          required: true,
+        },
+        partId: {
+          type: String, // Add part ID to track which part was allocated
+          required: true,
+        },
+        sourceType: {
+          type: String, // Track whether it came from partsList, subassembly, or assembly
+          required: true,
+        },
+        process_machineId:{
+          type:String,
+          require: true,
+        }
       },
     ],
     createdAt: {
