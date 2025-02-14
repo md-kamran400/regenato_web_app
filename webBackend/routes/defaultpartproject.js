@@ -2316,7 +2316,7 @@ partproject.put(
   }
 );
 
-module.exports = partproject;
+// module.exports = partproject;
 
 // ============================================ ASSEMBLY CODE START ===============================
 partproject.post("/projects/:projectId/assemblyList", async (req, res) => {
@@ -2368,3 +2368,101 @@ partproject.post("/projects/:projectId/assemblyList", async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+
+
+
+
+// allocation working start
+// POST Allocation
+partproject.post(
+  "/projects/:projectId/partsLists/:partsListId/partsListItems/:partsListItemsId/allocation",
+  async (req, res) => {
+    const { projectId, partsListId, partsListItemsId } = req.params;
+    const allocationData = req.body;
+
+    try {
+      // Validate project ID
+      if (!mongoose.Types.ObjectId.isValid(projectId)) {
+        return res.status(400).json({ error: "Invalid project ID format" });
+      }
+
+      const project = await PartListProjectModel.findById(projectId);
+
+      if (!project) {
+        return res.status(404).json({ error: "Project not found" });
+      }
+
+      const partsList = project.partsLists.id(partsListId);
+      if (!partsList) {
+        return res.status(404).json({ error: "Parts list not found" });
+      }
+
+      const partItem = partsList.partsListItems.id(partsListItemsId);
+      if (!partItem) {
+        return res.status(404).json({ error: "Parts list item not found" });
+      }
+
+      // Push the allocation data
+      partItem.allocations.push(allocationData);
+
+      // Save changes
+      await project.save();
+
+      res.status(201).json({
+        status: "success",
+        message: "Allocation added successfully",
+        data: partItem.allocations,
+      });
+    } catch (error) {
+      console.error("Error adding allocation:", error.message);
+      res.status(500).json({
+        error: "An error occurred while adding allocation",
+        details: error.message,
+      });
+    }
+  }
+);
+
+
+// GET Allocations
+partproject.get(
+  "/projects/:projectId/partsLists/:partsListId/partsListItems/:partsListItemsId/allocation",
+  async (req, res) => {
+    const { projectId, partsListId, partsListItemsId } = req.params;
+
+    try {
+      // Validate project ID
+      if (!mongoose.Types.ObjectId.isValid(projectId)) {
+        return res.status(400).json({ error: "Invalid project ID format" });
+      }
+
+      const project = await PartListProjectModel.findById(projectId);
+
+      if (!project) {
+        return res.status(404).json({ error: "Project not found" });
+      }
+
+      const partsList = project.partsLists.id(partsListId);
+      if (!partsList) {
+        return res.status(404).json({ error: "Parts list not found" });
+      }
+
+      const partItem = partsList.partsListItems.id(partsListItemsId);
+      if (!partItem) {
+        return res.status(404).json({ error: "Parts list item not found" });
+      }
+
+      res.status(200).json({
+        status: "success",
+        data: partItem.allocations,
+      });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "An error occurred while fetching allocations" });
+    }
+  }
+);
+
+
+module.exports = partproject;
