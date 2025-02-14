@@ -172,7 +172,7 @@ const RawMaterial = ({
           {rmVariables.map((item, index) => (
             <tr key={index}>
               <td>{item.name}</td>
-              <td>{item.netWeight * quantity}</td>
+              <td>{Math.round(item.netWeight * quantity)}</td>
               <td>{item.pricePerKg}</td>
               <td>{Math.ceil(item.totalRate * quantity)}</td>
               <td className="d-flex gap-2">
@@ -223,7 +223,7 @@ const RawMaterial = ({
                 type="number"
                 className="form-control"
                 name="netWeight"
-                value={formData.netWeight}
+                value={Math.round(formData.netWeight)}
                 onChange={handleChange}
                 readOnly
               />
@@ -236,7 +236,7 @@ const RawMaterial = ({
                 type="number"
                 className="form-control"
                 name="pricePerKg"
-                value={formData.pricePerKg}
+                value={Math.round(formData.pricePerKg)}
                 onChange={handleChange}
                 required
               />
@@ -249,7 +249,7 @@ const RawMaterial = ({
                 type="number"
                 className="form-control"
                 name="totalRate"
-                value={formData.totalRate}
+                value={Math.round(formData.totalRate)}
                 readOnly
               />
             </div>

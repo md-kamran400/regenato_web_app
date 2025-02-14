@@ -239,7 +239,7 @@ const RawMaterial = ({
                 type="number"
                 className="form-control"
                 name="pricePerKg"
-                value={formData.pricePerKg}
+                value={Math.round(formData.pricePerKg)}
                 onChange={handleChange}
                 required
               />
@@ -252,7 +252,7 @@ const RawMaterial = ({
                 type="number"
                 className="form-control"
                 name="totalRate"
-                value={formData.totalRate}
+                value={Math.round(formData.totalRate)}
                 readOnly
               />
             </div>

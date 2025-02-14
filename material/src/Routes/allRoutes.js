@@ -30,6 +30,8 @@ import SinglePartsList from "../pages/Regenato/MultyUseAssmebly/Parts-Lists/Sing
 import SingleAssmeblyList from "../pages/Regenato/MultyUseAssmebly/Assmeblies/SingleAssmeblyList";
 import UserHandle from "../pages/Regenato/User_Management/UserHandle";
 import HoursPlanningTab from "../pages/Regenato/Projects/HoursPlanningTab";
+import AllocationPage from "../pages/Regenato/Projects/Allocation/AllocationPage";
+import AllocationList from "../pages/Regenato/Projects/Allocation/AllocationList";
 // import ProjectSection from "../pages/Regenato/Projects/ProjectSection";
 
 // Auth
@@ -83,6 +85,10 @@ const publicRoutes = [
   // {path: "/regenato-single-assmebly", component: <SingleAssmeblyList/>},
 
   { path: "/regenato-user-management", component: <UserHandle /> },
+
+  // allocation Page;
+  { path: "/regenato-allocation", component: <AllocationPage /> },
+  { path: "/regenato-allocation/:id", component: <AllocationList /> },
 
   {
     path: "/",

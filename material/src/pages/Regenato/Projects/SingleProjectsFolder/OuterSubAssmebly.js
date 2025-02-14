@@ -84,8 +84,15 @@ const OuterSubAssmebly = React.memo(
     const [itemToEdit, setItemToEdit] = useState(null);
     const [editQuantityModal, setEditQuantityModal] = useState(false);
 
+    //for setting icons
+    const [modalOpenId, setModalOpenId] = useState(null);
+
     const tog_delete = () => {
       setModalDelete(!modal_delete);
+    };
+
+    const toggleModal = (item) => {
+      setModalOpenId((prevId) => (prevId === item._id ? null : item._id));
     };
 
     const toggleDeleteModal = (item) => {
@@ -506,7 +513,7 @@ const OuterSubAssmebly = React.memo(
       if (time === 0) {
         return "0 m";
       }
-    
+
       const totalMinutes = Math.round(time * 60); // Convert hours to minutes
       return `${totalMinutes} m`;
     };
@@ -641,9 +648,7 @@ const OuterSubAssmebly = React.memo(
                               <td>
                                 {Math.round(parseFloat(item.costPerUnit || 0))}
                               </td>
-                              <td>
-                                {formatTime(item.timePerUnit || 0)}
-                              </td>
+                              <td>{formatTime(item.timePerUnit || 0)}</td>
                               <td>
                                 <div
                                   style={{
@@ -670,15 +675,27 @@ const OuterSubAssmebly = React.memo(
                               <td>
                                 {formatTime(
                                   parseFloat(item.timePerUnit || 0) *
-                                  parseInt(item.quantity || 0)
+                                    parseInt(item.quantity || 0)
                                 )}
                               </td>
 
                               <td className="action-cell">
                                 <div className="action-buttons">
-                                  {/* <span>
-                                    <FiEdit size={20} />
-                                  </span> */}
+                                  <span
+                                    style={{
+                                      color: "blue",
+                                      cursor: "pointer",
+                                      marginRight: "2px",
+                                    }}
+                                  >
+                                    <FiSettings
+                                      size={20}
+                                      onClick={() => toggleModal(item)}
+                                      className={`settings-icon ${
+                                        modalOpenId === item._id ? "rotate" : ""
+                                      }`}
+                                    />
+                                  </span>
                                   <span
                                     style={{ color: "red", cursor: "pointer" }}
                                   >
@@ -690,7 +707,92 @@ const OuterSubAssmebly = React.memo(
                                 </div>
                               </td>
                             </tr>
-                            {expandedRowId === item._id && (
+
+                            {modalOpenId === item._id && (
+                              <Modal
+                                isOpen={true}
+                                toggle={() => setModalOpenId(null)}
+                                style={{ maxWidth: "80%" }}
+                              >
+                                <ModalHeader
+                                  toggle={() => setModalOpenId(null)}
+                                >
+                                  <h5
+                                    className="mb-3 d-flex align-items-center"
+                                    style={{
+                                      fontWeight: "bold",
+                                      color: "#333",
+                                    }}
+                                  >
+                                    <FiSettings
+                                      style={{
+                                        fontSize: "1.2rem",
+                                        marginRight: "10px",
+                                        color: "#2563eb",
+                                        fontWeight: "bold",
+                                      }}
+                                    />
+                                    {item.partName}
+                                  </h5>
+                                </ModalHeader>
+                                <ModalBody>
+                                  <div>
+                                    <div style={{ marginBottom: "20px" }}>
+                                      <RawMaterial
+                                        partName={item.partName}
+                                        rmVariables={item.rmVariables || []}
+                                        projectId={projectId}
+                                        partId={item._id}
+                                        subAssemblyId={subAssemblyId}
+                                        rawMatarialsUpdate={onUpdatePrts}
+                                        quantity={item.quantity}
+                                      />
+                                    </div>
+                                    <div style={{ marginBottom: "20px" }}>
+                                      <Manufacturing
+                                        partName={item.partName}
+                                        manufacturingVariables={
+                                          item.manufacturingVariables || []
+                                        }
+                                        projectId={projectId}
+                                        partId={item._id}
+                                        subAssemblyId={subAssemblyId}
+                                        manufatcuringUpdate={onUpdatePrts}
+                                        quantity={item.quantity}
+                                      />
+                                    </div>
+                                    <div style={{ marginBottom: "20px" }}>
+                                      <Shipment
+                                        partName={item.partName}
+                                        shipmentVariables={
+                                          item.shipmentVariables || []
+                                        }
+                                        projectId={projectId}
+                                        partId={item._id}
+                                        subAssemblyId={subAssemblyId}
+                                        shipmentUpdate={onUpdatePrts}
+                                        quantity={item.quantity}
+                                      />
+                                    </div>
+                                    <div>
+                                      <Overheads
+                                        partName={item.partName}
+                                        overheadsAndProfits={
+                                          item.overheadsAndProfits || []
+                                        }
+                                        projectId={projectId}
+                                        partId={item._id}
+                                        subAssemblyId={subAssemblyId}
+                                        overHeadsUpdate={onUpdatePrts}
+                                        quantity={item.quantity}
+                                      />
+                                    </div>
+                                  </div>
+                                </ModalBody>
+                              </Modal>
+                            )}
+
+                            {/* {expandedRowId === item._id && (
                               <tr className="details-row">
                                 <td colSpan={6}>
                                   <div className="details-box">
@@ -712,7 +814,6 @@ const OuterSubAssmebly = React.memo(
                                       {item.partName}
                                     </h5>
 
-                                    {/* Raw Materials Section */}
 
                                     <RawMaterial
                                       partName={item.partName}
@@ -761,7 +862,7 @@ const OuterSubAssmebly = React.memo(
                                   </div>
                                 </td>
                               </tr>
-                            )}
+                            )} */}
                           </React.Fragment>
                         ))}
                       </tbody>
@@ -778,7 +879,9 @@ const OuterSubAssmebly = React.memo(
               <form onSubmit={handleSubmit}>
                 <Autocomplete
                   options={parts}
-                  getOptionLabel={(option) => option.partName || ""}
+                  getOptionLabel={(option) =>
+                    `${option.partName} - ${option.id}`
+                  }
                   onChange={handleAutocompleteChange}
                   renderInput={(params) => (
                     <TextField
@@ -789,7 +892,7 @@ const OuterSubAssmebly = React.memo(
                     />
                   )}
                 />
-                <div className="form-group">
+                <div className="form-group" style={{ display: "none" }}>
                   <Label for="partId" className="form-label">
                     Part ID
                   </Label>
@@ -802,7 +905,7 @@ const OuterSubAssmebly = React.memo(
                     // required
                   />
                 </div>
-                <div className="form-group">
+                <div className="form-group" style={{ display: "none" }}>
                   <Label for="codeName" className="form-label">
                     Code Name
                   </Label>
@@ -815,7 +918,7 @@ const OuterSubAssmebly = React.memo(
                     // required
                   />
                 </div>
-                <div className="form-group">
+                <div className="form-group" style={{ display: "none" }}>
                   <Label for="costPerUnit" className="form-label">
                     Cost Per Unit
                   </Label>
@@ -835,7 +938,7 @@ const OuterSubAssmebly = React.memo(
                     }}
                   />
                 </div>
-                <div className="form-group">
+                <div className="form-group" style={{ display: "none" }}>
                   <Label for="timePerUnit" className="form-label">
                     Time Per Unit
                   </Label>
@@ -1160,9 +1263,7 @@ const OuterSubAssmebly = React.memo(
             <ModalBody>
               <form onSubmit={handleEdit}>
                 <div className="form-group">
-                  <Label for="subAssemblyName">
-                    Sub-Assembly List Name
-                  </Label>
+                  <Label for="subAssemblyName">Sub-Assembly List Name</Label>
                   <Input
                     type="text"
                     id="subAssemblyName"

@@ -293,7 +293,7 @@ const Manufacturing = ({
                 className="form-control"
                 name="hours"
                 // value={formData.hours}
-                value={(formData.hours * 60).toFixed(0)}
+                value={Math.round(formData.hours * 60).toFixed(0)}
                 onChange={handleChange}
                 readOnly
               />
@@ -306,7 +306,7 @@ const Manufacturing = ({
                 type="number"
                 className="form-control"
                 name="hourlyRate"
-                value={formData.hourlyRate}
+                value={Math.round(formData.hourlyRate)}
                 onChange={handleChange}
                 required
               />
@@ -319,7 +319,7 @@ const Manufacturing = ({
                 type="number"
                 className="form-control"
                 name="totalRate"
-                value={formData.totalRate}
+                value={Math.round(formData.totalRate)}
                 readOnly
                 required
               />

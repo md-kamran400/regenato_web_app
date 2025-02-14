@@ -244,7 +244,7 @@ const Overheads = ({
                 type="number"
                 className="form-control"
                 name="totalRate"
-                value={formData.totalRate}
+                value={Math.round(formData.totalRate)}
                 readOnly
               />
             </div>

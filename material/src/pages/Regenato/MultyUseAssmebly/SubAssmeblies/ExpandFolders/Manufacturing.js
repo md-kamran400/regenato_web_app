@@ -612,7 +612,7 @@ const Manufacturing = ({
     if (time === 0) {
       return "0 m";
     }
-  
+
     const totalMinutes = Math.round(time * 60); // Convert hours to minutes
     return `${totalMinutes} m`;
   };
@@ -693,7 +693,7 @@ const Manufacturing = ({
                 className="form-control"
                 name="hours"
                 // value={formData.hours}
-                value={(formData.hours * 60).toFixed(0)}
+                value={Math.round(formData.hours * 60)}
                 onChange={handleChange}
                 readOnly
               />
@@ -706,7 +706,7 @@ const Manufacturing = ({
                 type="number"
                 className="form-control"
                 name="hourlyRate"
-                value={formData.hourlyRate}
+                value={Math.round(formData.hourlyRate)}
                 onChange={handleChange}
                 required
               />
@@ -719,7 +719,7 @@ const Manufacturing = ({
                 type="number"
                 className="form-control"
                 name="totalRate"
-                value={formData.totalRate}
+                value={Math.round(formData.totalRate)}
                 readOnly
                 required
               />

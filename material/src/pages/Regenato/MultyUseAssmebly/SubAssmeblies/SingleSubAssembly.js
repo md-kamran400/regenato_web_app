@@ -637,7 +637,7 @@ const SingleSubAssembly = () => {
                                       className="btn btn-sm btn-success edit-item-btn"
                                       onClick={() => handleEditQuantity(item)}
                                     >
-                                      <FaEdit />-
+                                      <FaEdit />
                                     </button>
                                   </div>
                                 </td>
@@ -768,7 +768,11 @@ const SingleSubAssembly = () => {
           <form onSubmit={handleSubmit}>
             <Autocomplete
               options={parts}
-              getOptionLabel={(option) => option.partName || ""}
+              getOptionLabel={(option) => 
+                // option.partName || ""
+                 `${option.partName} - ${option.id}`
+              
+              }
               onChange={handleAutocompleteChange}
               renderInput={(params) => (
                 <TextField
@@ -780,7 +784,7 @@ const SingleSubAssembly = () => {
               )}
             />
 
-            <div className="form-group">
+            <div className="form-group" style={{display: "none"}}>
               <Label for="partId" className="form-label">
                 Part ID
               </Label>
@@ -794,7 +798,7 @@ const SingleSubAssembly = () => {
               />
             </div>
 
-            <div className="form-group">
+            {/* <div className="form-group">
               <Label for="codeName" className="form-label">
                 Code Name
               </Label>
@@ -804,11 +808,10 @@ const SingleSubAssembly = () => {
                 id="codeName"
                 value={codeName}
                 onChange={(e) => setCodeName(e.target.value)}
-                // required
               />
-            </div>
+            </div> */}
 
-            <div className="form-group">
+            <div className="form-group" style={{display: "none"}}>
               <Label for="costPerUnit" className="form-label">
                 Cost Per Unit
               </Label>
@@ -822,7 +825,7 @@ const SingleSubAssembly = () => {
               />
             </div>
 
-            <div className="form-group">
+            <div className="form-group" style={{display: "none"}}>
               <Label for="timePerUnit" className="form-label">
                 Time Per Unit
               </Label>

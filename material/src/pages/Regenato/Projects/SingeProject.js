@@ -533,6 +533,7 @@ const SingeProject = () => {
               projectId={_id}
               assemblypartsList={assemblyList}
               assemblypartsListId={assemblyList._id}
+              setassemblyLists={setassemblyLists}
               updateAssemblyLists={handleUpdateAssemblyLists}
               onAddAssembly={handleAddAssembly}
               onUpdatePrts={fetchProjectDetails}

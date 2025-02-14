@@ -706,7 +706,7 @@ const Manufacturing = ({
                 type="number"
                 className="form-control"
                 name="hourlyRate"
-                value={formData.hourlyRate}
+                value={Math.round(formData.hourlyRate)}
                 onChange={handleChange}
                 required
               />
@@ -719,7 +719,7 @@ const Manufacturing = ({
                 type="number"
                 className="form-control"
                 name="totalRate"
-                value={formData.totalRate}
+                value={Math.round(formData.totalRate)}
                 readOnly
                 required
               />

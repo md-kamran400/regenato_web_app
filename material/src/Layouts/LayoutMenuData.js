@@ -15,6 +15,12 @@ const navdata = () => {
           icon: "fa fa-folder", // Example FontAwesome icon class
         },
         {
+          id: "allocation",
+          label: "Allocation",
+          link: "/regenato-allocation",
+          icon: "fa fa-wrench", // Example FontAwesome icon class
+        },
+        {
           id: "parts",
           label: "Parts",
           link: "/regenato-parts",

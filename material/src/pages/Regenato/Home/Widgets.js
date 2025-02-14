@@ -53,8 +53,6 @@ const Widgets = () => {
       label: "Part List",
       badgeClass: "danger",
       icon: "ri-arrow-down-s-line",
-      percentage: "5.02 %",
-      caption: "Projects this month",
       counter: counts.parts,
     },
     {
@@ -64,8 +62,6 @@ const Widgets = () => {
       label: "Assembly List",
       badgeClass: "success",
       icon: "ri-arrow-up-s-line",
-      percentage: "3.58 %",
-      caption: "Leads this month",
       counter: counts.assembly,
     },
     {
@@ -75,8 +71,6 @@ const Widgets = () => {
       label: "Sub Assembly List",
       badgeClass: "danger",
       icon: "ri-arrow-down-s-line",
-      percentage: "10.35 %",
-      caption: "Work this month",
       counter: counts.subAssembly,
     },
     {
@@ -86,8 +80,6 @@ const Widgets = () => {
       label: "Projects List",
       badgeClass: "primary",
       icon: "ri-arrow-down-s-line",
-      percentage: "1.05 %",
-      caption: "Work this month",
       counter: counts.projects,
     },
   ];
@@ -116,12 +108,6 @@ const Widgets = () => {
                         <CountUp start={0} end={item.counter} duration={3} />
                       </span>
                     </h4>
-                    <span
-                      className={`fs-12 badge bg-${item.badgeClass}-subtle text-${item.badgeClass}`}
-                    >
-                      <i className={`fs-13 align-middle me-1 ${item.icon}`}></i>
-                      {item.percentage}
-                    </span>
                   </div>
                   <p className="text-muted text-truncate mb-0">
                     {item.caption}

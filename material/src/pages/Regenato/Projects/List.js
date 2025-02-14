@@ -92,6 +92,7 @@ const List = () => {
   const [modal_edit, setModalEdit] = useState(false);
   const [modal_delete, setModalDelete] = useState(false);
   const [modal_category, setModal_category] = useState(false);
+  const [modal_NaemEdit, setModal_NaemEdit] = useState(false);
   const [projectListsData, setprojectListsData] = useState([]);
   const [deleteModal, setDeleteModal] = useState(false);
   const [loading, setLoading] = useState(true); // State to manage loading state
@@ -111,6 +112,7 @@ const List = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [projectType, setProjectType] = useState("");
   const [filterType, setFilterType] = useState([]);
+  const [newProjectName, setNewProjectName] = useState("");
   const itemsPerPage = 25;
   const [formData, setFormData] = useState({
     projectName: "",
@@ -172,27 +174,6 @@ const List = () => {
     setFilterType(e.target.value);
   };
 
-  // const handleFilterChange = (selectedOptions) => {
-  //   const selectedValues = selectedOptions
-  //     ? selectedOptions.map((opt) => opt.value)
-  //     : [];
-
-  //   // Update the filterType state with the selected values
-  //   setFilterType(selectedValues);
-
-  //   // Filter the projectListsData based on selected PO types
-  //   const filteredProjects = projectListsData.filter(
-  //     (item) =>
-  //       !selectedValues.length || selectedValues.includes(item.projectType)
-  //   );
-
-  //   // Update the projectListsData state with filtered projects
-  //   setprojectListsData(filteredProjects);
-
-  //   // Update the UI to reflect the selected options
-  //   setProjectType(selectedValues.join(", "));
-  // };
-
   const handleSingleProjectTotalCount = (newTotal) => {
     setTotalCostCount(newTotal);
   };
@@ -234,6 +215,17 @@ const List = () => {
     setModal_category(!modal_category);
   };
 
+  const toggle_editName = (item = null) => {
+    if (item) {
+      setNewProjectName(item.projectName); // Pre-fill modal with current name
+      setEditId(item._id);
+    } else {
+      setNewProjectName(""); // Reset if no item is selected
+      setEditId(null);
+    }
+    setModal_NaemEdit(!modal_NaemEdit);
+  };
+
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     setError(null);
@@ -262,24 +254,6 @@ const List = () => {
   }, [fetchData]);
 
   // Filtered and Paginated Data
-
-  // const filteredData = projectListsData.filter((item) =>
-  //   item.projectName.toLowerCase().includes(searchTerm.toLowerCase())
-  // );
-  // Modify the filteredData calculation:
-  // const filteredData = projectListsData.filter(
-  //   (item) =>
-  //     item?.projectName?.toLowerCase().includes(searchTerm.toLowerCase()) &&
-  //     (filterType === "" || item.projectType === filterType)
-  // );
-
-  // const filteredData = projectListsData.filter(
-  //   (item) =>
-  //     searchTerm.length === 0 || // If no search term, show all
-  //     searchTerm.some((term) =>
-  //       item?.projectName?.toLowerCase().includes(term.toLowerCase())
-  //     )
-  // );
   const filteredData = projectListsData.filter(
     (item) =>
       (searchTerm.length === 0 ||
@@ -287,8 +261,6 @@ const List = () => {
           item.projectName.toLowerCase().includes(term.toLowerCase())
         )) &&
       (filterType === "" || item.projectType === filterType)
-    // ((filterType === "" && true) ||
-    //   (filterType !== "" && item.projectType === filterType))
   );
 
   const projectOptions = projectListsData.map((project) => ({
@@ -296,13 +268,6 @@ const List = () => {
     label: project.projectName,
   }));
 
-  // const handleSearchChange = (selectedOptions) => {
-  //   const selectedValues = selectedOptions
-  //     ? selectedOptions.map((opt) => opt.value)
-  //     : [];
-  //   setSearchTerm(selectedValues); // Now searchTerm is an array
-  //   setCurrentPage(1);
-  // };
   const handleSearchChange = (selectedOptions) => {
     const selectedValues = selectedOptions
       ? selectedOptions.map((opt) => opt.value)
@@ -311,23 +276,6 @@ const List = () => {
     setCurrentPage(1);
     setSelectedItems(selectedValues);
   };
-
-  // const calculateTotalSum = () => {
-  //   let totalCost = 0;
-  //   let totalHours = 0;
-
-  //   selectedItems.forEach((selectedProject) => {
-  //     const project = projectListsData.find(
-  //       (item) => item.projectName === selectedProject
-  //     );
-  //     if (project) {
-  //       totalCost += project.costPerUnit;
-  //       totalHours += project.timePerUnit;
-  //     }
-  //   });
-
-  //   return { totalCost, totalHours };
-  // };
 
   const calculateTotalSum = () => {
     const totalCost = paginatedData.reduce(
@@ -539,6 +487,48 @@ const List = () => {
     return monthsRequired.toFixed(2);
   };
 
+  const handleEditName = async () => {
+    if (!editId) {
+      toast.error("No project selected for editing.");
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${editId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            projectName: newProjectName,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to update project name");
+      }
+
+      const updatedProject = await response.json();
+
+      // Update local state to reflect changes
+      setprojectListsData((prevData) =>
+        prevData.map((project) =>
+          project._id === editId
+            ? { ...project, projectName: newProjectName }
+            : project
+        )
+      );
+
+      toast.success("Project name updated successfully!");
+      toggle_editName(); // Close modal after success
+    } catch (error) {
+      toast.error(`Error updating project name: ${error.message}`);
+    }
+  };
+
   // In your List component, add this function
   const getMachineHours = (project, machineName) => {
     return project.machineHours && project.machineHours[machineName]
@@ -636,103 +626,6 @@ const List = () => {
             </div>
           </div>
         )}
-        {/* <div className="table-container">
-          <div className="table-responsive">
-            <table className="table table-striped">
-              <thead>
-                <tr>
-                  <th
-                    className="sticky-col"
-                    style={{
-                      backgroundColor: "rgb(223, 223, 223)",
-                      width: "250rem",
-                    }}
-                  >
-                    Name
-                  </th>
-                  <th className="child_parts">Date</th>
-                  <th className="child_parts">Production Order-Types</th>
-                  <th className="child_parts">Total Cost</th>
-                  <th className="child_parts">Total Hour</th>
-                  {manufacturingData.map((item) => (
-                    <th key={item._id} className="child_parts">
-                      {item.name}
-                    </th>
-                  ))}
-                  <th className="sticky-col">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {paginatedData.map((item, index) => (
-                  <tr key={index}>
-                    <td
-                      className="sticky-col"
-                      style={{
-                        color: "blue",
-                        backgroundColor: "rgb(223, 223, 223)",
-                      }}
-                    >
-                      <Link to={`/projectSection/${item._id}`}>
-                        {item.projectName}
-                      </Link>
-                    </td>
-                    <td>
-                      {new Date(item.createdAt).toISOString().split("T")[0]}
-                    </td>
-                    <td>{item.projectType}</td>
-                    <td>{Math.ceil(item.costPerUnit)}</td>
-                    <td>{formatTime(item.timePerUnit)}</td>
-                    {manufacturingData.map((machine) => (
-                      <td key={machine._id}>
-                        {formatTime(
-                          item.machineHours && item.machineHours[machine.name]
-                            ? item.machineHours[machine.name]
-                            : 0
-                        )}
-                      </td>
-                    ))}
-                    <td className="sticky-col">
-                      <UncontrolledDropdown direction="start">
-                        <DropdownToggle
-                          tag="button"
-                          className="btn btn-link text-muted p-1 mt-n2 py-0 text-decoration-none fs-15 shadow-none"
-                        >
-                          <FeatherIcon
-                            icon="more-horizontal"
-                            className="icon-sm"
-                          />
-                        </DropdownToggle>
-
-                        <DropdownMenu className="dropdown-menu-end">
-                          <DropdownItem
-                            href="#"
-                            onClick={() => {
-                              setSelectedId(item._id);
-                              tog_delete();
-                            }}
-                          >
-                            <i className="ri-delete-bin-fill align-bottom me-2 text-muted"></i>{" "}
-                            Remove
-                          </DropdownItem>
-                          <div className="dropdown-divider"></div>
-                          <DropdownItem
-                            href="#"
-                            onClick={() => handleDuplicateProject(item)}
-                          >
-                            <i className="ri-file-copy-line align-bottom me-2 text-muted"></i>{" "}
-                            Duplicate
-                          </DropdownItem>
-                        </DropdownMenu>
-                      </UncontrolledDropdown>
-                    </td>
-                    
-                  </tr>
-                ))}
-                
-              </tbody>
-            </table>
-          </div>
-        </div> */}
         <div className="table-container">
           <div className="table-responsive">
             <table className="table table-striped">
@@ -772,8 +665,7 @@ const List = () => {
                       className="sticky-col"
                       style={{
                         color: "blue",
-                        textDecoration: "underline",
-                        backgroundColor: "rgb(231, 229, 229)",
+                        backgroundColor: "rgb(255, 255, 255)",
                       }}
                     >
                       <Link to={`/projectSection/${item._id}`}>
@@ -818,13 +710,19 @@ const List = () => {
                             <i className="ri-delete-bin-fill align-bottom me-2 text-muted"></i>{" "}
                             Remove
                           </DropdownItem>
-                          <div className="dropdown-divider"></div>
                           <DropdownItem
                             href="#"
                             onClick={() => handleDuplicateProject(item)}
                           >
                             <i className="ri-file-copy-line align-bottom me-2 text-muted"></i>{" "}
                             Duplicate
+                          </DropdownItem>
+                          <DropdownItem
+                            href="#"
+                            onClick={() => toggle_editName(item)}
+                          >
+                            <i className="ri-file-copy-line align-bottom me-2 text-muted"></i>{" "}
+                            Edit
                           </DropdownItem>
                         </DropdownMenu>
                       </UncontrolledDropdown>
@@ -837,7 +735,7 @@ const List = () => {
                   <td
                     className="sticky-col"
                     style={{
-                      backgroundColor: "rgb(228, 228, 228)",
+                      backgroundColor: "rgb(245, 241, 241)",
                       fontWeight: "bold",
                     }}
                   >
@@ -860,25 +758,7 @@ const List = () => {
             </table>
           </div>
         </div>
-        
-        {/* <div className="table-responsive">
-            <thead>
-              <th
-                className="sticky-col"
-                style={{ backgroundColor: "rgb(228, 228, 228)" }}
-              >
-                Total Sum
-              </th>
-              <th className="child_parts">Total Cost</th>
-              <th className="child_parts">Total Hours</th>
-            </thead>
-            <tbody>
-              <td></td>
-              <td>{calculateTotalSum().totalCost}</td>
-              <td>{calculateTotalSum().totalHours}</td>
-            </tbody>
-          </div> */}
-        {/* </div> */}
+
         <PaginatedList
           totalPages={totalPages}
           currentPage={currentPage}
@@ -1018,7 +898,6 @@ const List = () => {
         </ModalBody>
       </Modal>
 
-      {/* delete modal */}
       {/* Delete modal */}
       <Modal isOpen={modal_delete} toggle={tog_delete} centered>
         <ModalHeader className="bg-light p-3" toggle={tog_delete}>
@@ -1049,6 +928,27 @@ const List = () => {
             {posting ? "Deleting..." : "Yes! Delete It"}
           </Button>
           <Button color="secondary" onClick={tog_delete} disabled={posting}>
+            Cancel
+          </Button>
+        </ModalFooter>
+      </Modal>
+
+      {/* edit modal */}
+      <Modal isOpen={modal_NaemEdit} toggle={toggle_editName}>
+        <ModalHeader toggle={toggle_editName}>Edit Project Name</ModalHeader>
+        <ModalBody>
+          <Input
+            type="text"
+            value={newProjectName}
+            onChange={(e) => setNewProjectName(e.target.value)}
+            placeholder="Enter new project name"
+          />
+        </ModalBody>
+        <ModalFooter>
+          <Button color="primary" onClick={handleEditName}>
+            Save Changes
+          </Button>
+          <Button color="secondary" onClick={toggle_editName}>
             Cancel
           </Button>
         </ModalFooter>

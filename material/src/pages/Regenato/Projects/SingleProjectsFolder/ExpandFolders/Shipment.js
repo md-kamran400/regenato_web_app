@@ -229,7 +229,7 @@ const Shipment = ({
                 type="number"
                 className="form-control"
                 name="hourlyRate"
-                value={formData.hourlyRate}
+                value={Math.round(formData.hourlyRate)}
                 onChange={handleChange}
                 required
               />

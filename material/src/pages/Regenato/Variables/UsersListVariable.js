@@ -144,7 +144,7 @@ const UsersListVariable = () => {
       );
       setFormData({ categoryId: "", name: "", processName: [] });
       editData ? tog_edit() : tog_add();
-      await fetchusersData()
+      await fetchusersData();
     } catch (error) {
       toast.error(error.message || "An error occurred");
     } finally {
@@ -328,6 +328,25 @@ const UsersListVariable = () => {
                   formData.processName.includes(option.value)
                 )}
                 onChange={handleProcessChange}
+                styles={{
+                  control: (provided) => ({
+                    ...provided,
+                    backgroundColor: "white",
+                    color: "black",
+                  }),
+                  singleValue: (provided) => ({
+                    ...provided,
+                    color: "black",
+                  }),
+                  multiValueLabel: (provided) => ({
+                    ...provided,
+                    color: "black",
+                  }),
+                  menu: (provided) => ({
+                    ...provided,
+                    backgroundColor: "white",
+                  }),
+                }}
               />
             </div>
             <ModalFooter>
@@ -378,6 +397,25 @@ const UsersListVariable = () => {
                   formData.processName?.includes(option.value)
                 )}
                 onChange={handleProcessChange}
+                styles={{
+                  control: (provided) => ({
+                    ...provided,
+                    backgroundColor: "white",
+                    color: "black",
+                  }),
+                  singleValue: (provided) => ({
+                    ...provided,
+                    color: "black",
+                  }),
+                  multiValueLabel: (provided) => ({
+                    ...provided,
+                    color: "black",
+                  }),
+                  menu: (provided) => ({
+                    ...provided,
+                    backgroundColor: "white",
+                  }),
+                }}
               />
             </div>
             <ModalFooter>

@@ -46,6 +46,7 @@ const AssemblyTable = React.memo(
     onUpdatePrts,
     projectId,
     assemblypartsListId,
+    setassemblyLists,
   }) => {
     const { _id } = useParams();
     const [modalAdd, setModalAdd] = useState(false);
@@ -127,6 +128,8 @@ const AssemblyTable = React.memo(
     const [isFetching, setIsFetching] = useState(false);
     const mountedRef = useRef(false);
 
+    const [modalOpenId, setModalOpenId] = useState(null);
+
     //optimization for fetching
     const [partsListItemsUpdated, setPartsListItemsUpdated] = useState(false);
 
@@ -136,6 +139,10 @@ const AssemblyTable = React.memo(
         mountedRef.current = false;
       };
     }, []);
+
+    const toggleModal = (item) => {
+      setModalOpenId((prevId) => (prevId === item._id ? null : item._id));
+    };
 
     const fetchExistingSubAssemblyLists = useCallback(async () => {
       if (isFetching) return; // Prevent multiple concurrent requests
@@ -530,7 +537,7 @@ const AssemblyTable = React.memo(
 
       try {
         const response = await fetch(
-          `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${projectId}/assemblyList/${_id}/partsListItems/${itemToEdit._id}`,
+          `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${projectId}/assemblyList/${assemblypartsList._id}/partsListItems/${itemToEdit._id}`,
           {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
@@ -542,17 +549,16 @@ const AssemblyTable = React.memo(
           throw new Error("Failed to update quantity");
         }
         const data = await response.json();
-        setPartsListItems((prevItems) =>
+        setassemblyLists((prevItems) =>
           prevItems.map((item) =>
             item._id === itemToEdit._id
               ? { ...item, quantity: data.quantity }
               : item
           )
         );
-
+        onUpdatePrts(data)
         toast.success("Quantity updated successfully");
         setEditQuantityModal(false);
-        await fetchSubAssembly();
       } catch (error) {
         console.error("Error updating quantity:", error);
         toast.error("Failed to update quantity. Please try again.");
@@ -910,9 +916,21 @@ const AssemblyTable = React.memo(
 
                               <td className="action-cell">
                                 <div className="action-buttons">
-                                  {/* <span>
-                                    <FiEdit size={20} />
-                                  </span> */}
+                                  <span
+                                    style={{
+                                      color: "blue",
+                                      cursor: "pointer",
+                                      marginRight: "2px",
+                                    }}
+                                  >
+                                    <FiSettings
+                                      size={20}
+                                      onClick={() => toggleModal(item)}
+                                      className={`settings-icon ${
+                                        modalOpenId === item._id ? "rotate" : ""
+                                      }`}
+                                    />
+                                  </span>
                                   <span
                                     style={{
                                       color: "red",
@@ -930,7 +948,100 @@ const AssemblyTable = React.memo(
                                 </div>
                               </td>
                             </tr>
-                            {expandedRowId === item._id && (
+
+                            {modalOpenId === item._id && (
+                              <Modal
+                                isOpen={true}
+                                toggle={() => setModalOpenId(null)}
+                                style={{ maxWidth: "80%" }}
+                              >
+                                <ModalHeader
+                                  toggle={() => setModalOpenId(null)}
+                                >
+                                  <h5
+                                    className="mb-3 d-flex align-items-center"
+                                    style={{
+                                      fontWeight: "bold",
+                                      color: "#333",
+                                    }}
+                                  >
+                                    <FiSettings
+                                      style={{
+                                        fontSize: "1.2rem",
+                                        marginRight: "10px",
+                                        color: "#2563eb",
+                                        fontWeight: "bold",
+                                      }}
+                                    />
+                                    {item.partName}
+                                  </h5>
+                                </ModalHeader>
+                                <ModalBody>
+                                  <div>
+                                    <div style={{ marginBottom: "20px" }}>
+                                      {" "}
+                                      <RawMaterial
+                                        partName={item.partName}
+                                        rmVariables={item.rmVariables || []}
+                                        projectId={_id}
+                                        partId={item._id}
+                                        assemblyId={assemblypartsList._id}
+                                        source="subAssemblyListFirst"
+                                        onUpdatePrts={onUpdatePrts}
+                                        quantity={item.quantity}
+                                      />
+                                    </div>
+                                    <div style={{ marginBottom: "20px" }}>
+                                      <Manufacturing
+                                        partName={item.partName}
+                                        manufacturingVariables={
+                                          item.manufacturingVariables || []
+                                        }
+                                        projectId={_id}
+                                        partId={item._id}
+                                        assemblyId={assemblypartsList._id}
+                                        quantity={item.quantity}
+                                        subAssemblyId={_id}
+                                        source="subAssemblyListFirst"
+                                        onUpdatePrts={onUpdatePrts}
+                                      />
+                                    </div>
+                                    <div style={{ marginBottom: "20px" }}>
+                                      <Shipment
+                                        partName={item.partName}
+                                        shipmentVariables={
+                                          item.shipmentVariables || []
+                                        }
+                                        projectId={_id}
+                                        partId={item._id}
+                                        assemblyId={assemblypartsList._id}
+                                        quantity={item.quantity}
+                                        subAssemblyId={_id}
+                                        source="subAssemblyListFirst"
+                                        onUpdatePrts={onUpdatePrts}
+                                      />
+                                    </div>
+                                    <div>
+                                      <Overheads
+                                        partName={item.partName}
+                                        projectId={_id}
+                                        partId={item._id}
+                                        assemblyId={assemblypartsList._id}
+                                        quantity={item.quantity}
+                                        subAssemblyId={_id}
+                                        overheadsAndProfits={
+                                          item.overheadsAndProfits
+                                        }
+                                        source="subAssemblyListFirst"
+                                        onUpdatePrts={onUpdatePrts}
+                                      />
+                                    </div>
+                                  </div>
+                                </ModalBody>
+                              </Modal>
+                            )}
+
+                            {/* {expandedRowId === item._id && (
                               <tr className="details-row">
                                 <td colSpan={6}>
                                   <div className="details-box">
@@ -952,7 +1063,6 @@ const AssemblyTable = React.memo(
                                       {item.partName}
                                     </h5>
 
-                                    {/* Raw Materials Section */}
 
                                     <RawMaterial
                                       partName={item.partName}
@@ -1008,7 +1118,7 @@ const AssemblyTable = React.memo(
                                   </div>
                                 </td>
                               </tr>
-                            )}
+                            )} */}
                           </React.Fragment>
                         ))
                       )}
@@ -1042,7 +1152,7 @@ const AssemblyTable = React.memo(
             <form onSubmit={handleSubmit}>
               <Autocomplete
                 options={parts}
-                getOptionLabel={(option) => option.partName || ""}
+                getOptionLabel={(option) => `${option.partName} - ${option.id}`}
                 onChange={handleAutocompleteChange}
                 renderInput={(params) => (
                   <TextField
@@ -1053,7 +1163,7 @@ const AssemblyTable = React.memo(
                   />
                 )}
               />
-              <div className="form-group">
+              <div className="form-group" style={{ display: "none" }}>
                 <Label for="partId" className="form-label">
                   Part ID
                 </Label>
@@ -1066,7 +1176,7 @@ const AssemblyTable = React.memo(
                   // required
                 />
               </div>
-              <div className="form-group">
+              <div className="form-group" style={{ display: "none" }}>
                 <Label for="codeName" className="form-label">
                   Code Name
                 </Label>
@@ -1079,7 +1189,7 @@ const AssemblyTable = React.memo(
                   // required
                 />
               </div>
-              <div className="form-group">
+              <div className="form-group" style={{ display: "none" }}>
                 <Label for="costPerUnit" className="form-label">
                   Cost Per Unit
                 </Label>
@@ -1099,7 +1209,7 @@ const AssemblyTable = React.memo(
                   }}
                 />
               </div>
-              <div className="form-group">
+              <div className="form-group" style={{ display: "none" }}>
                 <Label for="timePerUnit" className="form-label">
                   Time Per Unit
                 </Label>

@@ -74,6 +74,10 @@ const Assmebly_subAssembly = ({
 
   const [deleteModal, setDeleteModal] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
+
+  //for setting icons
+  const [modalOpenId, setModalOpenId] = useState(null);
+
   const toggleAddModal = () => {
     setModalAdd(!modalAdd);
   };
@@ -85,6 +89,10 @@ const Assmebly_subAssembly = ({
     };
     fetchData();
   }, [_id]);
+
+  const toggleModal = (item) => {
+    setModalOpenId((prevId) => (prevId === item._id ? null : item._id));
+  };
 
   useEffect(() => {
     const fetchParts = async () => {
@@ -322,10 +330,10 @@ const Assmebly_subAssembly = ({
     setItemToEdit(item);
     setEditQuantityModal(true);
   };
-  
+
   const handleSubmitEditQuantity = async () => {
     if (!itemToEdit) return;
-  
+
     try {
       const response = await fetch(
         `/api/defpartproject/projects/${projectId}/assemblyList/${assemblyId}/subAssemblies/${subAssembly._id}/partsListItems/${itemToEdit._id}`,
@@ -335,11 +343,11 @@ const Assmebly_subAssembly = ({
           body: JSON.stringify({ quantity: itemToEdit.quantity }),
         }
       );
-  
+
       if (!response.ok) {
         throw new Error("Failed to update quantity");
       }
-  
+
       const data = await response.json();
       setPartsListItems((prevItems) =>
         prevItems.map((item) =>
@@ -348,10 +356,10 @@ const Assmebly_subAssembly = ({
             : item
         )
       );
-  
+
       toast.success("Quantity updated successfully");
       setEditQuantityModal(false);
-      onupdateAssmebly(data)
+      onupdateAssmebly(data);
     } catch (error) {
       console.error("Error updating quantity:", error);
       toast.error("Failed to update quantity. Please try again.");
@@ -487,9 +495,7 @@ const Assmebly_subAssembly = ({
                                   {item.partName} ({item.Uid || ""}){" "}
                                   {item.codeName || ""}
                                 </td>
-                                <td>
-                                  {parseFloat(item.costPerUnit || 0)}
-                                </td>
+                                <td>{parseFloat(item.costPerUnit || 0)}</td>
                                 <td>{formatTime(item.timePerUnit || 0)}</td>
                                 <td>
                                   <div
@@ -509,10 +515,8 @@ const Assmebly_subAssembly = ({
                                   </div>
                                 </td>
                                 <td>
-                                  {(
-                                    parseFloat(item.costPerUnit || 0) *
-                                    parseInt(item.quantity || 0)
-                                  )}
+                                  {parseFloat(item.costPerUnit || 0) *
+                                    parseInt(item.quantity || 0)}
                                 </td>
                                 <td>
                                   {formatTime(
@@ -523,9 +527,23 @@ const Assmebly_subAssembly = ({
 
                                 <td className="action-cell">
                                   <div className="action-buttons">
-                                    {/* <span>
-                                        <FiEdit size={20} />
-                                      </span> */}
+                                    <span
+                                      style={{
+                                        color: "blue",
+                                        cursor: "pointer",
+                                        marginRight: "2px",
+                                      }}
+                                    >
+                                      <FiSettings
+                                        size={20}
+                                        onClick={() => toggleModal(item)}
+                                        className={`settings-icon ${
+                                          modalOpenId === item._id
+                                            ? "rotate"
+                                            : ""
+                                        }`}
+                                      />
+                                    </span>
                                     <span
                                       style={{
                                         color: "red",
@@ -543,88 +561,101 @@ const Assmebly_subAssembly = ({
                                   </div>
                                 </td>
                               </tr>
-                              {expandedRowId === item._id && (
-                                <tr className="details-row">
-                                  <td colSpan={6}>
-                                    <div className="details-box">
-                                      <h5
-                                        className="mb-3 d-flex align-items-center"
+
+                              {modalOpenId === item._id && (
+                                <Modal
+                                  isOpen={true}
+                                  toggle={() => setModalOpenId(null)}
+                                  style={{ maxWidth: "80%" }}
+                                >
+                                  <ModalHeader
+                                    toggle={() => setModalOpenId(null)}
+                                  >
+                                    <h5
+                                      className="mb-3 d-flex align-items-center"
+                                      style={{
+                                        fontWeight: "bold",
+                                        color: "#333",
+                                      }}
+                                    >
+                                      <FiSettings
                                         style={{
+                                          fontSize: "1.2rem",
+                                          marginRight: "10px",
+                                          color: "#2563eb",
                                           fontWeight: "bold",
-                                          color: "#333",
                                         }}
-                                      >
-                                        <FiSettings
-                                          style={{
-                                            fontSize: "1.2rem",
-                                            marginRight: "10px",
-                                            color: "#2563eb",
-                                            fontWeight: "bold",
-                                          }}
+                                      />
+                                      {item.partName}
+                                    </h5>
+                                  </ModalHeader>
+                                  <ModalBody>
+                                    <div>
+                                      <div>
+                                        <RawMaterial
+                                          partName={item.partName}
+                                          rmVariables={item.rmVariables || []}
+                                          // projectId={_id}
+                                          subAssembly={subAssembly}
+                                          projectId={projectId}
+                                          partId={item._id} //shai h
+                                          assemblyId={assemblyId}
+                                          subAssemblyId={subAssembly._id}
+                                          source="subAssemblyListFirst"
+                                          onUpdatePrts={onupdateAssmebly}
+                                          quantity={item.quantity}
                                         />
-                                        {item.partName}
-                                      </h5>
-
-                                      {/* Raw Materials Section */}
-
-                                      <RawMaterial
-                                        partName={item.partName}
-                                        rmVariables={item.rmVariables || []}
-                                        // projectId={_id}
-                                        subAssembly={subAssembly}
-                                        projectId={projectId}
-                                        partId={item._id} //shai h
-                                        assemblyId={assemblyId}
-                                        subAssemblyId={subAssembly._id}
-                                        source="subAssemblyListFirst"
-                                        onUpdatePrts={onupdateAssmebly}
-                                        quantity={item.quantity}
-                                      />
-
-                                      <Manufacturing
-                                        partName={item.partName}
-                                        manufacturingVariables={
-                                          item.manufacturingVariables || []
-                                        }
-                                        subAssembly={subAssembly}
-                                        projectId={projectId}
-                                        partId={item._id} //shai h
-                                        assemblyId={assemblyId}
-                                        subAssemblyId={subAssembly._id}
-                                        quantity={item.quantity}
-                                        source="subAssemblyListFirst"
-                                        onUpdatePrts={onupdateAssmebly}
-                                      />
-
-                                      <Shipment
-                                        partName={item.partName}
-                                        shipmentVariables={
-                                          item.shipmentVariables || []
-                                        }
-                                        quantity={item.quantity}
-                                        projectId={projectId}
-                                        partId={item._id} //shai h
-                                        assemblyId={assemblyId}
-                                        subAssemblyId={subAssembly._id}
-                                        source="subAssemblyListFirst"
-                                        onUpdatePrts={onupdateAssmebly}
-                                      />
-                                      <Overheads
-                                        partName={item.partName}
-                                        quantity={item.quantity}
-                                        projectId={projectId}
-                                        partId={item._id} //shai h
-                                        assemblyId={assemblyId}
-                                        subAssemblyId={subAssembly._id}
-                                        overheadsAndProfits={
-                                          item.overheadsAndProfits
-                                        }
-                                        source="subAssemblyListFirst"
-                                        onUpdatePrts={onupdateAssmebly}
-                                      />
+                                      </div>
+                                      <div>
+                                        <Manufacturing
+                                          partName={item.partName}
+                                          manufacturingVariables={
+                                            item.manufacturingVariables || []
+                                          }
+                                          subAssembly={subAssembly}
+                                          projectId={projectId}
+                                          partId={item._id} //shai h
+                                          assemblyId={assemblyId}
+                                          subAssemblyId={subAssembly._id}
+                                          quantity={item.quantity}
+                                          source="subAssemblyListFirst"
+                                          onUpdatePrts={onupdateAssmebly}
+                                        />
+                                      </div>
+                                      <div>
+                                        {" "}
+                                        <Shipment
+                                          partName={item.partName}
+                                          shipmentVariables={
+                                            item.shipmentVariables || []
+                                          }
+                                          quantity={item.quantity}
+                                          projectId={projectId}
+                                          partId={item._id} //shai h
+                                          assemblyId={assemblyId}
+                                          subAssemblyId={subAssembly._id}
+                                          source="subAssemblyListFirst"
+                                          onUpdatePrts={onupdateAssmebly}
+                                        />
+                                      </div>
+                                      <div>
+                                        <Overheads
+                                          partName={item.partName}
+                                          quantity={item.quantity}
+                                          projectId={projectId}
+                                          partId={item._id} //shai h
+                                          assemblyId={assemblyId}
+                                          subAssemblyId={subAssembly._id}
+                                          overheadsAndProfits={
+                                            item.overheadsAndProfits
+                                          }
+                                          source="subAssemblyListFirst"
+                                          onUpdatePrts={onupdateAssmebly}
+                                        />
+                                      </div>
                                     </div>
-                                  </td>
-                                </tr>
+                                  </ModalBody>
+                                </Modal>
                               )}
                             </React.Fragment>
                           ))
@@ -645,7 +676,7 @@ const Assmebly_subAssembly = ({
           <form onSubmit={handleSubmit}>
             <Autocomplete
               options={parts}
-              getOptionLabel={(option) => option.partName || ""}
+              getOptionLabel={(option) => `${option.partName} - ${option.id}`}
               onChange={handleAutocompleteChange}
               renderInput={(params) => (
                 <TextField
@@ -657,7 +688,7 @@ const Assmebly_subAssembly = ({
               )}
             />
 
-            <div className="form-group">
+            <div className="form-group" style={{ display: "none" }}>
               <Label for="partId" className="form-label">
                 Part ID
               </Label>
@@ -671,7 +702,7 @@ const Assmebly_subAssembly = ({
               />
             </div>
 
-            <div className="form-group">
+            <div className="form-group" style={{ display: "none" }}>
               <Label for="codeName" className="form-label">
                 Code Name
               </Label>
@@ -685,7 +716,7 @@ const Assmebly_subAssembly = ({
               />
             </div>
 
-            <div className="form-group">
+            <div className="form-group" style={{ display: "none" }}>
               <Label for="costPerUnit" className="form-label">
                 Cost Per Unit
               </Label>
@@ -699,7 +730,7 @@ const Assmebly_subAssembly = ({
               />
             </div>
 
-            <div className="form-group">
+            <div className="form-group" style={{ display: "none" }}>
               <Label for="timePerUnit" className="form-label">
                 Time Per Unit
               </Label>

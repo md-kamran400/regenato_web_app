@@ -389,7 +389,7 @@ const SingleAssmeblyList = () => {
     if (time === 0) {
       return "0 m";
     }
-  
+
     const totalMinutes = Math.round(time * 60); // Convert hours to minutes
     return `${totalMinutes} m`;
   };
@@ -591,7 +591,7 @@ const SingleAssmeblyList = () => {
                                       className="btn btn-sm btn-success edit-item-btn"
                                       onClick={() => handleEditQuantity(item)}
                                     >
-                                      <FaEdit />-
+                                      <FaEdit />
                                     </button>
                                   </div>
                                 </td>
@@ -735,7 +735,7 @@ const SingleAssmeblyList = () => {
           <form onSubmit={handleSubmit}>
             <Autocomplete
               options={parts}
-              getOptionLabel={(option) => option.partName || ""}
+              getOptionLabel={(option) =>  `${option.partName} - ${option.id}`}
               onChange={handleAutocompleteChange}
               renderInput={(params) => (
                 <TextField
@@ -747,7 +747,7 @@ const SingleAssmeblyList = () => {
               )}
             />
 
-            <div className="form-group">
+            <div className="form-group" style={{ display: "none" }}>
               <Label for="partId" className="form-label">
                 Part ID
               </Label>
@@ -761,7 +761,7 @@ const SingleAssmeblyList = () => {
               />
             </div>
 
-            <div className="form-group">
+            <div className="form-group" style={{ display: "none" }}>
               <Label for="codeName" className="form-label">
                 Code Name
               </Label>
@@ -775,7 +775,7 @@ const SingleAssmeblyList = () => {
               />
             </div>
 
-            <div className="form-group">
+            <div className="form-group" style={{ display: "none" }}>
               <Label for="costPerUnit" className="form-label">
                 Cost Per Unit
               </Label>
@@ -789,7 +789,7 @@ const SingleAssmeblyList = () => {
               />
             </div>
 
-            <div className="form-group">
+            <div className="form-group" style={{ display: "none" }}>
               <Label for="timePerUnit" className="form-label">
                 Time Per Unit
               </Label>

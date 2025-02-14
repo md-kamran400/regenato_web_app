@@ -311,7 +311,7 @@ const Assmebly_subAssembly = ({
     if (time === 0) {
       return "0 m";
     }
-  
+
     const totalMinutes = Math.round(time * 60); // Convert hours to minutes
     return `${totalMinutes} m`;
   };
@@ -506,14 +506,14 @@ const Assmebly_subAssembly = ({
                                     </button>
                                   </div>
                                 </td>
-                                
-                                  <td>
-                                    {Math.round(
-                                      parseFloat(item.costPerUnit || 0) *
-                                        parseInt(item.quantity || 0)
-                                    )}
-                                  </td>
-                                
+
+                                <td>
+                                  {Math.round(
+                                    parseFloat(item.costPerUnit || 0) *
+                                      parseInt(item.quantity || 0)
+                                  )}
+                                </td>
+
                                 <td>
                                   {formatTime(
                                     parseFloat(item.timePerUnit || 0) *
@@ -640,7 +640,7 @@ const Assmebly_subAssembly = ({
           <form onSubmit={handleSubmit}>
             <Autocomplete
               options={parts}
-              getOptionLabel={(option) => option.partName || ""}
+              getOptionLabel={(option) =>  `${option.partName} - ${option.id}`}
               onChange={handleAutocompleteChange}
               renderInput={(params) => (
                 <TextField
@@ -652,7 +652,7 @@ const Assmebly_subAssembly = ({
               )}
             />
 
-            <div className="form-group">
+            <div className="form-group" style={{ display: "none" }}>
               <Label for="partId" className="form-label">
                 Part ID
               </Label>
@@ -666,7 +666,7 @@ const Assmebly_subAssembly = ({
               />
             </div>
 
-            <div className="form-group">
+            <div className="form-group" style={{ display: "none" }}>
               <Label for="codeName" className="form-label">
                 Code Name
               </Label>
@@ -680,7 +680,7 @@ const Assmebly_subAssembly = ({
               />
             </div>
 
-            <div className="form-group">
+            <div className="form-group" style={{ display: "none" }}>
               <Label for="costPerUnit" className="form-label">
                 Cost Per Unit
               </Label>
@@ -694,7 +694,7 @@ const Assmebly_subAssembly = ({
               />
             </div>
 
-            <div className="form-group">
+            <div className="form-group" style={{ display: "none" }}>
               <Label for="timePerUnit" className="form-label">
                 Time Per Unit
               </Label>

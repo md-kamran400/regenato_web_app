@@ -222,7 +222,7 @@ const Overheads = ({
                 type="number"
                 className="form-control"
                 name="percentage"
-                value={formData.percentage}
+                value={Math.round(formData.percentage)}
                 onChange={handleChange}
                 required
               />
@@ -235,7 +235,7 @@ const Overheads = ({
                 type="number"
                 className="form-control"
                 name="totalRate"
-                value={formData.totalRate}
+                value={Math.round(formData.totalRate)}
                 readOnly
               />
             </div>
