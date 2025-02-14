@@ -152,6 +152,36 @@ partproject.get("/projects/:id", async (req, res) => {
   }
 });
 
+// create a put on the project id on the projectName
+partproject.put("/projects/:id", async (req, res) => {
+  try {
+    const { projectName } = req.body;
+    console.log("Updating project with ID:", req.params.id);
+    console.log("New project name:", projectName);
+
+    if (!projectName) {
+      return res.status(400).json({ error: "projectName is required" });
+    }
+
+    const updatedProject = await PartListProjectModel.findByIdAndUpdate(
+      req.params.id,
+      { projectName, updatedAt: Date.now() },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedProject) {
+      return res.status(404).json({ error: "Project not found" });
+    }
+
+    res.status(200).json(updatedProject);
+  } catch (error) {
+    console.error("Error updating project:", error);
+    res
+      .status(500)
+      .json({ error: "Internal Server Error", details: error.message });
+  }
+});
+
 // Route to duplicate a project
 partproject.post("/projects/:id/duplicate", async (req, res) => {
   try {
@@ -166,7 +196,7 @@ partproject.post("/projects/:id/duplicate", async (req, res) => {
       return res.status(404).json({ error: "Project not found" });
     }
 
-    // Create a new project with the same data as the original
+    // Create a new project with the same data as the original, including machineHours
     const newProject = new PartListProjectModel({
       projectName: `${originalProject.projectName} (Copy)`,
       costPerUnit: originalProject.costPerUnit,
@@ -177,6 +207,9 @@ partproject.post("/projects/:id/duplicate", async (req, res) => {
         partsListName: `${partsList.partsListName} (Copy)`,
         partsListItems: partsList.partsListItems,
       })),
+      subAssemblyListFirst: originalProject.subAssemblyListFirst, // Copy sub-assemblies
+      assemblyList: originalProject.assemblyList, // Copy assemblies
+      machineHours: { ...originalProject.machineHours }, // Fix: Copy machineHours
     });
 
     await newProject.save();
@@ -186,6 +219,7 @@ partproject.post("/projects/:id/duplicate", async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
 
 // Route to remove a project
 partproject.delete("/projects/:id", async (req, res) => {
@@ -1987,6 +2021,39 @@ partproject.put(
     }
   }
 );
+
+partproject.put('/projects/:projectId/assemblyList/:assemblyId/subAssemblies/:subAssemblyId/partsListItems/:partId', async (req, res) => {
+  const { projectId, assemblyId, subAssemblyId, partId } = req.params;
+  const { quantity } = req.body;
+
+  try {
+    const updatedPart = await PartListProjectModel.findByIdAndUpdate(
+      { 
+        $and: [
+          { _id: projectId },
+          { 'assemblyList._id': assemblyId },
+          { 'assemblyList.subAssemblies._id': subAssemblyId },
+          { 'assemblyList.subAssemblies.partsListItems._id': partId }
+        ]
+      },
+      { 
+        $set: {
+          'assemblyList.subAssemblies.partsListItems.$.quantity': quantity
+        }
+      },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedPart) {
+      return res.status(404).json({ error: 'Part not found' });
+    }
+
+    res.status(200).json({ success: true, data: updatedPart });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error updating part quantity' });
+  }
+});
 
 // put for sub assmeblies raw matarials
 partproject.put(
