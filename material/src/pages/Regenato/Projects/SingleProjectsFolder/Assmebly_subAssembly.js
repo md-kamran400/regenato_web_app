@@ -41,9 +41,10 @@ const Assmebly_subAssembly = ({
   onupdateAssmebly,
 }) => {
   // console.log("sub assmenly id", subAssembly._id);
-  console.log("sub project id", projectId);
+  // console.log("sub project id", projectId);
   // console.log("assembly id", assemblyId);
   // console.log("sub assmenly main id", subAssembly);
+  
   const { _id } = useParams();
   const location = useLocation();
   const subAssemblyName = location.state?.subAssemblyName || "";
@@ -504,7 +505,7 @@ const Assmebly_subAssembly = ({
                                       className="btn btn-sm btn-success edit-item-btn"
                                       onClick={() => handleEditQuantity(item)}
                                     >
-                                      <FaEdit />-
+                                      <FaEdit />
                                     </button>
                                   </div>
                                 </td>
