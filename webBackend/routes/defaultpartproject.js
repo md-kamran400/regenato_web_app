@@ -220,7 +220,6 @@ partproject.post("/projects/:id/duplicate", async (req, res) => {
   }
 });
 
-
 // Route to remove a project
 partproject.delete("/projects/:id", async (req, res) => {
   try {
@@ -2022,38 +2021,41 @@ partproject.put(
   }
 );
 
-partproject.put('/projects/:projectId/assemblyList/:assemblyId/subAssemblies/:subAssemblyId/partsListItems/:partId', async (req, res) => {
-  const { projectId, assemblyId, subAssemblyId, partId } = req.params;
-  const { quantity } = req.body;
+partproject.put(
+  "/projects/:projectId/assemblyList/:assemblyId/subAssemblies/:subAssemblyId/partsListItems/:partId",
+  async (req, res) => {
+    const { projectId, assemblyId, subAssemblyId, partId } = req.params;
+    const { quantity } = req.body;
 
-  try {
-    const updatedPart = await PartListProjectModel.findByIdAndUpdate(
-      { 
-        $and: [
-          { _id: projectId },
-          { 'assemblyList._id': assemblyId },
-          { 'assemblyList.subAssemblies._id': subAssemblyId },
-          { 'assemblyList.subAssemblies.partsListItems._id': partId }
-        ]
-      },
-      { 
-        $set: {
-          'assemblyList.subAssemblies.partsListItems.$.quantity': quantity
-        }
-      },
-      { new: true, runValidators: true }
-    );
+    try {
+      const updatedPart = await PartListProjectModel.findByIdAndUpdate(
+        {
+          $and: [
+            { _id: projectId },
+            { "assemblyList._id": assemblyId },
+            { "assemblyList.subAssemblies._id": subAssemblyId },
+            { "assemblyList.subAssemblies.partsListItems._id": partId },
+          ],
+        },
+        {
+          $set: {
+            "assemblyList.subAssemblies.partsListItems.$.quantity": quantity,
+          },
+        },
+        { new: true, runValidators: true }
+      );
 
-    if (!updatedPart) {
-      return res.status(404).json({ error: 'Part not found' });
+      if (!updatedPart) {
+        return res.status(404).json({ error: "Part not found" });
+      }
+
+      res.status(200).json({ success: true, data: updatedPart });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Error updating part quantity" });
     }
-
-    res.status(200).json({ success: true, data: updatedPart });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Error updating part quantity' });
   }
-});
+);
 
 // put for sub assmeblies raw matarials
 partproject.put(
@@ -2436,10 +2438,6 @@ partproject.post("/projects/:projectId/assemblyList", async (req, res) => {
   }
 });
 
-
-
-
-
 // allocation working start
 // POST Allocation
 partproject.post(
@@ -2491,7 +2489,6 @@ partproject.post(
   }
 );
 
-
 // GET Allocations
 partproject.get(
   "/projects/:projectId/partsLists/:partsListId/partsListItems/:partsListItemsId/allocation",
@@ -2526,10 +2523,106 @@ partproject.get(
       });
     } catch (error) {
       console.error(error);
-      res.status(500).json({ error: "An error occurred while fetching allocations" });
+      res
+        .status(500)
+        .json({ error: "An error occurred while fetching allocations" });
     }
   }
 );
+
+// partproject.get("/allocations/:projectId", async (req, res) => {
+//   try {
+//     const { projectId } = req.params;
+
+//     // Validate MongoDB ObjectId
+//     if (!mongoose.Types.ObjectId.isValid(projectId)) {
+//       return res.status(400).json({ error: "Invalid project ID format" });
+//     }
+
+//     // Fetch project from database
+//     const project = await PartListProjectModel.findById(projectId);
+//     if (!project) {
+//       return res.status(404).json({ error: "Project not found" });
+//     }
+
+//     // Helper function to extract allocation data
+//     const extractAllocations = (list, sourceType) => {
+//       return list.flatMap((listItem) =>
+//         listItem.partsListItems.flatMap((part) =>
+//           part.allocations.map((alloc) => ({
+//             partName: alloc.partName,
+//             processName: alloc.processName,
+//             plannedQuantity: alloc.initialPlannedQuantity,
+//             remainingQuantity: alloc.remainingQuantity,
+//             startDate: alloc.allocations[0]?.startDate || null,
+//             endDate: alloc.allocations[0]?.endDate || null,
+//             machineId: alloc.allocations[0]?.machineId || "N/A",
+//             shift: alloc.allocations[0]?.shift || "N/A",
+//             plannedTime: alloc.allocations[0]?.plannedTime || 0,
+//             operator: alloc.allocations[0]?.operator || "N/A",
+//             sourceType,
+//             totalCost: part.costPerUnit * part.quantity || 0,
+//             totalHours: part.timePerUnit * part.quantity || 0,
+//           }))
+//         )
+//       );
+//     };
+
+//     // Extract allocations from partsLists, subAssemblyListFirst, and assemblyList
+//     const allocations = [
+//       ...extractAllocations(project.partsLists, "partsLists"),
+//       ...extractAllocations(project.subAssemblyListFirst, "subAssemblyList"),
+//       ...extractAllocations(project.assemblyList, "assemblyList"),
+//     ];
+
+//     res.status(200).json(allocations.length > 0 ? allocations : []);
+//   } catch (error) {
+//     res.status(500).json({ error: "Server error", details: error.message });
+//   }
+// });
+
+partproject.get("/allocations/", async (req, res) => {
+  try {
+    const projects = await PartListProjectModel.find();
+
+    const extractAllocations = (list, sourceType, projectName) => {
+      return list.flatMap((listItem) =>
+        listItem.partsListItems.flatMap((part) =>
+          part.allocations.flatMap((alloc) =>
+            alloc.allocations.map((subAlloc) => ({
+              _id: subAlloc._id, // Ensure correct _id extraction
+              projectName, // Add project name
+              partName: part.partName, // Correct part name extraction
+              processName: alloc.processName, // Correct process name extraction
+              plannedQuantity: subAlloc.plannedQuantity, // Extract planned quantity
+              remainingQuantity: alloc.remainingQuantity, // Remaining quantity
+              startDate: subAlloc.startDate ? new Date(subAlloc.startDate).toISOString() : null,
+              endDate: subAlloc.endDate ? new Date(subAlloc.endDate).toISOString() : null,
+              machineId: subAlloc.machineId || "N/A", // Extract machine ID
+              shift: subAlloc.shift || "N/A", // Extract shift info
+              plannedTime: subAlloc.plannedTime || 0, // Extract planned time
+              operator: subAlloc.operator || "N/A", // Extract operator name
+              sourceType, // Source type (Parts, SubAssembly, Assembly)
+              totalCost: part.costPerUnit * part.quantity || 0, // Calculate total cost
+              totalHours: part.timePerUnit * part.quantity || 0, // Calculate total hours
+            }))
+          )
+        )
+      );
+    };
+
+    const allocations = projects.flatMap((project) => [
+      ...extractAllocations(project.partsLists, "partsLists", project.projectName),
+      ...extractAllocations(project.subAssemblyListFirst, "subAssemblyList", project.projectName),
+      ...extractAllocations(project.assemblyList, "assemblyList", project.projectName),
+    ]);
+
+    res.status(200).json(allocations.length > 0 ? allocations : []);
+  } catch (error) {
+    res.status(500).json({ error: "Server error", details: error.message });
+  }
+});
+
 
 
 module.exports = partproject;
