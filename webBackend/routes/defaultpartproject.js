@@ -2532,4 +2532,59 @@ partproject.get(
 );
 
 
+partproject.delete(
+  "/projects/:projectId/partsLists/:partsListId/partsListItems/:partsListItemsId/allocation/:allocationId",
+  async (req, res) => {
+    const { projectId, partsListId, partsListItemsId, allocationId } = req.params;
+
+    try {
+      // Validate project ID
+      if (!mongoose.Types.ObjectId.isValid(projectId)) {
+        return res.status(400).json({ error: "Invalid project ID format" });
+      }
+
+      const project = await PartListProjectModel.findById(projectId);
+      if (!project) {
+        return res.status(404).json({ error: "Project not found" });
+      }
+
+      const partsList = project.partsLists.id(partsListId);
+      if (!partsList) {
+        return res.status(404).json({ error: "Parts list not found" });
+      }
+
+      const partItem = partsList.partsListItems.id(partsListItemsId);
+      if (!partItem) {
+        return res.status(404).json({ error: "Parts list item not found" });
+      }
+
+      // Find the allocation and remove it
+      const allocationIndex = partItem.allocations.findIndex(
+        (allocation) => allocation._id.toString() === allocationId
+      );
+
+      if (allocationIndex === -1) {
+        return res.status(404).json({ error: "Allocation not found" });
+      }
+
+      partItem.allocations.splice(allocationIndex, 1); // Remove the allocation
+
+      // Save changes
+      await project.save();
+
+      res.status(200).json({
+        status: "success",
+        message: "Allocation deleted successfully",
+      });
+    } catch (error) {
+      console.error("Error deleting allocation:", error.message);
+      res.status(500).json({
+        error: "An error occurred while deleting allocation",
+        details: error.message,
+      });
+    }
+  }
+);
+
+
 module.exports = partproject;
