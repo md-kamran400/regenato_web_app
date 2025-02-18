@@ -935,7 +935,7 @@ const List = () => {
 
       {/* edit modal */}
       <Modal isOpen={modal_NaemEdit} toggle={toggle_editName}>
-        <ModalHeader toggle={toggle_editName}>Edit Project Name</ModalHeader>
+        <ModalHeader toggle={toggle_editName}>Edit Production Order Name</ModalHeader>
         <ModalBody>
           <Input
             type="text"

@@ -10,7 +10,7 @@ const navdata = () => {
         },
         {
           id: "projects",
-          label: "Projects",
+          label: "Production Order",
           link: "/regenato-projects",
           icon: "fa fa-folder", // Example FontAwesome icon class
         },
@@ -46,12 +46,12 @@ const navdata = () => {
             },
           ],
         },
-        // {
-        //   id: "bom",
-        //   label: "BOM",
-        //   link: "/regenato-bom",
-        //   icon: "fa fa-list", // Example FontAwesome icon class
-        // },
+        {
+          id: "timeline",
+          label: "TImeline",
+          link: "/regenato-timeline",
+          icon: "fa fa-calendar", // Example FontAwesome icon class
+        },
         {
           id: "variables",
           label: "Variables",

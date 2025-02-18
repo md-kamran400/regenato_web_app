@@ -877,7 +877,7 @@ const SingeProject = () => {
             {/* Left Section */}
             <div className="header-section left">
               <h2 className="project-name" style={{ fontWeight: "bold" }}>
-                PROJECT DETAILS
+                PRODUCTION ORDER DETAILS
               </h2>
               <br />
               <h4 className="">{projectName}</h4>

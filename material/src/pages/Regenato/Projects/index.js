@@ -11,7 +11,7 @@ const ProjectList = () => {
         <React.Fragment>
             <div className="page-content">
                 <Container fluid>
-                    <BreadCrumb title="Project List" pageTitle="Projects" />
+                    <BreadCrumb title="Production Order List" pageTitle="Production Orders" />
                     <List />
                 </Container>
             </div>
