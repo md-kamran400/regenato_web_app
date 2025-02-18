@@ -30,6 +30,7 @@ const AllocationPlanningModal = ({
   partsListId,
   partsListItemsId,
   process_machineId,
+  onUpdateData,
 }) => {
   const processid = categoryId || "";
   const initialPlannedQuantity = parseInt(quantity);
@@ -220,55 +221,10 @@ const AllocationPlanningModal = ({
     return false;
   });
 
-  // const handleFinalConfirm = async () => {
-  //   try {
-  //     const payload = {
-  //       projectName: name || "Unknown Project",
-  //       processName: columnName || "Unknown Process",
-  //       initialPlannedQuantity,
-  //       remainingQuantity,
-  //       allocations: confirmData,
-  //     };
-
-  //     const response = await fetch(
-  //       `${process.env.REACT_APP_BASE_URL}/api/allocation/addallocations`,
-  //       {
-  //         method: "POST",
-  //         headers: { "Content-Type": "application/json" },
-  //         body: JSON.stringify(payload),
-  //       }
-  //     );
-
-  //     if (response.ok) {
-  //       console.log("Data posted successfully");
-  //       toast.success("Allocation created successfully");
-  //       setRows([
-  //         {
-  //           partType: "",
-  //           plannedQuantity: 1,
-  //           startDate: "",
-  //           endDate: "",
-  //           machineId: "",
-  //           shift: "Shift A",
-  //           plannedTime: "02h",
-  //           operator: "Worker A",
-  //         },
-  //       ]);
-  //       setRemainingQuantity(initialPlannedQuantity);
-  //       setConfirmationModalOpen(false);
-  //       toggle();
-  //     } else {
-  //       console.error("Failed to post data");
-  //     }
-  //   } catch (err) {
-  //     console.error("Error posting data", err);
-  //   }
-  // };
-
   const handleFinalConfirm = async () => {
     try {
       const payload = {
-        partName: name || "Unknown Project", // projectName => partName
+        partName: name || "Unknown Project",
         processName: columnName || "Unknown Process",
         initialPlannedQuantity,
         remainingQuantity,
@@ -281,7 +237,6 @@ const AllocationPlanningModal = ({
         })),
       };
 
-      //"/projects/:partsListId/partsLists/:partsListId/partsListItems/:partsListItemsId/allocation",
       const response = await fetch(
         `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${projectId}/partsLists/${partsListId}/partsListItems/${partsListItemsId}/allocation`,
         {
@@ -292,12 +247,15 @@ const AllocationPlanningModal = ({
       );
 
       if (response.ok) {
-        // console.log("Data posted successfully");
+        const newData = await response.json();
+
+        onUpdateData(newData);
         toast.success("Allocation created successfully");
         setConfirmationModalOpen(false);
-        toggle();
+        toggle(); // Close modal
       } else {
         console.error("Failed to post data");
+        toast.error("Failed to create allocation");
       }
     } catch (err) {
       console.error("Error posting data", err);
@@ -448,35 +406,6 @@ const AllocationPlanningModal = ({
                     />
                   </td>
                   <td>
-                    {/* <Input
-                      type="select"
-                      value={row.machineId}
-                      onChange={(e) =>
-                        updateRow(index, "machineId", e.target.value)
-                      }
-                      disabled={row.partType === "Purchase"}
-                      style={{
-                        backgroundColor:
-                          row.partType === "Purchase" ? "#e9ecef" : "white",
-                      }}
-                    >
-                      <option value="">Machine</option>
-                      {manufacturingVariablesid.map((item) => {
-                        const isSelected = usedMachines.includes(
-                          item.subcategoryId
-                        );
-                        return (
-                          <option
-                            key={item._id}
-                            value={item.subcategoryId}
-                            disabled={isSelected} // Disable if already selected
-                            style={{ color: isSelected ? "gray" : "black" }} // Style for disabled option
-                          >
-                            {`${item.subcategoryId} - ${item.name}`}
-                          </option>
-                        );
-                      })}
-                    </Input> */}
                     <Autocomplete
                       options={manufacturingVariablesid} // Use available machine options
                       getOptionLabel={(option) =>
@@ -531,7 +460,7 @@ const AllocationPlanningModal = ({
                   <td>
                     <Input
                       type="text"
-                      value={row.plannedTime}
+                      value={`${row.plannedTime} m`}
                       onChange={(e) =>
                         updateRow(index, "plannedTime", e.target.value)
                       }
@@ -544,42 +473,6 @@ const AllocationPlanningModal = ({
                     />
                   </td>
                   <td>
-                    {/* <Input
-                      type="select"
-                      value={row.operator}
-                      onChange={(e) =>
-                        updateRow(index, "operator", e.target.value)
-                      }
-                      step={valueStyle}
-                      disabled={row.partType === "Purchase"}
-                      style={{
-                        backgroundColor:
-                          row.partType === "Purchase" ? "#e9ecef" : "white",
-                      }}
-                    >
-                      <option>Worker A</option>
-                      <option>Worker B</option>
-                    </Input> */}
-                    {/* <Input
-                      type="select"
-                      value={row.operator}
-                      onChange={(e) =>
-                        updateRow(index, "operator", e.target.value)
-                      }
-                      disabled={row.partType === "Purchase"}
-                      style={{
-                        backgroundColor:
-                          row.partType === "Purchase" ? "#e9ecef" : "white",
-                      }}
-                    >
-                      <option value="">Select Operator</option>
-                      {operators.map((operator) => (
-                        <option key={operator._id} value={operator.name}>
-                          {operator.name}
-                        </option>
-                      ))}
-                    </Input> */}
-
                     <Autocomplete
                       options={operators} // List of operators from API
                       getOptionLabel={(option) => option.name} // Show only the name in dropdown

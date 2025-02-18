@@ -5,6 +5,7 @@ import "../project.css";
 import { FiSettings } from "react-icons/fi";
 import { MdOutlineDelete } from "react-icons/md";
 import AllocationPlanningModal from "../Allocation/AllocationPlanningModal";
+import AllocatedDataModal from "../Allocation/AllocatedDataModal";
 
 const PartListHoursPlanning = () => {
   const { _id } = useParams(); // it will always project id
@@ -14,6 +15,7 @@ const PartListHoursPlanning = () => {
   const [allocations, setAllocations] = useState([]);
   const [manufacturingVariables, setManufacturingVariables] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showAllocatedModal, setShowAllocatedModal] = useState(false);
 
   const [modalData, setModalData] = useState({
     name: "",
@@ -125,48 +127,6 @@ const PartListHoursPlanning = () => {
     fetchManufacturingVariables();
   }, []);
 
-  //   const fetchAllocations = async () => {
-  //     try {
-  //       if (!partDetails.partsLists) {
-  //         console.error("Parts lists not available");
-  //         return;
-  //       }
-
-  //       // Iterate over all partsLists
-  //       for (const partsList of partDetails.partsLists) {
-  //         const partsListId = partsList._id;
-
-  //         // Iterate over all partsListItems within a partsList
-  //         for (const partsListItem of partsList.partsListItems) {
-  //           const partsListItemsId = partsListItem._id;
-
-  //           // Fetch allocations for each partsList and partsListItem
-  //           const response = await fetch(
-  //             `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${_id}/partsLists/${partsListId}/partsListItems/${partsListItemsId}/allocation`
-  //           );
-
-  //           const data = await response.json();
-  //           setAllocations(data.data);
-  //         //   if (response.ok) {
-  //         //     setAllocations(data.data); // Append new allocations
-  //         //   } else {
-  //         //     console.error(
-  //         //       `Failed to fetch allocations for partsListId: ${partsListId}, partsListItemsId: ${partsListItemsId}`
-  //         //     );
-  //         //   }
-  //         }
-  //       }
-  //     } catch (err) {
-  //       console.error("Error fetching allocations", err);
-  //     }
-  //   };
-
-  //   useEffect(() => {
-  //     if (partDetails?.partsLists?.length) {
-  //       fetchAllocations(); // Fetch allocations only when partDetails is ready
-  //     }
-  //   }, [partDetails]);
-
   const fetchAllocations = async () => {
     try {
       if (!partDetails.partsLists) {
@@ -214,8 +174,6 @@ const PartListHoursPlanning = () => {
   useEffect(() => {
     fetchProjectDetails();
   }, []);
-
-  console.log("all parts should be here on the console", allocations);
 
   const columnNames = manufacturingVariables.map((variable) => variable.name);
 
@@ -355,90 +313,91 @@ const PartListHoursPlanning = () => {
 
                                     return (
                                       //   <th
-                                      //     key={column}
-                                      //     className="child_parts"
-                                      //     onClick={
-                                      //       hasValue
-                                      //         ? () => {
-                                      //             const tableInfo = getTableInfo(
-                                      //               item,
-                                      //               column
-                                      //             );
-                                      //             const formattedValue =
-                                      //               formatTime(columnValue);
+                                      //   key={column}
+                                      //   className="child_parts"
+                                      //   onClick={hasValue ? async () => {
+                                      //     const tableInfo = getTableInfo(item, column);
+                                      //     const formattedValue = formatTime(columnValue);
 
-                                      //             const matchingVariable =
-                                      //               manufacturingVariables.find(
-                                      //                 (variable) =>
-                                      //                   variable.name.toLowerCase() ===
-                                      //                   column.toLowerCase()
-                                      //               );
-                                      //             const matchingVariableprocessid =
-                                      //               item.manufacturingVariables?.find(
-                                      //                 (variable) =>
-                                      //                   variable.name.toLowerCase() ===
-                                      //                   column.toLowerCase()
-                                      //               );
+                                      //     // Find matching variable in both sources
+                                      //     const matchingVariable = manufacturingVariables.find(
+                                      //       (variable) => variable.name.toLowerCase() === column.toLowerCase()
+                                      //     );
 
-                                      //             const categoryId =
-                                      //               matchingVariable?.categoryId ||
-                                      //               "Unknown"; // Provide fallback
+                                      //     const matchingVariableProcessId = item.manufacturingVariables?.find(
+                                      //       (variable) => variable.name.toLowerCase() === column.toLowerCase()
+                                      //     );
 
-                                      //             // ✅ Extract `_id` from `matchingVariable`
-                                      //             const process_machineId =
-                                      //               matchingVariableprocessid?._id ||
-                                      //               0;
+                                      //     // Extract the categoryId reliably
+                                      //     const categoryId =
+                                      //       matchingVariableProcessId?.categoryId ||
+                                      //       matchingVariable?.categoryId || // Fallback to global manufacturing variables
+                                      //       "Unknown";
 
-                                      //             handleCellClick(
-                                      //               item.partName,
-                                      //               column,
-                                      //               item.manufacturingVariables,
-                                      //               tableInfo,
-                                      //               formattedValue,
-                                      //               categoryId, // null, // CategoryId (modify if needed)
-                                      //               item.quantity,
-                                      //               "partsLists",
-                                      //               partsList._id, // Pass partsList._id as partsListId
-                                      //               item._id, // Pass partsListItems id as partId
-                                      //               process_machineId // ✅ Pass extracted machineId
-                                      //             );
-                                      //           }
-                                      //         : undefined
-                                      //     }
-                                      //     style={{
-                                      //       backgroundColor: (allocations || [])
-                                      //         .flatMap(
-                                      //           (alloc) => alloc.allocations || []
-                                      //         )
-                                      //         .some(
+                                      //     // Check if allocated
+                                      //     const isAllocated = (allocations || [])
+                                      //       .flatMap((alloc) => alloc.allocations || [])
+                                      //       .some(
+                                      //         (alloc) =>
+                                      //           alloc.partsListId === partsList._id &&
+                                      //           alloc.partsListItemsId === item._id &&
+                                      //           alloc.process_machineId === matchingVariableProcessId?._id
+                                      //       );
+
+                                      //     if (isAllocated) {
+                                      //       const allocatedData = allocations
+                                      //         .flatMap((alloc) => alloc.allocations || [])
+                                      //         .filter(
                                       //           (alloc) =>
-                                      //             alloc.partsListId ===
-                                      //               partsList._id &&
-                                      //             alloc.partId === item.Uid &&
-                                      //             alloc.process_machineId ===
-                                      //               item.manufacturingVariables?.find(
-                                      //                 (variable) =>
-                                      //                   variable.name.toLowerCase() ===
-                                      //                   column.toLowerCase()
-                                      //               )?._id
-                                      //         )
-                                      //         ? "#00FF00"
-                                      //         : "transparent",
-                                      //       color: hasValue ? "#2563EB" : "#999",
-                                      //       cursor: hasValue
-                                      //         ? "pointer"
-                                      //         : "not-allowed",
-                                      //     }}
-                                      //   >
-                                      //     {formatTime(columnValue) || ""}
-                                      //   </th>
+                                      //             alloc.partsListId === partsList._id &&
+                                      //             alloc.partsListItemsId === item._id &&
+                                      //             alloc.process_machineId === matchingVariableProcessId?._id
+                                      //         );
+                                      //       setModalData({ allocations: allocatedData });
+                                      //       setShowAllocatedModal(true);
+                                      //     } else {
+                                      //       handleCellClick(
+                                      //         item.partName,
+                                      //         column,
+                                      //         item.manufacturingVariables,
+                                      //         tableInfo,
+                                      //         formattedValue,
+                                      //         categoryId,
+                                      //         item.quantity,
+                                      //         "partsLists",
+                                      //         partsList._id,
+                                      //         item._id,
+                                      //         matchingVariableProcessId?._id || 0
+                                      //       );
+                                      //     }
+                                      //   } : undefined}
+                                      //   style={{
+                                      //     backgroundColor: (allocations || [])
+                                      //       .flatMap((alloc) => alloc.allocations || [])
+                                      //       .some(
+                                      //         (alloc) =>
+                                      //           alloc.partsListId === partsList._id &&
+                                      //           alloc.partsListItemsId === item._id &&
+                                      //           alloc.process_machineId ===
+                                      //             item.manufacturingVariables?.find(
+                                      //               (variable) => variable.name.toLowerCase() === column.toLowerCase()
+                                      //             )?._id
+                                      //       )
+                                      //       ? "#00FF00"
+                                      //       : "transparent",
+                                      //     color: hasValue ? "#2563EB" : "#999",
+                                      //     cursor: hasValue ? "pointer" : "not-allowed",
+                                      //   }}
+                                      // >
+                                      //   {formatTime(columnValue) || ""}
+                                      // </th>
 
                                       <th
                                         key={column}
                                         className="child_parts"
                                         onClick={
                                           hasValue
-                                            ? () => {
+                                            ? async () => {
                                                 const tableInfo = getTableInfo(
                                                   item,
                                                   column
@@ -446,13 +405,14 @@ const PartListHoursPlanning = () => {
                                                 const formattedValue =
                                                   formatTime(columnValue);
 
-                                                // Match manufacturingVariables
+                                                // Match manufacturing variable in both item and global manufacturingVariables
                                                 const matchingVariable =
                                                   manufacturingVariables.find(
                                                     (variable) =>
                                                       variable.name.toLowerCase() ===
                                                       column.toLowerCase()
                                                   );
+
                                                 const matchingVariableProcessId =
                                                   item.manufacturingVariables?.find(
                                                     (variable) =>
@@ -460,58 +420,175 @@ const PartListHoursPlanning = () => {
                                                       column.toLowerCase()
                                                   );
 
-                                                // Extract necessary IDs
+                                                // Extract categoryId from reliable sources
                                                 const categoryId =
-                                                  matchingVariable?.categoryId ||
-                                                  "Unknown";
-                                                const process_machineId =
-                                                  matchingVariableProcessId?._id ||
-                                                  0;
+                                                  matchingVariableProcessId?.categoryId || // From item's manufacturingVariables
+                                                  matchingVariable?.categoryId || // From global manufacturing variables
+                                                  "Unknown"; // Fallback to "Unknown"
 
-                                                handleCellClick(
-                                                  item.partName,
-                                                  column,
-                                                  item.manufacturingVariables,
-                                                  tableInfo,
-                                                  formattedValue,
-                                                  categoryId,
-                                                  item.quantity,
-                                                  "partsLists",
-                                                  partsList._id, // partsListId
-                                                  item._id, // partsListItemsId
-                                                  process_machineId // MachineId
+                                                // Check if allocated
+                                                const isAllocated = (
+                                                  allocations || []
+                                                ).some((alloc) =>
+                                                  alloc.allocations?.some(
+                                                    (allocation) =>
+                                                      allocation.partsListId ===
+                                                        partsList._id &&
+                                                      allocation.partsListItemsId ===
+                                                        item._id &&
+                                                      allocation.process_machineId ===
+                                                        matchingVariableProcessId?._id
+                                                  )
                                                 );
+
+                                                if (isAllocated) {
+                                                  // Find the full allocation data object
+                                                  const fullData =
+                                                    allocations.find((alloc) =>
+                                                      alloc.allocations?.some(
+                                                        (allocation) =>
+                                                          allocation.partsListId ===
+                                                            partsList._id &&
+                                                          allocation.partsListItemsId ===
+                                                            item._id &&
+                                                          allocation.process_machineId ===
+                                                            matchingVariableProcessId?._id
+                                                      )
+                                                    );
+                                                  // setModalData(fullData);
+                                                  setModalData({
+                                                    ...fullData,
+                                                    partsListId: partsList._id,
+                                                    partsListItemsId: item._id,
+                                                  });
+                                                  setShowAllocatedModal(true);
+                                                } else {
+                                                  handleCellClick(
+                                                    item.partName,
+                                                    column,
+                                                    item.manufacturingVariables,
+                                                    tableInfo,
+                                                    formattedValue,
+                                                    categoryId, // Now reliably fetched
+                                                    item.quantity,
+                                                    "partsLists",
+                                                    partsList._id,
+                                                    item._id,
+                                                    matchingVariableProcessId?._id ||
+                                                      0
+                                                  );
+                                                }
                                               }
                                             : undefined
                                         }
                                         style={{
-                                          backgroundColor: (allocations || [])
-                                            .flatMap(
-                                              (alloc) => alloc.allocations || []
-                                            )
-                                            .some(
-                                              (alloc) =>
-                                                alloc.partsListId ===
-                                                  partsList._id && // Match partsListId
-                                                alloc.partsListItemsId ===
-                                                  item._id && // Match partsListItemsId
-                                                alloc.process_machineId ===
-                                                  item.manufacturingVariables?.find(
-                                                    (variable) =>
-                                                      variable.name.toLowerCase() ===
-                                                      column.toLowerCase()
-                                                  )?._id // Match process_machineId
-                                            )
+                                          color: (allocations || []).some(
+                                            (alloc) =>
+                                              alloc.allocations?.some(
+                                                (allocation) =>
+                                                  allocation.partsListId ===
+                                                    partsList._id &&
+                                                  allocation.partsListItemsId ===
+                                                    item._id &&
+                                                  allocation.process_machineId ===
+                                                    item.manufacturingVariables?.find(
+                                                      (variable) =>
+                                                        variable.name.toLowerCase() ===
+                                                        column.toLowerCase()
+                                                    )?._id
+                                              )
+                                          )
                                             ? "#00FF00" // Green if allocated
-                                            : "transparent", // Default background
-                                          color: hasValue ? "#2563EB" : "#999", // Text color
+                                            : hasValue
+                                            ? "#2563EB" // Default clickable color
+                                            : "#999", // Gray for non-clickable
                                           cursor: hasValue
                                             ? "pointer"
-                                            : "not-allowed", // Pointer if clickable
+                                            : "not-allowed", // Pointer cursor if clickable
                                         }}
                                       >
                                         {formatTime(columnValue) || ""}
                                       </th>
+
+                                      // <th
+                                      //   key={column}
+                                      //   className="child_parts"
+                                      //   onClick={
+                                      //     hasValue
+                                      //       ? () => {
+                                      //           const tableInfo = getTableInfo(
+                                      //             item,
+                                      //             column
+                                      //           );
+                                      //           const formattedValue =
+                                      //             formatTime(columnValue);
+
+                                      //           // Match manufacturingVariables
+                                      //           const matchingVariable =
+                                      //             manufacturingVariables.find(
+                                      //               (variable) =>
+                                      //                 variable.name.toLowerCase() ===
+                                      //                 column.toLowerCase()
+                                      //             );
+                                      //           const matchingVariableProcessId =
+                                      //             item.manufacturingVariables?.find(
+                                      //               (variable) =>
+                                      //                 variable.name.toLowerCase() ===
+                                      //                 column.toLowerCase()
+                                      //             );
+
+                                      //           // Extract necessary IDs
+                                      //           const categoryId =
+                                      //             matchingVariable?.categoryId ||
+                                      //             "Unknown";
+                                      //           const process_machineId =
+                                      //             matchingVariableProcessId?._id ||
+                                      //             0;
+
+                                      //           handleCellClick(
+                                      //             item.partName,
+                                      //             column,
+                                      //             item.manufacturingVariables,
+                                      //             tableInfo,
+                                      //             formattedValue,
+                                      //             categoryId,
+                                      //             item.quantity,
+                                      //             "partsLists",
+                                      //             partsList._id, // partsListId
+                                      //             item._id, // partsListItemsId
+                                      //             process_machineId // MachineId
+                                      //           );
+                                      //         }
+                                      //       : undefined
+                                      //   }
+                                      //   style={{
+                                      //     backgroundColor: (allocations || [])
+                                      //       .flatMap(
+                                      //         (alloc) => alloc.allocations || []
+                                      //       )
+                                      //       .some(
+                                      //         (alloc) =>
+                                      //           alloc.partsListId ===
+                                      //             partsList._id && // Match partsListId
+                                      //           alloc.partsListItemsId ===
+                                      //             item._id && // Match partsListItemsId
+                                      //           alloc.process_machineId ===
+                                      //             item.manufacturingVariables?.find(
+                                      //               (variable) =>
+                                      //                 variable.name.toLowerCase() ===
+                                      //                 column.toLowerCase()
+                                      //             )?._id // Match process_machineId
+                                      //       )
+                                      //       ? "#00FF00" // Green if allocated
+                                      //       : "transparent", // Default background
+                                      //     color: hasValue ? "#2563EB" : "#999", // Text color
+                                      //     cursor: hasValue
+                                      //       ? "pointer"
+                                      //       : "not-allowed", // Pointer if clickable
+                                      //   }}
+                                      // >
+                                      //   {formatTime(columnValue) || ""}
+                                      // </th>
                                     );
                                   })}
 
@@ -564,7 +641,7 @@ const PartListHoursPlanning = () => {
       </div>
 
       <AllocationPlanningModal
-        isOpen={isModalOpen}
+        isOpen={isModalOpen && !showAllocatedModal}
         toggle={toggleModal}
         name={modalData.name}
         manufacturingVariables={modalData.manufacturingVariable}
@@ -575,9 +652,17 @@ const PartListHoursPlanning = () => {
         quantity={modalData.quantity}
         sourceType={modalData.sourceType}
         projectId={_id}
-        partsListId={modalData.partsListId} //partid
+        partsListId={modalData.partsListId}
         partsListItemsId={modalData.partsListItemsId}
         process_machineId={modalData.process_machineId}
+        onUpdateData={fetchAllocations}
+      />
+      <AllocatedDataModal
+        isOpen={showAllocatedModal}
+        toggle={() => setShowAllocatedModal(false)}
+        data={modalData}
+        projectId={_id}
+        onUpdateData={fetchAllocations}
       />
     </div>
   );
