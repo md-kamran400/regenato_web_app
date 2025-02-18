@@ -18,6 +18,8 @@ import { toast } from "react-toastify";
 import Select from "react-select";
 
 const UsersListVariable = () => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [currentItem, setCurrentItem] = useState(null);
   const [modal_add, setModalList] = useState(false);
   const [modal_edit, setModalEdit] = useState(false);
   const [modal_delete, setModalDelete] = useState(false);
@@ -34,7 +36,23 @@ const UsersListVariable = () => {
     categoryId: "",
     name: "",
     processName: [],
+    shifts: 0,
   });
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    if (name === "shifts") {
+      setFormData({
+        ...formData,
+        [name]: value === "" ? 0 : parseInt(value),
+      });
+    } else {
+      setFormData({
+        ...formData,
+        [name]: value,
+      });
+    }
+  };
 
   // Toggles for modals
   const tog_add = () => {
@@ -44,6 +62,12 @@ const UsersListVariable = () => {
   // Function to toggle 'Delete' modal
   const tog_delete = () => {
     setModalDelete(!modal_delete);
+  };
+
+  const handleProcessClick = (index) => {
+    setIsModalOpen(!isModalOpen);
+    setExpandedRow(isModalOpen ? null : index);
+    setCurrentItem(usersData[index]);
   };
 
   // Function to toggle 'Edit' modal
@@ -105,10 +129,10 @@ const UsersListVariable = () => {
     fetchProcessNames();
   }, [fetchProcessNames]);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
-  };
+  // const handleChange = (e) => {
+  //   const { name, value } = e.target;
+  //   setFormData({ ...formData, [name]: value });
+  // };
 
   const handleProcessChange = (selectedOptions) => {
     setFormData({
@@ -117,10 +141,52 @@ const UsersListVariable = () => {
     });
   };
 
+  // const handleSubmit = async (e) => {
+  //   e.preventDefault();
+  //   setPosting(true);
+  //   setError(null);
+  //   try {
+  //     const method = editData ? "PUT" : "POST";
+  //     const url = editData
+  //       ? `${process.env.REACT_APP_BASE_URL}/api/userVariable/${editData._id}`
+  //       : `${process.env.REACT_APP_BASE_URL}/api/userVariable`;
+
+  //     const response = await fetch(url, {
+  //       method,
+  //       headers: { "Content-Type": "application/json" },
+  //       body: JSON.stringify(formData),
+  //     });
+
+  //     if (!response.ok) {
+  //       const errorData = await response.json();
+  //       throw new Error(errorData.message || "Network error");
+  //     }
+  //     toast.success(
+  //       editData
+  //         ? "Record Updated successfully!"
+  //         : "Records Added successfully!"
+  //     );
+  //     setFormData({ categoryId: "", name: "", processName: [] });
+  //     editData ? tog_edit() : tog_add();
+  //     await fetchusersData();
+  //   } catch (error) {
+  //     toast.error(error.message || "An error occurred");
+  //   } finally {
+  //     setPosting(false);
+  //   }
+  // };
+
+  // Handle delete action
   const handleSubmit = async (e) => {
     e.preventDefault();
     setPosting(true);
     setError(null);
+
+    const dataToSubmit = {
+      ...formData,
+      shifts: parseInt(formData.shifts), // Ensure `shifts` is a number
+    };
+
     try {
       const method = editData ? "PUT" : "POST";
       const url = editData
@@ -130,7 +196,7 @@ const UsersListVariable = () => {
       const response = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(dataToSubmit),
       });
 
       if (!response.ok) {
@@ -142,7 +208,7 @@ const UsersListVariable = () => {
           ? "Record Updated successfully!"
           : "Records Added successfully!"
       );
-      setFormData({ categoryId: "", name: "", processName: [] });
+      setFormData({ categoryId: "", name: "", processName: [], shifts: 0 });
       editData ? tog_edit() : tog_add();
       await fetchusersData();
     } catch (error) {
@@ -152,7 +218,6 @@ const UsersListVariable = () => {
     }
   };
 
-  // Handle delete action
   const handleDelete = async (_id) => {
     setPosting(true);
     setError(null);
@@ -174,8 +239,6 @@ const UsersListVariable = () => {
       setPosting(false);
     }
   };
-
-  // Render loading state or error if any
 
   return (
     <React.Fragment>
@@ -225,6 +288,7 @@ const UsersListVariable = () => {
                         <th>ID</th>
                         <th>Name</th>
                         <th>Process Name</th>
+                        <th>Shifts</th>
                         <th>Action</th>
                       </tr>
                     </thead>
@@ -234,23 +298,24 @@ const UsersListVariable = () => {
                           <tr key={item.id}>
                             <td>{item.categoryId}</td>
                             <td>{item.name}</td>
+
                             <td>
-                              {item.processName.length > 1 ? (
-                                <span
-                                  onClick={() =>
-                                    setExpandedRow(
-                                      expandedRow === index ? null : index
-                                    )
-                                  }
-                                >
-                                  {item.processName[0]}...{" "}
-                                  {expandedRow === index &&
-                                    item.processName.slice(1).join(", ")}
-                                </span>
-                              ) : (
-                                item.processName.join(", ")
-                              )}
+                              <span onClick={() => handleProcessClick(index)}>
+                                {item.processName.length > 1 ? (
+                                  <span
+                                    style={{
+                                      color: "#007bff",
+                                      textDecoration: "none",
+                                    }}
+                                  >
+                                    {item.processName[0]} ...{""}
+                                  </span>
+                                ) : (
+                                  item.processName.join(", ")
+                                )}
+                              </span>
                             </td>
+                            <td>{`${item.shifts} m` || "0"}</td>
                             <td>
                               <div className="d-flex gap-2">
                                 <button
@@ -349,6 +414,18 @@ const UsersListVariable = () => {
                 }}
               />
             </div>
+            <div className="mb-3">
+              <label className="form-label">Shift</label>
+              <input
+                type="number"
+                className="form-control"
+                name="shifts"
+                value={formData.shifts}
+                onChange={handleChange}
+                required
+              />
+            </div>
+
             <ModalFooter>
               <Button color="secondary" onClick={tog_add} disabled={posting}>
                 Cancel
@@ -418,6 +495,18 @@ const UsersListVariable = () => {
                 }}
               />
             </div>
+            <div className="mb-3">
+              <label className="form-label">Shift</label>
+              <input
+                type="number"
+                className="form-control"
+                name="shifts"
+                value={formData.shifts}
+                onChange={handleChange}
+                required
+              />
+            </div>
+
             <ModalFooter>
               <Button color="secondary" onClick={tog_edit} disabled={posting}>
                 Cancel
@@ -460,6 +549,30 @@ const UsersListVariable = () => {
             {posting ? "Deleting..." : "Yes! Delete It"}
           </Button>
           <Button color="secondary" onClick={tog_delete} disabled={posting}>
+            Cancel
+          </Button>
+        </ModalFooter>
+      </Modal>
+
+      {/* Modal for displaying all process names */}
+      <Modal
+        isOpen={isModalOpen}
+        toggle={() => setIsModalOpen(!isModalOpen)}
+        centered
+      >
+        <ModalHeader toggle={() => setIsModalOpen(!isModalOpen)}>
+          Process Names
+        </ModalHeader>
+        <ModalBody>
+          <ol>
+            {currentItem &&
+              currentItem.processName.map((processName, index) => (
+                <li key={index}>{processName}</li>
+              ))}
+          </ol>
+        </ModalBody>
+        <ModalFooter>
+          <Button color="success" onClick={() => setIsModalOpen(!isModalOpen)}>
             Cancel
           </Button>
         </ModalFooter>

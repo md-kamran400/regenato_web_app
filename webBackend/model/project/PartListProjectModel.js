@@ -3,7 +3,8 @@ const mongoose = require("mongoose");
 // allocation modal
 const AllocationPlanningSchema = new mongoose.Schema(
   {
-    partName: {  //projectName
+    partName: {
+      //projectName
       type: String,
       required: true,
     },
@@ -58,11 +59,13 @@ const AllocationPlanningSchema = new mongoose.Schema(
           type: String,
           required: true,
         },
-        partsListId: { // partsListId => projectId
+        partsListId: {
+          // partsListId => projectId
           type: String, // Add project ID to track project
           required: true,
         },
-        partsListItemsId: { //partsListItemsId => partId
+        partsListItemsId: {
+          //partsListItemsId => partId
           type: String, // Add part ID to track which part was allocated
           required: true,
         },
@@ -70,10 +73,10 @@ const AllocationPlanningSchema = new mongoose.Schema(
           type: String, // Track whether it came from partsList, subassembly, or assembly
           required: true,
         },
-        process_machineId:{
-          type:String,
+        process_machineId: {
+          type: String,
           require: true,
-        }
+        },
       },
     ],
     createdAt: {
@@ -107,6 +110,7 @@ const partSchema = new mongoose.Schema({
   ],
   manufacturingVariables: [
     {
+      categoryId: String,
       name: String,
       hours: Number,
       times: String,
@@ -128,10 +132,8 @@ const partSchema = new mongoose.Schema({
       totalRate: Number,
     },
   ],
-  allocations: [AllocationPlanningSchema]
+  allocations: [AllocationPlanningSchema],
 });
-
-
 
 // New partsListSchema
 const partsListSchema = new mongoose.Schema({
@@ -176,6 +178,5 @@ const partprojectSchema = new mongoose.Schema({
 });
 const PartListProjectModel = mongoose.model("PartProject", partprojectSchema);
 module.exports = PartListProjectModel;
-
 
 //project/:projectid/partlist/:partlistid/partlistItems/:partlistitemsid/allocation

@@ -37,6 +37,7 @@ import FeatherIcon from "feather-icons-react";
 import { ToastContainer, toast } from "react-toastify";
 import HoursPlanningTab from "../HoursPlanningTab";
 import HoursPlanningCard from "../HoursPlanningCard";
+import { PartListHrPlan } from "../HoursPlanningFolder/TestingPartAllocation/PartListHrPlan";
 
 const PartsTable = React.memo(
   ({ partsList, partsListID, updatePartsLists, onAddPart, onUpdatePrts }) => {
@@ -121,6 +122,8 @@ const PartsTable = React.memo(
         );
         const data = await response.json();
         setParts(data);
+        // console.log(data);
+        
       };
 
       const fetchManufacturingVariables = async () => {
@@ -129,6 +132,7 @@ const PartsTable = React.memo(
         );
         const data = await response.json();
         setManufacturingVariables(data);
+// console.log(data);
 
         // setMachinesTBU((prev) => ({
         //   ...prev,
@@ -539,6 +543,9 @@ const PartsTable = React.memo(
       return `${totalMinutes} m`;
     };
 
+    console.log(partsListItems);
+    
+
     return (
       <>
         {isLoading && (
@@ -762,7 +769,7 @@ const PartsTable = React.memo(
                             </tr>
 
                             {/* Expanding HoursPlanningCard in a full-width row */}
-                            {expandedRowId === item._id && (
+                            {/* {expandedRowId === item._id && (
                               <tr>
                                 <td colSpan="7">
                                   <HoursPlanningCard
@@ -775,22 +782,21 @@ const PartsTable = React.memo(
                                   />
                                 </td>
                               </tr>
-                            )}
+                            )} */}
 
-                            {/* {expandedRowId === item._id && (
+                            {expandedRowId === item._id && (
                               <tr>
                                 <td colSpan="7">
-                                  <HoursPlanningTab
+                                  <PartListHrPlan
                                     partName={item.partName}
                                     manufacturingVariables={
                                       item.manufacturingVariables || []
                                     }
                                     quantity={item.quantity}
-                                    hours={item.hours}
                                   />
                                 </td>
                               </tr>
-                            )} */}
+                            )}
 
                             {modalOpenId === item._id && (
                               <Modal
