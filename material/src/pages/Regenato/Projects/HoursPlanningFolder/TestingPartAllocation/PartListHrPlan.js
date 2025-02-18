@@ -9,11 +9,11 @@ import {
   Input,
 } from "reactstrap";
 import { BsFillClockFill } from "react-icons/bs";
-import { FaTrash } from "react-icons/fa";
 import { MdOutlineDelete } from "react-icons/md";
 import Autocomplete from "@mui/material/Autocomplete";
 import TextField from "@mui/material/TextField";
 import axios from "axios";
+
 export const PartListHrPlan = ({
   partName,
   manufacturingVariables,
@@ -21,13 +21,9 @@ export const PartListHrPlan = ({
 }) => {
   const [machineOptions, setMachineOptions] = useState({});
   const [isOpen, setIsOpen] = useState(true);
-  const [rows, setRows] = useState(
-    manufacturingVariables.reduce((acc, _, index) => {
-      acc[index] = [{}]; // Initialize with one default row per machine
-      return acc;
-    }, {})
-  );
+  const [rows, setRows] = useState({});
   const [operators, setOperators] = useState([]);
+  const [hasStartDate, setHasStartDate] = useState(false);
 
   useEffect(() => {
     const fetchOperators = async () => {
@@ -36,17 +32,11 @@ export const PartListHrPlan = ({
           `${process.env.REACT_APP_BASE_URL}/api/userVariable`
         );
         const data = await response.json();
-
-        if (response.ok) {
-          setOperators(data); // Store all operators initially
-        } else {
-          console.error("Failed to fetch operators");
-        }
+        if (response.ok) setOperators(data);
       } catch (err) {
         console.error("Error fetching operators", err);
       }
     };
-
     fetchOperators();
   }, []);
 
@@ -68,30 +58,148 @@ export const PartListHrPlan = ({
     fetchMachines();
   }, [manufacturingVariables]);
 
+  useEffect(() => {
+    // Only initialize rows with empty data
+    const initialRows = manufacturingVariables.reduce((acc, man, index) => {
+      acc[index] = [{
+        partType: "Make",
+        plannedQuantity: quantity,
+        startDate: "",
+        endDate: "",
+        machineId: "",
+        shift: "Shift A",
+        plannedQtyTime: calculatePlannedMinutes(man.hours * quantity),
+        operatorId: "",
+        processName: man.name,
+      }];
+      return acc;
+    }, {});
+    
+    setRows(initialRows);
+  }, [manufacturingVariables, quantity]);
+
+  const calculatePlannedMinutes = (hours) => {
+    return Math.ceil(hours * 60);
+  };
+
+  const calculateEndDate = (startDate, plannedMinutes) => {
+    if (!startDate) return "";
+    
+    const minutesPerDay = 480; // 8 hours per day
+    const daysNeeded = Math.ceil(plannedMinutes / minutesPerDay);
+    
+    const endDate = new Date(startDate);
+    endDate.setDate(endDate.getDate() + daysNeeded - 1);
+    
+    return endDate.toISOString().split('T')[0];
+  };
+
+  const prefillData = (allRows, startDate) => {
+    let currentDate = new Date(startDate);
+    
+    manufacturingVariables.forEach((man, index) => {
+      if (allRows[index] && allRows[index][0]) {
+        const machineList = machineOptions[man.categoryId] || [];
+        const firstMachine = machineList.length > 0 ? machineList[0].subcategoryId : "";
+        const firstOperator = operators.find((op) => op.processName.includes(man.name)) || {};
+        
+        // Set start date
+        const processStartDate = currentDate.toISOString().split('T')[0];
+        
+        // Calculate end date based on planned minutes
+        const plannedMinutes = calculatePlannedMinutes(man.hours * quantity);
+        const processEndDate = calculateEndDate(processStartDate, plannedMinutes);
+        
+        allRows[index][0] = {
+          ...allRows[index][0],
+          startDate: processStartDate,
+          endDate: processEndDate,
+          machineId: firstMachine,
+          operatorId: firstOperator._id || "",
+        };
+        
+        // Set up next process start date
+        currentDate = new Date(processEndDate);
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+    });
+    
+    return allRows;
+  };
+
+  const handleStartDateChange = (index, rowIndex, date) => {
+    if (index === 0) { // Only handle start date change for first process
+      setHasStartDate(!!date);
+      
+      setRows(prevRows => {
+        const newRows = { ...prevRows };
+        if (date) {
+          // If start date is set, prefill all data
+          return prefillData(newRows, date);
+        } else {
+          // If start date is cleared, reset all data
+          return manufacturingVariables.reduce((acc, man, idx) => {
+            acc[idx] = [{
+              partType: "Make",
+              plannedQuantity: quantity,
+              startDate: "",
+              endDate: "",
+              machineId: "",
+              shift: "Shift A",
+              plannedQtyTime: calculatePlannedMinutes(man.hours * quantity),
+              operatorId: "",
+              processName: man.name,
+            }];
+            return acc;
+          }, {});
+        }
+      });
+    }
+  };
+
   const toggle = () => setIsOpen(!isOpen);
 
   const addRow = (index) => {
-    setRows((prevRows) => ({
+    if (!hasStartDate) return; // Prevent adding rows before start date is set
+    
+    setRows(prevRows => ({
       ...prevRows,
-      [index]: [...(prevRows[index] || []), {}],
+      [index]: [
+        ...(prevRows[index] || []),
+        {
+          partType: "Make",
+          plannedQuantity: quantity,
+          startDate: "",
+          endDate: "",
+          machineId: "",
+          shift: "Shift A",
+          plannedQtyTime: calculatePlannedMinutes(manufacturingVariables[index].hours * quantity),
+          operatorId: "",
+          processName: manufacturingVariables[index].name,
+        }
+      ]
     }));
   };
 
   const deleteRow = (index, rowIndex) => {
-    setRows((prevRows) => {
-      const updatedRows = [...(prevRows[index] || [])];
+    setRows(prevRows => {
+      const updatedRows = [...prevRows[index]];
       updatedRows.splice(rowIndex, 1);
-      return { ...prevRows, [index]: updatedRows.length ? updatedRows : [{}] };
+      return {
+        ...prevRows,
+        [index]: updatedRows.length ? updatedRows : [{
+          partType: "Make",
+          plannedQuantity: quantity,
+          startDate: "",
+          endDate: "",
+          machineId: "",
+          shift: "Shift A",
+          plannedQtyTime: calculatePlannedMinutes(manufacturingVariables[index].hours * quantity),
+          operatorId: "",
+          processName: manufacturingVariables[index].name,
+        }]
+      };
     });
-  };
-
-  const formatTime = (time) => {
-    if (time === 0) {
-      return "0 m";
-    }
-
-    const totalMinutes = Math.round(time * 60); // Convert hours to minutes
-    return `${totalMinutes} m`;
   };
 
   return (
@@ -131,8 +239,14 @@ export const PartListHrPlan = ({
                       fontWeight: "bold",
                       color: "#495057",
                     }}
-                  >{`Machine-wise Allocation ${man.name} - ${man.categoryId}`}</span>
-                  <Button color="primary" onClick={() => addRow(index)}>
+                  >
+                    {`Machine-wise Allocation ${man.name} - ${man.categoryId}`}
+                  </span>
+                  <Button 
+                    color="primary" 
+                    onClick={() => addRow(index)}
+                    disabled={!hasStartDate}
+                  >
                     Add Row
                   </Button>
                 </CardHeader>
@@ -151,38 +265,55 @@ export const PartListHrPlan = ({
                     </tr>
                   </thead>
                   <tbody>
-                    {rows[index].map((_, rowIndex) => (
+                    {rows[index]?.map((row, rowIndex) => (
                       <tr key={rowIndex}>
                         <td>
-                          <Input type="select">
+                          <Input 
+                            type="select" 
+                            value={row.partType}
+                            disabled={!hasStartDate && index !== 0}
+                          >
                             <option>Select Part</option>
                             <option value="Make">Make</option>
                             <option value="Purchase">Purchase</option>
                           </Input>
                         </td>
-
                         <td>
                           <Input
                             type="number"
                             min="0"
-                            defaultValue={quantity}
+                            value={row.plannedQuantity}
+                            readOnly
                           />
                         </td>
                         <td>
-                          <Input type="date" />
+                          <Input
+                            type="date"
+                            value={row.startDate}
+                            onChange={(e) => handleStartDateChange(index, rowIndex, e.target.value)}
+                            readOnly={index !== 0}
+                          />
                         </td>
                         <td>
-                          <Input type="date" />
+                          <Input
+                            type="date"
+                            value={row.endDate}
+                            readOnly
+                          />
                         </td>
-
                         <td>
                           <Autocomplete
                             options={machineOptions[man.categoryId] || []}
+                            value={
+                              machineOptions[man.categoryId]?.find(
+                                (machine) => machine.subcategoryId === row.machineId
+                              ) || null
+                            }
                             getOptionLabel={(option) =>
                               `${option.subcategoryId} - ${option.name}`
                             }
                             renderOption={(props, option) => {
-                              const isDisabled = rows[index].some(
+                              const isDisabled = rows[index]?.some(
                                 (r) => r.machineId === option.subcategoryId
                               );
                               return (
@@ -198,13 +329,12 @@ export const PartListHrPlan = ({
                               );
                             }}
                             onChange={(event, newValue) => {
+                              if (!hasStartDate && index !== 0) return;
                               setRows((prevRows) => {
                                 const updatedRows = [...prevRows[index]];
                                 updatedRows[rowIndex] = {
                                   ...updatedRows[rowIndex],
-                                  machineId: newValue
-                                    ? newValue.subcategoryId
-                                    : "",
+                                  machineId: newValue ? newValue.subcategoryId : "",
                                 };
                                 return { ...prevRows, [index]: updatedRows };
                               });
@@ -217,30 +347,27 @@ export const PartListHrPlan = ({
                                 size="small"
                               />
                             )}
-                            disableClearable={false} // Allow clearing of selection
+                            disableClearable={false}
+                            disabled={!hasStartDate && index !== 0}
                           />
                         </td>
-
                         <td>
-                          <Input type="select">
-                            <option>Shift A</option>
-                          </Input>
+                          <Input type="text" value={row.shift} readOnly />
                         </td>
-                        <td>
-                          {formatTime(man.hours * quantity)}
-                          {man.quantity}
-                        </td>
-
+                        <td>{row.plannedQtyTime} m</td>
                         <td>
                           <Autocomplete
-                            className="h-10"
-                            // style={{height:'10px'}}
                             options={operators.filter((operator) =>
                               operator.processName.includes(man.name)
                             )}
+                            value={
+                              operators.find(
+                                (op) => op._id === row.operatorId
+                              ) || null
+                            }
                             getOptionLabel={(option) => option.name}
                             renderOption={(props, option) => {
-                              const isDisabled = rows[index].some(
+                              const isDisabled = rows[index]?.some(
                                 (r) => r.operatorId === option._id
                               );
                               return (
@@ -255,15 +382,8 @@ export const PartListHrPlan = ({
                                 </li>
                               );
                             }}
-                            renderInput={(params) => (
-                              <TextField
-                                {...params}
-                                label="Operator"
-                                variant="outlined"
-                                size="small"
-                              />
-                            )}
                             onChange={(event, newValue) => {
+                              if (!hasStartDate && index !== 0) return;
                               setRows((prevRows) => {
                                 const updatedRows = [...prevRows[index]];
                                 updatedRows[rowIndex] = {
@@ -273,14 +393,26 @@ export const PartListHrPlan = ({
                                 return { ...prevRows, [index]: updatedRows };
                               });
                             }}
-                            disableClearable={false} // Allows clearing the selection
+                            renderInput={(params) => (
+                              <TextField
+                                {...params}
+                                label="Operator"
+                                variant="outlined"
+                                size="small"
+                              />
+                            )}
+                            disableClearable={false}
+                            disabled={!hasStartDate && index !== 0}
                           />
                         </td>
-
                         <td>
                           <span
-                            onClick={() => deleteRow(index, rowIndex)}
-                            style={{ color: "red", cursor: "pointer" }}
+                            onClick={() => hasStartDate && deleteRow(index, rowIndex)}
+                            style={{ 
+                              color: "red", 
+                              cursor: hasStartDate ? "pointer" : "not-allowed",
+                              opacity: hasStartDate ? 1 : 0.5
+                            }}
                           >
                             <MdOutlineDelete size={25} />
                           </span>
