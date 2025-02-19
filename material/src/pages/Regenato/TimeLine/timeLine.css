@@ -1,0 +1,5 @@
+.delayed-event {
+  background-color: rgb(248, 82, 82) !important;
+  color: rgb(4, 3, 3) !important;
+  border: 1px solid darkred;
+}
