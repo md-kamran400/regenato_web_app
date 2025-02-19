@@ -2,11 +2,11 @@ import React from "react";
 import { Card, CardBody, CardHeader, Col, Container, Row } from "reactstrap";
 import BreadCrumb from "../../../Components/Common/BreadCrumb";
 import ActiveProjects from "./ActiveProjects";
-import Chat from "./Chat"; //
-import MyTasks from "./MyTasks";
+// import Chat from "./Chat"; //
+// import MyTasks from "./MyTasks";
 import ProjectsOverview from "./ProjectsOverview";
 import ProjectsStatus from "./ProjectsStatus";
-import TeamMembers from "./TeamMembers";
+// import TeamMembers from "./TeamMembers";
 import UpcomingSchedules from "./UpcomingSchedules";
 import Widgets from "./Widgets";
 import AdvanceTimeLine from "./AdvanceTimeLine";
