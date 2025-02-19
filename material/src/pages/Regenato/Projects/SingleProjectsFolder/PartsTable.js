@@ -569,11 +569,11 @@ const PartsTable = React.memo(
           <Button color="success" className="add-btn" onClick={toggleAddModal}>
             <i className="ri-add-line align-bottom me-1"></i> Add Part
           </Button>
-          <Link to={`/hoursplanningtab/${_id}`}>
+          {/* <Link to={`/hoursplanningtab/${_id}`}>
             <Button color="success" className="add-btn">
               <i className="ri-add-line align-bottom me-1"></i> Allocation
             </Button>
-          </Link>
+          </Link> */}
         </div>
 
         <Col
