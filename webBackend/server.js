@@ -67,12 +67,13 @@ app.use("/api/assmebly", AssemblyRoutes);
 app.use("/api/userManagement", UserRoute);
 
 //for allocation
-app.use("/api/allocation", allocationRoutes)
+app.use("/api/allocation", allocationRoutes);
 
 // app.use("/api/parts", excelPartroutes)
 
 const PORT = 4040;
-app.listen(PORT, () => {
+// app.listen(PORT, () => {
+app.listen(PORT, "0.0.0.0", () => {
   connect();
   console.log(`Server is running on port ${PORT}`);
 });
