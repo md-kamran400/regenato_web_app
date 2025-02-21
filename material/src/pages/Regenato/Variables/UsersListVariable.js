@@ -36,7 +36,7 @@ const UsersListVariable = () => {
     categoryId: "",
     name: "",
     processName: [],
-    shifts: 0,
+    // shifts: 0,
   });
 
   const handleChange = (e) => {
@@ -288,7 +288,6 @@ const UsersListVariable = () => {
                         <th>ID</th>
                         <th>Name</th>
                         <th>Process Name</th>
-                        <th>Shifts</th>
                         <th>Action</th>
                       </tr>
                     </thead>
@@ -315,7 +314,6 @@ const UsersListVariable = () => {
                                 )}
                               </span>
                             </td>
-                            <td>{`${item.shifts} m` || "0"}</td>
                             <td>
                               <div className="d-flex gap-2">
                                 <button
@@ -414,17 +412,7 @@ const UsersListVariable = () => {
                 }}
               />
             </div>
-            <div className="mb-3">
-              <label className="form-label">Shift</label>
-              <input
-                type="number"
-                className="form-control"
-                name="shifts"
-                value={formData.shifts}
-                onChange={handleChange}
-                required
-              />
-            </div>
+           
 
             <ModalFooter>
               <Button color="secondary" onClick={tog_add} disabled={posting}>
@@ -495,17 +483,7 @@ const UsersListVariable = () => {
                 }}
               />
             </div>
-            <div className="mb-3">
-              <label className="form-label">Shift</label>
-              <input
-                type="number"
-                className="form-control"
-                name="shifts"
-                value={formData.shifts}
-                onChange={handleChange}
-                required
-              />
-            </div>
+            
 
             <ModalFooter>
               <Button color="secondary" onClick={tog_edit} disabled={posting}>
