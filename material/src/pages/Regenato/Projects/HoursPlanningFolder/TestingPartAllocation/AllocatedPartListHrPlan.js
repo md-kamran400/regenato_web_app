@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 import {
   Container,
   Row,
@@ -13,92 +14,51 @@ import {
   CardBody,
 } from "reactstrap";
 
-const AllocatedPartListHrPlan = () => {
-  // Modal state
+const AllocatedPartListHrPlan = ({ porjectID, partID, partListItemId }) => {
+  const [sections, setSections] = useState([]);
   const [dailyTaskModal, setDailyTaskModal] = useState(false);
   const [selectedSection, setSelectedSection] = useState(null);
 
-  // Sample data for multiple sections
-  const sections = [
-    {
-      title: "C1 - VMC Imported",
-      data: [
-        {
-          plannedQty: 200,
-          startDate: "19/02/2025",
-          endDate: "21/02/2025",
-          machineId: "C1-01 - VMC 1",
-          shift: "Shift A",
-          plannedTime: "1000 m",
-          operator: "Michael Brown",
-        },
-      ],
-    },
-    {
-      title: "C2 - VMC Local",
-      data: [
-        {
-          plannedQty: 150,
-          startDate: "22/02/2025",
-          endDate: "07/03/2025",
-          machineId: "01-A - tesing 87",
-          shift: "Shift A",
-          plannedTime: "6500 m",
-          operator: "Michael Brown",
-        },
-      ],
-    },
-    {
-      title: "C4 - Grinding Final",
-      data: [
-        {
-          plannedQty: 100,
-          startDate: "08/03/2025",
-          endDate: "13/03/2025",
-          machineId: "G001 - TETT",
-          shift: "Shift A",
-          plannedTime: "2501 m",
-          operator: "Michael Brown",
-        },
-      ],
-    },
-    {
-      title: "C6 - Drill/Tap",
-      data: [
-        {
-          plannedQty: 250,
-          startDate: "14/03/2025",
-          endDate: "15/03/2025",
-          machineId: "D01 - test/Tap",
-          shift: "Shift A",
-          plannedTime: "500 m",
-          operator: "Kamraan",
-        },
-      ],
-    },
-  ];
+  console.log("project id", porjectID);
+  console.log("part id ", partID);
+  console.log("partlistid", partListItemId);
 
-  // Dummy task data
-  const dailyTasks = [
-    { date: new Date(), planned: 50, produced: 50, delay: "On Track" },
-    {
-      date: new Date(new Date().setDate(new Date().getDate() + 1)),
-      planned: 60,
-      produced: 55,
-      delay: "Slight Delay",
-    },
-  ];
+  useEffect(() => {
+    const fetchAllocations = async () => {
+      try {
+        const response = await axios.get(
+          `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/allocation`
+        );
 
-  console.log(dailyTasks);
+        const formattedSections = response.data.data.map((item) => ({
+          title: item.processName,
+          data: item.allocations.map((allocation) => ({
+            plannedQty: allocation.plannedQuantity,
+            startDate: new Date(allocation.startDate).toLocaleDateString(),
+            endDate: new Date(allocation.endDate).toLocaleDateString(),
+            machineId: allocation.machineId,
+            shift: allocation.shift,
+            plannedTime: `${allocation.plannedTime} min`,
+            operator: allocation.operator,
+          })),
+        }));
 
-  // Function to open the modal
+        setSections(formattedSections);
+      } catch (error) {
+        console.error("Error fetching allocations:", error);
+      }
+    };
+
+    fetchAllocations();
+  }, [porjectID, partID, partListItemId]);
+
   const openModal = (section) => {
     setSelectedSection(section);
     setDailyTaskModal(true);
   };
 
   return (
-    <div style={{ width: "100%", padding: "10px" }}>
+    <div style={{ width: "100%"}}>
       <Container fluid className="mt-4">
         {sections.map((section, index) => (
           <div
@@ -158,7 +118,7 @@ const AllocatedPartListHrPlan = () => {
           </div>
         ))}
         <CardBody className="d-flex justify-content-end align-items-center">
-          <Button color="danger">Cancel Allocation</Button>
+          {/* <Button color="danger">Cancel Allocation</Button> */}
         </CardBody>
       </Container>
 
@@ -191,35 +151,9 @@ const AllocatedPartListHrPlan = () => {
                 </Col>
                 <Col>
                   <span style={{ fontWeight: "bold" }}>Actual End Date: </span>
-                  <span style={{color:'red'}}>22/03/2025</span>
+                  <span style={{ color: "red" }}>22/03/2025</span>
                 </Col>
               </Row>
-              <Table bordered>
-                <thead>
-                  <tr>
-                    <th>Date</th>
-                    <th>Planned</th>
-                    <th>Produced</th>
-                    <th>Status</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {dailyTasks.map((task, index) => (
-                    <tr key={index}>
-                      <td>{task.date.toDateString()}</td>
-                      <td>{task.planned}</td>
-                      <td>
-                        <Input type="number" defaultValue={task.produced} />
-                      </td>
-                      <td>{task.delay}</td>
-                      <td>
-                        <Button>Update</Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </Table>
             </>
           )}
         </ModalBody>

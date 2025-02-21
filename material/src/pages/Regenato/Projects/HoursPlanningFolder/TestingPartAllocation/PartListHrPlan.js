@@ -18,11 +18,15 @@ import Autocomplete from "@mui/material/Autocomplete";
 import TextField from "@mui/material/TextField";
 import axios from "axios";
 import AllocatedPartListHrPlan from "./AllocatedPartListHrPlan";
+import { toast } from "react-toastify";
 
 export const PartListHrPlan = ({
   partName,
   manufacturingVariables,
   quantity,
+  porjectID,
+  partID,
+  partListItemId,
 }) => {
   const [machineOptions, setMachineOptions] = useState({});
   // const [isOpen, setIsOpen] = useState(true);
@@ -31,7 +35,8 @@ export const PartListHrPlan = ({
   const [rows, setRows] = useState({});
   const [operators, setOperators] = useState([]);
   const [hasStartDate, setHasStartDate] = useState(false);
-
+  const [shiftOptions, setShiftOptions] = useState([]);
+  const [selectedShift, setSelectedShift] = useState(null);
   const openConfirmationModal = () => {
     setIsConfirmationModalOpen(true);
   };
@@ -49,6 +54,30 @@ export const PartListHrPlan = ({
       }
     };
     fetchOperators();
+  }, []);
+
+  useEffect(() => {
+    const fetchShifts = async () => {
+      try {
+        const response = await fetch(
+          `${process.env.REACT_APP_BASE_URL}/api/shiftVariable`
+        );
+        const data = await response.json();
+        if (response.ok) {
+          const formattedShifts = data.map((shift) => ({
+            name: shift.name,
+            _id: shift._id,
+            startTime: shift.StartTime, // Include start time
+            totalMinutes: parseFloat(shift.TotalHours) * 60,
+          }));
+          setShiftOptions(formattedShifts);
+        }
+      } catch (error) {
+        console.error("Error fetching shifts:", error);
+      }
+    };
+
+    fetchShifts();
   }, []);
 
   useEffect(() => {
@@ -74,14 +103,14 @@ export const PartListHrPlan = ({
     const initialRows = manufacturingVariables.reduce((acc, man, index) => {
       acc[index] = [
         {
-          partType: "Make",
+          // partType: "Make",
           plannedQuantity: quantity,
           startDate: "",
+          startTime: "",
           endDate: "",
           machineId: "",
           shift: "Shift A",
           plannedQtyTime: calculatePlannedMinutes(man.hours * quantity),
-          operatorId: "",
           processName: man.name,
         },
       ];
@@ -95,54 +124,72 @@ export const PartListHrPlan = ({
     return Math.ceil(hours * 60);
   };
 
-  const calculateEndDate = (startDate, plannedMinutes) => {
-    if (!startDate) return "";
+  // const calculateEndDate = (startDate, plannedMinutes) => {
+  //   if (!startDate) return "";
 
-    const minutesPerDay = 480; // 8 hours per day
-    const daysNeeded = Math.ceil(plannedMinutes / minutesPerDay);
+  //   const minutesPerDay = 480; // 8 hours per day
+  //   const daysNeeded = Math.ceil(plannedMinutes / minutesPerDay);
 
-    const endDate = new Date(startDate);
-    endDate.setDate(endDate.getDate() + daysNeeded - 1);
+  //   const endDate = new Date(startDate);
+  //   endDate.setDate(endDate.getDate() + daysNeeded - 1);
 
-    return endDate.toISOString().split("T")[0];
+  //   return endDate.toISOString().split("T")[0];
+  // };
+  const calculateEndDate = (startDate, plannedMinutes, shiftMinutes) => {
+    if (!startDate) return ""; // Ensure startDate is provided
+
+    const parsedDate = new Date(startDate);
+    if (isNaN(parsedDate.getTime())) return ""; // Ensure startDate is valid
+
+    const totalDays = Math.ceil(plannedMinutes / (shiftMinutes || 480)); // Default to 480 min if shiftMinutes is missing
+    parsedDate.setDate(parsedDate.getDate() + totalDays - 1);
+
+    return parsedDate instanceof Date && !isNaN(parsedDate)
+      ? parsedDate.toISOString().split("T")[0]
+      : "";
   };
 
   const prefillData = (allRows, startDate) => {
     let currentDate = new Date(startDate);
 
     manufacturingVariables.forEach((man, index) => {
-      if (allRows[index] && allRows[index][0]) {
+      if (!allRows[index]) return;
+
+      allRows[index].forEach((row, rowIdx) => {
         const machineList = machineOptions[man.categoryId] || [];
         const firstMachine =
           machineList.length > 0 ? machineList[0].subcategoryId : "";
+
         const firstOperator =
           operators.find((op) => op.processName.includes(man.name)) || {};
 
-        // Set start date
+        const firstShift = shiftOptions.length > 0 ? shiftOptions[0] : null;
+
         const processStartDate = currentDate.toISOString().split("T")[0];
 
-        // Calculate end date based on planned minutes
         const plannedMinutes = calculatePlannedMinutes(man.hours * quantity);
         const processEndDate = calculateEndDate(
           processStartDate,
           plannedMinutes
         );
 
-        allRows[index][0] = {
-          ...allRows[index][0],
+        allRows[index][rowIdx] = {
+          ...row,
           startDate: processStartDate,
           endDate: processEndDate,
           machineId: firstMachine,
           operatorId: firstOperator._id || "",
+          shift: firstShift ? firstShift.name : "",
+          startTime: firstShift ? firstShift.startTime : "",
         };
 
-        // Set up next process start date
         currentDate = new Date(processEndDate);
         currentDate.setDate(currentDate.getDate() + 1);
-      }
+      });
     });
 
-    return allRows;
+    console.log("Prefilled Data:", JSON.stringify(allRows, null, 2));
+    return { ...allRows }; // Ensure state update
   };
 
   const handleStartDateChange = (index, rowIndex, date) => {
@@ -231,6 +278,82 @@ export const PartListHrPlan = ({
     });
   };
 
+  const handleSubmit = async () => {
+    console.log("Submitting allocations...");
+    console.log("Rows before processing:", JSON.stringify(rows, null, 2));
+
+    try {
+      if (Object.keys(rows).length === 0) {
+        alert("No allocations to submit.");
+        return;
+      }
+
+      // Step 1: Group allocations by partName and processName
+      const groupedAllocations = {};
+
+      Object.keys(rows).forEach((index) => {
+        rows[index].forEach((row) => {
+          if (
+            row.plannedQuantity &&
+            row.startDate &&
+            row.endDate &&
+            row.machineId &&
+            row.shift &&
+            row.operatorId
+          ) {
+            const key = `${partName}-${row.processName}`;
+
+            if (!groupedAllocations[key]) {
+              groupedAllocations[key] = {
+                partName: partName,
+                processName: row.processName,
+                allocations: [],
+              };
+            }
+            groupedAllocations[key].allocations.push({
+              plannedQuantity: row.plannedQuantity,
+              startDate: new Date(row.startDate).toISOString(),
+              startTime: row.startTime || "08:00 AM",
+              endDate: new Date(row.endDate).toISOString(),
+              machineId: row.machineId,
+              shift: row.shift,
+              plannedTime: row.plannedQtyTime,
+              operator:
+                operators.find((op) => op._id === row.operatorId)?.name ||
+                "Unknown",
+            });
+          }
+        });
+      });
+
+      // Step 2: Convert object to an array
+      const finalAllocations = Object.values(groupedAllocations);
+
+      console.log(
+        "Final Nested Allocations:",
+        JSON.stringify(finalAllocations, null, 2)
+      );
+
+      // Step 3: API Call
+      const response = await axios.post(
+        `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/allocation`,
+        { allocations: finalAllocations } // Send nested data
+      );
+
+      if (response.status === 201) {
+        // alert("Allocations successfully added!");
+        toast.success("Allocations successfully added!");
+      } else {
+        // alert("Failed to add allocations.");
+        toast.error("Failed to add allocations.");
+      }
+    } catch (error) {
+      // console.error("Error submitting allocations:", error);
+      // alert("An error occurred while submitting the allocations.");
+      toast.error(error);
+    }
+  };
+
   return (
     <div style={{ width: "100%", margin: "10px 0" }}>
       <Card>
@@ -270,12 +393,18 @@ export const PartListHrPlan = ({
             </Button>
           </div>
         </CardHeader>
-        {activeTab === "planned" && <AllocatedPartListHrPlan />}
+        {activeTab === "planned" && (
+          <AllocatedPartListHrPlan
+            porjectID={porjectID}
+            partID={partID}
+            partListItemId={partListItemId}
+          />
+        )}
         {activeTab === "actual" && (
           <Collapse isOpen={true}>
             <CardBody className="shadow-md">
               {manufacturingVariables.map((man, index) => (
-                <Card key={index} className="mb-4 shadow-lg border-black">
+                <Card key={index} className=" shadow-lg border-black">
                   <CardHeader
                     style={{
                       display: "flex",
@@ -306,9 +435,10 @@ export const PartListHrPlan = ({
                         {/* <th style={{ width: "15%" }}>Part Type</th> */}
                         <th>Planned Quantity</th>
                         <th style={{ width: "15%" }}>Start Date</th>
+                        <th style={{ width: "15%" }}>Start Time</th>
                         <th style={{ width: "15%" }}>End Date</th>
                         <th style={{ width: "25%" }}>Machine ID</th>
-                        <th style={{ width: "15%" }}>Number of Shifts</th>
+                        <th style={{ width: "15%" }}>Shifts</th>
                         <th>Planned Qty Time</th>
                         <th style={{ width: "30%" }}>Operator</th>
                         <th>Actions</th>
@@ -350,8 +480,29 @@ export const PartListHrPlan = ({
                             />
                           </td>
                           <td>
-                            <Input type="date" value={row.endDate} readOnly />
+                            <Input
+                              type="time"
+                              value={row.startTime || ""}
+                              // readOnly
+                            />
                           </td>
+
+                          <td>
+                            <Input type="date" value={row.endDate} />
+                          </td>
+                          {/* <td>
+                            <Input
+                              type="time"
+                              value={selectedShift?.startTime || ""}
+                              onChange={(e) => {
+                                setSelectedShift((prev) =>
+                                  prev
+                                    ? { ...prev, startTime: e.target.value }
+                                    : null
+                                );
+                              }}
+                            />
+                          </td> */}
                           <td>
                             <Autocomplete
                               options={machineOptions[man.categoryId] || []}
@@ -407,9 +558,55 @@ export const PartListHrPlan = ({
                               disabled={!hasStartDate && index !== 0}
                             />
                           </td>
+
                           <td>
-                            <Input type="text" value={row.shift} readOnly />
+                            <Autocomplete
+                              options={shiftOptions || []}
+                              value={
+                                shiftOptions.find(
+                                  (option) => option.name === row.shift
+                                ) || null
+                              } // Find the matching shift
+                              onChange={(event, newValue) => {
+                                if (!newValue) return; // Skip if nothing is selected
+
+                                const existingSelection = rows[index]?.find(
+                                  (item) => item.shift === newValue.name
+                                );
+
+                                if (existingSelection) {
+                                  return;
+                                }
+
+                                setRows((prevRows) => ({
+                                  ...prevRows,
+                                  [index]: prevRows[index].map((row, rowIdx) =>
+                                    rowIdx === rowIndex
+                                      ? {
+                                          ...row,
+                                          shift: newValue.name, // Store shift name
+                                          startTime: newValue.startTime, // Store start time
+                                        }
+                                      : row
+                                  ),
+                                }));
+                              }}
+                              getOptionLabel={(option) => option.name}
+                              renderInput={(params) => (
+                                <TextField
+                                  {...params}
+                                  label="Shift"
+                                  variant="outlined"
+                                  size="small"
+                                />
+                              )}
+                              disablePortal
+                              autoHighlight
+                              noOptionsText="No shifts available"
+                              disabled={!hasStartDate && index !== 0}
+                            />
                           </td>
+
                           <td>{row.plannedQtyTime} m</td>
                           <td>
                             <Autocomplete
@@ -486,9 +683,16 @@ export const PartListHrPlan = ({
                 </Card>
               ))}
               <CardBody className="d-flex justify-content-end align-items-center">
-                <Button color="success" onClick={openConfirmationModal}>
+                <Button
+                  color="success"
+                  onClick={openConfirmationModal}
+                  disabled={!hasStartDate}
+                >
                   Confirm Allocation
                 </Button>
+                {/* <Button color="success" onClick={handleSubmit}>
+                  Confirm Allocation
+                </Button> */}
               </CardBody>
             </CardBody>
           </Collapse>
@@ -511,8 +715,7 @@ export const PartListHrPlan = ({
           <Button
             color="primary"
             onClick={() => {
-              // Add your confirmation logic here
-              console.log("Allocation confirmed");
+              handleSubmit();
               setIsConfirmationModalOpen(false);
             }}
           >
