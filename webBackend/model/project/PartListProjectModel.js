@@ -4,31 +4,15 @@ const mongoose = require("mongoose");
 const AllocationPlanningSchema = new mongoose.Schema(
   {
     partName: {
-      //projectName
-      type: String,
+      type: String, 
       required: true,
     },
     processName: {
-      type: String,
+      type: String, 
       required: true,
-    },
-    initialPlannedQuantity: {
-      type: Number,
-      required: true,
-      min: 0,
-    },
-    remainingQuantity: {
-      type: Number,
-      required: true,
-      min: 0,
     },
     allocations: [
       {
-        partType: {
-          type: String,
-          enum: ["Make", "Purchase"],
-          required: true,
-        },
         plannedQuantity: {
           type: Number,
           required: true,
@@ -36,6 +20,10 @@ const AllocationPlanningSchema = new mongoose.Schema(
         },
         startDate: {
           type: Date,
+          required: true,
+        },
+        startTime: {
+          type: String,
           required: true,
         },
         endDate: {
@@ -48,7 +36,6 @@ const AllocationPlanningSchema = new mongoose.Schema(
         },
         shift: {
           type: String,
-          enum: ["Shift A", "Shift B"],
           required: true,
         },
         plannedTime: {
@@ -58,24 +45,6 @@ const AllocationPlanningSchema = new mongoose.Schema(
         operator: {
           type: String,
           required: true,
-        },
-        partsListId: {
-          // partsListId => projectId
-          type: String, // Add project ID to track project
-          required: true,
-        },
-        partsListItemsId: {
-          //partsListItemsId => partId
-          type: String, // Add part ID to track which part was allocated
-          required: true,
-        },
-        sourceType: {
-          type: String, // Track whether it came from partsList, subassembly, or assembly
-          required: true,
-        },
-        process_machineId: {
-          type: String,
-          require: true,
         },
       },
     ],

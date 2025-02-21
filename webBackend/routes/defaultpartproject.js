@@ -2438,247 +2438,109 @@ partproject.post("/projects/:projectId/assemblyList", async (req, res) => {
   }
 });
 
-// allocation working start
-// POST Allocation
+// ============================================ allocation ===============================
+
 partproject.post(
   "/projects/:projectId/partsLists/:partsListId/partsListItems/:partsListItemsId/allocation",
   async (req, res) => {
-    const { projectId, partsListId, partsListItemsId } = req.params;
-    const allocationData = req.body;
-
     try {
-      // Validate project ID
-      if (!mongoose.Types.ObjectId.isValid(projectId)) {
-        return res.status(400).json({ error: "Invalid project ID format" });
+      const { projectId, partsListId, partsListItemsId } = req.params;
+      const { allocations } = req.body;
+
+      if (!Array.isArray(allocations) || allocations.length === 0) {
+        return res.status(400).json({ message: "Invalid allocation data" });
       }
 
-      const project = await PartListProjectModel.findById(projectId);
+      // Find the project that contains the given partsListId
+      const project = await PartListProjectModel.findOne({ _id: projectId });
 
       if (!project) {
-        return res.status(404).json({ error: "Project not found" });
+        return res.status(404).json({ message: "Project not found" });
       }
 
-      const partsList = project.partsLists.id(partsListId);
+      // Find the correct parts list
+      const partsList = project.partsLists.find(
+        (list) => list._id.toString() === partsListId
+      );
+
       if (!partsList) {
-        return res.status(404).json({ error: "Parts list not found" });
+        return res.status(404).json({ message: "Parts List not found" });
       }
 
-      const partItem = partsList.partsListItems.id(partsListItemsId);
+      // Find the correct part inside the parts list
+      const partItem = partsList.partsListItems.find(
+        (item) => item._id.toString() === partsListItemsId
+      );
+
       if (!partItem) {
-        return res.status(404).json({ error: "Parts list item not found" });
+        return res.status(404).json({ message: "Part List Item not found" });
       }
 
-      // Push the allocation data
-      partItem.allocations.push(allocationData);
+      // Append new allocations
+      allocations.forEach((alloc) => {
+        partItem.allocations.push({
+          partName: alloc.partName,
+          processName: alloc.processName,
+          allocations: alloc.allocations,
+        });
+      });
 
-      // Save changes
+      // Save the updated project
       await project.save();
 
       res.status(201).json({
-        status: "success",
-        message: "Allocation added successfully",
+        message: "Allocations added successfully",
         data: partItem.allocations,
       });
     } catch (error) {
-      console.error("Error adding allocation:", error.message);
-      res.status(500).json({
-        error: "An error occurred while adding allocation",
-        details: error.message,
-      });
+      console.error("Error adding allocations:", error);
+      res.status(500).json({ message: "Server error", error: error.message });
     }
   }
 );
 
-// GET Allocations
+// get for allocation
+
 partproject.get(
   "/projects/:projectId/partsLists/:partsListId/partsListItems/:partsListItemsId/allocation",
   async (req, res) => {
-    const { projectId, partsListId, partsListItemsId } = req.params;
-
     try {
-      // Validate project ID
-      if (!mongoose.Types.ObjectId.isValid(projectId)) {
-        return res.status(400).json({ error: "Invalid project ID format" });
-      }
+      const { projectId, partsListId, partsListItemsId } = req.params;
 
-      const project = await PartListProjectModel.findById(projectId);
+      // Find the project
+      const project = await PartListProjectModel.findOne({ _id: projectId });
 
       if (!project) {
-        return res.status(404).json({ error: "Project not found" });
+        return res.status(404).json({ message: "Project not found" });
       }
 
-      const partsList = project.partsLists.id(partsListId);
+      // Find the correct parts list
+      const partsList = project.partsLists.find(
+        (list) => list._id.toString() === partsListId
+      );
+
       if (!partsList) {
-        return res.status(404).json({ error: "Parts list not found" });
+        return res.status(404).json({ message: "Parts List not found" });
       }
 
-      const partItem = partsList.partsListItems.id(partsListItemsId);
+      // Find the correct part inside the parts list
+      const partItem = partsList.partsListItems.find(
+        (item) => item._id.toString() === partsListItemsId
+      );
+
       if (!partItem) {
-        return res.status(404).json({ error: "Parts list item not found" });
+        return res.status(404).json({ message: "Part List Item not found" });
       }
 
       res.status(200).json({
-        status: "success",
+        message: "Allocations retrieved successfully",
         data: partItem.allocations,
       });
     } catch (error) {
-      console.error(error);
-      res
-        .status(500)
-        .json({ error: "An error occurred while fetching allocations" });
+      console.error("Error retrieving allocations:", error);
+      res.status(500).json({ message: "Server error", error: error.message });
     }
   }
 );
-
-// partproject.get("/allocations/:projectId", async (req, res) => {
-//   try {
-//     const { projectId } = req.params;
-//     // Validate MongoDB ObjectId
-//     if (!mongoose.Types.ObjectId.isValid(projectId)) {
-//       return res.status(400).json({ error: "Invalid project ID format" });
-//     }
-
-//     // Fetch project from database
-//     const project = await PartListProjectModel.findById(projectId);
-//     if (!project) {
-//       return res.status(404).json({ error: "Project not found" });
-//     }
-
-//     // Helper function to extract allocation data
-//     const extractAllocations = (list, sourceType) => {
-//       return list.flatMap((listItem) =>
-//         listItem.partsListItems.flatMap((part) =>
-//           part.allocations.map((alloc) => ({
-//             partName: alloc.partName,
-//             processName: alloc.processName,
-//             plannedQuantity: alloc.initialPlannedQuantity,
-//             remainingQuantity: alloc.remainingQuantity,
-//             startDate: alloc.allocations[0]?.startDate || null,
-//             endDate: alloc.allocations[0]?.endDate || null,
-//             machineId: alloc.allocations[0]?.machineId || "N/A",
-//             shift: alloc.allocations[0]?.shift || "N/A",
-//             plannedTime: alloc.allocations[0]?.plannedTime || 0,
-//             operator: alloc.allocations[0]?.operator || "N/A",
-//             sourceType,
-//             totalCost: part.costPerUnit * part.quantity || 0,
-//             totalHours: part.timePerUnit * part.quantity || 0,
-//           }))
-//         )
-//       );
-//     };
-
-//     // Extract allocations from partsLists, subAssemblyListFirst, and assemblyList
-//     const allocations = [
-//       ...extractAllocations(project.partsLists, "partsLists"),
-//       ...extractAllocations(project.subAssemblyListFirst, "subAssemblyList"),
-//       ...extractAllocations(project.assemblyList, "assemblyList"),
-//     ];
-
-//     res.status(200).json(allocations.length > 0 ? allocations : []);
-//   } catch (error) {
-//     res.status(500).json({ error: "Server error", details: error.message });
-//   }
-// });
-
-partproject.get("/allocations/", async (req, res) => {
-  try {
-    const projects = await PartListProjectModel.find();
-
-    const extractAllocations = (list, sourceType, projectName) => {
-      return list.flatMap((listItem) =>
-        listItem.partsListItems.flatMap((part) =>
-          part.allocations.flatMap((alloc) =>
-            alloc.allocations.map((subAlloc) => ({
-              _id: subAlloc._id, // Ensure correct _id extraction
-              projectName, // Add project name
-              partName: part.partName, // Correct part name extraction
-              processName: alloc.processName, // Correct process name extraction
-              plannedQuantity: subAlloc.plannedQuantity, // Extract planned quantity
-              remainingQuantity: alloc.remainingQuantity, // Remaining quantity
-              startDate: subAlloc.startDate ? new Date(subAlloc.startDate).toISOString() : null,
-              endDate: subAlloc.endDate ? new Date(subAlloc.endDate).toISOString() : null,
-              machineId: subAlloc.machineId || "N/A", // Extract machine ID
-              shift: subAlloc.shift || "N/A", // Extract shift info
-              plannedTime: subAlloc.plannedTime || 0, // Extract planned time
-              operator: subAlloc.operator || "N/A", // Extract operator name
-              sourceType, // Source type (Parts, SubAssembly, Assembly)
-              totalCost: part.costPerUnit * part.quantity || 0, // Calculate total cost
-              totalHours: part.timePerUnit * part.quantity || 0, // Calculate total hours
-            }))
-          )
-        )
-      );
-    };
-
-    const allocations = projects.flatMap((project) => [
-      ...extractAllocations(project.partsLists, "partsLists", project.projectName),
-      ...extractAllocations(project.subAssemblyListFirst, "subAssemblyList", project.projectName),
-      ...extractAllocations(project.assemblyList, "assemblyList", project.projectName),
-    ]);
-
-    res.status(200).json(allocations.length > 0 ? allocations : []);
-  } catch (error) {
-    res.status(500).json({ error: "Server error", details: error.message });
-  }
-});
-
-
-
-module.exports = partproject;
-
-partproject.delete(
-  "/projects/:projectId/partsLists/:partsListId/partsListItems/:partsListItemsId/allocation/:allocationId",
-  async (req, res) => {
-    const { projectId, partsListId, partsListItemsId, allocationId } = req.params;
-
-    try {
-      // Validate project ID
-      if (!mongoose.Types.ObjectId.isValid(projectId)) {
-        return res.status(400).json({ error: "Invalid project ID format" });
-      }
-
-      const project = await PartListProjectModel.findById(projectId);
-      if (!project) {
-        return res.status(404).json({ error: "Project not found" });
-      }
-
-      const partsList = project.partsLists.id(partsListId);
-      if (!partsList) {
-        return res.status(404).json({ error: "Parts list not found" });
-      }
-
-      const partItem = partsList.partsListItems.id(partsListItemsId);
-      if (!partItem) {
-        return res.status(404).json({ error: "Parts list item not found" });
-      }
-
-      // Find the allocation and remove it
-      const allocationIndex = partItem.allocations.findIndex(
-        (allocation) => allocation._id.toString() === allocationId
-      );
-
-      if (allocationIndex === -1) {
-        return res.status(404).json({ error: "Allocation not found" });
-      }
-
-      partItem.allocations.splice(allocationIndex, 1); // Remove the allocation
-
-      // Save changes
-      await project.save();
-
-      res.status(200).json({
-        status: "success",
-        message: "Allocation deleted successfully",
-      });
-    } catch (error) {
-      console.error("Error deleting allocation:", error.message);
-      res.status(500).json({
-        error: "An error occurred while deleting allocation",
-        details: error.message,
-      });
-    }
-  }
-);
-
 
 module.exports = partproject;

@@ -29,6 +29,7 @@ const excelPartroutes = require("./routes/PartsExcelData/excelParts");
 const AssemblyRoutes = require("./routes/Assembly-route/assmebly.route");
 const UserRoute = require("./routes/User_route/user.route");
 const allocationRoutes = require("./routes/Allocation/allocation.routes");
+const shiftRoutes = require("./routes/variableRoutes/shifts.routes");
 
 // MongoDB connection
 const connect = async () => {
@@ -50,6 +51,7 @@ app.use("/api/overheadsAndProfit", OverheadsRouter);
 app.use("/api/general", GeneralRouter);
 app.use("/api/manufacturingStatics", manufacturingStaticRouter);
 app.use("/api/userVariable", userVariableRouter);
+app.use("/api/shiftVariable", shiftRoutes);
 
 // Use PartRoutes for handling part-related route
 // Use PartRoutes for handling part-related routes
