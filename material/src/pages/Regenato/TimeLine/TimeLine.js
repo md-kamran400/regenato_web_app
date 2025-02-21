@@ -36,14 +36,14 @@
 //   const calendarRef = useRef(null);
 
 //   // Fetch data from API in real time
-//   useEffect(() => {
-//     fetch("http://localhost:4040/api/defpartproject/allocations")
-//       .then((res) => res.json())
-//       .then((data) => {
-//         setData(data);
-//       })
-//       .catch((error) => console.error("Error fetching data:", error));
-//   }, []);
+// useEffect(() => {
+//   fetch("http://localhost:4040/api/defpartproject/allocations")
+//     .then((res) => res.json())
+//     .then((data) => {
+//       setData(data);
+//     })
+//     .catch((error) => console.error("Error fetching data:", error));
+// }, []);
 
 //   // Handle dropdown selection change
 //   const handleFilterTypeChange = (event) => {
@@ -169,21 +169,23 @@
 //         </FormGroup>
 
 //         {/* Autocomplete for Part/Project Selection */}
-// <Autocomplete
-//   options={data}
-//   getOptionLabel={(option) =>
-//     option[selectedFilterType === "part" ? "partName" : "projectName"]
-//   }
-//   onChange={handleSelection}
-//   renderInput={(params) => (
-//     <TextField
-//       {...params}
-//       label={`Search ${selectedFilterType}`}
-//       variant="outlined"
-//     />
-//   )}
-//   style={{ width: "300px" }}
-// />
+{
+  /* <Autocomplete
+  options={data}
+  getOptionLabel={(option) =>
+    option[selectedFilterType === "part" ? "partName" : "projectName"]
+  }
+  onChange={handleSelection}
+  renderInput={(params) => (
+    <TextField
+      {...params}
+      label={`Search ${selectedFilterType}`}
+      variant="outlined"
+    />
+  )}
+  style={{ width: "300px" }}
+/> */
+}
 //       </div>
 
 //       {/* Calendar View Navigation */}
@@ -357,36 +359,38 @@ import "./timeLine.css";
 
 const sections = [
   {
-    title: "C1 - VMC Imported",
+    title: "SF BODY (RS-EM) -NEW (36-001-00) - C1 - VMC Imported - VMC001",
     data: [
       {
         plannedQty: 200,
         startDate: "2025-02-19",
         endDate: "2025-02-21",
-        delayedDate: "2025-02-22", // New delayed date
-        machineId: "C1-01 - VMC 1",
+        delayedDate: "2025-02-22",
+        machineId: "C1-2 VMC004",
         shift: "Shift A",
         plannedTime: "1000 m",
-        operator: "Michael Brown",
+        operator: "Ajay Singh",
       },
     ],
   },
   {
-    title: "C2 - VMC Local",
+    title:
+      "SF BODY (RS-EM) -NEW (36-001-00) - C2 - VMC Local - CC002",
     data: [
       {
         plannedQty: 150,
         startDate: "2025-02-22", // Fixed the format
         endDate: "2025-03-07",
-        machineId: "01-A - tesing 87",
+        machineId: "01-A - testing 87",
         shift: "Shift A",
         plannedTime: "6500 m",
-        operator: "Michael Brown",
+        operator: "Rajesh Kumar",
       },
     ],
   },
   {
-    title: "C4 - Grinding Final",
+    title:
+      "SF BODY (RS-EM) -NEW (36-001-00) - C4 - Griding Final - GG004",
     data: [
       {
         plannedQty: 100,
@@ -395,18 +399,18 @@ const sections = [
         machineId: "G001 - TETT",
         shift: "Shift A",
         plannedTime: "2501 m",
-        operator: "Michael Brown",
+        operator: "Abdul",
       },
     ],
   },
   {
-    title: "C6 - Drill/Tap",
+    title: "SF BODY (RS-EM) -NEW (36-001-00) - C6 - Drill/Tap - DD006",
     data: [
       {
         plannedQty: 250,
         startDate: "2025-03-14",
         endDate: "2025-03-15",
-        machineId: "D01 - test/Tap",
+        machineId: "D01 - Test/Tap",
         shift: "Shift A",
         plannedTime: "500 m",
         operator: "Kamraan",
@@ -417,13 +421,13 @@ const sections = [
 
 const TimeLine = () => {
   const [modal, setModal] = useState(false);
+  const [data, setData] = useState([]);
   const [modalData, setModalData] = useState({});
   const [selectedFilterType, setSelectedFilterType] = useState("part"); // "part" or "project"
   const [selectedValue, setSelectedValue] = useState(null);
   const [calendarView, setCalendarView] = useState("dayGridMonth");
   const [currentDateEvents, setCurrentDateEvents] = useState([]);
   const calendarRef = useRef(null);
-  const [data, setData] = useState([]);
 
   const events = sections.flatMap((section) =>
     section.data.flatMap((item) => {
@@ -460,6 +464,15 @@ const TimeLine = () => {
     }
     return a.start - b.start;
   });
+
+  useEffect(() => {
+    fetch("http://localhost:4040/api/defpartproject/allocations")
+      .then((res) => res.json())
+      .then((data) => {
+        setData(data);
+      })
+      .catch((error) => console.error("Error fetching data:", error));
+  }, []);
 
   const getCurrentDateEvents = (events) => {
     const today = new Date();
@@ -504,6 +517,14 @@ const TimeLine = () => {
     }
   };
 
+  const handleSelection = (event, value) => {
+    setSelectedValue(value);
+    if (!value) {
+      setFilteredEvents([]);
+      setDailyPlan([]);
+      return;
+    }
+  };
   return (
     <div style={{ padding: "30px", backgroundColor: "white" }}>
       <div
@@ -514,6 +535,22 @@ const TimeLine = () => {
         }}
       >
         <h2 style={{ fontWeight: "bold" }}>Timeline</h2>
+
+        <Autocomplete
+          options={data}
+          getOptionLabel={(option) =>
+            option[selectedFilterType === "part" ? "partName" : "projectName"]
+          }
+          onChange={handleSelection}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              label={`Search ${selectedFilterType}`}
+              variant="outlined"
+            />
+          )}
+          style={{ width: "300px" }}
+        />
       </div>
 
       {/* Calendar View Navigation */}
