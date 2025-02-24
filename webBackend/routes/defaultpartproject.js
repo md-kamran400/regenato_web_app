@@ -2543,4 +2543,50 @@ partproject.get(
   }
 );
 
+// getiing all lists allocation data
+partproject.get("/all-allocations", async (req, res) => {
+  try {
+    const projects = await PartListProjectModel.find({})
+      .populate({
+        path: "partsLists.partsListItems.allocations",
+      })
+      .populate({
+        path: "subAssemblyListFirst.partsListItems.allocations",
+      })
+      .populate({
+        path: "assemblyList.partsListItems.allocations",
+      })
+      .populate({
+        path: "assemblyList.subAssemblies.partsListItems.allocations",
+      });
+
+    // Extract allocations with projectName
+    const allocationData = projects.map((project) => ({
+      projectName: project.projectName,
+      allocations: [
+        ...project.partsLists.flatMap((pl) =>
+          pl.partsListItems.flatMap((p) => p.allocations)
+        ),
+        ...project.subAssemblyListFirst.flatMap((sa) =>
+          sa.partsListItems.flatMap((p) => p.allocations)
+        ),
+        ...project.assemblyList.flatMap((al) => [
+          ...al.partsListItems.flatMap((p) => p.allocations),
+          ...al.subAssemblies.flatMap((sub) =>
+            sub.partsListItems.flatMap((p) => p.allocations)
+          ),
+        ]),
+      ].flat(), // Flatten all allocations into a single array
+    }));
+
+    return res.status(200).json({
+      message: "All allocations retrieved successfully",
+      data: allocationData,
+    });
+  } catch (error) {
+    console.error("Error fetching allocations:", error);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+});
+
 module.exports = partproject;
