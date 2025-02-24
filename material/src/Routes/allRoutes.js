@@ -33,6 +33,7 @@ import HoursPlanningTab from "../pages/Regenato/Projects/HoursPlanningTab";
 import AllocationPage from "../pages/Regenato/Projects/Allocation/AllocationPage";
 import AllocationList from "../pages/Regenato/Projects/Allocation/AllocationList";
 import TimeLine from "../pages/Regenato/TimeLine/TimeLine";
+import { PlanPage } from "../pages/Regenato/TimeLine/PlanPage/PlanPage";
 // import ProjectSection from "../pages/Regenato/Projects/ProjectSection";
 
 // Auth
@@ -73,6 +74,7 @@ const publicRoutes = [
   { path: "/projectSection/:_id", component: <ProjectSection /> },
   { path: "/projectinvoice", component: <ProjectInvoice /> },
   { path: "/regenato-timeline", component: <TimeLine /> },
+  { path: "/regenato-planPage", component: <PlanPage /> },
   // SingleSubAssembly
 
   { path: "/regenato-assembly-list", component: <NewAssmebliy /> }, // New route
