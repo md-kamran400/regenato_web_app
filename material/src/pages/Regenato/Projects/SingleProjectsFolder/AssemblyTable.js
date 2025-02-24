@@ -38,6 +38,7 @@ import Manufacturing from "./assemblyExpandFolders/Manufacturing";
 import { ToastContainer, toast } from "react-toastify"; // Add this import
 import { FaEdit } from "react-icons/fa";
 import Assmebly_subAssembly from "./Assmebly_subAssembly";
+import { AssemblyPartListHoursPlan } from "../HoursPlanningFolder/AssemblyHoursPlanning/Assembly_PartLisHrPlan/AssemblyPartListHoursPlan";
 
 const AssemblyTable = React.memo(
   ({
@@ -556,7 +557,7 @@ const AssemblyTable = React.memo(
               : item
           )
         );
-        onUpdatePrts(data)
+        onUpdatePrts(data);
         toast.success("Quantity updated successfully");
         setEditQuantityModal(false);
       } catch (error) {
@@ -949,6 +950,23 @@ const AssemblyTable = React.memo(
                               </td>
                             </tr>
 
+                            {expandedRowId === item._id && (
+                              <tr>
+                                <td colSpan='7'>
+                                  <AssemblyPartListHoursPlan
+                                    partName={item.partName}
+                                    manufacturingVariables={
+                                      item.manufacturingVariables || []
+                                    }
+                                    quantity={item.quantity}
+                                    porjectID={_id}
+                                    AssemblyListId={assemblypartsListId}
+                                    partListItemId={item._id}
+                                  />
+                                </td>
+                              </tr>
+                            )}
+
                             {modalOpenId === item._id && (
                               <Modal
                                 isOpen={true}
@@ -1040,85 +1058,6 @@ const AssemblyTable = React.memo(
                                 </ModalBody>
                               </Modal>
                             )}
-
-                            {/* {expandedRowId === item._id && (
-                              <tr className="details-row">
-                                <td colSpan={6}>
-                                  <div className="details-box">
-                                    <h5
-                                      className="mb-3 d-flex align-items-center"
-                                      style={{
-                                        fontWeight: "bold",
-                                        color: "#333",
-                                      }}
-                                    >
-                                      <FiSettings
-                                        style={{
-                                          fontSize: "1.2rem",
-                                          marginRight: "10px",
-                                          color: "#2563eb",
-                                          fontWeight: "bold",
-                                        }}
-                                      />
-                                      {item.partName}
-                                    </h5>
-
-
-                                    <RawMaterial
-                                      partName={item.partName}
-                                      rmVariables={item.rmVariables || []}
-                                      projectId={_id}
-                                      partId={item._id}
-                                      assemblyId={assemblypartsList._id}
-                                      source="subAssemblyListFirst"
-                                      onUpdatePrts={onUpdatePrts}
-                                      quantity={item.quantity}
-                                    />
-
-                                    <Manufacturing
-                                      partName={item.partName}
-                                      manufacturingVariables={
-                                        item.manufacturingVariables || []
-                                      }
-                                      projectId={_id}
-                                      partId={item._id}
-                                      assemblyId={assemblypartsList._id}
-                                      quantity={item.quantity}
-                                      subAssemblyId={_id}
-                                      source="subAssemblyListFirst"
-                                      onUpdatePrts={onUpdatePrts}
-                                    />
-
-                                    <Shipment
-                                      partName={item.partName}
-                                      shipmentVariables={
-                                        item.shipmentVariables || []
-                                      }
-                                      projectId={_id}
-                                      partId={item._id}
-                                      assemblyId={assemblypartsList._id}
-                                      quantity={item.quantity}
-                                      subAssemblyId={_id}
-                                      source="subAssemblyListFirst"
-                                      onUpdatePrts={onUpdatePrts}
-                                    />
-                                    <Overheads
-                                      partName={item.partName}
-                                      projectId={_id}
-                                      partId={item._id}
-                                      assemblyId={assemblypartsList._id}
-                                      quantity={item.quantity}
-                                      subAssemblyId={_id}
-                                      overheadsAndProfits={
-                                        item.overheadsAndProfits
-                                      }
-                                      source="subAssemblyListFirst"
-                                      onUpdatePrts={onUpdatePrts}
-                                    />
-                                  </div>
-                                </td>
-                              </tr>
-                            )} */}
                           </React.Fragment>
                         ))
                       )}

@@ -10,46 +10,31 @@ import {
   ModalHeader,
   ModalBody,
   ModalFooter,
-  Input,
-  CardBody,
   Spinner,
   Alert,
+  CardBody,
 } from "reactstrap";
 
-const AllocatedPartListHrPlan = ({ porjectID, partID, partListItemId }) => {
+export const AllocatedSubAssemblyPlan = ({
+  porjectID,
+  subAssemblyListFirstId,
+  partListItemId,
+}) => {
   const [sections, setSections] = useState([]);
-  const [dailyTaskModal, setDailyTaskModal] = useState(false);
-  const [selectedSection, setSelectedSection] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
-  console.log("project id", porjectID);
-  console.log("part id ", partID);
-  console.log("partlistid", partListItemId);
+  const [dailyTaskModal, setDailyTaskModal] = useState(false);
+  const [selectedSection, setSelectedSection] = useState(null);
 
   useEffect(() => {
-    setLoading(true);
-    setError(null);
     const fetchAllocations = async () => {
+      setLoading(true);
+      setError(null);
       try {
         const response = await axios.get(
-          `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/allocation`
+          `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/subAssemblyListFirst/${subAssemblyListFirstId}/partsListItems/${partListItemId}/allocation`
         );
 
-        // const formattedSections = response.data.data.map((item) => ({
-        //   title: item.processName,
-        //   data: item.allocations.map((allocation) => ({
-        //     plannedQty: allocation.plannedQuantity,
-        //     startDate: new Date(allocation.startDate).toLocaleDateString(),
-        //     endDate: new Date(allocation.endDate).toLocaleDateString(),
-        //     machineId: allocation.machineId,
-        //     shift: allocation.shift,
-        //     plannedTime: `${allocation.plannedTime} min`,
-        //     operator: allocation.operator,
-        //   })),
-        // }));
-
-        // setSections(formattedSections);
         if (!response.data.data || response.data.data.length === 0) {
           setSections([]);
         } else {
@@ -68,13 +53,14 @@ const AllocatedPartListHrPlan = ({ porjectID, partID, partListItemId }) => {
           setSections(formattedSections);
         }
       } catch (error) {
+        setError("Failed to fetch allocations. Please try again later.");
         console.error("Error fetching allocations:", error);
       }
       setLoading(false);
     };
 
     fetchAllocations();
-  }, [porjectID, partID, partListItemId]);
+  }, [porjectID, subAssemblyListFirstId, partListItemId]);
 
   const openModal = (section) => {
     setSelectedSection(section);
@@ -169,7 +155,7 @@ const AllocatedPartListHrPlan = ({ porjectID, partID, partListItemId }) => {
           Update Input - {selectedSection?.title}
         </ModalHeader>
         <ModalBody>
-          {selectedSection && (
+          {selectedSection && selectedSection.data.length > 0 ? (
             <>
               <Row className="mb-3">
                 <Col>
@@ -191,7 +177,35 @@ const AllocatedPartListHrPlan = ({ porjectID, partID, partListItemId }) => {
                   <span style={{ color: "red" }}>22/03/2025</span>
                 </Col>
               </Row>
+              <Table bordered>
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Planned</th>
+                    <th>Produced</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {dailyTasks.map((task, index) => (
+                    <tr key={index}>
+                      <td>{task.date.toDateString()}</td>
+                      <td>{task.planned}</td>
+                      <td>
+                        <Input type="number" defaultValue={task.produced} />
+                      </td>
+                      <td>{task.delay}</td>
+                      <td>
+                        <Button>Update</Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
             </>
+          ) : (
+            <Alert color="warning">No details available.</Alert>
           )}
         </ModalBody>
         <ModalFooter>
@@ -203,5 +217,3 @@ const AllocatedPartListHrPlan = ({ porjectID, partID, partListItemId }) => {
     </div>
   );
 };
-
-export default AllocatedPartListHrPlan;

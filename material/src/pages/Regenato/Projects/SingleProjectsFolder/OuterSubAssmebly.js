@@ -35,6 +35,7 @@ import Manufacturing from "./OutersubassemblyexFolders/Manufacturing";
 import FeatherIcon from "feather-icons-react";
 import { ToastContainer, toast } from "react-toastify";
 import { FaEdit } from "react-icons/fa";
+import { SubAssemblyHrPlan } from "../HoursPlanningFolder/SubAssemblyHoursPlanning/SubAssemblyHrPlan";
 
 const OuterSubAssmebly = React.memo(
   ({
@@ -409,8 +410,9 @@ const OuterSubAssmebly = React.memo(
         }
 
         const newPart = await response.json();
-        onUpdatePrts(newPart);
         setModalAdd(false);
+        onUpdatePrts(newPart);
+        
         toast.success("Part added successfully");
       } catch (error) {
         console.error("Error adding part:", error);
@@ -707,6 +709,23 @@ const OuterSubAssmebly = React.memo(
                                 </div>
                               </td>
                             </tr>
+
+                            {expandedRowId === item._id && (
+                              <tr>
+                                <td colSpan="7">
+                                  <SubAssemblyHrPlan
+                                    partName={item.partName}
+                                    manufacturingVariables={
+                                      item.manufacturingVariables || []
+                                    }
+                                    quantity={item.quantity}
+                                    porjectID={_id}
+                                    subAssemblyListFirstId={subAssemblyId}
+                                    partListItemId={item._id}
+                                  />
+                                </td>
+                              </tr>
+                            )}
 
                             {modalOpenId === item._id && (
                               <Modal
