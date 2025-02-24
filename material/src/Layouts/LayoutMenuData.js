@@ -14,12 +14,12 @@ const navdata = () => {
           link: "/regenato-projects",
           icon: "fa fa-folder", // Example FontAwesome icon class
         },
-        // {
-        //   id: "allocation",
-        //   label: "Allocation",
-        //   link: "/regenato-allocation",
-        //   icon: "fa fa-wrench", // Example FontAwesome icon class
-        // },
+        {
+          id: "allocation",
+          label: "Allocation",
+          link: "/regenato-allocation",
+          icon: "fa fa-wrench", // Example FontAwesome icon class
+        },
         {
           id: "parts",
           label: "Parts",
@@ -50,6 +50,12 @@ const navdata = () => {
           id: "timeline",
           label: "TimeLine",
           link: "/regenato-timeline",
+          icon: "fa fa-calendar", // Example FontAwesome icon class
+        },
+        {
+          id: "planPage",
+          label: "Plan",
+          link: "/regenato-planPage",
           icon: "fa fa-calendar", // Example FontAwesome icon class
         },
         {
