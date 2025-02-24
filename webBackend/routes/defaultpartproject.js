@@ -2543,4 +2543,230 @@ partproject.get(
   }
 );
 
+// subassembly allocation code
+// subAssemblyListFirst
+partproject.post(
+  "/projects/:projectId/subAssemblyListFirst/:subAssemblyListFirstId/partsListItems/:partsListItemsId/allocation",
+  async (req, res) => {
+    try {
+      const { projectId, subAssemblyListFirstId, partsListItemsId } =
+        req.params;
+      const { allocations } = req.body;
+
+      if (!Array.isArray(allocations) || allocations.length === 0) {
+        return res.status(400).json({ message: "Invalid allocation data" });
+      }
+
+      // Find the project that contains the given subAssemblyListFirstId
+      const project = await PartListProjectModel.findOne({ _id: projectId });
+
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+
+      // Find the correct subAssemblyListFirst
+      const subAssemblyListFirst = project.subAssemblyListFirst.find(
+        (list) => list._id.toString() === subAssemblyListFirstId
+      );
+
+      if (!subAssemblyListFirst) {
+        return res
+          .status(404)
+          .json({ message: "Sub Assembly List First not found" });
+      }
+
+      // Find the correct part inside the subAssemblyListFirst
+      const partItem = subAssemblyListFirst.partsListItems.find(
+        (item) => item._id.toString() === partsListItemsId
+      );
+
+      if (!partItem) {
+        return res.status(404).json({ message: "Part List Item not found" });
+      }
+
+      // Append new allocations
+      allocations.forEach((alloc) => {
+        partItem.allocations.push({
+          partName: alloc.partName,
+          processName: alloc.processName,
+          allocations: alloc.allocations,
+        });
+      });
+
+      // Save the updated project
+      await project.save();
+
+      res.status(201).json({
+        message: "Allocations added successfully",
+        data: partItem.allocations,
+      });
+    } catch (error) {
+      console.error("Error adding allocations:", error);
+      res.status(500).json({ message: "Server error", error: error.message });
+    }
+  }
+);
+
+partproject.get(
+  "/projects/:projectId/subAssemblyListFirst/:subAssemblyListFirstId/partsListItems/:partsListItemsId/allocation",
+  async (req, res) => {
+    try {
+      const { projectId, subAssemblyListFirstId, partsListItemsId } =
+        req.params;
+
+      // Find the project
+      const project = await PartListProjectModel.findOne({ _id: projectId });
+
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+
+      // Find the correct subAssemblyListFirst
+      const subAssemblyListFirst = project.subAssemblyListFirst.find(
+        (list) => list._id.toString() === subAssemblyListFirstId
+      );
+
+      if (!subAssemblyListFirst) {
+        return res
+          .status(404)
+          .json({ message: "Sub Assembly List First not found" });
+      }
+
+      // Find the correct part inside the subAssemblyListFirst
+      const partItem = subAssemblyListFirst.partsListItems.find(
+        (item) => item._id.toString() === partsListItemsId
+      );
+
+      if (!partItem) {
+        return res.status(404).json({ message: "Part List Item not found" });
+      }
+
+      res.status(200).json({
+        message: "Allocations retrieved successfully",
+        data: partItem.allocations,
+      });
+    } catch (error) {
+      console.error("Error retrieving allocations:", error);
+      res.status(500).json({ message: "Server error", error: error.message });
+    }
+  }
+);
+
+partproject.delete(
+  "/projects/:projectId/subAssemblyListFirst/:subAssemblyListFirstId/partsListItems/:partsListItemsId/allocation",
+  async (req, res) => {
+    try {
+      const { projectId, subAssemblyListFirstId, partsListItemsId } =
+        req.params;
+
+      // Find the project
+      const project = await PartListProjectModel.findOne({ _id: projectId });
+
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+
+      // Find the correct subAssemblyListFirst
+      const subAssemblyListFirst = project.subAssemblyListFirst.find(
+        (list) => list._id.toString() === subAssemblyListFirstId
+      );
+
+      if (!subAssemblyListFirst) {
+        return res
+          .status(404)
+          .json({ message: "Sub Assembly List First not found" });
+      }
+
+      // Find the correct part inside the subAssemblyListFirst
+      const partItem = subAssemblyListFirst.partsListItems.find(
+        (item) => item._id.toString() === partsListItemsId
+      );
+
+      if (!partItem) {
+        return res.status(404).json({ message: "Part List Item not found" });
+      }
+
+      // Clear all allocations
+      partItem.allocations = [];
+
+      // Save the updated project
+      await project.save();
+
+      res.status(200).json({
+        message: "All allocations deleted successfully",
+      });
+    } catch (error) {
+      console.error("Error deleting allocations:", error);
+      res.status(500).json({ message: "Server error", error: error.message });
+    }
+  }
+);
+
+
+// assembly allocation code
+partproject.post(
+  "/projects/:projectId/assemblyList/:assemblyListId/partsListItems/:partsListItemsId/allocation",
+  async (req, res) => {
+    try {
+      const { projectId, assemblyListId, partsListItemsId } = req.params;
+      const { allocations } = req.body;
+
+      if (!Array.isArray(allocations) || allocations.length === 0) {
+        return res.status(400).json({ message: "Invalid allocation data" });
+      }
+
+      // Find the project that contains the given assemblyListId
+      const project = await PartListProjectModel.findOne({ _id: projectId });
+
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+
+      // Find the correct assembly list
+      const assemblyList = project.assemblyLists.find(
+        (list) => list._id.toString() === assemblyListId
+      );
+
+      if (!assemblyList) {
+        return res.status(404).json({ message: "Assembly List not found" });
+      }
+
+      // Find the correct part inside the assembly list
+      const partItem = assemblyList.partsListItems.find(
+        (item) => item._id.toString() === partsListItemsId
+      );
+
+      if (!partItem) {
+        return res.status(404).json({ message: "Part List Item not found" });
+      }
+
+      // Append new allocations
+      allocations.forEach((alloc) => {
+        partItem.allocations.push({
+          partName: alloc.partName,
+          processName: alloc.processName,
+          allocations: alloc.allocations,
+        });
+      });
+
+      // Save the updated project
+      await project.save();
+
+      res.status(201).json({
+        message: "Allocations added successfully",
+        data: partItem.allocations,
+      });
+    } catch (error) {
+      console.error("Error adding allocations:", error);
+      res.status(500).json({ message: "Server error", error: error.message });
+    }
+  }
+);
+
+
+//  "/projects/:projectId/assemblyList/:assemblyListId/partsListItems/:partsListItemsId/allocation",
+
+//  "/projects/:projectId/assemblyList/:assemblyListId/subAssemblies/:subAssembliesId/partsListItems/:partsListItemsId/allocation",
+
+
 module.exports = partproject;

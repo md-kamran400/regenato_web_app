@@ -18,6 +18,7 @@ const partSchema = new mongoose.Schema({
   ],
   manufacturingVariables: [
     {
+      categoryId: String,
       name: String,
       hours: Number,
       hourlyRate: Number,

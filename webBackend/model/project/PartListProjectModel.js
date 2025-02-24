@@ -4,15 +4,18 @@ const mongoose = require("mongoose");
 const AllocationPlanningSchema = new mongoose.Schema(
   {
     partName: {
-      type: String, 
+      type: String,
       required: true,
     },
     processName: {
-      type: String, 
+      type: String,
       required: true,
     },
     allocations: [
       {
+        orderNumber: {
+          type: String,
+        },
         plannedQuantity: {
           type: Number,
           required: true,
