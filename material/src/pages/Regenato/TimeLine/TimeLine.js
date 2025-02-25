@@ -31,9 +31,9 @@ const TimeLine = () => {
     fetch("http://localhost:4040/api/defpartproject/all-allocations")
       .then((res) => res.json())
       .then((data) => {
-        setData(data);
-        console.log(data)
-        formatEvents(data);
+        setData(data.data);
+        console.log(data.data)
+        formatEvents(data.data);
       })
       .catch((error) => console.error("Error fetching data:", error));
   }, []);
