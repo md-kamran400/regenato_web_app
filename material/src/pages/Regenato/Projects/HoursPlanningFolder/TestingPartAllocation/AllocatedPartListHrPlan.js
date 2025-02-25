@@ -69,15 +69,7 @@ const AllocatedPartListHrPlan = ({ porjectID, partID, partListItemId }) => {
           >
             <Row className="mb-3 d-flex justify-content-between align-items-center">
               <Col>
-                {/* <h4
-                  style={{
-                    fontSize: "16px",
-                    fontWeight: "bold",
-                    color: "#495057",
-                  }}
-                >
-                  {section.title}
-                </h4> */}
+                
                 <span
                   style={{
                     color: "#495057",
