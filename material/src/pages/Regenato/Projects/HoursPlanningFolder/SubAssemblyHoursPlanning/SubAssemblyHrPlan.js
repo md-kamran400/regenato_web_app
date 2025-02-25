@@ -44,50 +44,64 @@ export const SubAssemblyHrPlan = ({
   };
   const [remainingQuantity, setRemainingQuantity] = useState(quantity);
   const [remainingQuantities, setRemainingQuantities] = useState({});
+  const [isAutoSchedule, setIsAutoSchedule] = useState(false);
+
   // Initialize remaining quantities for each process
+  // useEffect(() => {
+  //   const initialQuantities = manufacturingVariables.reduce((acc, _, index) => {
+  //     acc[index] = quantity;
+  //     return acc;
+  //   }, {});
+  //   setRemainingQuantities(initialQuantities);
+  // }, [manufacturingVariables, quantity]);
   useEffect(() => {
-    const initialQuantities = manufacturingVariables.reduce((acc, _, index) => {
-      acc[index] = quantity;
+    const initialRows = manufacturingVariables.reduce((acc, man, index) => {
+      acc[index] = [
+        {
+          plannedQuantity: isAutoSchedule ? quantity : "",
+          plannedQtyTime: isAutoSchedule ? calculatePlannedMinutes(quantity * man.hours) : "",
+          startDate: "",
+          startTime: "",
+          endDate: "",
+          machineId: "",
+          shift: "",
+          processName: man.name,
+        },
+      ];
       return acc;
     }, {});
-    setRemainingQuantities(initialQuantities);
-  }, [manufacturingVariables, quantity]);
+  
+    setRows(initialRows);
+  }, [manufacturingVariables, quantity, isAutoSchedule]);
 
   const handleQuantityChange = (index, rowIndex, value) => {
     setRows((prevRows) => {
       const updatedRows = { ...prevRows };
       const processRows = [...(updatedRows[index] || [])];
-
-      // Compute the new planned quantity
-      const newQuantity = Math.max(0, Math.min(quantity, Number(value)));
-
-      // Update the planned quantity in the selected row
+      const newQuantity = value === "" ? "" : Math.max(0, Math.min(quantity, Number(value)));
+  
       processRows[rowIndex] = {
         ...processRows[rowIndex],
         plannedQuantity: newQuantity,
-        plannedQtyTime: calculatePlannedMinutes(
-          newQuantity * manufacturingVariables[index].hours
-        ),
+        plannedQtyTime: newQuantity ? calculatePlannedMinutes(newQuantity * manufacturingVariables[index].hours) : "",
       };
-
-      // Update the rows state
+  
       updatedRows[index] = processRows;
-
-      // Compute the remaining quantity based on the updated rows
+  
       const usedQuantity = processRows.reduce(
         (sum, row) => sum + Number(row.plannedQuantity || 0),
         0
       );
-
-      // Immediately update remaining quantity
+  
       setRemainingQuantities((prev) => ({
         ...prev,
         [index]: Math.max(0, quantity - usedQuantity),
       }));
-
+  
       return updatedRows;
     });
   };
+  
 
   const updateRemainingQuantity = (processIndex) => {
     setRemainingQuantities((prev) => {
@@ -169,7 +183,7 @@ export const SubAssemblyHrPlan = ({
           startTime: "",
           endDate: "",
           machineId: "",
-          shift: "Shift A",
+          shift: "",
           plannedQtyTime: calculatePlannedMinutes(man.hours * quantity),
           processName: man.name,
         },
@@ -251,38 +265,98 @@ export const SubAssemblyHrPlan = ({
     return { ...allRows }; // Ensure state update
   };
 
+  
+  // const handleStartDateChange = (index, rowIndex, date) => {
+  //   if (index === 0) {
+  //     setHasStartDate(!!date);
+
+  //     setRows((prevRows) => {
+  //       const newRows = { ...prevRows };
+  //       if (date) {
+  //         // If start date is set, prefill all data in auto-schedule mode
+  //         if (isAutoSchedule) {
+  //           return prefillData(newRows, date);
+  //         } else {
+  //           // In manual mode, only set the start date for the first process
+  //           newRows[index] = newRows[index].map((row, idx) => {
+  //             if (idx === rowIndex) {
+  //               return {
+  //                 ...row,
+  //                 startDate: date,
+  //                 endDate: calculateEndDate(date, row.plannedQtyTime),
+  //               };
+  //             }
+  //             return row;
+  //           });
+  //           return newRows;
+  //         }
+  //       } else {
+  //         // If start date is cleared, reset all data
+  //         return manufacturingVariables.reduce((acc, man, idx) => {
+  //           acc[idx] = [
+  //             {
+  //               partType: "Make",
+  //               plannedQuantity: quantity,
+  //               startDate: "",
+  //               endDate: "",
+  //               machineId: "",
+  //               shift: "Shift A",
+  //               plannedQtyTime: calculatePlannedMinutes(man.hours * quantity),
+  //               operatorId: "",
+  //               processName: man.name,
+  //             },
+  //           ];
+  //           return acc;
+  //         }, {});
+  //       }
+  //     });
+  //   }
+  // };
   const handleStartDateChange = (index, rowIndex, date) => {
     if (index === 0) {
-      // Only handle start date change for first process
       setHasStartDate(!!date);
-
-      setRows((prevRows) => {
-        const newRows = { ...prevRows };
-        if (date) {
-          // If start date is set, prefill all data
+    }
+  
+    setRows((prevRows) => {
+      const newRows = { ...prevRows };
+  
+      if (date) {
+        if (isAutoSchedule && index === 0) {
           return prefillData(newRows, date);
         } else {
-          // If start date is cleared, reset all data
-          return manufacturingVariables.reduce((acc, man, idx) => {
-            acc[idx] = [
-              {
-                partType: "Make",
-                plannedQuantity: quantity,
-                startDate: "",
-                endDate: "",
-                machineId: "",
-                shift: "Shift A",
-                plannedQtyTime: calculatePlannedMinutes(man.hours * quantity),
-                operatorId: "",
-                processName: man.name,
-              },
-            ];
-            return acc;
-          }, {});
+          newRows[index] = newRows[index].map((row, idx) => {
+            if (idx === rowIndex) {
+              return {
+                ...row,
+                startDate: date,
+                endDate: calculateEndDate(date, row.plannedQtyTime),
+              };
+            }
+            return row;
+          });
         }
-      });
-    }
+      } else {
+        return manufacturingVariables.reduce((acc, man, idx) => {
+          acc[idx] = [
+            {
+              partType: "Make",
+              plannedQuantity: quantity,
+              startDate: "",
+              endDate: "",
+              machineId: "",
+              shift: "Shift A",
+              plannedQtyTime: calculatePlannedMinutes(man.hours * quantity),
+              operatorId: "",
+              processName: man.name,
+            },
+          ];
+          return acc;
+        }, {});
+      }
+      return newRows;
+    });
   };
+  
 
   const addRow = (index) => {
     if (!hasStartDate) return;
@@ -453,6 +527,12 @@ export const SubAssemblyHrPlan = ({
 
           <div style={{ display: "flex", gap: "10px" }}>
             <Button
+              color={isAutoSchedule ? "primary" : "secondary"}
+              onClick={() => setIsAutoSchedule(!isAutoSchedule)}
+            >
+              {isAutoSchedule ? "Auto Schedule ✅" : "Auto Schedule"}
+            </Button>
+            <Button
               color={activeTab === "planned" ? "primary" : "secondary"}
               onClick={() => setActiveTab("planned")}
             >
@@ -485,20 +565,7 @@ export const SubAssemblyHrPlan = ({
                       alignItems: "center",
                     }}
                   >
-                    {/* <span
-                      style={{
-                        fontSize: "16px",
-                        fontWeight: "bold",
-                        color: "#495057",
-                        display: "inline-block",
-                        verticalAlign: "middle",
-                      }}
-                    >
-                      {`${man.categoryId} - ${man.name}  `}
-                      <span style={{ marginLeft: "10%" }}>
-                        Remaining Quantity: {remainingQuantities[index] || 0}
-                      </span>
-                    </span> */}
+                    
                     <span
                       style={{
                         fontSize: "16px",
@@ -561,55 +628,65 @@ export const SubAssemblyHrPlan = ({
                       {rows[index]?.map((row, rowIndex) => (
                         <tr key={rowIndex}>
                           <td>
-                            <Input
+                            {isAutoSchedule ? (
+                              <Input
+                                type="number"
+                                value={row.plannedQuantity}
+                                placeholder="Enter Value"
+                                required
+                                onChange={(e) => {
+                                  const newValue =
+                                    e.target.value === ""
+                                      ? ""
+                                      : Number(e.target.value);
+
+                                  setRows((prevRows) => {
+                                    const updatedRows = { ...prevRows };
+                                    const processRows = [
+                                      ...(updatedRows[index] || []),
+                                    ];
+
+                                    // Update the planned quantity safely
+                                    processRows[rowIndex] = {
+                                      ...processRows[rowIndex],
+                                      plannedQuantity: newValue,
+                                      plannedQtyTime: calculatePlannedMinutes(
+                                        (newValue || 0) *
+                                          manufacturingVariables[index].hours
+                                      ),
+                                    };
+
+                                    // Update the rows state
+                                    updatedRows[index] = processRows;
+
+                                    // Compute remaining quantity **before** updating the state
+                                    const usedQuantity = processRows.reduce(
+                                      (sum, row) =>
+                                        sum + Number(row.plannedQuantity || 0),
+                                      0
+                                    );
+
+                                    setRemainingQuantities((prev) => ({
+                                      ...prev,
+                                      [index]: Math.max(
+                                        0,
+                                        quantity - usedQuantity
+                                      ),
+                                    }));
+
+                                    return updatedRows;
+                                  });
+                                }}
+                              />
+                            ) : (
+                              <Input
                               type="number"
+                              placeholder="Enter QTY"
+
                               value={row.plannedQuantity}
-                              placeholder="Enter Value"
-                              required
-                              onChange={(e) => {
-                                const newValue =
-                                  e.target.value === ""
-                                    ? ""
-                                    : Number(e.target.value);
-
-                                setRows((prevRows) => {
-                                  const updatedRows = { ...prevRows };
-                                  const processRows = [
-                                    ...(updatedRows[index] || []),
-                                  ];
-
-                                  // Update the planned quantity safely
-                                  processRows[rowIndex] = {
-                                    ...processRows[rowIndex],
-                                    plannedQuantity: newValue,
-                                    plannedQtyTime: calculatePlannedMinutes(
-                                      (newValue || 0) *
-                                        manufacturingVariables[index].hours
-                                    ),
-                                  };
-
-                                  // Update the rows state
-                                  updatedRows[index] = processRows;
-
-                                  // Compute remaining quantity **before** updating the state
-                                  const usedQuantity = processRows.reduce(
-                                    (sum, row) =>
-                                      sum + Number(row.plannedQuantity || 0),
-                                    0
-                                  );
-
-                                  setRemainingQuantities((prev) => ({
-                                    ...prev,
-                                    [index]: Math.max(
-                                      0,
-                                      quantity - usedQuantity
-                                    ),
-                                  }));
-
-                                  return updatedRows;
-                                });
-                              }}
+                              onChange={(e) => handleQuantityChange(index, rowIndex, e.target.value)}
                             />
+                            )}
                           </td>
 
                           <td>
@@ -643,7 +720,7 @@ export const SubAssemblyHrPlan = ({
                           </td>
 
                           <td>
-                            <Input type="date" value={row.endDate} />
+                            <Input type="date" value={row.endDate} readOnly />
                           </td>
 
                           <td>
@@ -699,50 +776,6 @@ export const SubAssemblyHrPlan = ({
                               disabled={!hasStartDate && index !== 0}
                             />
                           </td>
-
-                          {/* <Autocomplete
-                            options={shiftOptions || []}
-                            value={
-                              shiftOptions.find(
-                                (option) => option.name === row.shift
-                              ) || null
-                            }
-                            onChange={(event, newValue) => {
-                              if (!newValue) return; // Skip if nothing is selected
-
-                              setRows((prevRows) => ({
-                                ...prevRows,
-                                [index]: prevRows[index].map((row, rowIdx) =>
-                                  rowIdx === rowIndex
-                                    ? {
-                                        ...row,
-                                        shift: newValue.name, // Store shift name
-                                        startTime: newValue.startTime, // Store start time
-                                        shiftMinutes: newValue.TotalHours, // Store shift total minutes
-                                        endDate: calculateEndDate(
-                                          row.startDate,
-                                          row.plannedQtyTime,
-                                          newValue.TotalHours
-                                        ), // Recalculate End Date
-                                      }
-                                    : row
-                                ),
-                              }));
-                            }}
-                            getOptionLabel={(option) => option.name}
-                            renderInput={(params) => (
-                              <TextField
-                                {...params}
-                                label="Shift"
-                                variant="outlined"
-                                size="small"
-                              />
-                            )}
-                            disablePortal
-                            autoHighlight
-                            noOptionsText="No shifts available"
-                            disabled={!hasStartDate && index !== 0}
-                          /> */}
 
                           <Autocomplete
                             options={shiftOptions || []}
@@ -819,8 +852,10 @@ export const SubAssemblyHrPlan = ({
                             noOptionsText="No shifts available"
                             disabled={!hasStartDate && index !== 0}
                           />
+                          
 
                           <td>{row.plannedQtyTime} m</td>
+                         
                           <td>
                             <Autocomplete
                               options={operators.filter((operator) =>

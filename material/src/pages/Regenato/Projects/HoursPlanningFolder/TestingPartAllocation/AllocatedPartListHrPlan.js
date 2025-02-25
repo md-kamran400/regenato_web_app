@@ -12,65 +12,42 @@ import {
   ModalFooter,
   Input,
   CardBody,
-  Spinner,
-  Alert,
 } from "reactstrap";
+import { ImPriceTag } from "react-icons/im";
 
 const AllocatedPartListHrPlan = ({ porjectID, partID, partListItemId }) => {
   const [sections, setSections] = useState([]);
   const [dailyTaskModal, setDailyTaskModal] = useState(false);
   const [selectedSection, setSelectedSection] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
 
   console.log("project id", porjectID);
   console.log("part id ", partID);
   console.log("partlistid", partListItemId);
 
   useEffect(() => {
-    setLoading(true);
-    setError(null);
     const fetchAllocations = async () => {
       try {
         const response = await axios.get(
           `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/allocation`
         );
 
-        // const formattedSections = response.data.data.map((item) => ({
-        //   title: item.processName,
-        //   data: item.allocations.map((allocation) => ({
-        //     plannedQty: allocation.plannedQuantity,
-        //     startDate: new Date(allocation.startDate).toLocaleDateString(),
-        //     endDate: new Date(allocation.endDate).toLocaleDateString(),
-        //     machineId: allocation.machineId,
-        //     shift: allocation.shift,
-        //     plannedTime: `${allocation.plannedTime} min`,
-        //     operator: allocation.operator,
-        //   })),
-        // }));
+        const formattedSections = response.data.data.map((item) => ({
+          title: item.processName,
+          data: item.allocations.map((allocation) => ({
+            plannedQty: allocation.plannedQuantity,
+            startDate: new Date(allocation.startDate).toLocaleDateString(),
+            endDate: new Date(allocation.endDate).toLocaleDateString(),
+            machineId: allocation.machineId,
+            shift: allocation.shift,
+            plannedTime: `${allocation.plannedTime} min`,
+            operator: allocation.operator,
+          })),
+        }));
 
-        // setSections(formattedSections);
-        if (!response.data.data || response.data.data.length === 0) {
-          setSections([]);
-        } else {
-          const formattedSections = response.data.data.map((item) => ({
-            title: item.processName,
-            data: item.allocations.map((allocation) => ({
-              plannedQty: allocation.plannedQuantity,
-              startDate: new Date(allocation.startDate).toLocaleDateString(),
-              endDate: new Date(allocation.endDate).toLocaleDateString(),
-              machineId: allocation.machineId,
-              shift: allocation.shift,
-              plannedTime: `${allocation.plannedTime} min`,
-              operator: allocation.operator,
-            })),
-          }));
-          setSections(formattedSections);
-        }
+        setSections(formattedSections);
       } catch (error) {
         console.error("Error fetching allocations:", error);
       }
-      setLoading(false);
     };
 
     fetchAllocations();
@@ -84,76 +61,75 @@ const AllocatedPartListHrPlan = ({ porjectID, partID, partListItemId }) => {
   return (
     <div style={{ width: "100%" }}>
       <Container fluid className="mt-4">
-        {loading ? (
-          <div className="text-center">
-            <Spinner color="primary" />
-            <p>Loading allocations...</p>
-          </div>
-        ) : error ? (
-          <Alert color="danger">{error}</Alert>
-        ) : sections.length === 0 ? (
-          <div className="text-center">
-            <Alert color="warning">No allocations available.</Alert>
-          </div>
-        ) : (
-          sections.map((section, index) => (
-            <div
-              className="shadow-lg p-2"
-              key={index}
-              style={{ marginBottom: "30px" }}
-            >
-              <Row className="mb-3 d-flex justify-content-between align-items-center">
-                <Col>
-                  <h4
-                    style={{
-                      fontSize: "16px",
-                      fontWeight: "bold",
-                      color: "#495057",
-                    }}
-                  >
-                    {section.title}
-                  </h4>
-                </Col>
-                <Col className="text-end">
-                  <Button
-                    color="primary"
-                    className="me-2"
-                    onClick={() => openModal(section)}
-                  >
-                    Update Input
-                  </Button>
-                </Col>
-              </Row>
+        {sections.map((section, index) => (
+          <div
+            className="shadow-lg p-2"
+            key={index}
+            style={{ marginBottom: "30px" }}
+          >
+            <Row className="mb-3 d-flex justify-content-between align-items-center">
+              <Col>
+                {/* <h4
+                  style={{
+                    fontSize: "16px",
+                    fontWeight: "bold",
+                    color: "#495057",
+                  }}
+                >
+                  {section.title}
+                </h4> */}
+                <span
+                  style={{
+                    color: "#495057",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    fontSize: "16px",
+                    fontWeight: "bold",
+                  }}
+                >
+                  <ImPriceTag style={{ marginRight: "8px" }} />
+                  {`${section.title}`}
+                </span>
+              </Col>
+              <Col className="text-end">
+                <Button
+                  color="primary"
+                  className="me-2"
+                  onClick={() => openModal(section)}
+                >
+                  Update Input
+                </Button>
+              </Col>
+            </Row>
 
-              <Table bordered responsive>
-                <thead>
-                  <tr className="table-secondary">
-                    <th>Planned Quantity</th>
-                    <th>Start Date</th>
-                    <th>End Date</th>
-                    <th>Machine ID</th>
-                    <th>Shift</th>
-                    <th>Planned Time</th>
-                    <th>Operator</th>
+            <Table bordered responsive>
+              <thead>
+                <tr className="table-secondary">
+                  <th>Planned Quantity</th>
+                  <th>Start Date</th>
+                  <th>End Date</th>
+                  <th>Machine ID</th>
+                  <th>Shift</th>
+                  <th>Planned Time</th>
+                  <th>Operator</th>
+                </tr>
+              </thead>
+              <tbody>
+                {section.data.map((row, rowIndex) => (
+                  <tr key={rowIndex}>
+                    <td>{row.plannedQty}</td>
+                    <td>{row.startDate}</td>
+                    <td>{row.endDate}</td>
+                    <td>{row.machineId}</td>
+                    <td>{row.shift}</td>
+                    <td>{row.plannedTime}</td>
+                    <td>{row.operator}</td>
                   </tr>
-                </thead>
-                <tbody>
-                  {section.data.map((row, rowIndex) => (
-                    <tr key={rowIndex}>
-                      <td>{row.plannedQty}</td>
-                      <td>{row.startDate}</td>
-                      <td>{row.endDate}</td>
-                      <td>{row.machineId}</td>
-                      <td>{row.shift}</td>
-                      <td>{row.plannedTime}</td>
-                      <td>{row.operator}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </Table>
-            </div>
-          ))
-        )}
+                ))}
+              </tbody>
+            </Table>
+          </div>
+        ))}
         <CardBody className="d-flex justify-content-end align-items-center">
           {/* <Button color="danger">Cancel Allocation</Button> */}
         </CardBody>
