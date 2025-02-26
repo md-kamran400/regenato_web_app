@@ -47,6 +47,12 @@ const navdata = () => {
           ],
         },
         {
+          id: "variables",
+          label: "Variables",
+          link: "/regenato-variables",
+          icon: "fa fa-sliders", // Example FontAwesome icon class
+        },
+        {
           id: "timeline",
           label: "TimeLine",
           link: "/regenato-timeline",
@@ -59,17 +65,25 @@ const navdata = () => {
           icon: "fa fa-calendar", // Example FontAwesome icon class
         },
         {
-          id: "variables",
-          label: "Variables",
-          link: "/regenato-variables",
-          icon: "fa fa-sliders", // Example FontAwesome icon class
+          id: "Capecity",
+          label: "Capecity",
+          link: "/regenato-Capecity",
+          icon: "fa fa-cogs",
+          children: [
+            {
+              id: "machineCapecity",
+              label: "Machine Capecity",
+              link: "/regenato-machine-capecity",
+              icon: "fa fa-list",
+            },
+            {
+              id: "Operator Capecity",
+              label: "Operator Capecity",
+              link: "/regenato-operator-capecity",
+              icon: "fa fa-list",
+            },
+          ],
         },
-        // {
-        //   id: "resource",
-        //   label: "Resource",
-        //   link: "/regenato-resource",
-        //   icon: "fa fa-users", // Example FontAwesome icon class
-        // },
       ],
     },
   ];
