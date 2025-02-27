@@ -169,8 +169,28 @@ export const SubAssemblyHrPlan = ({
       }
       setMachineOptions(machineData);
     };
+    // const fetchMachines = async () => {
+    //   const machineData = {};
+    //   for (const man of manufacturingVariables) {
+    //     try {
+    //       const response = await axios.get(
+    //         `${process.env.REACT_APP_BASE_URL}/api/manufacturing/category/${man.categoryId}`
+    //       );
+    //       machineData[man.categoryId] = response.data.subCategories.filter(
+    //         (machine) => machine.isAvailable // Only show available machines
+    //       );
+    //     } catch (error) {
+    //       console.error("Error fetching machines:", error);
+    //     }
+    //   }
+    //   setMachineOptions(machineData);
+    //   console.log(machineData)
+    // };
+    
     fetchMachines();
   }, [manufacturingVariables]);
+  console.log(machineOptions);
+  
 
   useEffect(() => {
     // Only initialize rows with empty data
