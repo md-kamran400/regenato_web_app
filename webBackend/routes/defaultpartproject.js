@@ -2,6 +2,7 @@ const express = require("express");
 const mongoose = require("mongoose");
 const partproject = express.Router();
 const PartListProjectModel = require("../model/project/PartListProjectModel");
+const ManufacturingModel = require("../model/manufacturingmodel");
 
 // ============================================ PART-LIST CODE START ===============================
 // Create a new project with a parts list named after the project
@@ -2543,7 +2544,6 @@ partproject.get(
   }
 );
 
-
 // subassembly allocation code
 // subAssemblyListFirst
 partproject.post(
@@ -2703,7 +2703,6 @@ partproject.delete(
   }
 );
 
-
 // assembly allocation code
 partproject.post(
   "/projects/:projectId/assemblyList/:assemblyListId/partsListItems/:partsListItemsId/allocation",
@@ -2764,11 +2763,9 @@ partproject.post(
   }
 );
 
-
 //  "/projects/:projectId/assemblyList/:assemblyListId/partsListItems/:partsListItemsId/allocation",
 
 //  "/projects/:projectId/assemblyList/:assemblyListId/subAssemblies/:subAssembliesId/partsListItems/:partsListItemsId/allocation",
-
 
 // getiing all lists allocation data
 partproject.get("/all-allocations", async (req, res) => {
