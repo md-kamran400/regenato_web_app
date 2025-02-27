@@ -67,7 +67,7 @@ const navdata = () => {
         {
           id: "Capecity",
           label: "Capecity",
-          link: "/regenato-Capecity",
+          // link: "/regenato-Capecity",
           icon: "fa fa-cogs",
           children: [
             {
