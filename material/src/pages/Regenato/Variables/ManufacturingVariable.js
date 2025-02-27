@@ -116,22 +116,63 @@ const ManufacturingVariable = () => {
     setModalEdit(!modal_edit);
   };
 
+  const fetchAllAllocations = async () => {
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_BASE_URL}/api/defpartproject/all-allocations`
+      );
+      if (!response.ok) throw new Error("Failed to fetch allocations");
+      const data = await response.json();
+      return data.data; // Extract relevant allocation data
+    } catch (error) {
+      console.error("Error fetching allocations:", error);
+      return [];
+    }
+  };
+
   const fatchManufacturing = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(
+      const manufacturingResponse = await fetch(
         `${process.env.REACT_APP_BASE_URL}/api/manufacturing`
       );
-      if (!response.ok) {
-        throw new Error("Network response was not ok");
-      }
-      const data = await response.json();
-      setManufacturingData(data); // Set the fetched data to state
+      if (!manufacturingResponse.ok)
+        throw new Error("Failed to fetch manufacturing data");
+
+      const manufacturingData = await manufacturingResponse.json();
+      const allocations = await fetchAllAllocations(); // Fetch allocations
+
+      // Update manufacturing data based on allocations
+      const updatedManufacturingData = manufacturingData.map((process) => {
+        const updatedSubCategories = process.subCategories.map((machine) => {
+          const isAllocated = allocations.some((project) =>
+            project.allocations.some(
+              (alloc) =>
+                alloc.processName === process.name &&
+                alloc.allocations.some(
+                  (a) => a.machineId === machine.subcategoryId
+                )
+            )
+          );
+
+          return {
+            ...machine,
+            isAvailable: !isAllocated, // Disable if allocated
+          };
+        });
+
+        return {
+          ...process,
+          subCategories: updatedSubCategories,
+        };
+      });
+
+      setManufacturingData(updatedManufacturingData);
     } catch (error) {
-      setError(error.message); // Set error message
+      setError(error.message);
     } finally {
-      setLoading(false); // Set loading to false once fetch is complete
+      setLoading(false);
     }
   }, []);
 
@@ -496,61 +537,6 @@ const ManufacturingVariable = () => {
                               </div>
                             </td>
                           </tr>
-                          {/* {expandedRowId === item._id && (
-                            <tr className="details-row">
-                              <td colSpan={4}>
-                                <div className="details-box">
-                                  <h5 className="mb-3 d-flex align-items-center">
-                                    Machines
-                                  </h5>
-                                  <Col className="col-sm-auto"></Col>
-
-                                  <table className="table align-middle table-nowrap">
-                                    <thead className="table-light">
-                                      <tr>
-                                        <th>Subcategory ID</th>
-                                        <th>Name</th>
-                                        <th>Hourly Rate</th>
-                                        <th>Action</th>
-                                      </tr>
-                                    </thead>
-                                    <tbody>
-                                      {item.subCategories.map((subCategory) => (
-                                        <tr key={subCategory.subcategoryId}>
-                                          <td>{subCategory.subcategoryId}</td>
-                                          <td>{subCategory.name}</td>
-                                          <td>{subCategory.hourlyRate}</td>
-                                          <td>
-                                            <button
-                                              color="success"
-                                              onClick={() => {
-                                                Sub_tog_edit(subCategory),
-                                                  setSelectedManufacturingId(
-                                                    item._id
-                                                  );
-                                              }}
-                                            >
-                                              Edit
-                                            </button>
-                                            <button
-                                              className="btn btn-sm btn-danger remove-item-btn"
-                                              onClick={() => {
-                                                setSelectedId(item._id);
-                                                tog_delete();
-                                              }}
-                                            >
-                                              Remove
-                                            </button>
-                                          </td>
-                                        </tr>
-                                      ))}
-                                    </tbody>
-                                  </table>
-                                </div>
-                              </td>
-                            </tr>
-                          )} */}
-
                           {expandedRowId === item._id && (
                             <tr className="details-row">
                               <td colSpan={4}>
@@ -567,11 +553,20 @@ const ManufacturingVariable = () => {
                                         <th>Machine Name</th>
                                         <th>Hourly Rate</th>
                                         <th>Action</th>
+                                        <th>Status</th>
                                       </tr>
                                     </thead>
                                     <tbody>
                                       {item.subCategories.map((subCategory) => (
-                                        <tr key={subCategory._id}>
+                                        <tr
+                                          key={subCategory.subcategoryId}
+                                          style={{
+                                            backgroundColor:
+                                              !subCategory.isAvailable
+                                                ? "#ffcccc"
+                                                : "transparent",
+                                          }}
+                                        >
                                           <td>{subCategory.subcategoryId}</td>
                                           <td>{subCategory.name}</td>
                                           <td>{subCategory.hourlyRate}</td>
@@ -599,6 +594,22 @@ const ManufacturingVariable = () => {
                                             >
                                               Remove
                                             </button>
+                                          </td>
+                                          <td>
+                                            {!subCategory.isAvailable ? (
+                                              <span
+                                                style={{
+                                                  color: "red",
+                                                  fontWeight: "bold",
+                                                }}
+                                              >
+                                                Occupied
+                                              </span>
+                                            ) : (
+                                              <span style={{ color: "green" }}>
+                                                Available
+                                              </span>
+                                            )}
                                           </td>
                                         </tr>
                                       ))}

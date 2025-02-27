@@ -160,9 +160,11 @@ export const PartListHrPlan = ({
           const response = await axios.get(
             `${process.env.REACT_APP_BASE_URL}/api/manufacturing/category/${man.categoryId}`
           );
+
+          // Use only available machines from the backend response
           machineData[man.categoryId] = response.data.subCategories;
         } catch (error) {
-          console.error("Error fetching machines:", error);
+          console.error("Error fetching available machines:", error);
         }
       }
       setMachineOptions(machineData);
@@ -678,7 +680,7 @@ export const PartListHrPlan = ({
                           </td>
 
                           <td>
-                            <Autocomplete
+                            {/* <Autocomplete
                               options={machineOptions[man.categoryId] || []}
                               value={
                                 machineOptions[man.categoryId]?.find(
@@ -702,6 +704,60 @@ export const PartListHrPlan = ({
                                     }}
                                   >
                                     - {option.name}
+                                  </li>
+                                );
+                              }}
+                              onChange={(event, newValue) => {
+                                if (!hasStartDate && index !== 0) return;
+                                setRows((prevRows) => {
+                                  const updatedRows = [...prevRows[index]];
+                                  updatedRows[rowIndex] = {
+                                    ...updatedRows[rowIndex],
+                                    machineId: newValue
+                                      ? newValue.subcategoryId
+                                      : "",
+                                  };
+                                  return { ...prevRows, [index]: updatedRows };
+                                });
+                              }}
+                              renderInput={(params) => (
+                                <TextField
+                                  {...params}
+                                  label="Machine"
+                                  variant="outlined"
+                                  size="small"
+                                />
+                              )}
+                              disableClearable={false}
+                              disabled={!hasStartDate && index !== 0}
+                            /> */}
+                            <Autocomplete
+                              options={machineOptions[man.categoryId] || []}
+                              value={
+                                machineOptions[man.categoryId]?.find(
+                                  (machine) =>
+                                    machine.subcategoryId === row.machineId
+                                ) || null
+                              }
+                              getOptionLabel={(option) =>
+                                `${option.name} ${
+                                  option.isAvailable ? "" : "(Occupied)"
+                                }`
+                              }
+                              renderOption={(props, option) => {
+                                const isDisabled = !option.isAvailable;
+                                return (
+                                  <li
+                                    {...props}
+                                    style={{
+                                      color: isDisabled ? "gray" : "black",
+                                      pointerEvents: isDisabled
+                                        ? "none"
+                                        : "auto",
+                                    }}
+                                  >
+                                    - {option.name}{" "}
+                                    {isDisabled ? "(Occupied)" : ""}
                                   </li>
                                 );
                               }}
