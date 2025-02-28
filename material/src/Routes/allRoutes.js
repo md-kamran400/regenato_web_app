@@ -92,8 +92,8 @@ const publicRoutes = [
   // {path: "/regenato-single-assmebly", component: <SingleAssmeblyList/>},
 
   // capecity
-  { path: "/regenato-machine-capecity", component: <MachineCapecity /> },
-  { path: "/regenato-operator-capecity", component: <OpearatorCapecity /> },
+  { path: "/regenato-machine-capacity", component: <MachineCapecity /> },
+  { path: "/regenato-operator-capacity", component: <OpearatorCapecity /> },
 
   { path: "/regenato-process-view", component: <TimePage /> },
 

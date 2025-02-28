@@ -67,7 +67,7 @@ const navdata = () => {
         {
           id: "View",
           label: "View",
-          // link: "/regenato-Capecity",
+          // link: "/regenato-Capecity",Capacity
           icon: "fa fa-cogs",
           children: [
             {
@@ -85,21 +85,21 @@ const navdata = () => {
           ],
         },
         {
-          id: "Capecity",
-          label: "Capecity",
-          // link: "/regenato-Capecity",
+          id: "Capacity",
+          label: "Capacity",
+          link: "/regenato-Capacity",
           icon: "fa fa-cogs",
           children: [
             {
               id: "machineCapecity",
-              label: "Machine Capecity",
-              link: "/regenato-machine-capecity",
+              label: "Machine Capacity",
+              link: "/regenato-machine-capacity",
               icon: "fa fa-list",
             },
             {
               id: "Operator Capecity",
-              label: "Operator Capecity",
-              link: "/regenato-operator-capecity",
+              label: "Operator Capacity",
+              link: "/regenato-operator-capacity",
               icon: "fa fa-list",
             },
           ],

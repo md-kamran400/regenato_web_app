@@ -1019,7 +1019,7 @@ export function PlanPage() {
                           <div className="details-label">Duration</div>
                           <div className="details-value">
                             {getDaysBetweenDates(allocation.startDate, allocation.endDate)} days
-                          </div>lucide-react
+                          </div>
                         </div>
                       </div>
                     </div>
