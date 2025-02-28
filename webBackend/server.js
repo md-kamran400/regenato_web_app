@@ -2,7 +2,7 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const app = express();
-
+const axios = require("axios");
 // Middleware
 app.use(express.json());
 app.use(cors());
@@ -73,6 +73,17 @@ app.use("/api/userManagement", UserRoute);
 app.use("/api/allocation", allocationRoutes);
 
 // app.use("/api/parts", excelPartroutes)
+
+app.get("/api/holidays", async (req, res) => {
+  try {
+    const response = await axios.get(
+      "https://api.11holidays.com/v1/holidays?country=IN&year=2025"
+    );
+    res.json(response.data);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch data" });
+  }
+});
 
 const PORT = 4040;
 // app.listen(PORT, () => {
