@@ -538,7 +538,7 @@ const ManufacturingVariable = () => {
                             </td>
                           </tr>
                           {expandedRowId === item._id && (
-                            <tr className="details-row" style={{width:'100%'}}>
+                            <tr>
                               <td colSpan={4}>
                                 <div className="details-box">
                                   <h5 className="mb-3 d-flex align-items-center">
