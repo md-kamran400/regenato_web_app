@@ -18,7 +18,7 @@ export function PlanPage() {
   const fetchAllocationData = async () => {
     try {
       const response = await fetch(
-        "http://localhost:4040/api/defpartproject/all-allocations"
+        `${process.env.REACT_APP_BASE_URL}/api/defpartproject/all-allocations`
       );
       const data = await response.json();
 
@@ -131,7 +131,7 @@ export function PlanPage() {
     return date.toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
-      year: "numeric"
+      year: "numeric",
     });
   };
 
@@ -199,7 +199,8 @@ export function PlanPage() {
           <div className="date-range-display">
             <Calendar size={16} className="icon" />
             <span>
-              {formatDate(minDate.toISOString())} - {formatDate(maxDate.toISOString())}
+              {formatDate(minDate.toISOString())} -{" "}
+              {formatDate(maxDate.toISOString())}
             </span>
           </div>
         </div>
@@ -288,14 +289,16 @@ export function PlanPage() {
                       const widthPercent = (duration / totalDays) * 100;
                       const leftPercent = (startIdx / totalDays) * 100;
 
-                      const isSelected = 
-                        orderNum === selectedOrder && 
+                      const isSelected =
+                        orderNum === selectedOrder &&
                         processAllocation.processName === selectedProcess;
 
                       return (
                         <div
                           key={allocation._id}
-                          className={`process-bar ${isSelected ? "selected-process" : ""}`}
+                          className={`process-bar ${
+                            isSelected ? "selected-process" : ""
+                          }`}
                           style={{
                             left: `${leftPercent}%`,
                             width: `${widthPercent}%`,
@@ -311,7 +314,10 @@ export function PlanPage() {
                             </div>
                             <div className="process-dates">
                               <Clock size={12} className="date-icon" />
-                              <span>{formatDate(allocation.startDate)} - {formatDate(allocation.endDate)}</span>
+                              <span>
+                                {formatDate(allocation.startDate)} -{" "}
+                                {formatDate(allocation.endDate)}
+                              </span>
                             </div>
                             <div className="process-machine">
                               {allocation.machineId}
@@ -365,7 +371,7 @@ export function PlanPage() {
                   <div className="order-item-dates">
                     <Calendar size={14} className="date-icon" />
                     <span>
-                      {formatDate(firstAllocation?.startDate)} - 
+                      {formatDate(firstAllocation?.startDate)} -
                       {formatDate(firstAllocation?.endDate)}
                     </span>
                   </div>
@@ -392,12 +398,15 @@ export function PlanPage() {
 
                 if (!allocation) return null;
 
-                const isSelected = processAllocation.processName === selectedProcess;
+                const isSelected =
+                  processAllocation.processName === selectedProcess;
 
                 return (
                   <div
                     key={processAllocation._id}
-                    className={`process-item ${isSelected ? "selected-item" : ""}`}
+                    className={`process-item ${
+                      isSelected ? "selected-item" : ""
+                    }`}
                     onClick={() =>
                       setSelectedProcess(processAllocation.processName)
                     }
@@ -413,7 +422,7 @@ export function PlanPage() {
                     <div className="process-item-dates">
                       <Clock size={14} className="date-icon" />
                       <span>
-                        {formatDate(allocation.startDate)} - 
+                        {formatDate(allocation.startDate)} -
                         {formatDate(allocation.endDate)}
                       </span>
                     </div>
@@ -437,9 +446,10 @@ export function PlanPage() {
             )}
           </div>
           <div className="panel-content">
-            {selectedOrder && selectedProcess &&
+            {selectedOrder &&
+              selectedProcess &&
               filteredAllocations
-                .filter(p => p.processName === selectedProcess)
+                .filter((p) => p.processName === selectedProcess)
                 .map((processAllocation) => {
                   const allocation = processAllocation.allocations.find(
                     (a) => a.orderNumber === selectedOrder
@@ -448,39 +458,56 @@ export function PlanPage() {
                   if (!allocation) return null;
 
                   return (
-                    <div key={processAllocation._id} className="details-content">
+                    <div
+                      key={processAllocation._id}
+                      className="details-content"
+                    >
                       <div className="details-header">
-                        <h3 className="details-title">{processAllocation.processName}</h3>
+                        <h3 className="details-title">
+                          {processAllocation.processName}
+                        </h3>
                         <div className="details-subtitle">
                           <Clock size={16} className="details-icon" />
                           <span>
-                            {formatDate(allocation.startDate)} - 
+                            {formatDate(allocation.startDate)} -
                             {formatDate(allocation.endDate)}
                           </span>
                         </div>
                       </div>
-                      
+
                       <div className="details-card">
                         <div className="details-row">
                           <div className="details-label">Machine ID</div>
-                          <div className="details-value">{allocation.machineId}</div>
+                          <div className="details-value">
+                            {allocation.machineId}
+                          </div>
                         </div>
                         <div className="details-row">
                           <div className="details-label">Order Number</div>
-                          <div className="details-value">{allocation.orderNumber}</div>
+                          <div className="details-value">
+                            {allocation.orderNumber}
+                          </div>
                         </div>
                         <div className="details-row">
                           <div className="details-label">Operator</div>
-                          <div className="details-value">{allocation.operator}</div>
+                          <div className="details-value">
+                            {allocation.operator}
+                          </div>
                         </div>
                         <div className="details-row">
                           <div className="details-label">Planned Quantity</div>
-                          <div className="details-value">{allocation.plannedQuantity} units</div>
+                          <div className="details-value">
+                            {allocation.plannedQuantity} units
+                          </div>
                         </div>
                         <div className="details-row">
                           <div className="details-label">Duration</div>
                           <div className="details-value">
-                            {getDaysBetweenDates(allocation.startDate, allocation.endDate)} days
+                            {getDaysBetweenDates(
+                              allocation.startDate,
+                              allocation.endDate
+                            )}{" "}
+                            days
                           </div>
                         </div>
                       </div>
@@ -493,4 +520,3 @@ export function PlanPage() {
     </div>
   );
 }
-
