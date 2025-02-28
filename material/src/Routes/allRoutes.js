@@ -77,7 +77,7 @@ const publicRoutes = [
   { path: "/projectSection/:_id", component: <ProjectSection /> },
   { path: "/projectinvoice", component: <ProjectInvoice /> },
   { path: "/regenato-timeline", component: <TimeLine /> },
-  { path: "/regenato-planPage", component: <PlanPage /> },
+  { path: "/regenato-planPage/:allocationId", component: <PlanPage /> },
   // SingleSubAssembly
 
   { path: "/regenato-assembly-list", component: <NewAssmebliy /> }, // New route

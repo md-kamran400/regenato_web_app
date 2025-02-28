@@ -58,12 +58,12 @@ const navdata = () => {
           link: "/regenato-timeline",
           icon: "fa fa-calendar", // Example FontAwesome icon class
         },
-        {
-          id: "planPage",
-          label: "Parts View",
-          link: "/regenato-planPage",
-          icon: "fa fa-calendar", // Example FontAwesome icon class
-        },
+        // {
+        //   id: "planPage",
+        //   label: "Parts View",
+        //   link: "/regenato-planPage",
+        //   icon: "fa fa-calendar", // Example FontAwesome icon class
+        // },
         {
           id: "View",
           label: "View",
