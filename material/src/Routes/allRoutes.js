@@ -36,6 +36,7 @@ import TimeLine from "../pages/Regenato/TimeLine/TimeLine";
 import { PlanPage } from "../pages/Regenato/TimeLine/PlanPage/PlanPage";
 import MachineCapecity from "../pages/Regenato/Capecity/MachineCapecity";
 import OpearatorCapecity from "../pages/Regenato/Capecity/OpearatorCapecity";
+import TimePage from "../pages/Regenato/ProcessTImeline/PageTime";
 // import ProjectSection from "../pages/Regenato/Projects/ProjectSection";
 
 // Auth
@@ -93,6 +94,8 @@ const publicRoutes = [
   // capecity
   { path: "/regenato-machine-capecity", component: <MachineCapecity /> },
   { path: "/regenato-operator-capecity", component: <OpearatorCapecity /> },
+
+  { path: "/regenato-process-view", component: <TimePage /> },
 
   { path: "/regenato-user-management", component: <UserHandle /> },
 

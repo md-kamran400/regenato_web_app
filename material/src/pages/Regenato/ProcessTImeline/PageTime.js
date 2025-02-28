@@ -3,6 +3,7 @@ import Calendar from "@fullcalendar/react";
 import resourceTimelinePlugin from "@fullcalendar/resource-timeline";
 import adaptivePlugin from "@fullcalendar/adaptive";
 import ReactDOM from "react-dom";
+import "./PageTime.css"; // Import the CSS file
 
 const processColors = {
   C1: { bg: "#3B82F6", border: "#2563EB" },
