@@ -60,9 +60,29 @@ const navdata = () => {
         },
         {
           id: "planPage",
-          label: "Plan",
+          label: "Parts View",
           link: "/regenato-planPage",
           icon: "fa fa-calendar", // Example FontAwesome icon class
+        },
+        {
+          id: "View",
+          label: "View",
+          // link: "/regenato-Capecity",
+          icon: "fa fa-cogs",
+          children: [
+            {
+              id: "processVire",
+              label: "Process View",
+              link: "/regenato-process-view",
+              icon: "fa fa-list",
+            },
+            {
+              id: "OperatorView",
+              label: "Operator View",
+              link: "/regenato-operator-view",
+              icon: "fa fa-list",
+            },
+          ],
         },
         {
           id: "Capecity",
