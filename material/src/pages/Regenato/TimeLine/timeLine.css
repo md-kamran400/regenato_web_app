@@ -3,3 +3,21 @@
   color: rgb(4, 3, 3) !important;
   border: 1px solid darkred;
 }
+
+.holiday-event {
+  /* background-color: #38373775 !important; */
+  color: rgb(214, 29, 29) !important;
+  font-weight: bold;
+  text-align: center;
+  border: none !important;
+  /* z-index: 1000 !important; Ensures Sunday event is on top */
+}
+
+.sunday-event {
+  background-color: rgb(192, 13, 13) !important;
+  color: white !important;
+  font-weight: bold;
+  text-align: center;
+  z-index: 1000 !important; /* Ensures Sunday event is on top */
+  /* margin-top: 80px; */
+}

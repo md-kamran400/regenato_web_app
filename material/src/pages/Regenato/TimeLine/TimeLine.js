@@ -14,11 +14,11 @@ import {
 } from "reactstrap";
 import { TextField, Autocomplete } from "@mui/material";
 import "./timeLine.css";
-import PlanPage from "./PlanPage/PlanPage";
 
 const TimeLine = () => {
+  const [filteredOptions, setFilteredOptions] = useState([]);
   const [modal, setModal] = useState(false);
-  const [data, setData] = useState([]);
+  const [allocationData, setAllocationData] = useState([]);
   const [events, setEvents] = useState([]);
   const [modalData, setModalData] = useState({});
   const [selectedFilterType, setSelectedFilterType] = useState("part");
@@ -28,39 +28,183 @@ const TimeLine = () => {
   const calendarRef = useRef(null);
 
   useEffect(() => {
-    fetch("http://localhost:4040/api/defpartproject/all-allocations")
-      .then((res) => res.json())
-      .then((data) => {
-        setData(data.data);
-        console.log(data.data)
-        formatEvents(data.data);
-      })
-      .catch((error) => console.error("Error fetching data:", error));
+    let isMounted = true;
+
+    // const fetchAllocationData = async () => {
+    //   try {
+    //     const response = await fetch(
+    //       `${process.env.REACT_APP_BASE_URL}/api/defpartproject/all-allocations`
+    //     );
+    //     const data = await response.json();
+
+    //     if (data.data) {
+    //       let allocationEvents = [];
+    //       let sundayEvents = new Set(); // Use a set to avoid duplicate Sundays
+
+    //       data.data.forEach((project) => {
+    //         project.allocations.forEach((part) => {
+    //           part.allocations.forEach((allocation) => {
+    //             const startDate = new Date(allocation.startDate);
+    //             const endDate = new Date(allocation.endDate);
+
+    //             // Create allocation event
+    //             allocationEvents.push({
+    //               title: `${part.partName} - ${allocation.operator} (${part.processName})`,
+    //               start: startDate,
+    //               end: endDate,
+    //               extendedProps: {
+    //                 ...allocation,
+    //                 processName: part.processName,
+    //                 partName: part.partName,
+    //               },
+    //               className: allocation.cssClass || "",
+    //             });
+
+    //             // Add Sundays in between as red-colored events
+    //             let tempDate = new Date(startDate);
+    //             while (tempDate <= endDate) {
+    //               if (tempDate.getDay() === 0) {
+    //                 let sundayKey = tempDate.toISOString().split("T")[0]; // Unique key for each Sunday
+    //                 if (!sundayEvents.has(sundayKey)) {
+    //                   sundayEvents.add(sundayKey);
+    //                   allocationEvents.push({
+    //                     title: "Sunday",
+    //                     start: new Date(tempDate),
+    //                     end: new Date(tempDate),
+    //                     allDay: true,
+    //                     className: "sunday-event",
+    //                     display: "background", // Ensures Sunday event is above allocation
+    //                   });
+    //                 }
+    //               }
+    //               tempDate.setDate(tempDate.getDate() + 1);
+    //             }
+    //           });
+    //         });
+    //       });
+
+    //       setEvents(allocationEvents); // Avoid merging with previous events to prevent duplication
+    //     }
+    //   } catch (error) {
+    //     console.error("Error fetching allocation data:", error);
+    //   }
+    // };
+
+    const fetchAllocationData = async () => {
+      try {
+        const response = await fetch(
+          `${process.env.REACT_APP_BASE_URL}/api/defpartproject/all-allocations`
+        );
+        const data = await response.json();
+
+        if (data.data) {
+          let allocationEvents = [];
+          let sundayEvents = new Set(); // Use a set to avoid duplicate Sundays
+
+          data.data.forEach((project) => {
+            project.allocations.forEach((part) => {
+              part.allocations.forEach((allocation) => {
+                const startDate = new Date(allocation.startDate);
+                const endDate = new Date(allocation.endDate);
+
+                // Create allocation event
+                allocationEvents.push({
+                  title: `${part.partName} - ${allocation.operator} (${part.processName})`,
+                  start: startDate,
+                  end: endDate,
+                  extendedProps: {
+                    ...allocation,
+                    processName: part.processName,
+                    partName: part.partName,
+                  },
+                  className: allocation.cssClass || "",
+                });
+
+                // Add Sundays in between as red-colored events
+                let tempDate = new Date(startDate);
+                while (tempDate <= endDate) {
+                  if (tempDate.getDay() === 0) {
+                    let sundayKey = tempDate.toISOString().split("T")[0]; // Unique key for each Sunday
+                    if (!sundayEvents.has(sundayKey)) {
+                      sundayEvents.add(sundayKey);
+                      allocationEvents.push({
+                        // title: "Sunday",
+                        start: new Date(tempDate),
+                        end: new Date(tempDate),
+                        allDay: true,
+                        className: "sunday-event",
+                        display: "background", // Ensures Sunday event is above allocation
+                      });
+                    }
+                  }
+                  tempDate.setDate(tempDate.getDate() + 1);
+                }
+              });
+            });
+          });
+
+          setEvents(allocationEvents); // Avoid merging with previous events to prevent duplication
+        }
+      } catch (error) {
+        console.error("Error fetching allocation data:", error);
+      }
+    };
+    const fetchHolidayData = async () => {
+      try {
+        const response = await fetch(
+          `${process.env.REACT_APP_BASE_URL}/api/holidays`
+        );
+        const data = await response.json();
+
+        if (isMounted && Array.isArray(data)) {
+          const holidayEvents = data.map((holiday) => ({
+            title: holiday.name,
+            start: holiday.date,
+            end: holiday.date,
+            allDay: true,
+            className: "holiday-event",
+            // display: "background",
+            // fontWeight:'bold'
+          }));
+
+          setEvents((prevEvents) => [...prevEvents, ...holidayEvents]);
+        }
+      } catch (error) {
+        console.error("Error fetching holiday events:", error);
+      }
+    };
+
+    fetchAllocationData();
+    fetchHolidayData();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  const formatEvents = (projects) => {
-    const formattedEvents = [];
+  // const formatEvents = (projects) => {
+  //   const formattedEvents = [];
 
-    projects.forEach((project) => {
-      project.allocations.forEach((part) => {
-        part.allocations.forEach((allocation) => {
-          formattedEvents.push({
-            title: `${part.partName} - ${allocation.operator} (${part.processName})`,
-            start: new Date(allocation.startDate),
-            end: new Date(allocation.endDate),
-            extendedProps: {
-              ...allocation,
-              processName: part.processName,
-              partName: part.partName,
-            },
-            className: allocation.cssClass || "",
-          });
-        });
-      });
-    });
+  //   projects.forEach((project) => {
+  //     project.allocations.forEach((part) => {
+  //       part.allocations.forEach((allocation) => {
+  //         formattedEvents.push({
+  //           title: `${part.partName} - ${allocation.operator} (${part.processName})`,
+  //           start: new Date(allocation.startDate),
+  //           end: new Date(allocation.endDate),
+  //           extendedProps: {
+  //             ...allocation,
+  //             processName: part.processName,
+  //             partName: part.partName,
+  //           },
+  //           className: allocation.cssClass || "",
+  //         });
+  //       });
+  //     });
+  //   });
 
-    setEvents(formattedEvents);
-  };
+  //   setEvents(formattedEvents);
+  // };
 
   const getCurrentDateEvents = (events) => {
     const today = new Date();
@@ -102,7 +246,13 @@ const TimeLine = () => {
   };
 
   return (
-    <div style={{ padding: "30px", backgroundColor: "white" }}>
+    <div
+      style={{
+        padding: "30px",
+        backgroundColor: "white",
+        border: "1px solid red",
+      }}
+    >
       <div
         style={{
           display: "flex",
@@ -113,9 +263,9 @@ const TimeLine = () => {
         <h2 style={{ fontWeight: "bold" }}>Timeline</h2>
 
         <Autocomplete
-          options={data}
+          options={filteredOptions}
           getOptionLabel={(option) =>
-            option[selectedFilterType === "part" ? "partName" : "projectName"]
+            selectedFilterType === "part" ? option.partName : option.projectName
           }
           onChange={handleSelection}
           renderInput={(params) => (
@@ -158,15 +308,18 @@ const TimeLine = () => {
           </NavLink>
         </NavItem>
       </Nav>
-      {/* <div style={{width: "80%", height: "50%", margin: "auto"}}> */}
+
       <FullCalendar
         ref={calendarRef}
         plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
         initialView={calendarView}
-        events={events}
+        events={events} // ✅ Merged data from both APIs
+        selectable={true}
+        editable={true}
         eventClick={handleEventClick}
+        // height={'90vh'}
+        width="80%"
       />
-      {/* </div> */}
 
       <Modal isOpen={modal} toggle={toggleModal} size="lg">
         <ModalHeader toggle={toggleModal}>Event Details</ModalHeader>
@@ -224,8 +377,6 @@ const TimeLine = () => {
           No processes running today.
         </p>
       )}
-
-      {/* <PlanPage/> */}
     </div>
   );
 };
