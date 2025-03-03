@@ -88,7 +88,7 @@ const navdata = () => {
           id: "Capacity",
           label: "Capacity",
           link: "/regenato-Capacity",
-          icon: "fa fa-cogs",
+          icon: "fa fa-chart-bar",
           children: [
             {
               id: "machineCapecity",
