@@ -1,6 +1,8 @@
 const { Router } = require("express");
 const ManufacturingModel = require("../../model/manufacturingmodel");
 const manufacturRouter = Router();
+const axios = require("axios");
+const mongoose = require("mongoose");
 +(
   // POST request (already existing)
   // manufacturRouter.post("/", async (req, res) => {
@@ -21,17 +23,17 @@ const manufacturRouter = Router();
       const existingManufacture = await ManufacturingModel.findOne({
         categoryId: req.body.categoryId,
       });
-
+ 
       if (existingManufacture) {
         return res.status(409).json({
           error: "Category ID already exists",
           message: "Please choose a different Category ID",
         });
       }
-
+ 
       let Manufacture = new ManufacturingModel(req.body);
       await Manufacture.save();
-
+ 
       res.status(201).json({
         msg: "Manufacturing variable Added",
         addManufacture: Manufacture,
@@ -49,7 +51,7 @@ const manufacturRouter = Router();
     }
   })
 );
-
+ 
 // GET request to retrieve all Manufacturing data (already existing)
 manufacturRouter.get("/", async (req, res) => {
   try {
@@ -59,7 +61,7 @@ manufacturRouter.get("/", async (req, res) => {
     res.status(400).json({ error: error.message });
   }
 });
-
+ 
 // PUT request to update a Manufacturing entry by ID
 manufacturRouter.put("/:id", async (req, res) => {
   try {
@@ -69,11 +71,11 @@ manufacturRouter.put("/:id", async (req, res) => {
       req.body,
       { new: true, runValidators: true }
     );
-
+ 
     if (!updatedManufacture) {
       return res.status(404).json({ msg: "Manufacturing entry not found" });
     }
-
+ 
     res
       .status(200)
       .json({ msg: "Manufacturing entry updated", updatedManufacture });
@@ -81,17 +83,17 @@ manufacturRouter.put("/:id", async (req, res) => {
     res.status(400).json({ error: error.message });
   }
 });
-
+ 
 // DELETE request to remove a Manufacturing entry by ID
 manufacturRouter.delete("/:id", async (req, res) => {
   try {
     const { id } = req.params;
     const deletedManufacture = await ManufacturingModel.findByIdAndDelete(id);
-
+ 
     if (!deletedManufacture) {
       return res.status(404).json({ msg: "Manufacturing entry not found" });
     }
-
+ 
     res
       .status(200)
       .json({ msg: "Manufacturing entry deleted", deletedManufacture });
@@ -99,37 +101,37 @@ manufacturRouter.delete("/:id", async (req, res) => {
     res.status(400).json({ error: error.message });
   }
 });
-
+ 
 // Add a subcategory to a specific manufacturing entry
 manufacturRouter.post("/:id/subcategories", async (req, res) => {
   try {
     const { id } = req.params;
     const { subcategoryId, name, hourlyRate } = req.body;
-
+ 
     // Validate required fields
     if (!subcategoryId || !name || hourlyRate === undefined) {
       return res.status(400).json({
         msg: "Fields (subcategoryId, name, and hourlyRate) are required.",
       });
     }
-
+ 
     // Find the manufacturing entry by ID
     const manufacturingEntry = await ManufacturingModel.findById(id);
     if (!manufacturingEntry) {
       return res.status(404).json({ msg: "Manufacturing entry not found" });
     }
-
+ 
     // Check for duplicate subcategoryId in existing subcategories
     const isDuplicate = manufacturingEntry.subCategories.some(
       (sub) => sub.subcategoryId === subcategoryId
     );
-
+ 
     if (isDuplicate) {
       return res.status(400).json({
         msg: "Subcategory ID already exists. Please provide a unique subcategoryId.",
       });
     }
-
+ 
     // Create a new subcategory object with default values for missing fields
     const subCategory = {
       subcategoryId,
@@ -138,13 +140,13 @@ manufacturRouter.post("/:id/subcategories", async (req, res) => {
       hourlyRate,
       totalRate: 0, // Default value
     };
-
+ 
     // Add the subcategory to the manufacturing entry
     manufacturingEntry.subCategories.push(subCategory);
-
+ 
     // Save the updated entry
     await manufacturingEntry.save();
-
+ 
     res.status(200).json({
       msg: "Subcategory added",
       updatedManufacture: manufacturingEntry,
@@ -153,37 +155,37 @@ manufacturRouter.post("/:id/subcategories", async (req, res) => {
     res.status(400).json({ error: error.message });
   }
 });
-
+ 
 //edit a subcategory to a specific manufacturing entry
 manufacturRouter.put("/:id/subcategories/:subId", async (req, res) => {
   try {
     const { id, subId } = req.params; // manufacturing entry ID and subcategory ID
     const updateData = req.body; // updated data for the subcategory
-
+ 
     // Find the manufacturing entry by ID
     const manufacturingEntry = await ManufacturingModel.findById(id);
     if (!manufacturingEntry) {
       return res.status(404).json({ msg: "Manufacturing entry not found" });
     }
-
+ 
     // Find the index of the subcategory to be updated
     const subCategoryIndex = manufacturingEntry.subCategories.findIndex(
       (sub) => sub._id.toString() === subId
     );
-
+ 
     if (subCategoryIndex === -1) {
       return res.status(404).json({ msg: "Subcategory not found" });
     }
-
+ 
     // Update the subcategory data
     Object.assign(
       manufacturingEntry.subCategories[subCategoryIndex],
       updateData
     );
-
+ 
     // Save the updated manufacturing entry
     await manufacturingEntry.save();
-
+ 
     res.status(200).json({
       msg: "Subcategory updated",
       updatedManufacture: manufacturingEntry,
@@ -192,33 +194,33 @@ manufacturRouter.put("/:id/subcategories/:subId", async (req, res) => {
     res.status(400).json({ error: error.message });
   }
 });
-
+ 
 //delete a subcategory to a specific manufacturing entry
 manufacturRouter.delete("/:id/subcategories/:subId", async (req, res) => {
   try {
     const { id, subId } = req.params; // manufacturing entry ID and subcategory ID
-
+ 
     // Find the manufacturing entry by ID
     const manufacturingEntry = await ManufacturingModel.findById(id);
     if (!manufacturingEntry) {
       return res.status(404).json({ msg: "Manufacturing entry not found" });
     }
-
+ 
     // Find the index of the subcategory to be deleted
     const subCategoryIndex = manufacturingEntry.subCategories.findIndex(
       (sub) => sub._id.toString() === subId
     );
-
+ 
     if (subCategoryIndex === -1) {
       return res.status(404).json({ msg: "Subcategory not found" });
     }
-
+ 
     // Remove the subcategory from the array
     manufacturingEntry.subCategories.splice(subCategoryIndex, 1);
-
+ 
     // Save the updated manufacturing entry
     await manufacturingEntry.save();
-
+ 
     res.status(200).json({
       msg: "Subcategory deleted",
       updatedManufacture: manufacturingEntry,
@@ -227,108 +229,175 @@ manufacturRouter.delete("/:id/subcategories/:subId", async (req, res) => {
     res.status(400).json({ error: error.message });
   }
 });
-
+ 
 // manufacturRouter.get("/category/:categoryId", async (req, res) => {
 //   try {
 //     const { categoryId } = req.params;
-
-//     // Find manufacturing entry by categoryId
+ 
+//     // Fetch manufacturing entry by categoryId
 //     const manufacturingEntry = await ManufacturingModel.findOne({ categoryId });
-
+ 
 //     if (!manufacturingEntry) {
 //       return res.status(404).json({ msg: "Manufacturing entry not found" });
 //     }
-
+ 
+//     // Ensure BASE_URL is defined
+//     const BASE_URL = process.env.BASE_URL || "http://localhost:4040";
+ 
+//     // Fetch all allocations
+//     const allocationResponse = await fetch(
+//       `${BASE_URL}/api/defpartproject/all-allocations`
+//     );
+ 
+//     if (!allocationResponse.ok) {
+//       return res.status(500).json({ msg: "Failed to fetch allocations" });
+//     }
+ 
+//     const allocationData = await allocationResponse.json();
+//     const allocatedMachines = new Set();
+ 
+//     // Extract machine IDs from allocations
+//     allocationData.data.forEach((project) => {
+//       project.allocations.forEach((process) => {
+//         process.allocations.forEach((alloc) => {
+//           allocatedMachines.add(alloc.machineId);
+//         });
+//       });
+//     });
+ 
+//     // Filter available machines
+//     const availableMachines = manufacturingEntry.subCategories.filter(
+//       (machine) => !allocatedMachines.has(machine.subcategoryId)
+//     );
+ 
 //     res.status(200).json({
-//       msg: "Manufacturing entry retrieved",
-//       manufacturingEntry,
+//       msg: "Available subcategories retrieved",
+//       subCategories: availableMachines,
 //     });
 //   } catch (error) {
 //     res.status(400).json({ error: error.message });
 //   }
 // });
-
+ 
+// Add this new route after the existing ones
+ 
+// GET request to retrieve all category IDs
+ 
 // manufacturRouter.get("/category/:categoryId", async (req, res) => {
 //   try {
 //     const { categoryId } = req.params;
-
-//     // Find manufacturing entry by categoryId
+ 
+//     // Fetch manufacturing entry by categoryId
 //     const manufacturingEntry = await ManufacturingModel.findOne({ categoryId });
-
+ 
 //     if (!manufacturingEntry) {
 //       return res.status(404).json({ msg: "Manufacturing entry not found" });
 //     }
-
-//     // Return only subCategories
+ 
+//     // Ensure BASE_URL is correctly set
+//     const BASE_URL = "http://0.0.0.0:4040";
+ 
+//     // Fetch all allocations using axios
+//     const allocationResponse = await axios.get(`${BASE_URL}/api/defpartproject/all-allocations`);
+//     const allocationData = allocationResponse.data;
+ 
+//     const allocatedMachines = new Set();
+ 
+//     // Extract machine IDs from allocations
+//     allocationData.data.forEach((project) => {
+//       project.allocations.forEach((process) => {
+//         process.allocations.forEach((alloc) => {
+//           allocatedMachines.add(alloc.machineId);
+//         });
+//       });
+//     });
+ 
+//     // Filter available machines
+//     const availableMachines = manufacturingEntry.subCategories.filter(
+//       (machine) => !allocatedMachines.has(machine.subcategoryId)
+//     );
+ 
 //     res.status(200).json({
-//       msg: "Subcategories retrieved",
-//       subCategories: manufacturingEntry.subCategories,
+//       msg: "Available subcategories retrieved",
+//       subCategories: availableMachines,
 //     });
 //   } catch (error) {
-//     res.status(400).json({ error: error.message });
+//     console.error("Error fetching data:", error.message);
+//     res.status(500).json({ error: "Internal Server Error", details: error.message });
 //   }
 // });
-
+ 
 manufacturRouter.get("/category/:categoryId", async (req, res) => {
   try {
-    const { categoryId } = req.params;
-
+    let { categoryId } = req.params;
+    // console.log("Received categoryId:", categoryId);
+ 
+    // Validate categoryId - only check for empty values
+    if (!categoryId || typeof categoryId !== "string") {
+      return res
+        .status(400)
+        .json({ msg: "Invalid categoryId format. Expected a string." });
+    }
+ 
     // Fetch manufacturing entry by categoryId
     const manufacturingEntry = await ManufacturingModel.findOne({ categoryId });
-
+ 
     if (!manufacturingEntry) {
       return res.status(404).json({ msg: "Manufacturing entry not found" });
     }
-
-    // Ensure BASE_URL is defined
-    const BASE_URL = process.env.BASE_URL || "http://localhost:4040";
-
-    // Fetch all allocations
-    const allocationResponse = await fetch(`${BASE_URL}/api/defpartproject/all-allocations`);
-
-    if (!allocationResponse.ok) {
-      return res.status(500).json({ msg: "Failed to fetch allocations" });
+ 
+    const BASE_URL = "http://0.0.0.0:4040";
+ 
+    // Fetch all allocations using axios
+    const allocationResponse = await axios.get(
+      `${BASE_URL}/api/defpartproject/all-allocations`
+    );
+ 
+    if (!allocationResponse.data || !allocationResponse.data.data) {
+      return res
+        .status(500)
+        .json({ msg: "Failed to retrieve allocation data" });
     }
-
-    const allocationData = await allocationResponse.json();
+ 
+    const allocationData = allocationResponse.data;
     const allocatedMachines = new Set();
-
-    // Extract machine IDs from allocations
+ 
     allocationData.data.forEach((project) => {
       project.allocations.forEach((process) => {
         process.allocations.forEach((alloc) => {
-          allocatedMachines.add(alloc.machineId);
+          if (alloc.machineId) {
+            allocatedMachines.add(alloc.machineId);
+          }
         });
       });
     });
-
-    // Filter available machines
+ 
     const availableMachines = manufacturingEntry.subCategories.filter(
       (machine) => !allocatedMachines.has(machine.subcategoryId)
     );
-
+ 
     res.status(200).json({
       msg: "Available subcategories retrieved",
       subCategories: availableMachines,
     });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    console.error("Error fetching data:", error.message);
+    res
+      .status(500)
+      .json({ error: "Internal Server Error", details: error.message });
   }
 });
-
-// Add this new route after the existing ones
-
-// GET request to retrieve all category IDs
+ 
 manufacturRouter.get("/all-category-ids", async (req, res) => {
   try {
     const allCategoryIds = await ManufacturingModel.distinct("categoryId");
-
+ 
     if (allCategoryIds.length === 0) {
       return res.status(404).json({
         msg: "No categories found",
       });
     }
-
+ 
     res.status(200).json({
       msg: "All category IDs retrieved successfully",
       categoryIds: allCategoryIds,
@@ -337,5 +406,5 @@ manufacturRouter.get("/all-category-ids", async (req, res) => {
     res.status(400).json({ error: error.message });
   }
 });
-
+ 
 module.exports = { manufacturRouter };
