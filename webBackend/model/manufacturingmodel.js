@@ -36,8 +36,15 @@ const manufacturingSchema = mongoose.Schema({
       hours: Number,
       hourlyRate: Number,
       totalRate: Number,
-      isAvailable: { type: Boolean, default: true }, // Machine availability
-      unavailableUntil: { type: Date, default: null }, // Time until machine is occupied
+      isAvailable: { type: Boolean, default: true },
+      unavailableUntil: { type: Date, default: null },
+      downtimeHistory: [
+        {
+          startTime: { type: Date, required: true },
+          endTime: { type: Date, default: null },
+          reason: String,
+        },
+      ],
     },
   ],
 });
