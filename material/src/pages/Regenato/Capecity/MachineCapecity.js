@@ -1,4 +1,6 @@
+
 // import React, { useEffect, useState } from "react";
+// import { useNavigate } from "react-router-dom";
 // import {
 //   Container,
 //   Row,
@@ -21,6 +23,7 @@
 // import { format, isWithinInterval, parseISO } from "date-fns";
 
 // const MachineCapacity = () => {
+//   const navigate = useNavigate();
 //   const [categories, setCategories] = useState([]);
 //   const [allocations, setAllocations] = useState([]);
 //   const [filteredAllocations, setFilteredAllocations] = useState([]);
@@ -201,6 +204,12 @@
 
 //   const handleProcessChange = (e) => {
 //     setSelectedProcess(e.target.value);
+//   };
+
+//   const handleViewPlan = () => {
+//     if (selectedMachine && selectedMachine.allocation) {
+//       navigate(`/regenato-planPage/${selectedMachine.allocation._id}`);
+//     }
 //   };
 
 //   if (loading)
@@ -508,7 +517,14 @@
 //               </div>
 //             </div>
 //           </ModalBody>
-//           <ModalFooter >
+//           <ModalFooter>
+//             <Button 
+//               color="primary" 
+//               onClick={handleViewPlan}
+//               className="me-2"
+//             >
+//               View Plan
+//             </Button>
 //             <Button onClick={toggleModal}>Close</Button>
 //           </ModalFooter>
 //         </Modal>
@@ -517,7 +533,8 @@
 //   );
 // };
 
-// export default MachineCapacity;
+// export default MachineCapacity;/
+
 
 
 
@@ -559,6 +576,7 @@ const MachineCapacity = () => {
   const [dateRangeActive, setDateRangeActive] = useState(false);
   const [selectedProcess, setSelectedProcess] = useState("All");
   const [availableProcesses, setAvailableProcesses] = useState([]);
+  const [categoryStats, setCategoryStats] = useState({});
 
   useEffect(() => {
     fetchData();
@@ -568,6 +586,7 @@ const MachineCapacity = () => {
     if (allocations.length > 0) {
       filterAllocationsByDate();
       extractProcesses();
+      calculateCategoryStats();
     }
   }, [allocations, startDate, endDate, dateRangeActive, selectedProcess]);
 
@@ -628,6 +647,40 @@ const MachineCapacity = () => {
       console.error("Error fetching data:", error);
       setLoading(false);
     }
+  };
+
+  const calculateCategoryStats = () => {
+    const stats = {};
+    
+    // Initialize stats for each category
+    categories.forEach(category => {
+      stats[category._id] = {
+        total: category.subCategories.length,
+        occupied: 0,
+        name: category.name
+      };
+    });
+    
+    // Count occupied machines per category
+    filteredAllocations.forEach(project => {
+      project.allocations.forEach(alloc => {
+        alloc.allocations.forEach(machineAlloc => {
+          // Find which category this machine belongs to
+          for (const category of categories) {
+            const machineExists = category.subCategories.some(
+              sub => sub.subcategoryId === machineAlloc.machineId
+            );
+            
+            if (machineExists) {
+              stats[category._id].occupied += 1;
+              break;
+            }
+          }
+        });
+      });
+    });
+    
+    setCategoryStats(stats);
   };
 
   const extractProcesses = () => {
@@ -877,52 +930,96 @@ const MachineCapacity = () => {
         </CardBody>
       </Card>
 
-      {categories.map((category) => (
-        <Card key={category._id} className="shadow-sm mb-4">
-          <CardBody>
-            <h5 className="mb-3">{category.name}</h5>
-            <Row xs={2} sm={3} md={4} lg={6} className="g-3">
-              {category.subCategories.map((machine) => {
-                const allocation = getMachineAllocation(
-                  machine.subcategoryId,
-                  category.name
-                );
-                const isOccupied = allocation !== null;
-                return (
-                  <Col key={machine.subcategoryId}>
-                    <Card
-                      className={`h-100 ${
-                        isOccupied ? "border-danger" : "border-success"
-                      }`}
-                      style={{
-                        background: isOccupied ? "#FFEEEE" : "#EEFFEE",
-                        cursor: isOccupied ? "pointer" : "default",
-                      }}
-                      onClick={() =>
-                        isOccupied && toggleModal({ ...machine, allocation })
-                      }
-                    >
-                      <CardBody className="p-2 text-center">
-                        <div className="fw-bold mb-1">{machine.name}</div>
-                        {isOccupied && (
-                          <Badge color="danger" pill>
-                            Occupied
-                          </Badge>
-                        )}
-                        {!isOccupied && (
-                          <Badge color="success" pill>
-                            Available
-                          </Badge>
-                        )}
-                      </CardBody>
-                    </Card>
-                  </Col>
-                );
-              })}
-            </Row>
-          </CardBody>
-        </Card>
-      ))}
+      {categories.map((category) => {
+        const stats = categoryStats[category._id] || { total: 0, occupied: 0 };
+        const availableCategoryMachines = stats.total - stats.occupied;
+        const categoryOccupiedPercentage = stats.total > 0 ? ((stats.occupied / stats.total) * 100).toFixed(1) : 0;
+        
+        return (
+          <Card key={category._id} className="shadow-sm mb-4">
+            <CardBody>
+              <div className="d-flex justify-content-between align-items-center mb-3">
+                <h5 className="mb-0">{category.name}</h5>
+                <div className="d-flex align-items-center">
+                  <div className="me-3">
+                    <Badge color="primary" className="me-2">
+                      Total
+                    </Badge>
+                    <span>{stats.total}</span>
+                  </div>
+                  <div className="me-3">
+                    <Badge color="success" className="me-2">
+                      Available
+                    </Badge>
+                    <span>{availableCategoryMachines}</span>
+                  </div>
+                  <div>
+                    <Badge color="danger" className="me-2">
+                      Occupied
+                    </Badge>
+                    <span>
+                      {stats.occupied} ({categoryOccupiedPercentage}%)
+                    </span>
+                  </div>
+                </div>
+              </div>
+              
+              <Progress multi className="mb-3" style={{ height: "10px" }}>
+                <Progress 
+                  bar 
+                  color="success" 
+                  value={stats.total > 0 ? ((availableCategoryMachines / stats.total) * 100) : 0} 
+                />
+                <Progress 
+                  bar 
+                  color="danger" 
+                  value={categoryOccupiedPercentage} 
+                />
+              </Progress>
+              
+              <Row xs={2} sm={3} md={4} lg={6} className="g-3">
+                {category.subCategories.map((machine) => {
+                  const allocation = getMachineAllocation(
+                    machine.subcategoryId,
+                    category.name
+                  );
+                  const isOccupied = allocation !== null;
+                  return (
+                    <Col key={machine.subcategoryId}>
+                      <Card
+                        className={`h-100 ${
+                          isOccupied ? "border-danger" : "border-success"
+                        }`}
+                        style={{
+                          background: isOccupied ? "#FFEEEE" : "#EEFFEE",
+                          cursor: isOccupied ? "pointer" : "default",
+                        }}
+                        onClick={() =>
+                          isOccupied && toggleModal({ ...machine, allocation })
+                        }
+                      >
+                        <CardBody className="p-2 text-center">
+                          <div className="fw-bold mb-1">{machine.name}</div>
+                          {isOccupied && (
+                            <Badge color="danger" pill>
+                              Occupied
+                            </Badge>
+                          )}
+                          {!isOccupied && (
+                            <Badge color="success" pill>
+                              Available
+                            </Badge>
+                          )}
+                        </CardBody>
+                      </Card>
+                    </Col>
+                  );
+                })}
+              </Row>
+            </CardBody>
+          </Card>
+        );
+      })}
 
       {selectedMachine && (
         <Modal isOpen={modalOpen} toggle={toggleModal} size="lg">
