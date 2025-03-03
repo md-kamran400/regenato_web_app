@@ -52,12 +52,12 @@ const navdata = () => {
           link: "/regenato-variables",
           icon: "fa fa-sliders", // Example FontAwesome icon class
         },
-        {
-          id: "timeline",
-          label: "TimeLine",
-          link: "/regenato-timeline",
-          icon: "fa fa-calendar", // Example FontAwesome icon class
-        },
+        // {
+        //   id: "timeline",
+        //   label: "TimeLine",
+        //   link: "/regenato-timeline",
+        //   icon: "fa fa-calendar", // Example FontAwesome icon class
+        // },
         // {
         //   id: "planPage",
         //   label: "Parts View",

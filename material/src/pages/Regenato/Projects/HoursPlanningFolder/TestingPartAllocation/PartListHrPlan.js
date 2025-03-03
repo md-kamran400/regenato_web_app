@@ -20,8 +20,12 @@ import axios from "axios";
 import { ImPriceTag } from "react-icons/im";
 import { MdInventory } from "react-icons/md";
 import { toast } from "react-toastify";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import { isSameDay, parseISO, getDay, isSameMonth } from "date-fns";
 
 import AllocatedPartListHrPlan from "./AllocatedPartListHrPlan";
+import Calendar from "./Calendar";
 export const PartListHrPlan = ({
   partName,
   manufacturingVariables,
@@ -45,6 +49,70 @@ export const PartListHrPlan = ({
   const [remainingQuantity, setRemainingQuantity] = useState(quantity);
   const [remainingQuantities, setRemainingQuantities] = useState({});
   const [isAutoSchedule, setIsAutoSchedule] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [eventDates, setEventDates] = useState([]);
+
+  useEffect(() => {
+    fetch(`${process.env.REACT_APP_BASE_URL}/api/eventScheduler/events`)
+      .then((response) => response.json())
+      .then((data) => {
+        let allDates = [];
+
+        data.forEach((event) => {
+          let currentDate = new Date(event.startDate);
+          const endDate = new Date(event.endDate);
+
+          while (currentDate <= endDate) {
+            allDates.push(new Date(currentDate)); // Add each date to the list
+            currentDate.setDate(currentDate.getDate() + 1); // Move to next day
+          }
+        });
+
+        setEventDates(allDates);
+      })
+      .catch((error) => console.error("Error fetching events:", error));
+  }, []);
+
+  // Function to check if the date is an event date or a Sunday
+  const isHighlightedOrDisabled = (date) => {
+    return (
+      eventDates.some((eventDate) => isSameDay(eventDate, date)) ||
+      getDay(date) === 0
+    );
+  };
+
+  // Custom input component to make it look like a standard date input
+  const CustomInput = React.forwardRef(({ value, onClick }, ref) => (
+    <input
+      type="text"
+      value={value}
+      onClick={onClick}
+      ref={ref}
+      readOnly
+      placeholder="DD-MM-YY"
+      style={{
+        padding: "8px",
+        border: "1px solid #ccc",
+        borderRadius: "4px",
+        cursor: "pointer",
+      }}
+    />
+  ));
+
+  // Custom render function for day contents
+  const renderDayContents = (day, date) => {
+    const isCurrentMonth = isSameMonth(date, selectedDate || new Date());
+    const isHighlighted = isHighlightedOrDisabled(date);
+
+    let className = "";
+    if (!isCurrentMonth) {
+      className = "grayed-out-date";
+    } else if (isHighlighted) {
+      className = "highlighted-date";
+    }
+
+    return <div className={className}>{day}</div>;
+  };
 
   useEffect(() => {
     const initialRows = manufacturingVariables.reduce((acc, man, index) => {
@@ -152,6 +220,8 @@ export const PartListHrPlan = ({
     fetchShifts();
   }, []);
 
+  console.log(shiftOptions);
+
   useEffect(() => {
     const fetchMachines = async () => {
       const machineData = {};
@@ -198,28 +268,54 @@ export const PartListHrPlan = ({
     return Math.ceil(hours * 60);
   };
 
-  const calculateEndDate = (startDate, plannedMinutes, shiftMinutes) => {
-    console.log("calculateEndDate called with:", {
-      startDate,
-      plannedMinutes,
-      shiftMinutes,
-    });
+  // const calculateEndDate = (startDate, plannedMinutes, shiftMinutes) => {
+  //   console.log("calculateEndDate called with:", {
+  //     startDate,
+  //     plannedMinutes,
+  //     shiftMinutes,
+  //   });
 
+  //   if (!startDate) return ""; // Ensure startDate is provided
+
+  //   const parsedDate = new Date(startDate);
+  //   if (isNaN(parsedDate.getTime())) return ""; // Ensure startDate is valid
+
+  //   const totalDays = Math.ceil(plannedMinutes / (shiftMinutes || 480)); // Use shiftMinutes
+
+  //   parsedDate.setDate(parsedDate.getDate() + totalDays - 1);
+
+  //   console.log(`Selected shift: ${shiftMinutes}`);
+  //   console.log(`Planned minutes: ${plannedMinutes}`);
+
+  //   return parsedDate instanceof Date && !isNaN(parsedDate)
+  //     ? parsedDate.toISOString().split("T")[0]
+  //     : "";
+  // };
+
+  const calculateEndDate = (startDate, plannedMinutes, shiftMinutes) => {
     if (!startDate) return ""; // Ensure startDate is provided
 
-    const parsedDate = new Date(startDate);
+    let parsedDate = new Date(startDate);
     if (isNaN(parsedDate.getTime())) return ""; // Ensure startDate is valid
 
-    const totalDays = Math.ceil(plannedMinutes / (shiftMinutes || 480)); // Use shiftMinutes
+    let remainingMinutes = plannedMinutes;
+    let totalShiftMinutes = shiftMinutes || 480; // Default to 8-hour shift if not provided
 
-    parsedDate.setDate(parsedDate.getDate() + totalDays - 1);
+    while (remainingMinutes > 0) {
+      parsedDate.setDate(parsedDate.getDate() + 1); // Move to next day
 
-    console.log(`Selected shift: ${shiftMinutes}`);
-    console.log(`Planned minutes: ${plannedMinutes}`);
+      // Skip Sundays and holidays
+      while (
+        getDay(parsedDate) === 0 ||
+        eventDates.some((d) => isSameDay(d, parsedDate))
+      ) {
+        parsedDate.setDate(parsedDate.getDate() + 1);
+      }
 
-    return parsedDate instanceof Date && !isNaN(parsedDate)
-      ? parsedDate.toISOString().split("T")[0]
-      : "";
+      remainingMinutes -= totalShiftMinutes; // Subtract daily shift hours
+    }
+
+    return parsedDate.toISOString().split("T")[0];
   };
 
   const prefillData = (allRows, startDate) => {
@@ -646,7 +742,7 @@ export const PartListHrPlan = ({
                           </td>
 
                           <td>
-                            <Input
+                            {/* <Input
                               type="date"
                               value={row.startDate}
                               onChange={(e) =>
@@ -657,7 +753,55 @@ export const PartListHrPlan = ({
                                 )
                               }
                               // readOnly={index !== 0}
+                            /> */}
+                            {/* <DatePicker
+                              selected={selectedDate}
+                              value={row.startDate}
+                              // onChange={(date) => setSelectedDate(date)}
+                              onChange={(date) =>
+                                handleStartDateChange(
+                                  index,
+                                  rowIndex,
+                                  // e.target.value
+                                  date
+                                )
+                              }
+                              dayClassName={(date) =>
+                                isHighlightedOrDisabled(date)
+                                  ? "highlighted-date"
+                                  : ""
+                              }
+                              renderDayContents={renderDayContents}
+                              customInput={<CustomInput />} // Use the custom input component
+                            /> */}
+                            <DatePicker
+                              selected={
+                                row.startDate ? new Date(row.startDate) : null
+                              }
+                              onChange={(date) =>
+                                handleStartDateChange(index, rowIndex, date)
+                              }
+                              dayClassName={(date) =>
+                                isHighlightedOrDisabled(date)
+                                  ? "highlighted-date"
+                                  : ""
+                              }
+                              renderDayContents={renderDayContents}
+                              customInput={<CustomInput />}
+                              dateFormat="dd-MM-yyyy"
                             />
+
+                            <style>{`
+                                .highlighted-date {
+                                  background-color: #f06548 !important;
+                                  color: black !important;
+                                  border-radius: 50%;
+                                }
+                                .grayed-out-date {
+                                   color: #ccc !important;
+                                  // display:none
+                                }
+                              `}</style>
                           </td>
 
                           <td>
@@ -680,57 +824,6 @@ export const PartListHrPlan = ({
                           </td>
 
                           <td>
-                            {/* <Autocomplete
-                              options={machineOptions[man.categoryId] || []}
-                              value={
-                                machineOptions[man.categoryId]?.find(
-                                  (machine) =>
-                                    machine.subcategoryId === row.machineId
-                                ) || null
-                              }
-                              getOptionLabel={(option) => ` ${option.name}`}
-                              renderOption={(props, option) => {
-                                const isDisabled = rows[index]?.some(
-                                  (r) => r.machineId === option.subcategoryId
-                                );
-                                return (
-                                  <li
-                                    {...props}
-                                    style={{
-                                      color: isDisabled ? "gray" : "black",
-                                      pointerEvents: isDisabled
-                                        ? "none"
-                                        : "auto",
-                                    }}
-                                  >
-                                    - {option.name}
-                                  </li>
-                                );
-                              }}
-                              onChange={(event, newValue) => {
-                                if (!hasStartDate && index !== 0) return;
-                                setRows((prevRows) => {
-                                  const updatedRows = [...prevRows[index]];
-                                  updatedRows[rowIndex] = {
-                                    ...updatedRows[rowIndex],
-                                    machineId: newValue
-                                      ? newValue.subcategoryId
-                                      : "",
-                                  };
-                                  return { ...prevRows, [index]: updatedRows };
-                                });
-                              }}
-                              renderInput={(params) => (
-                                <TextField
-                                  {...params}
-                                  label="Machine"
-                                  variant="outlined"
-                                  size="small"
-                                />
-                              )}
-                              disableClearable={false}
-                              disabled={!hasStartDate && index !== 0}
-                            /> */}
                             <Autocomplete
                               options={machineOptions[man.categoryId] || []}
                               value={
@@ -862,6 +955,8 @@ export const PartListHrPlan = ({
                             noOptionsText="No shifts available"
                             disabled={!hasStartDate && index !== 0}
                           />
+
+                          
 
                           <td>{row.plannedQtyTime} m</td>
 

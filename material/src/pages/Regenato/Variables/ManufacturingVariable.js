@@ -13,6 +13,10 @@ import {
 } from "reactstrap";
 import Flatpickr from "react-flatpickr";
 import { toast } from "react-toastify";
+import { FaEdit } from "react-icons/fa";
+import { RxCountdownTimer } from "react-icons/rx";
+import { MdOutlineDelete } from "react-icons/md";
+import { Bold } from "feather-icons-react/build/IconComponents";
 
 const ManufacturingVariable = () => {
   const [modal_add, setModalList] = useState(false);
@@ -552,8 +556,8 @@ const ManufacturingVariable = () => {
                                         <th>Machine ID</th>
                                         <th>Machine Name</th>
                                         <th>Hourly Rate</th>
-                                        <th>Action</th>
                                         <th>Status</th>
+                                        <th>Action</th>
                                       </tr>
                                     </thead>
                                     <tbody>
@@ -570,31 +574,7 @@ const ManufacturingVariable = () => {
                                           <td>{subCategory.subcategoryId}</td>
                                           <td>{subCategory.name}</td>
                                           <td>{subCategory.hourlyRate}</td>
-                                          <td className="d-flex gap-2">
-                                            <button
-                                              className="btn btn-sm btn-success"
-                                              onClick={() => {
-                                                Sub_tog_edit(subCategory);
-                                                setSelectedManufacturingId(
-                                                  item._id
-                                                );
-                                              }}
-                                            >
-                                              Edit
-                                            </button>
 
-                                            <button
-                                              className="btn btn-sm btn-danger"
-                                              onClick={() =>
-                                                handleDeleteSub(
-                                                  subCategory._id,
-                                                  item._id
-                                                )
-                                              }
-                                            >
-                                              Remove
-                                            </button>
-                                          </td>
                                           <td>
                                             {!subCategory.isAvailable ? (
                                               <span
@@ -610,6 +590,37 @@ const ManufacturingVariable = () => {
                                                 Available
                                               </span>
                                             )}
+                                          </td>
+                                          <td className="d-flex gap-2">
+                                            <button
+                                              className="btn btn-sm btn-success"
+                                              onClick={() => {
+                                                Sub_tog_edit(subCategory);
+                                                setSelectedManufacturingId(
+                                                  item._id
+                                                );
+                                              }}
+                                            >
+                                              <FaEdit size={15} />
+                                            </button>
+
+                                            <button
+                                              className="btn btn-sm btn-danger"
+                                              onClick={() =>
+                                                handleDeleteSub(
+                                                  subCategory._id,
+                                                  item._id
+                                                )
+                                              }
+                                            >
+                                              <MdOutlineDelete size={15} />
+                                            </button>
+                                            <button className="btn btn-sm btn-primary">
+                                              <RxCountdownTimer
+                                                size={15}
+                                                style={{ fontWeight: "bold" }}
+                                              />
+                                            </button>
                                           </td>
                                         </tr>
                                       ))}

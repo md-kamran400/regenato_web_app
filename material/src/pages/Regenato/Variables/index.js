@@ -331,6 +331,7 @@ import OverheadsVariable from "./OverheadsVariable";
 import ManufacuringStatic from "./ManufacuringStatic";
 import UsersListVariable from "./UsersListVariable";
 import ShiftVariable from "./ShiftVariable";
+import { EventScheduler } from "./EventScheduler";
 
 const Variables = () => {
   const [modal_list, setmodal_list] = useState(false);
@@ -384,9 +385,9 @@ const Variables = () => {
 
           <UsersListVariable />
 
-          
           <ShiftVariable />
           {/* The row that was removed is no longer included */}
+          <EventScheduler />
         </Container>
       </div>
     </React.Fragment>
