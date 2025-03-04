@@ -956,8 +956,6 @@ export const PartListHrPlan = ({
                             disabled={!hasStartDate && index !== 0}
                           />
 
-                          
-
                           <td>{row.plannedQtyTime} m</td>
 
                           <td>
