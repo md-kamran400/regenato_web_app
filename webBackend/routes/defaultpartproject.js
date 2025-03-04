@@ -2502,37 +2502,89 @@ partproject.post(
 
 // get for allocation
 
+// partproject.get(
+//   "/projects/:projectId/partsLists/:partsListId/partsListItems/:partsListItemsId/allocation",
+//   async (req, res) => {
+//     try {
+//       const { projectId, partsListId, partsListItemsId } = req.params;
+
+//       // Find the project
+//       const project = await PartListProjectModel.findOne({ _id: projectId });
+
+//       if (!project) {
+//         return res.status(404).json({ message: "Project not found" });
+//       }
+
+//       // Find the correct parts list
+//       const partsList = project.partsLists.find(
+//         (list) => list._id.toString() === partsListId
+//       );
+
+//       if (!partsList) {
+//         return res.status(404).json({ message: "Parts List not found" });
+//       }
+
+//       // Find the correct part inside the parts list
+//       const partItem = partsList.partsListItems.find(
+//         (item) => item._id.toString() === partsListItemsId
+//       );
+
+//       if (!partItem) {
+//         return res.status(404).json({ message: "Part List Item not found" });
+//       }
+
+//       res.status(200).json({
+//         message: "Allocations retrieved successfully",
+//         data: partItem.allocations,
+//       });
+//     } catch (error) {
+//       console.error("Error retrieving allocations:", error);
+//       res.status(500).json({ message: "Server error", error: error.message });
+//     }
+//   }
+// );
+const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
+ 
 partproject.get(
   "/projects/:projectId/partsLists/:partsListId/partsListItems/:partsListItemsId/allocation",
   async (req, res) => {
     try {
       const { projectId, partsListId, partsListItemsId } = req.params;
-
+ 
+      // Validate IDs before querying
+      if (
+        !isValidObjectId(projectId) ||
+        !isValidObjectId(partsListId) ||
+        !isValidObjectId(partsListItemsId)
+      ) {
+        return res.status(400).json({ message: "Invalid or missing ID(s)" });
+      }
+ 
       // Find the project
-      const project = await PartListProjectModel.findOne({ _id: projectId });
-
+      const project = await PartListProjectModel.findById(projectId);
+ 
       if (!project) {
         return res.status(404).json({ message: "Project not found" });
       }
-
+ 
       // Find the correct parts list
       const partsList = project.partsLists.find(
         (list) => list._id.toString() === partsListId
       );
-
+ 
       if (!partsList) {
         return res.status(404).json({ message: "Parts List not found" });
       }
-
+ 
       // Find the correct part inside the parts list
       const partItem = partsList.partsListItems.find(
         (item) => item._id.toString() === partsListItemsId
       );
-
+ 
       if (!partItem) {
         return res.status(404).json({ message: "Part List Item not found" });
       }
-
+ 
       res.status(200).json({
         message: "Allocations retrieved successfully",
         data: partItem.allocations,
