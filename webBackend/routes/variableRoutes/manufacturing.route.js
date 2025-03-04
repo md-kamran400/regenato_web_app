@@ -1,3 +1,4 @@
+require('dotenv').config();
 const { Router } = require("express");
 const ManufacturingModel = require("../../model/manufacturingmodel");
 const manufacturRouter = Router();
@@ -483,7 +484,7 @@ manufacturRouter.get("/category/:categoryId", async (req, res) => {
       await manufacturingEntry.save();
     }
 
-    const BASE_URL = "http://0.0.0.0:4040";
+    const BASE_URL = process.env.BASE_URL || "http://0.0.0.0:4040";
 
     const allocationResponse = await axios.get(
       `${BASE_URL}/api/defpartproject/all-allocations`
