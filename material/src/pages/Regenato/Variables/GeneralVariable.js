@@ -13,6 +13,8 @@ import {
 } from "reactstrap";
 import Flatpickr from "react-flatpickr";
 import { toast } from "react-toastify";
+import { FaEdit } from "react-icons/fa";
+import { MdOutlineDelete } from "react-icons/md";
 
 const GeneralVariable = () => {
   const [modalListOpen, setModalListOpen] = useState(false);
@@ -259,7 +261,7 @@ const GeneralVariable = () => {
                                 className="btn btn-sm btn-success"
                                 onClick={() => tog_edit(item)} // Pass item to edit
                               >
-                                Edit
+                                <FaEdit size={15} />
                               </Button>
 
                               <button
@@ -271,7 +273,7 @@ const GeneralVariable = () => {
                                   toggleDeleteModal();
                                 }}
                               >
-                                Remove
+                                <MdOutlineDelete size={17} />
                               </button>
                             </div>
                           </td>

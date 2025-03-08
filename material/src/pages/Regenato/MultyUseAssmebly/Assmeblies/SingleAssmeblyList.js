@@ -631,8 +631,8 @@ const SingleAssmeblyList = () => {
                                 </td>
                               </tr>
                               {expandedRowId === item._id && (
-                                <tr className="details-row">
-                                  <td colSpan={6}>
+                                // <tr className="details-row">
+                                  <td colSpan={7}>
                                     <div className="details-box">
                                       <h5
                                         className="mb-3 d-flex align-items-center"
@@ -702,7 +702,7 @@ const SingleAssmeblyList = () => {
                                       />
                                     </div>
                                   </td>
-                                </tr>
+                                // {/* </tr> */}
                               )}
                             </React.Fragment>
                           ))

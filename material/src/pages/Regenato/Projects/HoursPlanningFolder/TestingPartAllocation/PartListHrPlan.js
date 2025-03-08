@@ -24,7 +24,9 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { isSameDay, parseISO, getDay, isSameMonth } from "date-fns";
 
+
 import  {AllocatedPartListHrPlan}  from "./AllocatedPartListHrPlan";
+
 export const PartListHrPlan = ({
   partName,
   manufacturingVariables,

@@ -412,7 +412,7 @@ const OuterSubAssmebly = React.memo(
         const newPart = await response.json();
         setModalAdd(false);
         onUpdatePrts(newPart);
-        
+
         toast.success("Part added successfully");
       } catch (error) {
         console.error("Error adding part:", error);
@@ -606,7 +606,7 @@ const OuterSubAssmebly = React.memo(
                   </div>
                   <div className="button-group">
                     <Button
-                      color="danger"
+                      color="success"
                       className="add-btn"
                       onClick={toggleAddModal}
                     >
@@ -810,78 +810,6 @@ const OuterSubAssmebly = React.memo(
                                 </ModalBody>
                               </Modal>
                             )}
-
-                            {/* {expandedRowId === item._id && (
-                              <tr className="details-row">
-                                <td colSpan={6}>
-                                  <div className="details-box">
-                                    <h5
-                                      className="mb-3 d-flex align-items-center"
-                                      style={{
-                                        fontWeight: "bold",
-                                        color: "#333",
-                                      }}
-                                    >
-                                      <FiSettings
-                                        style={{
-                                          fontSize: "1.2rem",
-                                          marginRight: "10px",
-                                          color: "#2563eb",
-                                          fontWeight: "bold",
-                                        }}
-                                      />
-                                      {item.partName}
-                                    </h5>
-
-
-                                    <RawMaterial
-                                      partName={item.partName}
-                                      rmVariables={item.rmVariables || []}
-                                      projectId={projectId}
-                                      partId={item._id}
-                                      subAssemblyId={subAssemblyId}
-                                      rawMatarialsUpdate={onUpdatePrts}
-                                      quantity={item.quantity}
-                                    />
-
-                                    <Manufacturing
-                                      partName={item.partName}
-                                      manufacturingVariables={
-                                        item.manufacturingVariables || []
-                                      }
-                                      projectId={projectId}
-                                      partId={item._id}
-                                      subAssemblyId={subAssemblyId}
-                                      manufatcuringUpdate={onUpdatePrts}
-                                      quantity={item.quantity}
-                                    />
-
-                                    <Shipment
-                                      partName={item.partName}
-                                      shipmentVariables={
-                                        item.shipmentVariables || []
-                                      }
-                                      projectId={projectId}
-                                      partId={item._id}
-                                      subAssemblyId={subAssemblyId}
-                                      shipmentUpdate={onUpdatePrts}
-                                      quantity={item.quantity}
-                                    />
-                                    <Overheads
-                                      partName={item.partName}
-                                      overheadsAndProfits={
-                                        item.overheadsAndProfits || []
-                                      }
-                                      projectId={projectId}
-                                      partId={item._id}
-                                      subAssemblyId={subAssemblyId}
-                                      overHeadsUpdate={onUpdatePrts}
-                                      quantity={item.quantity}
-                                    />
-                                  </div>
-                                </td>
-                              </tr>
-                            )} */}
                           </React.Fragment>
                         ))}
                       </tbody>

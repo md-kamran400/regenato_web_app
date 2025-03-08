@@ -19,16 +19,16 @@ import { MdOutlineDelete } from "react-icons/md";
 import { Bold } from "feather-icons-react/build/IconComponents";
 import MachineDowntimeModal from "./MachineDowntimeModal";
 import MachineDowntimeHistory from "./MachineDowntimeHistory";
- 
+
 const ManufacturingVariable = () => {
   const [modal_add, setModalList] = useState(false);
   const [modal_edit, setModalEdit] = useState(false);
   const [modal_delete, setModalDelete] = useState(false);
   const [Sub_modal_delete, setSub_ModalDelete] = useState(false);
- 
+
   const [subDeleteModalOpen, setSubDeleteModalOpen] = useState(false);
   const [subToDelete, setSubToDelete] = useState(null); // Tracks the subcategory being deleted
- 
+
   const [posting, setPosting] = useState(false);
   const [error, setError] = useState(null);
   const [shipmentvars, setshipmentvars] = useState([]);
@@ -38,14 +38,14 @@ const ManufacturingVariable = () => {
   const [editId, setEditId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [manufacturingData, setManufacturingData] = useState([]);
- 
+
   // Machine downtime state
   const [downtimeModalOpen, setDowntimeModalOpen] = useState(false);
   const [downtimeHistoryModalOpen, setDowntimeHistoryModalOpen] =
     useState(false);
   const [selectedMachine, setSelectedMachine] = useState(null);
   const [selectedParentId, setSelectedParentId] = useState(null);
- 
+
   //sub categroy
   const [modal_add_sub, setModalAddSub] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -57,19 +57,19 @@ const ManufacturingVariable = () => {
     hourlyRate: "",
   });
   const [lastUsedId, setLastUsedId] = useState('');
- 
+
   // Toggles for modals
   const [formData, setFormData] = useState({
     categoryId: "",
     name: "",
     hourlyrate: "",
   });
- 
+
   // Toggles for modals
   const tog_add = () => {
     setModalList(!modal_add); // Open the modal
   };
- 
+
   const Sub_tog_edit = (item = null) => {
     if (item) {
       setSubFormData({
@@ -88,12 +88,12 @@ const ManufacturingVariable = () => {
     }
     setIsEditModalOpen(!isEditModalOpen); // Correct toggle state for edit modal
   };
- 
+
   // Function to toggle 'Delete' modal
   const tog_delete = () => {
     setModalDelete(!modal_delete);
   };
- 
+
   const handleDeleteSub = (subCategoryId, parentId) => {
     openSubDeleteModal({ _id: subCategoryId, parentId });
   };
@@ -101,12 +101,12 @@ const ManufacturingVariable = () => {
     setSubToDelete(subCategory);
     setSubDeleteModalOpen(true);
   };
- 
+
   const closeSubDeleteModal = () => {
     setSubToDelete(null);
     setSubDeleteModalOpen(false);
   };
- 
+
   // Function to toggle 'Edit' modal
   const tog_edit = (item = null) => {
     if (item) {
@@ -126,30 +126,30 @@ const ManufacturingVariable = () => {
     }
     setModalEdit(!modal_edit);
   };
- 
+
   // Machine downtime handlers
   const openDowntimeModal = (machine, parentId) => {
     setSelectedMachine(machine);
     setSelectedParentId(parentId);
     setDowntimeModalOpen(true);
   };
- 
+
   const closeDowntimeModal = () => {
     setDowntimeModalOpen(false);
     setSelectedMachine(null);
   };
- 
+
   const openDowntimeHistoryModal = (machine, parentId) => {
     setSelectedMachine(machine);
     setSelectedParentId(parentId);
     setDowntimeHistoryModalOpen(true);
   };
- 
+
   const closeDowntimeHistoryModal = () => {
     setDowntimeHistoryModalOpen(false);
     setSelectedMachine(null);
   };
- 
+
   const fetchAllAllocations = async () => {
     try {
       const response = await fetch(
@@ -163,7 +163,7 @@ const ManufacturingVariable = () => {
       return [];
     }
   };
- 
+
   // const fetchManufacturing = useCallback(async () => {
   //   setLoading(true);
   //   setError(null);
@@ -173,14 +173,14 @@ const ManufacturingVariable = () => {
   //     );
   //     if (!manufacturingResponse.ok)
   //       throw new Error("Failed to fetch manufacturing data");
- 
+
   //     const manufacturingData = await manufacturingResponse.json();
   //     const allocations = await fetchAllAllocations();
   //     const currentDate = new Date();
- 
+
   //     // Store all allocated machines grouped by process (C1, C2, C3...)
   //     const allocatedMachinesByProcess = new Map();
- 
+
   //     allocations.forEach((project) => {
   //       project.allocations.forEach((process) => {
   //         process.allocations.forEach((alloc) => {
@@ -202,7 +202,7 @@ const ManufacturingVariable = () => {
   //         });
   //       });
   //     });
- 
+
   //     // Update manufacturing data based on process allocation
   //     const updatedManufacturingData = manufacturingData.map((process) => {
   //       const updatedSubCategories = process.subCategories.map((machine) => {
@@ -219,7 +219,7 @@ const ManufacturingVariable = () => {
   //             statusEndDate: currentDate,
   //           };
   //         }
- 
+
   //         return {
   //           ...machine,
   //           isAvailable: true,
@@ -227,13 +227,13 @@ const ManufacturingVariable = () => {
   //           statusEndDate: null,
   //         };
   //       });
- 
+
   //       return {
   //         ...process,
   //         subCategories: updatedSubCategories,
   //       };
   //     });
- 
+
   //     setManufacturingData(updatedManufacturingData);
   //   } catch (error) {
   //     setError(error.message);
@@ -241,7 +241,7 @@ const ManufacturingVariable = () => {
   //     setLoading(false);
   //   }
   // }, []);
- 
+
   const fetchManufacturing = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -251,13 +251,13 @@ const ManufacturingVariable = () => {
       );
       if (!manufacturingResponse.ok)
         throw new Error("Failed to fetch manufacturing data");
- 
+
       const manufacturingData = await manufacturingResponse.json();
       const allocations = await fetchAllAllocations();
       const currentDate = new Date();
- 
+
       const allocatedMachinesByProcess = new Map();
- 
+
       allocations.forEach((project) => {
         project.allocations.forEach((process) => {
           process.allocations.forEach((alloc) => {
@@ -279,7 +279,7 @@ const ManufacturingVariable = () => {
           });
         });
       });
- 
+
       const updatedManufacturingData = manufacturingData.map((process) => {
         const updatedSubCategories = process.subCategories.map((machine) => {
           if (
@@ -295,7 +295,7 @@ const ManufacturingVariable = () => {
               statusEndDate: currentDate,
             };
           }
- 
+
           return {
             ...machine,
             isAvailable: true,
@@ -303,13 +303,13 @@ const ManufacturingVariable = () => {
             statusEndDate: null,
           };
         });
- 
+
         return {
           ...process,
           subCategories: updatedSubCategories,
         };
       });
- 
+
       setManufacturingData(updatedManufacturingData);
     } catch (error) {
       setError(error.message);
@@ -317,22 +317,22 @@ const ManufacturingVariable = () => {
       setLoading(false);
     }
   }, []);
- 
+
   useEffect(() => {
     fetchManufacturing();
   }, [fetchManufacturing]);
- 
+
   // Handle form input changes
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
   };
- 
+
   const handleSubChange = (e) => {
     const { name, value } = e.target;
     setSubFormData({ ...subFormData, [name]: value });
   };
- 
+
   const handleAddSub = async (e) => {
     e.preventDefault();
     setPosting(true);
@@ -365,12 +365,12 @@ const ManufacturingVariable = () => {
       setPosting(false);
     }
   };
- 
+
   const handleSubEditSubmit = async (e) => {
     e.preventDefault();
     setPosting(true);
     setError(null);
- 
+
     try {
       const response = await fetch(
         `${process.env.REACT_APP_BASE_URL}/api/manufacturing/${selectedManufacturingId}/subcategories/${editingSubId}`,
@@ -382,24 +382,24 @@ const ManufacturingVariable = () => {
           body: JSON.stringify(subFormData),
         }
       );
- 
+
       if (!response.ok) {
         throw new Error("Network response was not ok");
       }
- 
+
       // Refresh the manufacturing data after successful PUT request
       await fatchManufacturing();
- 
+
       // Reset form data
       setSubFormData({
         subcategoryId: "",
         name: "",
         hourlyRate: "",
       });
- 
+
       // Close the edit modal
       setIsEditModalOpen(false);
- 
+
       toast.success("Machine updated successfully!");
     } catch (error) {
       setError(error.message);
@@ -407,13 +407,13 @@ const ManufacturingVariable = () => {
       setPosting(false);
     }
   };
- 
- 
+
+  
   const handleSubmit = async (e) => {
     e.preventDefault();
     setPosting(true);
     setError(null);
- 
+
     try {
       const response = await fetch(
         `${process.env.REACT_APP_BASE_URL}/api/manufacturing`,
@@ -425,21 +425,21 @@ const ManufacturingVariable = () => {
           body: JSON.stringify(formData),
         }
       );
- 
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || "Network response was not ok");
       }
- 
+
       // Display success toast
       toast.success("Records Added successfully!");
- 
+
       // Close the modal
       tog_add();
- 
+
       // Fetch the updated data
       await fetchManufacturing();
- 
+
       // Reset form data
       setFormData({
         categoryId: "",
@@ -452,7 +452,7 @@ const ManufacturingVariable = () => {
           error.response?.data?.message ||
           "An unknown error occurred"
       );
- 
+
       // Display error toast
       toast.error(
         error.message ||
@@ -463,9 +463,9 @@ const ManufacturingVariable = () => {
       setPosting(false);
     }
   };
- 
+
   // Handle form submission for editing a variable (PUT request)
- 
+  
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     setPosting(true);
@@ -481,17 +481,17 @@ const ManufacturingVariable = () => {
           body: JSON.stringify(formData),
         }
       );
- 
+
       if (response.ok) {
         // Display success toast
         toast.success("Record updated successfully!");
- 
+
         // Close the modal
         tog_edit();
- 
+
         // Fetch the updated data
         await fetchManufacturing();
- 
+
         // Reset form data
         setFormData({
           categoryId: "",
@@ -508,7 +508,7 @@ const ManufacturingVariable = () => {
       setPosting(false);
     }
   };
- 
+
   // Handle delete action
  
   const handleDelete = async (_id) => {
@@ -524,13 +524,13 @@ const ManufacturingVariable = () => {
       if (!response.ok) {
         throw new Error("Network response was not ok");
       }
- 
+
       // Display success toast
       toast.success("Manufacturing Deleted Successfully");
- 
+
       // Close the modal
       tog_delete();
- 
+
       // Fetch the updated data
       await fetchManufacturing();
     } catch (error) {
@@ -540,22 +540,22 @@ const ManufacturingVariable = () => {
       setPosting(false);
     }
   };
- 
+
   const confirmDeleteSub = async () => {
     try {
       const { _id, parentId } = subToDelete;
- 
+
       const response = await fetch(
         `${process.env.REACT_APP_BASE_URL}/api/manufacturing/${parentId}/subcategories/${_id}`,
         {
           method: "DELETE",
         }
       );
- 
+
       if (!response.ok) {
         throw new Error("Failed to delete subcategory");
       }
- 
+
       await fatchManufacturing(); // Refetch the data to update the table
       toast.success("Machine Deleted successfully!");
       closeSubDeleteModal();
@@ -565,11 +565,11 @@ const ManufacturingVariable = () => {
       closeSubDeleteModal();
     }
   };
- 
+
   const handleRowClick = (rowId) => {
     setExpandedRowId(expandedRowId === rowId ? null : rowId);
   };
- 
+
   // Function to get status badge color
   const getStatusBadge = (status) => {
     switch (status) {
@@ -583,7 +583,7 @@ const ManufacturingVariable = () => {
         return { color: "gray", text: "Unknown" };
     }
   };
- 
+
   // Format date for display
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
@@ -596,6 +596,7 @@ const ManufacturingVariable = () => {
       minute: "2-digit",
     });
   };
+
   return (
     <React.Fragment>
       {/* Manufacturing Table */}
@@ -631,7 +632,7 @@ const ManufacturingVariable = () => {
                   </div>
                 </Col>
               </Row>
- 
+
               {/* Table */}
               <div className="table-responsive table-card mt-3 mb-1">
                 {loading ? (
@@ -704,7 +705,7 @@ const ManufacturingVariable = () => {
                                     Machines
                                   </h5>
                                   <Col className="col-sm-auto"></Col>
- 
+
                                   <table className="table align-middle table-nowrap">
                                     <thead className="table-light">
                                       <tr>
@@ -725,7 +726,7 @@ const ManufacturingVariable = () => {
                                             : "occupied");
                                         const statusBadge =
                                           getStatusBadge(status);
- 
+
                                         return (
                                           <tr
                                             key={subCategory.subcategoryId}
@@ -777,7 +778,7 @@ const ManufacturingVariable = () => {
                                                   ).toLocaleString()
                                                 : "N/A"}
                                             </td>
- 
+
                                             <td className="d-flex gap-2">
                                               <button
                                                 className="btn btn-sm btn-success"
@@ -790,7 +791,7 @@ const ManufacturingVariable = () => {
                                               >
                                                 <FaEdit size={15} />
                                               </button>
- 
+
                                               <button
                                                 className="btn btn-sm btn-danger"
                                                 onClick={() =>
@@ -860,7 +861,7 @@ const ManufacturingVariable = () => {
           </Card>
         </Col>
       </Row>
- 
+
       {/* Add Modal */}
       <Modal isOpen={modal_add} toggle={tog_add} centered>
         <ModalHeader className="bg-light p-3" toggle={tog_add}>
@@ -883,7 +884,7 @@ const ManufacturingVariable = () => {
                 require
               />
             </div>
- 
+
             <div className="mb-3">
               <label htmlFor="name" className="form-label">
                 Name
@@ -899,7 +900,7 @@ const ManufacturingVariable = () => {
                 require
               />
             </div>
- 
+
             <div className="mb-3">
               <label htmlFor="hourlyrate-field" className="form-label">
                 Hourly Rate (INR)
@@ -915,7 +916,7 @@ const ManufacturingVariable = () => {
                 // require
               />
             </div>
- 
+
             <ModalFooter>
               <Button color="secondary" onClick={tog_add} disabled={posting}>
                 Cancel
@@ -927,7 +928,7 @@ const ManufacturingVariable = () => {
           </form>
         </ModalBody>
       </Modal>
- 
+
       {/* Edit modal */}
       <Modal isOpen={modal_edit} toggle={tog_edit}>
         <ModalHeader toggle={tog_edit}>Edit Manufacturing Variable</ModalHeader>
@@ -983,7 +984,7 @@ const ManufacturingVariable = () => {
           </form>
         </ModalBody>
       </Modal>
- 
+
       {/* Delete modal */}
       <Modal isOpen={modal_delete} toggle={tog_delete} centered>
         <ModalHeader className="bg-light p-3" toggle={tog_delete}>
@@ -1018,7 +1019,7 @@ const ManufacturingVariable = () => {
           </Button>
         </ModalFooter>
       </Modal>
- 
+
       {/* Add Sub Modal */}
       <Modal isOpen={modal_add_sub} toggle={() => setModalAddSub(false)}>
         <ModalHeader toggle={() => setModalAddSub(false)}>
@@ -1046,7 +1047,7 @@ const ManufacturingVariable = () => {
                 required
               />
             </div>
- 
+
             {/* </FormGroup> */}
             <div className="mb-3">
               <label for="name" htmlFor="id-field" className="form-label">
@@ -1063,7 +1064,7 @@ const ManufacturingVariable = () => {
                 required
               />
             </div>
- 
+
             <div className="mb-3">
               <label for="hourlyRate" htmlFor="id-field" className="form-label">
                 Machine Hourly Rate
@@ -1090,7 +1091,7 @@ const ManufacturingVariable = () => {
           </Button>
         </ModalFooter>
       </Modal>
- 
+
       {/* sub edit modal */}
       <Modal isOpen={isEditModalOpen} toggle={Sub_tog_edit}>
         <ModalHeader toggle={Sub_tog_edit}>Edit Machine</ModalHeader>
@@ -1150,7 +1151,7 @@ const ManufacturingVariable = () => {
           </form>
         </ModalBody>
       </Modal>
- 
+
       <Modal isOpen={subDeleteModalOpen} toggle={closeSubDeleteModal} centered>
         <ModalHeader toggle={closeSubDeleteModal}>Delete Machine</ModalHeader>
         <ModalBody>
@@ -1179,7 +1180,7 @@ const ManufacturingVariable = () => {
           </Button>
         </ModalFooter>
       </Modal>
- 
+
       {/* Machine Downtime Modal */}
       {selectedMachine && (
         <MachineDowntimeModal
@@ -1190,7 +1191,7 @@ const ManufacturingVariable = () => {
           onSuccess={fetchManufacturing}
         />
       )}
- 
+
       {/* Machine Downtime History Modal */}
       {selectedMachine && (
         <MachineDowntimeHistory
@@ -1203,5 +1204,5 @@ const ManufacturingVariable = () => {
     </React.Fragment>
   );
 };
- 
+
 export default ManufacturingVariable;

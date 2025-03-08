@@ -31,6 +31,7 @@ const UserRoute = require("./routes/User_route/user.route");
 const allocationRoutes = require("./routes/Allocation/allocation.routes");
 const shiftRoutes = require("./routes/variableRoutes/shifts.routes");
 const eventRoutes = require("./routes/variableRoutes/eventScheduler");
+const { PartsExcelRoutes } = require("./routes/partsRoutes/partsExcel.routes");
 
 // MongoDB connection
 const connect = async () => {
@@ -58,7 +59,11 @@ app.use("/api/eventScheduler", eventRoutes);
 
 // Use PartRoutes for handling part-related route
 // Use PartRoutes for handling part-related routes
-app.use("/api/parts", PartRoutes); // Corrected the route
+// app.use("/api/parts", PartRoutes); // Corrected the route
+
+
+// THIS IS ONLY FOR NEW EXCEL LOGIC
+app.use("/api/parts" , PartsExcelRoutes);
 
 // Use ProjectRouter for handling project-related routes
 app.use("/api/projects", ProjectRouter);

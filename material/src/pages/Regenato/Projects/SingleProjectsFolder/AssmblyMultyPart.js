@@ -431,7 +431,7 @@ const AssmblyMultyPart = React.memo(
       if (time === 0) {
         return "0 m";
       }
-    
+
       const totalMinutes = Math.round(time * 60); // Convert hours to minutes
       return `${totalMinutes} m`;
     };
@@ -469,7 +469,7 @@ const AssmblyMultyPart = React.memo(
                     </Button>
                   </div>
 
-                  <div className="table-wrapper">
+                  <div className="table-wrapper" >
                     <table className="project-table">
                       <thead>
                         <tr>
@@ -499,14 +499,11 @@ const AssmblyMultyPart = React.memo(
                                 style={{ cursor: "pointer", color: "#64B5F6" }}
                                 className="parent_partName"
                               >
-                                {item.partName} ({item.Uid || ""}) {item.codeName || ""}
+                                {item.partName} ({item.Uid || ""}){" "}
+                                {item.codeName || ""}
                               </td>
-                              <td>
-                                {parseFloat(item.costPerUnit || 0)}
-                              </td>
-                              <td>
-                                {formatTime(item.timePerUnit || 0)}
-                              </td>
+                              <td>{parseFloat(item.costPerUnit || 0)}</td>
+                              <td>{formatTime(item.timePerUnit || 0)}</td>
                               <td>{parseInt(item.quantity || 0)}</td>
                               <td>
                                 {(
@@ -517,7 +514,7 @@ const AssmblyMultyPart = React.memo(
                               <td>
                                 {formatTime(
                                   parseFloat(item.timePerUnit || 0) *
-                                  parseInt(item.quantity || 0)
+                                    parseInt(item.quantity || 0)
                                 )}
                               </td>
 
@@ -558,55 +555,6 @@ const AssmblyMultyPart = React.memo(
                                       />
                                       {item.partName}
                                     </h5>
-                                    
-                                    {/* <RawMaterial
-                                      partName={item.partName}
-                                      rmVariables={item.rmVariables}
-                                      projectId={_id}
-                                      partId={partsAssmeblyItems._id}
-                                      assemblyId={assemblyId}
-                                      itemId={item._id}
-                                      source="assemblyMultyPartsList"
-                                      rawMatarialsUpdate={onUpdatePrts}
-                                    />
-
-                                    <Manufacturing
-                                      partName={item.partName}
-                                      manufacturingVariables={
-                                        item.manufacturingVariables || []
-                                      }
-                                      projectId={_id}
-                                      partId={partsAssmeblyItems._id}
-                                      itemId={item._id}
-                                      assemblyId={assemblyId}
-                                      source="assemblyMultyPartsList"
-                                      manufatcuringUpdate={onUpdatePrts}
-                                    />
-
-                                    <Shipment
-                                      partName={item.partName}
-                                      shipmentVariables={
-                                        item.shipmentVariables || []
-                                      }
-                                      projectId={_id}
-                                      partId={partsAssmeblyItems._id}
-                                      itemId={item._id}
-                                      assemblyId={assemblyId}
-                                      source="assemblyMultyPartsList"
-                                      shipmentUpdate={onUpdatePrts}
-                                    />
-                                    <Overheads
-                                      partName={item.partName}
-                                      overheadsAndProfits={
-                                        item.overheadsAndProfits
-                                      }
-                                      projectId={_id}
-                                      partId={partsAssmeblyItems._id}
-                                      itemId={item._id}
-                                      assemblyId={assemblyId}
-                                      source="assemblyMultyPartsList"
-                                      overHeadsUpdate={onUpdatePrts}
-                                    /> */}
                                   </div>
                                 </td>
                               </tr>

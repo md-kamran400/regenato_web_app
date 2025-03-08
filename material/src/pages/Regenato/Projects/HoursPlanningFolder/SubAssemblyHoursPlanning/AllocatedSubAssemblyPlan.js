@@ -14,17 +14,20 @@ import {
   Alert,
   CardBody,
 } from "reactstrap";
+import { toast } from "react-toastify";
 
 export const AllocatedSubAssemblyPlan = ({
   porjectID,
   subAssemblyListFirstId,
   partListItemId,
+  onDeleteSuccess,
 }) => {
   const [sections, setSections] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [dailyTaskModal, setDailyTaskModal] = useState(false);
   const [selectedSection, setSelectedSection] = useState(null);
+  const [deleteConfirmationModal, setDeleteConfirmationModal] = useState(false); // New state for delete confirmation modal
 
   useEffect(() => {
     const fetchAllocations = async () => {
@@ -61,6 +64,23 @@ export const AllocatedSubAssemblyPlan = ({
 
     fetchAllocations();
   }, [porjectID, subAssemblyListFirstId, partListItemId]);
+
+  const handleCancelAllocation = async () => {
+    try {
+      const response = await axios.delete(
+        `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/subAssemblyListFirst/${subAssemblyListFirstId}/partsListItems/${partListItemId}/allocation`
+      );
+      if (response.status === 200) {
+        toast.success("Allocation successfully canceled!");
+        setSections([]);
+        onDeleteSuccess();
+      }
+    } catch (error) {
+      toast.error("Failed to cancel allocation.");
+      console.error("Error canceling allocation:", error);
+    }
+    setDeleteConfirmationModal(false); // Close the confirmation modal after deletion
+  };
 
   const openModal = (section) => {
     setSelectedSection(section);
@@ -141,7 +161,13 @@ export const AllocatedSubAssemblyPlan = ({
           ))
         )}
         <CardBody className="d-flex justify-content-end align-items-center">
-          {/* <Button color="danger">Cancel Allocation</Button> */}
+          <Button
+            color="danger"
+            onClick={() => setDeleteConfirmationModal(true)}
+            disabled={sections.length === 0} // Disable the button if no data is available
+          >
+            Cancel Allocation
+          </Button>
         </CardBody>
       </Container>
 
@@ -155,7 +181,7 @@ export const AllocatedSubAssemblyPlan = ({
           Update Input - {selectedSection?.title}
         </ModalHeader>
         <ModalBody>
-          {selectedSection && selectedSection.data.length > 0 ? (
+          {selectedSection && (
             <>
               <Row className="mb-3">
                 <Col>
@@ -177,40 +203,37 @@ export const AllocatedSubAssemblyPlan = ({
                   <span style={{ color: "red" }}>22/03/2025</span>
                 </Col>
               </Row>
-              <Table bordered>
-                <thead>
-                  <tr>
-                    <th>Date</th>
-                    <th>Planned</th>
-                    <th>Produced</th>
-                    <th>Status</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {dailyTasks.map((task, index) => (
-                    <tr key={index}>
-                      <td>{task.date.toDateString()}</td>
-                      <td>{task.planned}</td>
-                      <td>
-                        <Input type="number" defaultValue={task.produced} />
-                      </td>
-                      <td>{task.delay}</td>
-                      <td>
-                        <Button>Update</Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </Table>
             </>
-          ) : (
-            <Alert color="warning">No details available.</Alert>
           )}
         </ModalBody>
         <ModalFooter>
           <Button color="secondary" onClick={() => setDailyTaskModal(false)}>
             Close
+          </Button>
+        </ModalFooter>
+      </Modal>
+
+      {/* Modal for Delete Confirmation */}
+      <Modal
+        isOpen={deleteConfirmationModal}
+        toggle={() => setDeleteConfirmationModal(false)}
+      >
+        <ModalHeader toggle={() => setDeleteConfirmationModal(false)}>
+          Confirm Deletion
+        </ModalHeader>
+        <ModalBody>
+          Are you sure you want to delete this allocation? This action cannot be
+          undone.
+        </ModalBody>
+        <ModalFooter>
+          <Button color="danger" onClick={handleCancelAllocation}>
+            Delete
+          </Button>
+          <Button
+            color="secondary"
+            onClick={() => setDeleteConfirmationModal(false)}
+          >
+            Cancel
           </Button>
         </ModalFooter>
       </Modal>

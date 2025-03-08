@@ -23,14 +23,16 @@ import { toast } from "react-toastify";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { isSameDay, parseISO, getDay, isSameMonth } from "date-fns";
-import { AllocatedAssemblyPartList } from "./AllocatedAssemblyPartList";
 
-export const AssemblyPartListHoursPlan = ({
+import { AllocatedAssembly_subAssembly } from "./AllocatedAssembly_subAssembly";
+
+export const Assembly_SubAssemblyHoursPlanning = ({
   partName,
   manufacturingVariables,
   quantity,
   porjectID,
   AssemblyListId,
+  subAssembliesId,
   partListItemId,
 }) => {
   const [machineOptions, setMachineOptions] = useState({});
@@ -42,9 +44,6 @@ export const AssemblyPartListHoursPlan = ({
   const [hasStartDate, setHasStartDate] = useState(false);
   const [shiftOptions, setShiftOptions] = useState([]);
   const [selectedShift, setSelectedShift] = useState(null);
-  const openConfirmationModal = () => {
-    setIsConfirmationModalOpen(true);
-  };
   const [remainingQuantity, setRemainingQuantity] = useState(quantity);
   const [remainingQuantities, setRemainingQuantities] = useState({});
   const [isAutoSchedule, setIsAutoSchedule] = useState(false);
@@ -52,6 +51,9 @@ export const AssemblyPartListHoursPlan = ({
   const [eventDates, setEventDates] = useState([]);
   const [isDataAllocated, setIsDataAllocated] = useState(false);
 
+  const openConfirmationModal = () => {
+    setIsConfirmationModalOpen(true);
+  };
   useEffect(() => {
     fetch(`${process.env.REACT_APP_BASE_URL}/api/eventScheduler/events`)
       .then((response) => response.json())
@@ -72,24 +74,22 @@ export const AssemblyPartListHoursPlan = ({
       })
       .catch((error) => console.error("Error fetching events:", error));
   }, []);
-
   useEffect(() => {
     const fetchAllocatedData = async () => {
       try {
         const response = await axios.get(
-          `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/assemblyList/${AssemblyListId}/partsListItems/${partListItemId}/allocations`
+          `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/assemblyList/${AssemblyListId}/subAssemblies/${subAssembliesId}/partsListItems/${partListItemId}/allocations`
         );
         if (response.data.data.length > 0) {
           setIsDataAllocated(true);
         }
-        console.log(response);
       } catch (error) {
         console.error("Error fetching allocated data:", error);
       }
     };
 
     fetchAllocatedData();
-  }, [porjectID, AssemblyListId, partListItemId]);
+  }, [porjectID, AssemblyListId, subAssembliesId, partListItemId]);
 
   // Function to check if the date is an event date or a Sunday
   const isHighlightedOrDisabled = (date) => {
@@ -496,10 +496,7 @@ export const AssemblyPartListHoursPlan = ({
         // Reset order number counter for each process
         let orderCounter = 1;
 
-        rows[index].forEach((row, rowIndex) => {
-          console.log(`Processing row ${rowIndex} in process ${index}:`, row);
-
-          // Check if all required fields are present
+        rows[index].forEach((row) => {
           if (
             row.plannedQuantity &&
             row.startDate &&
@@ -535,16 +532,10 @@ export const AssemblyPartListHoursPlan = ({
                 operators.find((op) => op._id === row.operatorId)?.name ||
                 "Unknown",
             });
-          } else {
-            console.warn(
-              `Skipping row ${rowIndex} in process ${index} due to missing or invalid fields:`,
-              row
-            );
           }
         });
       });
 
-      // Convert groupedAllocations object to an array
       const finalAllocations = Object.values(groupedAllocations);
 
       console.log(
@@ -552,28 +543,19 @@ export const AssemblyPartListHoursPlan = ({
         JSON.stringify(finalAllocations, null, 2)
       );
 
-      if (finalAllocations.length === 0) {
-        toast.error(
-          "No valid allocations to submit. Please check your inputs."
-        );
-        return;
-      }
-
-      // Send the grouped allocations to the backend
       const response = await axios.post(
-        `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/assemblyList/${AssemblyListId}/partsListItems/${partListItemId}/allocation`,
+        `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/assemblyList/${AssemblyListId}/subAssemblies/${subAssembliesId}/partsListItems/${partListItemId}/allocation`,
         { allocations: finalAllocations }
       );
 
       if (response.status === 201) {
         toast.success("Allocations successfully added!");
-        setIsDataAllocated(true); // Update state to reflect that data is allocated
+        setIsDataAllocated(true); // Update the state to reflect that data is allocated
       } else {
         toast.error("Failed to add allocations.");
       }
     } catch (error) {
-      console.error("Error submitting allocations:", error);
-      toast.error("An error occurred while submitting allocations.");
+      toast.error(error);
     }
   };
 
@@ -608,7 +590,7 @@ export const AssemblyPartListHoursPlan = ({
             <Button
               color={isAutoSchedule ? "primary" : "secondary"}
               onClick={() => setIsAutoSchedule(!isAutoSchedule)}
-              disabled={isDataAllocated}
+              disabled={isDataAllocated} // Disable when data is allocated
             >
               {isAutoSchedule ? "Auto Schedule ✅" : "Auto Schedule"}
             </Button>
@@ -618,16 +600,10 @@ export const AssemblyPartListHoursPlan = ({
             >
               Planned
             </Button>
-            {/* <Button
-              color={activeTab === "actual" ? "primary" : "secondary"}
-              onClick={() => setActiveTab("actual")}
-            >
-              Actual
-            </Button> */}
             <Button
               color={activeTab === "actual" ? "primary" : "secondary"}
               onClick={() => setActiveTab("actual")}
-              disabled={isDataAllocated}
+              disabled={isDataAllocated} // Disable when data is allocated
             >
               Actual
             </Button>
@@ -635,9 +611,10 @@ export const AssemblyPartListHoursPlan = ({
         </CardHeader>
 
         {activeTab === "planned" && (
-          <AllocatedAssemblyPartList
+          <AllocatedAssembly_subAssembly
             porjectID={porjectID}
             AssemblyListId={AssemblyListId}
+            subAssembliesId={subAssembliesId}
             partListItemId={partListItemId}
             onDeleteSuccess={handleDeleteSuccess}
           />
@@ -783,19 +760,6 @@ export const AssemblyPartListHoursPlan = ({
                           </td>
 
                           <td>
-                            {/* <Input
-                              type="date"
-                              value={row.startDate}
-                              onChange={(e) =>
-                                handleStartDateChange(
-                                  index,
-                                  rowIndex,
-                                  e.target.value
-                                )
-                              }
-                              // readOnly={index !== 0}
-                            /> */}
-
                             <DatePicker
                               selected={
                                 row.startDate ? new Date(row.startDate) : null

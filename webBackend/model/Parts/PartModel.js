@@ -1,51 +1,5 @@
 const mongoose = require("mongoose");
 
-// general variable schema
-const generalVariableSchema = new mongoose.Schema({
-  categoryId: String,
-  name: String,
-  value: String,
-});
-
-// Schema for RM Variables
-const rmVariableSchema = new mongoose.Schema({
-  categoryId: String,
-  name: String,
-  netWeight: Number,
-  pricePerKg: Number,
-  totalRate: Number,
-});
-
-// Schema for Manufacturing Variables
-const manufacturingVariableSchema = new mongoose.Schema({
-  categoryId: String,
-  name: String,
-  times: String,
-  hours: Number,
-  hourlyRate: Number,
-  totalRate: Number,
-});
-
-// Schema for Shipment Variables
-const shipmentVariableSchema = new mongoose.Schema({
-  categoryId: String,
-  name: String,
-  hourlyRate: Number,
-});
-
-// Schema for Overheads and Profits
-const overheadsAndProfitsSchema = new mongoose.Schema({
-  categoryId: String,
-  name: String,
-  percentage: Number,
-  totalRate: Number,
-});
-const partsCalculationsSchema = new mongoose.Schema({
-  AvgragecostPerUnit: Number,
-  AvgragetimePerUnit: Number,
-  // AveragestockPOQty: Number,
-});
-
 // Main Part schema
 const partSchema = new mongoose.Schema({
   id: { type: String, unique: true },

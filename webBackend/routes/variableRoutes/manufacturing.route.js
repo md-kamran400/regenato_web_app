@@ -1,3 +1,4 @@
+require('dotenv').config();
 const { Router } = require("express");
 const ManufacturingModel = require("../../model/manufacturingmodel");
 const manufacturRouter = Router();
@@ -38,7 +39,41 @@ manufacturRouter.post("/", async (req, res) => {
   }
 });
 
-// GET request to retrieve all Manufacturing data
+manufacturRouter.post("/", async (req, res) => {
+  try {
+    // Check if the categoryId already exists
+    const existingManufacture = await ManufacturingModel.findOne({
+      categoryId: req.body.categoryId,
+    });
+
+    if (existingManufacture) {
+      return res.status(409).json({
+        error: "Category ID already exists",
+        message: "Please choose a different Category ID",
+      });
+    }
+
+    let Manufacture = new ManufacturingModel(req.body);
+    await Manufacture.save();
+
+    res.status(201).json({
+      msg: "Manufacturing variable Added",
+      addManufacture: Manufacture,
+      message: "New manufacturing variable created successfully",
+    });
+  } catch (error) {
+    if (error.code === 11000) {
+      // MongoDB duplicate key error
+      return res.status(409).json({
+        error: "Duplicate Category ID",
+        message: "Category ID already exists. Please choose a different one.",
+      });
+    }
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// GET request to retrieve all Manufacturing data (already existing)
 manufacturRouter.get("/", async (req, res) => {
   try {
     const allManufacturingVariable = await ManufacturingModel.find();
@@ -125,9 +160,6 @@ manufacturRouter.post("/:id/subcategories", async (req, res) => {
       hours: 0, // Default value
       hourlyRate,
       totalRate: 0, // Default value
-      isAvailable: true,
-      unavailableUntil: null,
-      downtimeHistory: [],
     };
 
     // Add the subcategory to the manufacturing entry
@@ -362,28 +394,80 @@ manufacturRouter.put(
   }
 );
 
+// manufacturRouter.get("/category/:categoryId", async (req, res) => {
+//   try {
+//     let { categoryId } = req.params;
+//     // console.log("Received categoryId:", categoryId);
+//     // Validate categoryId - only check for empty values
+//     if (!categoryId || typeof categoryId !== "string") {
+//       return res
+//         .status(400)
+//         .json({ msg: "Invalid categoryId format. Expected a string." });
+//     }
+//     // Fetch manufacturing entry by categoryId
+//     const manufacturingEntry = await ManufacturingModel.findOne({ categoryId });
+
+//     if (!manufacturingEntry) {
+//       return res.status(404).json({ msg: "Manufacturing entry not found" });
+//     }
+
+//     const BASE_URL = "http://0.0.0.0:4040";
+
+//     // Fetch all allocations using axios
+//     const allocationResponse = await axios.get(
+//       `${BASE_URL}/api/defpartproject/all-allocations`
+//     );
+//     if (!allocationResponse.data || !allocationResponse.data.data) {
+//       return res
+//         .status(500)
+//         .json({ msg: "Failed to retrieve allocation data" });
+//     }
+
+//     const allocationData = allocationResponse.data;
+//     const allocatedMachines = new Set();
+//     allocationData.data.forEach((project) => {
+//       project.allocations.forEach((process) => {
+//         process.allocations.forEach((alloc) => {
+//           if (alloc.machineId) {
+//             allocatedMachines.add(alloc.machineId);
+//           }
+//         });
+//       });
+//     });
+//     const availableMachines = manufacturingEntry.subCategories.filter(
+//       (machine) => !allocatedMachines.has(machine.subcategoryId)
+//     );
+
+//     res.status(200).json({
+//       msg: "Available subcategories retrieved",
+//       subCategories: availableMachines,
+//     });
+//   } catch (error) {
+//     console.error("Error fetching data:", error.message);
+//     res
+//       .status(500)
+//       .json({ error: "Internal Server Error", details: error.message });
+//   }
+// });
+
 manufacturRouter.get("/category/:categoryId", async (req, res) => {
   try {
-    const { categoryId } = req.params;
+    let { categoryId } = req.params;
 
-    // Validate categoryId
     if (!categoryId || typeof categoryId !== "string") {
-      return res
-        .status(400)
-        .json({ msg: "Invalid categoryId format. Expected a string." });
+      return res.status(400).json({ msg: "Invalid categoryId format." });
     }
 
-    // Fetch manufacturing entry by categoryId
     const manufacturingEntry = await ManufacturingModel.findOne({ categoryId });
 
     if (!manufacturingEntry) {
       return res.status(404).json({ msg: "Manufacturing entry not found" });
     }
 
-    // Update machine availability based on current date
     const now = new Date();
-    let isUpdated = false;
+    let updated = false;
 
+    // Reset availability for machines whose downtime has ended
     manufacturingEntry.subCategories.forEach((machine) => {
       if (
         !machine.isAvailable &&
@@ -392,76 +476,67 @@ manufacturRouter.get("/category/:categoryId", async (req, res) => {
       ) {
         machine.isAvailable = true;
         machine.unavailableUntil = null;
-        isUpdated = true;
+        updated = true;
       }
     });
 
-    if (isUpdated) {
+    if (updated) {
       await manufacturingEntry.save();
     }
 
-    // Fetch all allocations
-    const BASE_URL = "http://0.0.0.0:4040";
-    let allocationData;
-    
-    try {
-      const allocationResponse = await axios.get(
-        `${BASE_URL}/api/defpartproject/all-allocations`
-      );
-      allocationData = allocationResponse.data?.data;
-    } catch (error) {
-      console.error("Error fetching allocation data:", error.message);
-      return res.status(500).json({ msg: "Failed to retrieve allocation data" });
+    const BASE_URL = process.env.BASE_URL || "http://0.0.0.0:4040";
+
+    const allocationResponse = await axios.get(
+      `${BASE_URL}/api/defpartproject/all-allocations`
+    );
+
+    if (!allocationResponse.data || !allocationResponse.data.data) {
+      return res
+        .status(500)
+        .json({ msg: "Failed to retrieve allocation data" });
     }
 
-    if (!allocationData) {
-      return res.status(500).json({ msg: "No allocation data available" });
-    }
-
+    const allocationData = allocationResponse.data;
     const currentDate = new Date();
-    const machineAllocationStatus = new Map();
 
-    // Map machine IDs to their allocation status
-    allocationData.forEach((project) => {
+    // Store all allocated machines grouped by process (C1, C2, C3...)
+    const allocatedMachinesByProcess = new Map();
+
+    allocationData.data.forEach((project) => {
       project.allocations.forEach((process) => {
         process.allocations.forEach((alloc) => {
           if (alloc.machineId) {
             const startDate = new Date(alloc.startDate);
             const endDate = new Date(alloc.endDate);
-
             if (currentDate >= startDate && currentDate <= endDate) {
-              machineAllocationStatus.set(alloc.machineId, {
-                isAllocated: true,
-                endDate: endDate,
-              });
+              if (!allocatedMachinesByProcess.has(process.processName)) {
+                allocatedMachinesByProcess.set(process.processName, new Set());
+              }
+              allocatedMachinesByProcess
+                .get(process.processName)
+                .add(alloc.machineId);
             }
           }
         });
       });
     });
 
-    // Update machine statuses based on allocations
-    const machinesWithAvailability = manufacturingEntry.subCategories.map(
+    // After the loop, add this line:
+
+    // Update all machines in the manufacturing model based on process allocation
+    manufacturingEntry.subCategories = manufacturingEntry.subCategories.map(
       (machine) => {
-        const allocation = machineAllocationStatus.get(machine.subcategoryId);
-
-        if (!machine.isAvailable && machine.unavailableUntil) {
-          return {
-            ...machine.toObject(),
-            status: "downtime",
-            statusEndDate: machine.unavailableUntil,
-          };
-        }
-
-        if (allocation && allocation.isAllocated) {
+        if (
+          allocatedMachinesByProcess.has(categoryId) &&
+          allocatedMachinesByProcess.get(categoryId).has(machine.subcategoryId)
+        ) {
           return {
             ...machine.toObject(),
             isAvailable: false,
             status: "occupied",
-            statusEndDate: allocation.endDate,
+            statusEndDate: now, // Just marking the status, change logic if needed
           };
         }
-
         return {
           ...machine.toObject(),
           isAvailable: true,
@@ -471,11 +546,12 @@ manufacturRouter.get("/category/:categoryId", async (req, res) => {
       }
     );
 
-    res.status(200).json({
-      msg: "Available subcategories retrieved",
-      subCategories: machinesWithAvailability,
-    });
+    await manufacturingEntry.save();
 
+    res.status(200).json({
+      msg: "Updated subcategories retrieved",
+      subCategories: manufacturingEntry.subCategories,
+    });
   } catch (error) {
     console.error("Error fetching data:", error.message);
     res

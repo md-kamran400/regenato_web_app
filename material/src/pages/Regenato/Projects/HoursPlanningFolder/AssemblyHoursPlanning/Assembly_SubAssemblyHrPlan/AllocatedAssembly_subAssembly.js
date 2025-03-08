@@ -1,3 +1,9 @@
+// import React from "react";
+
+// export const AllocatedAssembly_subAssembly = () => {
+//   return <div>AllocatedAssembly_subAssembly</div>;
+// };
+
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import {
@@ -15,9 +21,10 @@ import {
   CardBody,
 } from "reactstrap";
 import { toast } from "react-toastify";
-export const AllocatedPartListHrPlan = ({
+export const AllocatedAssembly_subAssembly = ({
   porjectID,
-  partID,
+  AssemblyListId,
+  subAssembliesId,
   partListItemId,
   onDeleteSuccess,
 }) => {
@@ -26,7 +33,7 @@ export const AllocatedPartListHrPlan = ({
   const [error, setError] = useState(null);
   const [dailyTaskModal, setDailyTaskModal] = useState(false);
   const [selectedSection, setSelectedSection] = useState(null);
-  const [deleteConfirmationModal, setDeleteConfirmationModal] = useState(false); // New state for delete confirmation modal
+  const [deleteConfirmationModal, setDeleteConfirmationModal] = useState(false);
 
   useEffect(() => {
     const fetchAllocations = async () => {
@@ -34,8 +41,9 @@ export const AllocatedPartListHrPlan = ({
       setError(null);
       try {
         const response = await axios.get(
-          `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/allocation`
+          `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/assemblyList/${AssemblyListId}/subAssemblies/${subAssembliesId}/partsListItems/${partListItemId}/allocations`
         );
+
         if (!response.data.data || response.data.data.length === 0) {
           setSections([]);
         } else {
@@ -52,6 +60,7 @@ export const AllocatedPartListHrPlan = ({
             })),
           }));
           setSections(formattedSections);
+          console.log(formattedSections);
         }
       } catch (error) {
         setError("Failed to fetch allocations. Please try again later.");
@@ -59,14 +68,14 @@ export const AllocatedPartListHrPlan = ({
       }
       setLoading(false);
     };
- 
+
     fetchAllocations();
-  }, [porjectID, partID, partListItemId]);
+  }, [porjectID, AssemblyListId, partListItemId]);
 
   const handleCancelAllocation = async () => {
     try {
       const response = await axios.delete(
-        `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/allocation`
+        `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/assemblyList/${AssemblyListId}/subAssemblies/${subAssembliesId}/partsListItems/${partListItemId}/allocations`
       );
       if (response.status === 200) {
         toast.success("Allocation successfully canceled!");
@@ -77,13 +86,14 @@ export const AllocatedPartListHrPlan = ({
       toast.error("Failed to cancel allocation.");
       console.error("Error canceling allocation:", error);
     }
-    setDeleteConfirmationModal(false); // Close the confirmation modal after deletion
+    setDeleteConfirmationModal(false);
   };
+
   const openModal = (section) => {
     setSelectedSection(section);
     setDailyTaskModal(true);
   };
- 
+
   return (
     <div style={{ width: "100%" }}>
       <Container fluid className="mt-4">
@@ -141,7 +151,7 @@ export const AllocatedPartListHrPlan = ({
                   </tr>
                 </thead>
                 <tbody>
-                  {section.data.map((row, rowIndex) => (
+                  {section?.data.map((row, rowIndex) => (
                     <tr key={rowIndex}>
                       <td>{row.plannedQty}</td>
                       <td>{row.startDate}</td>
@@ -161,13 +171,13 @@ export const AllocatedPartListHrPlan = ({
           <Button
             color="danger"
             onClick={() => setDeleteConfirmationModal(true)}
-            disabled={sections.length === 0} // Disable the button if no data is available
+            disabled={sections.length === 0}
           >
             Cancel Allocation
           </Button>
         </CardBody>
       </Container>
- 
+
       {/* Modal for Updating Daily Task */}
       <Modal
         isOpen={dailyTaskModal}
@@ -209,6 +219,7 @@ export const AllocatedPartListHrPlan = ({
           </Button>
         </ModalFooter>
       </Modal>
+
       {/* Modal for Delete Confirmation */}
       <Modal
         isOpen={deleteConfirmationModal}
