@@ -1,3 +1,141 @@
+/* Calendar Styles */
+.fc {
+  --fc-border-color: #e5e7eb;
+  --fc-button-bg-color: #3b82f6;
+  --fc-button-border-color: #3b82f6;
+  --fc-button-hover-bg-color: #2563eb;
+  --fc-button-hover-border-color: #2563eb;
+  --fc-button-active-bg-color: #1d4ed8;
+  --fc-button-active-border-color: #1d4ed8;
+}
+
+.fc .fc-button {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  border-radius: 0.375rem;
+}
+
+.fc .fc-toolbar-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.fc .fc-resource-timeline-divider {
+  background: #f3f4f6;
+  width: 3px;
+}
+
+.fc .fc-resource-timeline-group-lane {
+  background: #f9fafb;
+}
+
+.fc .fc-timeline-slot-cushion {
+  padding: 4px 8px;
+  font-weight: 500;
+}
+
+.fc .fc-timeline-event {
+  border-radius: 4px;
+  padding: 2px;
+  cursor: pointer;
+}
+
+.fc .fc-timeline-event .fc-event-main {
+  padding: 2px 4px;
+}
+
+.fc .fc-resource-timeline-group-header {
+  background: #f3f4f6;
+  padding: 8px;
+  font-weight: 600;
+}
+
+.fc .fc-resource-timeline-header-cell {
+  padding: 8px;
+  font-weight: 500;
+}
+
+/* Process Status Tags */
+.status-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.status-tag.assembly {
+  background-color: #ecfdf5;
+  color: #059669;
+}
+
+.status-tag.sub-assembly {
+  background-color: #f3e8ff;
+  color: #7e22ce;
+}
+
+.status-tag.part {
+  background-color: #dbeafe;
+  color: #2563eb;
+}
+
+/* Process Timeline */
+.process-timeline {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.timeline-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.timeline-line {
+  flex: 1;
+  height: 2px;
+  background-color: #e5e7eb;
+}
+
+.timeline-dot.active {
+  background-color: #3b82f6;
+}
+
+.timeline-dot.completed {
+  background-color: #10b981;
+}
+
+.timeline-dot.pending {
+  background-color: #e5e7eb;
+}
+
+.timeline-line.active {
+  background-color: #3b82f6;
+}
+
+.timeline-line.completed {
+  background-color: #10b981;
+}
+
+/* Animations */
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.process-details {
+  animation: slideDown 0.2s ease-out;
+}
+
 /* General Layout */
 .plan-container {
   padding: 1.5rem;
@@ -509,8 +647,12 @@
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .loading-text {
@@ -529,4 +671,36 @@
   background-color: #fee2e2;
   border: 1px solid #fecaca;
   border-radius: 0.375rem;
+}
+
+.process-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.process-title {
+  font-size: 24px;
+  font-weight: bold;
+  color: #333;
+}
+
+.process-select {
+  padding: 8px 12px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background-color: #fff;
+  color: #333;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+}
+
+.process-select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
 }

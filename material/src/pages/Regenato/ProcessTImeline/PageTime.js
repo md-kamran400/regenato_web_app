@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import Calendar from "@fullcalendar/react";
 import resourceTimelinePlugin from "@fullcalendar/resource-timeline";
 import adaptivePlugin from "@fullcalendar/adaptive";
-import ReactDOM from "react-dom";
 import "./PageTime.css"; // Import the CSS file
 
 const processColors = {
@@ -25,177 +24,137 @@ const processColors = {
   C19: { bg: "#0D9488", border: "#0F766E" },
 };
 
-const machiningProcesses = {
-  C1: { name: "VMC" },
-  C2: { name: "VMC Local" },
-  C3: { name: "Manual Milling" },
-  C4: { name: "Grinding Floor" },
-  C5: { name: "CNC" },
-  C6: { name: "Turning" },
-  C7: { name: "CNC Turning" },
-  C8: { name: "Manual Turning" },
-  C9: { name: "Surface Grinding" },
-  C11: { name: "Cylindrical Grinding" },
-  C12: { name: "Tool Room" },
-  C13: { name: "Assembly" },
-  C14: { name: "Quality" },
-  C15: { name: "Maintenance" },
-  C17: { name: "Planning" },
-  C18: { name: "Stores" },
-  C19: { name: "Dispatch" },
+const fetchManufacturingData = async () => {
+  const response = await fetch("http://localhost:4040/api/manufacturing");
+  const data = await response.json();
+  return data;
 };
 
-const operators = [
-  "Rajesh Kumar",
-  "Amit Patel",
-  "Suresh Singh",
-  "Priya Sharma",
-  "Deepak Verma",
-  "Ankit Gupta",
-  "Neha Reddy",
-  "Vikram Malhotra",
-  "Sanjay Mehta",
-  "Pooja Patel",
-  "Rahul Sharma",
-  "Kavita Singh",
-];
+const fetchAllocationsData = async () => {
+  const response = await fetch(
+    "http://localhost:4040/api/defpartproject/all-allocations"
+  );
+  const data = await response.json();
+  console.log(data.data)
+  return data.data; // Assuming the response structure has a `data` field
+};
 
-const parts = [
-  "COVER PLATE EM- SF NEW",
-  "STOPPER HOLDER EM- SF NEW",
-  "Square Pin (RSSF-MECH)",
-  "Pusher Holder (EM-SF-Spiral)",
-  "Spiral Insulation Dial (LW-EF-Spiral)",
-  "Wire Guide (RSSF-PM-SB)",
-];
+const transformManufacturingData = (manufacturingData) => {
+  const processes = {};
+  manufacturingData.forEach((process) => {
+    processes[process.categoryId] = {
+      name: process.name,
+      machines: process.subCategories.map((machine) => ({
+        id: machine.subcategoryId,
+        title: machine.name,
+      })),
+    };
+  });
+  return processes;
+};
 
-function generateTimelineData() {
-  const data = {
-    machines: {},
-    events: {},
-  };
-
-  Object.keys(machiningProcesses).forEach((processCode) => {
-    const machinePrefix =
-      processCode === "C1"
-        ? "VMC"
-        : processCode === "C2"
-        ? "VMCL"
-        : processCode === "C3"
-        ? "MM"
-        : processCode === "C4"
-        ? "GF"
-        : processCode === "C5"
-        ? "CNC"
-        : "M";
-
-    data.machines[processCode] = Array.from({ length: 8 }, (_, i) => ({
-      id: `${machinePrefix}${String(i + 1).padStart(3, "0")}`,
-      title: `${machinePrefix}${String(i + 1).padStart(3, "0")}`,
-    }));
-
-    data.events[processCode] = [];
-    let poCounter = 1;
-
-    data.machines[processCode].forEach((machine) => {
-      let currentDate = new Date("2024-01-01");
-      const endOfYear = new Date("2024-12-31");
-
-      while (currentDate < endOfYear) {
-        if (Math.random() < 0.5) {
-          const duration = Math.floor(Math.random() * 7) + 3;
-          const endDate = new Date(currentDate);
-          endDate.setDate(endDate.getDate() + duration);
-
-          const part = parts[Math.floor(Math.random() * parts.length)];
-          const operator =
-            operators[Math.floor(Math.random() * operators.length)];
-          const po = `PO${String(poCounter++).padStart(3, "0")}`;
-
-          data.events[processCode].push({
-            id: `${processCode}-${machine.id}-${currentDate.getTime()}`,
-            resourceId: machine.id,
-            start: currentDate.toISOString().split("T")[0],
-            end: endDate.toISOString().split("T")[0],
-            title: `${machine.id} | ${part} | ${po} | ${operator}`,
-            backgroundColor: processColors[processCode].bg,
-            borderColor: processColors[processCode].border,
-            textColor: "#ffffff",
-            extendedProps: {
-              part,
-              po,
-              machine: machine.id,
-              operator,
-            },
-          });
-
-          currentDate = new Date(endDate);
-          currentDate.setDate(
-            currentDate.getDate() + Math.floor(Math.random() * 5) + 3
-          );
-        } else {
-          currentDate.setDate(
-            currentDate.getDate() + Math.floor(Math.random() * 7) + 1
-          );
+const transformAllocationsData = (allocationsData, processes) => {
+  const events = {};
+  allocationsData.forEach((project) => {
+    project.allocations.forEach((allocation) => {
+      allocation.allocations.forEach((alloc) => {
+        const processCode = alloc.machineId.split("-")[0];
+        if (!events[processCode]) {
+          events[processCode] = [];
         }
-      }
+        events[processCode].push({
+          id: `${processCode}-${alloc.machineId}-${alloc.startDate}`,
+          resourceId: alloc.machineId,
+          start: alloc.startDate,
+          end: alloc.endDate,
+          title: `${alloc.machineId} | ${allocation.partName} | ${alloc.orderNumber} | ${alloc.operator}`,
+          backgroundColor: processColors[processCode]?.bg || "#000000",
+          borderColor: processColors[processCode]?.border || "#000000",
+          textColor: "#ffffff",
+          extendedProps: {
+            projectName: project.projectName,
+            part: allocation.partName,
+            po: alloc.orderNumber,
+            machine: alloc.machineId,
+            operator: alloc.operator,
+            quantity: alloc.plannedQuantity,
+            shift: alloc.shift,
+            plannedTime: alloc.plannedTime,
+          },
+        });
+      });
     });
   });
-
-  return data;
-}
-
-const timelineData = generateTimelineData();
+  return events;
+};
 
 const TimePage = () => {
   const [selectedProcess, setSelectedProcess] = useState("C1");
+  const [processes, setProcesses] = useState({});
   const [machines, setMachines] = useState({});
-  const [events, setEvents] = useState([]);
+  const [events, setEvents] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    const timelineData = generateTimelineData();
-    console.log("Generated timeline data:", timelineData);
-    setMachines(timelineData.machines);
-    setEvents(timelineData.events);
-  }, []);
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const manufacturingData = await fetchManufacturingData();
+        const allocationsData = await fetchAllocationsData();
 
-  const fetchData = async () => {
-    // Implement your actual data fetching logic here
-    // Return the timeline data
-    return {
-      machines: {
-        C1: Array.from({ length: 8 }, (_, i) => ({
-          id: `VMC${String(i + 1).padStart(3, "0")}`,
-          title: `VMC${String(i + 1).padStart(3, "0")}`,
-        })),
-        C2: Array.from({ length: 8 }, (_, i) => ({
-          id: `VMCL${String(i + 1).padStart(3, "0")}`,
-          title: `VMCL${String(i + 1).padStart(3, "0")}`,
-        })),
-        C3: Array.from({ length: 8 }, (_, i) => ({
-          id: `MM${String(i + 1).padStart(3, "0")}`,
-          title: `MM${String(i + 1).padStart(3, "0")}`,
-        })),
-        C4: Array.from({ length: 8 }, (_, i) => ({
-          id: `GF${String(i + 1).padStart(3, "0")}`,
-          title: `GF${String(i + 1).padStart(3, "0")}`,
-        })),
-        C5: Array.from({ length: 8 }, (_, i) => ({
-          id: `CNC${String(i + 1).padStart(3, "0")}`,
-          title: `CNC${String(i + 1).padStart(3, "0")}`,
-        })),
-        C6: Array.from({ length: 8 }, (_, i) => ({
-          id: `M${String(i + 1).padStart(3, "0")}`,
-          title: `M${String(i + 1).padStart(3, "0")}`,
-        })),
-      },
-      events: {},
+        const processesData = transformManufacturingData(manufacturingData);
+        const eventsData = transformAllocationsData(
+          allocationsData,
+          processesData
+        );
+
+        setProcesses(processesData);
+        setMachines(
+          Object.keys(processesData).reduce((acc, processCode) => {
+            acc[processCode] = processesData[processCode].machines;
+            return acc;
+          }, {})
+        );
+        setEvents(eventsData);
+
+        // Set default selected process to the first one if available
+        if (Object.keys(processesData).length > 0) {
+          setSelectedProcess(Object.keys(processesData)[0]);
+        }
+
+        setLoading(false);
+      } catch (err) {
+        console.error("Error fetching data:", err);
+        setError(
+          "Failed to fetch data. Please check your connection and try again."
+        );
+        setLoading(false);
+      }
     };
-  };
+
+    fetchData();
+  }, []);
 
   const handleSelectProcess = (processCode) => {
     setSelectedProcess(processCode);
   };
+
+  if (loading) {
+    return (
+      <div className="timeline-container">
+        <div className="loading-container">Loading timeline data...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="timeline-container">
+        <div className="error-container">{error}</div>
+      </div>
+    );
+  }
 
   return (
     <div className="timeline-container">
@@ -204,9 +163,10 @@ const TimePage = () => {
         <div className="select-container">
           <select
             className="process-select"
+            value={selectedProcess}
             onChange={(e) => handleSelectProcess(e.target.value)}
           >
-            {Object.entries(machiningProcesses).map(([code, process]) => (
+            {Object.entries(processes).map(([code, process]) => (
               <option key={code} value={code}>
                 {`${process.name} (${code})`}
               </option>
@@ -215,78 +175,93 @@ const TimePage = () => {
         </div>
       </div>
       <div className="calendar-container">
-        <Calendar
-          plugins={[resourceTimelinePlugin, adaptivePlugin]}
-          initialView="resourceTimelineWeek"
-          schedulerLicenseKey="CC-Attribution-NonCommercial-NoDerivatives"
-          headerToolbar={{
-            left: "prev,next today",
-            center: "title",
-            right:
-              "resourceTimelineDay,resourceTimelineWeek,resourceTimelineMonth,resourceTimelineYear",
-          }}
-          resources={machines[selectedProcess] || []}
-          events={events[selectedProcess] || []}
-          resourceAreaWidth="120px"
-          height="auto"
-          contentHeight="auto"
-          aspectRatio={2.5}
-          slotMinWidth={100}
-          resourceAreaHeaderContent="Machine"
-          initialDate="2024-01-01"
-          views={{
-            resourceTimelineDay: {
-              duration: { days: 1 },
-              buttonText: "1D",
-              slotDuration: "02:00:00",
-              slotLabelFormat: {
-                hour: "2-digit",
-                minute: "2-digit",
-                hour12: false,
+        {selectedProcess && (
+          <Calendar
+            plugins={[resourceTimelinePlugin, adaptivePlugin]}
+            initialView="resourceTimelineMonth"
+            schedulerLicenseKey="CC-Attribution-NonCommercial-NoDerivatives"
+            headerToolbar={{
+              left: "prev,next today",
+              center: "title",
+              right:
+                "resourceTimelineDay,resourceTimelineWeek,resourceTimelineMonth,resourceTimelineYear",
+            }}
+            resources={machines[selectedProcess] || []}
+            events={events[selectedProcess] || []}
+            resourceAreaWidth="150px"
+            height="auto"
+            contentHeight="auto"
+            aspectRatio={2.5}
+            slotMinWidth={100}
+            resourceAreaHeaderContent="Machine"
+            initialDate={new Date().toISOString().split("T")[0]}
+            views={{
+              resourceTimelineDay: {
+                duration: { days: 1 },
+                buttonText: "1D",
+                slotDuration: "02:00:00",
+                slotLabelFormat: {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  hour12: false,
+                },
               },
-            },
-            resourceTimelineWeek: {
-              duration: { weeks: 1 },
-              buttonText: "1W",
-              slotDuration: { days: 1 },
-              slotLabelFormat: [{ weekday: "short", day: "numeric" }],
-            },
-            resourceTimelineMonth: {
-              duration: { months: 1 },
-              buttonText: "1M",
-              slotDuration: { days: 1 },
-              slotLabelFormat: [{ day: "numeric" }],
-            },
-            resourceTimelineYear: {
-              duration: { years: 1 },
-              buttonText: "1Y",
-              slotDuration: { months: 1 },
-              slotLabelFormat: [{ month: "short" }],
-            },
-          }}
-          eventContent={(arg) => {
-            const props = arg.event.extendedProps;
-            const divElement = document.createElement("div");
-            divElement.className = "timeline-event";
-            divElement.style.height = "24px";
-            divElement.innerText = `${props.machine} | ${props.part} | ${props.po} | ${props.operator}`;
+              resourceTimelineWeek: {
+                duration: { weeks: 1 },
+                buttonText: "1W",
+                slotDuration: { days: 1 },
+                slotLabelFormat: [{ weekday: "short", day: "numeric" }],
+              },
+              resourceTimelineMonth: {
+                duration: { months: 1 },
+                buttonText: "1M",
+                slotDuration: { days: 1 },
+                slotLabelFormat: [{ day: "numeric" }],
+              },
+              resourceTimelineYear: {
+                duration: { years: 1 },
+                buttonText: "1Y",
+                slotDuration: { months: 1 },
+                slotLabelFormat: [{ month: "short" }],
+              },
+            }}
+            eventContent={(arg) => {
+              const props = arg.event.extendedProps;
+              const divElement = document.createElement("div");
+              divElement.className = "timeline-event";
+              divElement.style.height = "24px";
+              divElement.innerText = `${props.machine} | ${props.part} | ${props.po} | ${props.operator}`;
 
-            return { domNodes: [divElement] };
-          }}
-          eventDidMount={(info) => {
-            const event = info.event;
-            const props = event.extendedProps;
-            info.el.style.height = "24px";
-            info.el.title = `
-                Machine: ${props.machine}
-                Part: ${props.part}
-                PO: ${props.po}
-                Operator: ${props.operator}
-                Start: ${event.start.toLocaleDateString()}
-                End: ${event.end.toLocaleDateString()}
+              return { domNodes: [divElement] };
+            }}
+            eventDidMount={(info) => {
+              const event = info.event;
+              const props = event.extendedProps;
+
+              // Set the element height
+              info.el.style.height = "24px";
+
+              // Create tooltip content
+              const tooltipContent = `
+                Project: ${props.projectName || "N/A"}
+                Machine: ${props.machine || "N/A"}
+                Part: ${props.part || "N/A"}
+                PO: ${props.po || "N/A"}
+                Operator: ${props.operator || "N/A"}
+                Quantity: ${props.quantity || "N/A"}
+                Shift: ${props.shift || "N/A"}
+                Planned Time: ${
+                  props.plannedTime ? `${props.plannedTime} minutes` : "N/A"
+                }
+                Start: ${event.start ? event.start.toLocaleDateString() : "N/A"}
+                End: ${event.end ? event.end.toLocaleDateString() : "N/A"}
               `;
-          }}
-        />
+
+              // Set the title attribute for the tooltip
+              info.el.setAttribute("title", tooltipContent);
+            }}
+          />
+        )}
       </div>
     </div>
   );

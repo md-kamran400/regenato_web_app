@@ -82,6 +82,7 @@ const navdata = () => {
               link: "/regenato-operator-view",
               icon: "fa fa-list",
             },
+            
           ],
         },
         {

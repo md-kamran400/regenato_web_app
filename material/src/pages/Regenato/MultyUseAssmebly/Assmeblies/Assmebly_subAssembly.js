@@ -389,7 +389,7 @@ const Assmebly_subAssembly = ({
 
                       <li style={{ fontSize: "19px" }}>
                         <span class="badge bg-danger-subtle text-danger">
-                          Sub Assmebly
+                          Sub Assembly
                         </span>
                       </li>
                     </ul>

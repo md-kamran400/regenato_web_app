@@ -1,520 +1,40 @@
-// import React, { useState, useEffect } from "react";
-// import "./Plan.css";
-// import { Calendar, Clock } from "feather-icons-react/build/IconComponents";
-
-// export function PlanPage() {
-//   const [allocationData, setAllocationData] = useState([]);
-//   const [selectedProject, setSelectedProject] = useState(null);
-//   const [selectedPart, setSelectedPart] = useState("");
-//   const [selectedOrder, setSelectedOrder] = useState(null);
-//   const [selectedProcess, setSelectedProcess] = useState(null);
-//   const [loading, setLoading] = useState(true);
-//   const [error, setError] = useState(null);
-
-//   useEffect(() => {
-//     fetchAllocationData();
-//   }, []);
-
-//   const fetchAllocationData = async () => {
-//     try {
-//       const response = await fetch(
-//         "http://localhost:4040/api/defpartproject/all-allocations"
-//       );
-//       const data = await response.json();
-
-//       setAllocationData(data.data);
-
-//       // Set initial project with allocations
-//       const projectWithAllocations = data.data.find(
-//         (project) => project.allocations.length > 0
-//       );
-//       if (projectWithAllocations) {
-//         setSelectedProject(projectWithAllocations);
-//         setSelectedPart(projectWithAllocations.allocations[0]?.partName || "");
-//       }
-
-//       setLoading(false);
-//     } catch (err) {
-//       setError("Failed to fetch allocation data");
-//       setLoading(false);
-//     }
-//   };
-
-//   const getDaysBetweenDates = (startDate, endDate) => {
-//     const start = new Date(startDate);
-//     const end = new Date(endDate);
-//     return Math.ceil((end - start) / (1000 * 60 * 60 * 24));
-//   };
-
-//   const getDatesBetween = (startDate, endDate) => {
-//     const dates = [];
-//     let currentDate = new Date(startDate);
-//     const end = new Date(endDate);
-
-//     while (currentDate <= end) {
-//       if (currentDate.getDay() !== 0) {
-//         // Skip Sundays
-//         dates.push(new Date(currentDate));
-//       }
-//       currentDate.setDate(currentDate.getDate() + 1);
-//     }
-
-//     return dates;
-//   };
-
-//   // const formatDateHeader = (date) => {
-//   //   const day = date.getDay();
-//   //   const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-//   //   return (
-//   //     <div className={`date-header ${day === 6 ? "weekend" : ""}`}>
-//   //       <div>{date.getDate()}</div>
-//   //       <div className="text-xs">{dayNames[day]}</div>
-//   //     </div>
-//   //   );
-//   // };
-
-//   // In the PlanPage.js file
-
-//   const formatDateHeader = (date) => {
-//     const day = date.getDay();
-//     const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
-//     // Check if the current date is within a process bar
-//     const isWithinProcessBar = dates.some((d) => {
-//       const index = dates.indexOf(d);
-//       if (index >= 0 && index < dates.length - 1) {
-//         const startDate = new Date(dates[index]);
-//         const endDate = new Date(dates[index + 1]);
-//         const currentDate = new Date(d);
-
-//         if (currentDate >= startDate && currentDate <= endDate) {
-//           return true;
-//         }
-//       }
-//       return false;
-//     });
-
-//     return (
-//       <div
-//         className={`date-header ${
-//           isWithinProcessBar ? "wide-date-header" : ""
-//         }`}
-//       >
-//         <div>{date.getDate()}</div>
-//         <div className="text-xs">{dayNames[day]}</div>
-//       </div>
-//     );
-//   };
-
-//   const formatMonthHeader = (date) => {
-//     return date.toLocaleString("en-US", { month: "short", year: "numeric" });
-//   };
-
-//   if (loading) {
-//     return <div className="loading">Loading...</div>;
-//   }
-
-//   if (error) {
-//     return <div className="error">{error}</div>;
-//   }
-
-//   // Get all unique parts from the selected project
-//   const uniqueParts = [
-//     ...new Set(
-//       selectedProject?.allocations.map((allocation) => allocation.partName) ||
-//         []
-//     ),
-//   ];
-
-//   const formatDate = (dateString) => {
-//     const date = new Date(dateString);
-//     return date.toLocaleDateString("en-US", {
-//       month: "short",
-//       day: "numeric",
-//       year: "numeric"
-//     });
-//   };
-
-//   // Filter allocations by selected part
-//   const filteredAllocations =
-//     selectedProject?.allocations.filter(
-//       (allocation) => allocation.partName === selectedPart
-//     ) || [];
-
-//   // Get all unique orders
-//   const uniqueOrders = [
-//     ...new Set(
-//       filteredAllocations.flatMap((allocation) =>
-//         allocation.allocations.map((a) => a.orderNumber)
-//       )
-//     ),
-//   ];
-
-//   // Find the overall date range
-//   const allDates = filteredAllocations.flatMap((allocation) =>
-//     allocation.allocations.flatMap((a) => [
-//       new Date(a.startDate),
-//       new Date(a.endDate),
-//     ])
-//   );
-
-//   const minDate = new Date(Math.min(...allDates));
-//   const maxDate = new Date(Math.max(...allDates));
-//   const dates = getDatesBetween(minDate, maxDate);
-
-//   // Group dates by month
-//   const months = dates.reduce((acc, date) => {
-//     const monthKey = `${date.getFullYear()}-${date.getMonth()}`;
-//     if (!acc[monthKey]) {
-//       acc[monthKey] = {
-//         label: formatMonthHeader(date),
-//         dates: [],
-//       };
-//     }
-//     acc[monthKey].dates.push(date);
-//     return acc;
-//   }, {});
-
-//   return (
-//     <div className="plan-container">
-//       <div className="plan-header">
-//         <div className="plan-header-left">
-//           <h1 className="plan-title">Production Planning</h1>
-//           <div className="plan-subtitle">
-//             <span className="part-label">Part:</span>
-//             <select
-//               className="part-select"
-//               value={selectedPart}
-//               onChange={(e) => setSelectedPart(e.target.value)}
-//             >
-//               {uniqueParts.map((part) => (
-//                 <option key={part} value={part}>
-//                   {part}
-//                 </option>
-//               ))}
-//             </select>
-//           </div>
-//         </div>
-//         <div className="plan-header-right">
-//           <div className="date-range-display">
-//             <Calendar size={16} className="icon" />
-//             <span>
-//               {formatDate(minDate.toISOString())} - {formatDate(maxDate.toISOString())}
-//             </span>
-//           </div>
-//         </div>
-//       </div>
-
-//       {/* Gantt Chart */}
-//       <div className="gantt-container">
-//         <h2 className="gantt-title">Production Timeline</h2>
-//         <div className="gantt-scroll">
-//           {/* Month Headers */}
-//           <div className="timeline-header">
-//             <div className="timeline-sidebar"></div>
-//             <div className="timeline-content">
-//               {Object.values(months).map((month, idx) => (
-//                 <div
-//                   key={idx}
-//                   className="month-header"
-//                   style={{
-//                     width: `${(month.dates.length / dates.length) * 100}%`,
-//                   }}
-//                 >
-//                   {month.label}
-//                 </div>
-//               ))}
-//             </div>
-//           </div>
-
-//           {/* Date Headers */}
-//           <div className="timeline-header dates-row">
-//             <div className="timeline-sidebar"></div>
-//             <div className="timeline-content">
-//               {dates.map((date, idx) => (
-//                 <div key={idx} className="date-cell">
-//                   {formatDateHeader(date)}
-//                 </div>
-//               ))}
-//             </div>
-//           </div>
-
-//           {/* Orders */}
-//           {uniqueOrders.map((orderNum) => {
-//             const orderAllocations = filteredAllocations.flatMap((allocation) =>
-//               allocation.allocations.filter((a) => a.orderNumber === orderNum)
-//             );
-
-//             return (
-//               <div key={orderNum} className="order-row">
-//                 <div className="order-content">
-//                   <div className="order-sidebar">
-//                     <div
-//                       className={`order-id ${
-//                         orderNum === selectedOrder ? "selected-text" : ""
-//                       }`}
-//                     >
-//                       {orderNum}
-//                     </div>
-//                     <div
-//                       className={`order-quantity ${
-//                         orderNum === selectedOrder ? "selected-text" : ""
-//                       }`}
-//                     >
-//                       Qty: {orderAllocations[0]?.plannedQuantity || 0}
-//                     </div>
-//                   </div>
-//                   <div
-//                     className={`order-timeline ${
-//                       orderNum === selectedOrder ? "selected-timeline" : ""
-//                     }`}
-//                   >
-//                     {filteredAllocations.map((processAllocation) => {
-//                       const allocation = processAllocation.allocations.find(
-//                         (a) => a.orderNumber === orderNum
-//                       );
-
-//                       if (!allocation) return null;
-
-//                       const startIdx = getDaysBetweenDates(
-//                         minDate,
-//                         allocation.startDate
-//                       );
-//                       const duration = getDaysBetweenDates(
-//                         allocation.startDate,
-//                         allocation.endDate
-//                       );
-//                       const totalDays = getDaysBetweenDates(minDate, maxDate);
-//                       const widthPercent = (duration / totalDays) * 100;
-//                       const leftPercent = (startIdx / totalDays) * 100;
-
-//                       const isSelected = 
-//                         orderNum === selectedOrder && 
-//                         processAllocation.processName === selectedProcess;
-
-//                       return (
-//                         <div
-//                           key={allocation._id}
-//                           className={`process-bar ${isSelected ? "selected-process" : ""}`}
-//                           style={{
-//                             left: `${leftPercent}%`,
-//                             width: `${widthPercent}%`,
-//                           }}
-//                           onClick={() => {
-//                             setSelectedOrder(orderNum);
-//                             setSelectedProcess(processAllocation.processName);
-//                           }}
-//                         >
-//                           <div className="process-bar-content">
-//                             <div className="process-name">
-//                               {processAllocation.processName}
-//                             </div>
-//                             <div className="process-dates">
-//                               <Clock size={12} className="date-icon" />
-//                               <span>{formatDate(allocation.startDate)} - {formatDate(allocation.endDate)}</span>
-//                             </div>
-//                             <div className="process-machine">
-//                               {allocation.machineId}
-//                             </div>
-//                           </div>
-//                         </div>
-//                       );
-//                     })}
-//                   </div>
-//                 </div>
-//               </div>
-//             );
-//           })}
-//         </div>
-//       </div>
-
-//       {/* Bottom Panels */}
-//       <div className="panels-container">
-//         {/* Orders Panel */}
-//         <div className="panel orders-panel">
-//           <div className="panel-header">
-//             <h2 className="panel-title">Orders</h2>
-//           </div>
-//           <div className="panel-content">
-//             {uniqueOrders.map((orderNum) => {
-//               const orderAllocations = filteredAllocations.flatMap(
-//                 (allocation) =>
-//                   allocation.allocations.filter(
-//                     (a) => a.orderNumber === orderNum
-//                   )
-//               );
-//               const firstAllocation = orderAllocations[0];
-
-//               return (
-//                 <div
-//                   key={orderNum}
-//                   className={`order-item ${
-//                     orderNum === selectedOrder ? "selected-item" : ""
-//                   }`}
-//                   onClick={() => {
-//                     setSelectedOrder(orderNum);
-//                     setSelectedProcess(null);
-//                   }}
-//                 >
-//                   <div className="order-item-header">
-//                     <div className="order-item-id">{orderNum}</div>
-//                     <div className="order-item-quantity">
-//                       Qty: {firstAllocation?.plannedQuantity || 0}
-//                     </div>
-//                   </div>
-//                   <div className="order-item-dates">
-//                     <Calendar size={14} className="date-icon" />
-//                     <span>
-//                       {formatDate(firstAllocation?.startDate)} - 
-//                       {formatDate(firstAllocation?.endDate)}
-//                     </span>
-//                   </div>
-//                 </div>
-//               );
-//             })}
-//           </div>
-//         </div>
-
-//         {/* Processes Panel */}
-//         <div className="panel processes-panel">
-//           <div className="panel-header">
-//             <h2 className="panel-title">Processes</h2>
-//             {selectedOrder && (
-//               <div className="panel-subtitle">Order: {selectedOrder}</div>
-//             )}
-//           </div>
-//           <div className="panel-content">
-//             {selectedOrder &&
-//               filteredAllocations.map((processAllocation) => {
-//                 const allocation = processAllocation.allocations.find(
-//                   (a) => a.orderNumber === selectedOrder
-//                 );
-
-//                 if (!allocation) return null;
-
-//                 const isSelected = processAllocation.processName === selectedProcess;
-
-//                 return (
-//                   <div
-//                     key={processAllocation._id}
-//                     className={`process-item ${isSelected ? "selected-item" : ""}`}
-//                     onClick={() =>
-//                       setSelectedProcess(processAllocation.processName)
-//                     }
-//                   >
-//                     <div className="process-item-header">
-//                       <span className="process-item-name">
-//                         {processAllocation.processName}
-//                       </span>
-//                       <span className="process-item-machine">
-//                         {allocation.machineId}
-//                       </span>
-//                     </div>
-//                     <div className="process-item-dates">
-//                       <Clock size={14} className="date-icon" />
-//                       <span>
-//                         {formatDate(allocation.startDate)} - 
-//                         {formatDate(allocation.endDate)}
-//                       </span>
-//                     </div>
-//                     <div className="process-item-operator">
-//                       Operator: {allocation.operator}
-//                     </div>
-//                   </div>
-//                 );
-//               })}
-//           </div>
-//         </div>
-
-//         {/* Process Details Panel */}
-//         <div className="panel details-panel">
-//           <div className="panel-header">
-//             <h2 className="panel-title">Process Details</h2>
-//             {selectedOrder && selectedProcess && (
-//               <div className="panel-subtitle">
-//                 {selectedProcess} - {selectedOrder}
-//               </div>
-//             )}
-//           </div>
-//           <div className="panel-content">
-//             {selectedOrder && selectedProcess &&
-//               filteredAllocations
-//                 .filter(p => p.processName === selectedProcess)
-//                 .map((processAllocation) => {
-//                   const allocation = processAllocation.allocations.find(
-//                     (a) => a.orderNumber === selectedOrder
-//                   );
-
-//                   if (!allocation) return null;
-
-//                   return (
-//                     <div key={processAllocation._id} className="details-content">
-//                       <div className="details-header">
-//                         <h3 className="details-title">{processAllocation.processName}</h3>
-//                         <div className="details-subtitle">
-//                           <Clock size={16} className="details-icon" />
-//                           <span>
-//                             {formatDate(allocation.startDate)} - 
-//                             {formatDate(allocation.endDate)}
-//                           </span>
-//                         </div>
-//                       </div>
-                      
-//                       <div className="details-card">
-//                         <div className="details-row">
-//                           <div className="details-label">Machine ID</div>
-//                           <div className="details-value">{allocation.machineId}</div>
-//                         </div>
-//                         <div className="details-row">
-//                           <div className="details-label">Order Number</div>
-//                           <div className="details-value">{allocation.orderNumber}</div>
-//                         </div>
-//                         <div className="details-row">
-//                           <div className="details-label">Operator</div>
-//                           <div className="details-value">{allocation.operator}</div>
-//                         </div>
-//                         <div className="details-row">
-//                           <div className="details-label">Planned Quantity</div>
-//                           <div className="details-value">{allocation.plannedQuantity} units</div>
-//                         </div>
-//                         <div className="details-row">
-//                           <div className="details-label">Duration</div>
-//                           <div className="details-value">
-//                             {getDaysBetweenDates(allocation.startDate, allocation.endDate)} days
-//                           </div>
-//                         </div>
-//                       </div>
-//                     </div>
-//                   );
-//                 })}
-//           </div>
-//         </div>
-//       </div>
-//     </div>
-//   );
-// }
-
-
-
-
-
-
-
-
-
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { Calendar, Clock, ArrowLeft } from "lucide-react";
+import { useParams } from "react-router-dom";
+import FullCalendar from "@fullcalendar/react";
+import resourceTimelinePlugin from "@fullcalendar/resource-timeline";
+import adaptivePlugin from "@fullcalendar/adaptive";
+import { ArrowLeft, Calendar, Clock } from "lucide-react";
+import { Card, CardBody, Badge, Row, Col } from "reactstrap";
 import "./Plan.css";
+
+const processColors = {
+  C1: { bg: "#3B82F6", border: "#2563EB" },
+  C2: { bg: "#10B981", border: "#059669" },
+  C3: { bg: "#F59E0B", border: "#D97706" },
+  C4: { bg: "#EF4444", border: "#DC2626" },
+  C5: { bg: "#8B5CF6", border: "#7C3AED" },
+  C6: { bg: "#EC4899", border: "#DB2777" },
+  C7: { bg: "#06B6D4", border: "#0891B2" },
+  C8: { bg: "#F97316", border: "#EA580C" },
+  C9: { bg: "#2563EB", border: "#1D4ED8" },
+  C11: { bg: "#DC2626", border: "#B91C1C" },
+  C12: { bg: "#059669", border: "#047857" },
+  C13: { bg: "#7C3AED", border: "#6D28D9" },
+  C14: { bg: "#DB2777", border: "#BE185D" },
+  C15: { bg: "#9333EA", border: "#7E22CE" },
+  C17: { bg: "#4F46E5", border: "#4338CA" },
+  C18: { bg: "#0EA5E9", border: "#0284C7" },
+  C19: { bg: "#0D9488", border: "#0F766E" },
+};
 
 export function PlanPage() {
   const { allocationId } = useParams();
-  const navigate = useNavigate();
   const [allocationData, setAllocationData] = useState([]);
-  const [selectedProject, setSelectedProject] = useState(null);
   const [selectedPart, setSelectedPart] = useState("");
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [selectedProcess, setSelectedProcess] = useState(null);
+  const [resources, setResources] = useState([]);
+  const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -528,7 +48,6 @@ export function PlanPage() {
         "http://localhost:4040/api/defpartproject/all-allocations"
       );
       const data = await response.json();
-
       setAllocationData(data.data);
 
       if (allocationId) {
@@ -556,28 +75,22 @@ export function PlanPage() {
         }
 
         if (foundAllocation && foundProject) {
-          setSelectedProject(foundProject);
           setSelectedPart(foundPart);
           setSelectedOrder(foundAllocation.orderNumber);
           setSelectedProcess(foundProcess);
+          transformData(foundPart, data.data);
         } else {
           // If allocation not found, set default project
-          const projectWithAllocations = data.data.find(
-            (project) => project.allocations.length > 0
-          );
-          if (projectWithAllocations) {
-            setSelectedProject(projectWithAllocations);
-            setSelectedPart(projectWithAllocations.allocations[0]?.partName || "");
+          if (data.data.length > 0 && data.data[0].allocations.length > 0) {
+            setSelectedPart(data.data[0].allocations[0].partName);
+            transformData(data.data[0].allocations[0].partName, data.data);
           }
         }
       } else {
         // No allocation ID provided, set default project
-        const projectWithAllocations = data.data.find(
-          (project) => project.allocations.length > 0
-        );
-        if (projectWithAllocations) {
-          setSelectedProject(projectWithAllocations);
-          setSelectedPart(projectWithAllocations.allocations[0]?.partName || "");
+        if (data.data.length > 0 && data.data[0].allocations.length > 0) {
+          setSelectedPart(data.data[0].allocations[0].partName);
+          transformData(data.data[0].allocations[0].partName, data.data);
         }
       }
 
@@ -588,331 +101,355 @@ export function PlanPage() {
     }
   };
 
+  const transformData = (partName, data) => {
+    // Get all unique order numbers for the selected part
+    const orderNumbers = new Set();
+    data.forEach((project) => {
+      project.allocations
+        .filter((alloc) => alloc.partName === partName)
+        .forEach((alloc) => {
+          alloc.allocations.forEach((a) => orderNumbers.add(a.orderNumber));
+        });
+    });
+
+    // Create resources (order numbers)
+    const resourcesList = Array.from(orderNumbers).map((orderNum) => ({
+      id: orderNum,
+      title: `Order ${orderNum}`,
+    }));
+    setResources(resourcesList);
+
+    // Create events
+    const eventsList = [];
+    data.forEach((project) => {
+      project.allocations
+        .filter((alloc) => alloc.partName === partName)
+        .forEach((alloc) => {
+          alloc.allocations.forEach((a) => {
+            const machineCode = a.machineId.split("-")[0];
+            const colors = processColors[machineCode] || {
+              bg: "#666",
+              border: "#444",
+            };
+
+            eventsList.push({
+              id: a._id,
+              resourceId: a.orderNumber,
+              start: a.startDate,
+              end: a.endDate,
+              title: `${alloc.processName} - ${a.machineId}`,
+              backgroundColor: colors.bg,
+              borderColor: colors.border,
+              extendedProps: {
+                processName: alloc.processName,
+                machineId: a.machineId,
+                operator: a.operator,
+                plannedQuantity: a.plannedQuantity,
+                shift: a.shift,
+                orderNumber: a.orderNumber,
+              },
+            });
+          });
+        });
+    });
+    setEvents(eventsList);
+  };
+
+  const handlePartChange = (e) => {
+    const newPart = e.target.value;
+    setSelectedPart(newPart);
+    setSelectedOrder(null);
+    setSelectedProcess(null);
+    transformData(newPart, allocationData);
+  };
+
+  const handleEventClick = (info) => {
+    const { orderNumber, processName } = info.event.extendedProps;
+    setSelectedOrder(orderNumber);
+    setSelectedProcess(processName);
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
+
   const getDaysBetweenDates = (startDate, endDate) => {
     const start = new Date(startDate);
     const end = new Date(endDate);
     return Math.ceil((end - start) / (1000 * 60 * 60 * 24));
   };
 
-  const getDatesBetween = (startDate, endDate) => {
-    const dates = [];
-    let currentDate = new Date(startDate);
-    const end = new Date(endDate);
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div>{error}</div>;
 
-    while (currentDate <= end) {
-      if (currentDate.getDay() !== 0) {
-        // Skip Sundays
-        dates.push(new Date(currentDate));
-      }
-      currentDate.setDate(currentDate.getDate() + 1);
-    }
-
-    return dates;
-  };
-
-  const formatDateHeader = (date) => {
-    const day = date.getDay();
-    const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-    return (
-      <div className={`date-header ${day === 6 ? "weekend" : ""}`}>
-        <div>{date.getDate()}</div>
-        <div className="text-xs">{dayNames[day]}</div>
-      </div>
-    );
-  };
-
-  const formatMonthHeader = (date) => {
-    return date.toLocaleString("en-US", { month: "short", year: "numeric" });
-  };
-
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric"
-    });
-  };
-
-  const handleBackClick = () => {
-    navigate('/');
-  };
-
-  if (loading) {
-    return <div className="loading">Loading...</div>;
-  }
-
-  if (error) {
-    return <div className="error">{error}</div>;
-  }
-
-  // Get all unique parts from the selected project
+  // Get unique parts for dropdown
   const uniqueParts = [
     ...new Set(
-      selectedProject?.allocations.map((allocation) => allocation.partName) ||
-        []
-    ),
-  ];
-
-  // Filter allocations by selected part
-  const filteredAllocations =
-    selectedProject?.allocations.filter(
-      (allocation) => allocation.partName === selectedPart
-    ) || [];
-
-  // Get all unique orders
-  const uniqueOrders = [
-    ...new Set(
-      filteredAllocations.flatMap((allocation) =>
-        allocation.allocations.map((a) => a.orderNumber)
+      allocationData.flatMap((project) =>
+        project.allocations.map((alloc) => alloc.partName)
       )
     ),
   ];
 
-  // Find the overall date range
-  const allDates = filteredAllocations.flatMap((allocation) =>
-    allocation.allocations.flatMap((a) => [
-      new Date(a.startDate),
-      new Date(a.endDate),
-    ])
-  );
+  // Get filtered allocations for the selected part
+  const filteredAllocations = allocationData
+    .flatMap((project) => project.allocations)
+    .filter((alloc) => alloc.partName === selectedPart);
 
-  if (allDates.length === 0) {
-    return <div className="error">No allocation data found for the selected part.</div>;
-  }
-
-  const minDate = new Date(Math.min(...allDates));
-  const maxDate = new Date(Math.max(...allDates));
-  const dates = getDatesBetween(minDate, maxDate);
-
-  // Group dates by month
-  const months = dates.reduce((acc, date) => {
-    const monthKey = `${date.getFullYear()}-${date.getMonth()}`;
-    if (!acc[monthKey]) {
-      acc[monthKey] = {
-        label: formatMonthHeader(date),
-        dates: [],
-      };
-    }
-    acc[monthKey].dates.push(date);
-    return acc;
-  }, {});
+  // Get unique orders for the selected part
+  const uniqueOrders = [
+    ...new Set(
+      filteredAllocations.flatMap((alloc) =>
+        alloc.allocations.map((a) => a.orderNumber)
+      )
+    ),
+  ];
 
   return (
-    <div className="plan-container">
-      <div className="plan-header">
-        <div className="plan-header-left">
-          <button 
-            onClick={handleBackClick} 
-            className="back-button"
-            style={{ 
-              background: 'none', 
-              border: 'none', 
-              display: 'flex', 
-              alignItems: 'center', 
-              color: '#4a5568',
-              marginRight: '10px',
-              cursor: 'pointer'
-            }}
-          >
-            <ArrowLeft size={20} />
-          </button>
-          <h1 className="plan-title">Production Planning</h1>
-          <div className="plan-subtitle">
-            <span className="part-label">Part:</span>
-            <select
-              className="part-select"
-              value={selectedPart}
-              onChange={(e) => setSelectedPart(e.target.value)}
-            >
-              {uniqueParts.map((part) => (
-                <option key={part} value={part}>
-                  {part}
-                </option>
-              ))}
-            </select>
-          </div>
+    <div className="p-4">
+      <div className="process-header">
+        <div className="flex items-center gap-4">
+          <h2 className="text-2xl font-bold">Production Planning</h2>
         </div>
-        <div className="plan-header-right">
-          <div className="date-range-display">
-            <Calendar size={16} className="icon" />
-            <span>
-              {formatDate(minDate.toISOString())} - {formatDate(maxDate.toISOString())}
-            </span>
-          </div>
+        <div className="flex items-center gap-2">
+          <select
+            value={selectedPart}
+            onChange={handlePartChange}
+            className="process-select"
+          >
+            {uniqueParts.map((part) => (
+              <option key={part} value={part}>
+                {part}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
-      {/* Gantt Chart */}
-      <div className="gantt-container">
-        <h2 className="gantt-title">Production Timeline</h2>
-        <div className="gantt-scroll">
-          {/* Month Headers */}
-          <div className="timeline-header">
-            <div className="timeline-sidebar"></div>
-            <div className="timeline-content">
-              {Object.values(months).map((month, idx) => (
-                <div
-                  key={idx}
-                  className="month-header"
-                  style={{
-                    width: `${(month.dates.length / dates.length) * 100}%`,
-                  }}
-                >
-                  {month.label}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Date Headers */}
-          <div className="timeline-header dates-row">
-            <div className="timeline-sidebar"></div>
-            <div className="timeline-content">
-              {dates.map((date, idx) => (
-                <div key={idx} className="date-cell">
-                  {formatDateHeader(date)}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Orders */}
-          {uniqueOrders.map((orderNum) => {
-            const orderAllocations = filteredAllocations.flatMap((allocation) =>
-              allocation.allocations.filter((a) => a.orderNumber === orderNum)
-            );
-
+      <div className="border rounded-lg shadow-sm">
+        <FullCalendar
+          plugins={[resourceTimelinePlugin, adaptivePlugin]}
+          initialView="resourceTimelineMonth"
+          schedulerLicenseKey="CC-Attribution-NonCommercial-NoDerivatives"
+          headerToolbar={{
+            left: "prev,next today",
+            center: "title",
+            right:
+              "resourceTimelineDay,resourceTimelineWeek,resourceTimelineMonth",
+          }}
+          resources={resources}
+          events={events}
+          resourceAreaWidth="200px"
+          height="auto"
+          slotMinWidth={100}
+          resourceAreaHeaderContent="Order Number"
+          eventClick={handleEventClick}
+          eventContent={(arg) => {
             return (
-              <div key={orderNum} className="order-row">
-                <div className="order-content">
-                  <div className="order-sidebar">
-                    <div
-                      className={`order-id ${
-                        orderNum === selectedOrder ? "selected-text" : ""
-                      }`}
-                    >
-                      {orderNum}
-                    </div>
-                    <div
-                      className={`order-quantity ${
-                        orderNum === selectedOrder ? "selected-text" : ""
-                      }`}
-                    >
-                      Qty: {orderAllocations[0]?.plannedQuantity || 0}
-                    </div>
-                  </div>
-                  <div
-                    className={`order-timeline ${
-                      orderNum === selectedOrder ? "selected-timeline" : ""
-                    }`}
-                  >
-                    {filteredAllocations.map((processAllocation) => {
-                      const allocation = processAllocation.allocations.find(
-                        (a) => a.orderNumber === orderNum
-                      );
-
-                      if (!allocation) return null;
-
-                      const startIdx = getDaysBetweenDates(
-                        minDate,
-                        allocation.startDate
-                      );
-                      const duration = getDaysBetweenDates(
-                        allocation.startDate,
-                        allocation.endDate
-                      );
-                      const totalDays = getDaysBetweenDates(minDate, maxDate);
-                      const widthPercent = (duration / totalDays) * 100;
-                      const leftPercent = (startIdx / totalDays) * 100;
-
-                      const isSelected = 
-                        orderNum === selectedOrder && 
-                        processAllocation.processName === selectedProcess;
-
-                      return (
-                        <div
-                          key={allocation._id}
-                          className={`process-bar ${isSelected ? "selected-process" : ""}`}
-                          style={{
-                            left: `${leftPercent}%`,
-                            width: `${widthPercent}%`,
-                          }}
-                          onClick={() => {
-                            setSelectedOrder(orderNum);
-                            setSelectedProcess(processAllocation.processName);
-                          }}
-                        >
-                          <div className="process-bar-content">
-                            <div className="process-name">
-                              {processAllocation.processName}
-                            </div>
-                            <div className="process-dates">
-                              <Clock size={12} className="date-icon" />
-                              <span>{formatDate(allocation.startDate)} - {formatDate(allocation.endDate)}</span>
-                            </div>
-                            <div className="process-machine">
-                              {allocation.machineId}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+              <div className="p-1 text-sm text-white">
+                <div className="font-medium">
+                  {arg.event.extendedProps.processName}
                 </div>
+                <div>{arg.event.extendedProps.machineId}</div>
               </div>
             );
-          })}
-        </div>
+          }}
+          eventDidMount={(info) => {
+            const event = info.event;
+            const props = event.extendedProps;
+
+            const tooltipContent = `
+              Process: ${props.processName}
+              Machine: ${props.machineId}
+              Operator: ${props.operator}
+              Quantity: ${props.plannedQuantity}
+              Shift: ${props.shift}
+              Start: ${event.start.toLocaleDateString()}
+              End: ${event.end.toLocaleDateString()}
+            `;
+
+            info.el.setAttribute("title", tooltipContent);
+          }}
+        />
       </div>
 
       {/* Bottom Panels */}
       <div className="panels-container">
         {/* Orders Panel */}
         <div className="panel orders-panel">
-          <div className="panel-header">
-            <h2 className="panel-title">Orders</h2>
-          </div>
-          <div className="panel-content">
-            {uniqueOrders.map((orderNum) => {
-              const orderAllocations = filteredAllocations.flatMap(
-                (allocation) =>
-                  allocation.allocations.filter(
-                    (a) => a.orderNumber === orderNum
-                  )
-              );
-              const firstAllocation = orderAllocations[0];
-
-              return (
-                <div
-                  key={orderNum}
-                  className={`order-item ${
-                    orderNum === selectedOrder ? "selected-item" : ""
-                  }`}
-                  onClick={() => {
-                    setSelectedOrder(orderNum);
-                    setSelectedProcess(null);
-                  }}
+          <Card>
+            <CardBody>
+              <div style={{ marginBottom: "16px" }}>
+                <h2
+                  style={{ fontSize: "18px", fontWeight: "600", color: "#333" }}
                 >
-                  <div className="order-item-header">
-                    <div className="order-item-id">{orderNum}</div>
-                    <div className="order-item-quantity">
-                      Qty: {firstAllocation?.plannedQuantity || 0}
-                    </div>
-                  </div>
-                  <div className="order-item-dates">
-                    <Calendar size={14} className="date-icon" />
-                    <span>
-                      {formatDate(firstAllocation?.startDate)} - 
-                      {formatDate(firstAllocation?.endDate)}
-                    </span>
-                  </div>
+                  Orders
+                </h2>
+                <div style={{ fontSize: "14px", color: "#666" }}>
+                  Total Orders: {uniqueOrders.length}
                 </div>
-              );
-            })}
-          </div>
-        </div>
+              </div>
 
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "12px",
+                }}
+              >
+                {uniqueOrders.map((orderNum) => {
+                  const orderAllocations = filteredAllocations.flatMap(
+                    (allocation) =>
+                      allocation.allocations.filter(
+                        (a) => a.orderNumber === orderNum
+                      )
+                  );
+                  const firstAllocation = orderAllocations[0];
+
+                  // Calculate total planned quantity for the order
+                  const totalQuantity = orderAllocations.reduce(
+                    (sum, alloc) => sum + (alloc.plannedQuantity || 0),
+                    0
+                  );
+
+                  // Calculate total duration for the order
+                  const startDate = new Date(firstAllocation?.startDate);
+                  const endDate = new Date(firstAllocation?.endDate);
+                  const totalDuration = Math.ceil(
+                    (endDate - startDate) / (1000 * 60 * 60 * 24)
+                  );
+
+                  // Get unique processes for the order
+                  // const uniqueProcesses = [
+                  //   ...new Set(
+                  //     orderAllocations.map((alloc) => alloc.processName)
+                  //   ),
+                  // ];
+
+                  return (
+                    <Card
+                      key={orderNum}
+                      style={{
+                        background:
+                          orderNum === selectedOrder ? "#e0f2fe" : "#f9fafb",
+                        border: `1px solid ${
+                          orderNum === selectedOrder ? "#7dd3fc" : "#e5e7eb"
+                        }`,
+                        borderRadius: "8px",
+                        padding: "12px",
+                        cursor: "pointer",
+                        transition: "all 0.2s ease",
+                      }}
+                      onClick={() => {
+                        setSelectedOrder(orderNum);
+                        setSelectedProcess(null);
+                      }}
+                    >
+                      <CardBody style={{ padding: "0" }}>
+                        <Row>
+                          <Col>
+                            <div
+                              style={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "center",
+                                marginBottom: "8px",
+                              }}
+                            >
+                              <div
+                                style={{
+                                  fontSize: "16px",
+                                  fontWeight: "500",
+                                  color: "#111827",
+                                }}
+                              >
+                                Order #{orderNum}
+                              </div>
+                              <Badge
+                                color="primary"
+                                style={{
+                                  fontSize: "12px",
+                                  padding: "4px 8px",
+                                  borderRadius: "12px",
+                                }}
+                              >
+                                In Progress
+                              </Badge>
+                            </div>
+
+                            <div
+                              style={{
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: "8px",
+                                marginBottom: "8px",
+                              }}
+                            >
+                              <div>
+                                <span
+                                  style={{ fontSize: "14px", color: "#666" }}
+                                >
+                                  Total Quantity:{" "}
+                                </span>
+                                <span
+                                  style={{
+                                    fontSize: "14px",
+                                    color: "#111827",
+                                    fontWeight: "500",
+                                  }}
+                                >
+                                  {totalQuantity} units
+                                </span>
+                              </div>
+                              <div>
+                                <span
+                                  style={{ fontSize: "14px", color: "#666" }}
+                                >
+                                  Duration:{" "}
+                                </span>
+                                <span
+                                  style={{
+                                    fontSize: "14px",
+                                    color: "#111827",
+                                    fontWeight: "500",
+                                  }}
+                                >
+                                  {totalDuration} days
+                                </span>
+                              </div>
+                            </div>
+
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "8px",
+                                fontSize: "14px",
+                                color: "#666",
+                              }}
+                            >
+                              <Calendar size={14} color="#666" />
+                              <span>
+                                {formatDate(firstAllocation?.startDate)} -{" "}
+                                {formatDate(firstAllocation?.endDate)}
+                              </span>
+                            </div>
+                          </Col>
+                        </Row>
+                      </CardBody>
+                    </Card>
+                  );
+                })}
+              </div>
+            </CardBody>
+          </Card>
+        </div>
         {/* Processes Panel */}
         <div className="panel processes-panel">
           <div className="panel-header">
@@ -930,15 +467,29 @@ export function PlanPage() {
 
                 if (!allocation) return null;
 
-                const isSelected = processAllocation.processName === selectedProcess;
+                const isSelected =
+                  processAllocation.processName === selectedProcess;
+                const machineCode = allocation.machineId.split("-")[0];
+                const colors = processColors[machineCode] || {
+                  bg: "#666",
+                  border: "#444",
+                };
 
                 return (
                   <div
                     key={processAllocation._id}
-                    className={`process-item ${isSelected ? "selected-item" : ""}`}
+                    className={`process-item ${
+                      isSelected ? "selected-item" : ""
+                    }`}
                     onClick={() =>
                       setSelectedProcess(processAllocation.processName)
                     }
+                    style={{
+                      borderColor: isSelected ? colors.border : undefined,
+                      backgroundColor: isSelected
+                        ? `${colors.bg}15`
+                        : undefined,
+                    }}
                   >
                     <div className="process-item-header">
                       <span className="process-item-name">
@@ -951,7 +502,7 @@ export function PlanPage() {
                     <div className="process-item-dates">
                       <Clock size={14} className="date-icon" />
                       <span>
-                        {formatDate(allocation.startDate)} - 
+                        {formatDate(allocation.startDate)} -
                         {formatDate(allocation.endDate)}
                       </span>
                     </div>
@@ -963,7 +514,6 @@ export function PlanPage() {
               })}
           </div>
         </div>
-
         {/* Process Details Panel */}
         <div className="panel details-panel">
           <div className="panel-header">
@@ -975,9 +525,10 @@ export function PlanPage() {
             )}
           </div>
           <div className="panel-content">
-            {selectedOrder && selectedProcess &&
+            {selectedOrder &&
+              selectedProcess &&
               filteredAllocations
-                .filter(p => p.processName === selectedProcess)
+                .filter((p) => p.processName === selectedProcess)
                 .map((processAllocation) => {
                   const allocation = processAllocation.allocations.find(
                     (a) => a.orderNumber === selectedOrder
@@ -985,40 +536,66 @@ export function PlanPage() {
 
                   if (!allocation) return null;
 
+                  const machineCode = allocation.machineId.split("-")[0];
+                  const colors = processColors[machineCode] || {
+                    bg: "#666",
+                    border: "#444",
+                  };
+
                   return (
-                    <div key={processAllocation._id} className="details-content">
+                    <div
+                      key={processAllocation._id}
+                      className="details-content"
+                    >
                       <div className="details-header">
-                        <h3 className="details-title">{processAllocation.processName}</h3>
+                        <h3 className="details-title">
+                          {processAllocation.processName}
+                        </h3>
                         <div className="details-subtitle">
                           <Clock size={16} className="details-icon" />
                           <span>
-                            {formatDate(allocation.startDate)} - 
+                            {formatDate(allocation.startDate)} -
                             {formatDate(allocation.endDate)}
                           </span>
                         </div>
                       </div>
-                      
-                      <div className="details-card">
+
+                      <div
+                        className="details-card"
+                        style={{ borderColor: colors.border }}
+                      >
                         <div className="details-row">
                           <div className="details-label">Machine ID</div>
-                          <div className="details-value">{allocation.machineId}</div>
+                          <div className="details-value">
+                            {allocation.machineId}
+                          </div>
                         </div>
                         <div className="details-row">
                           <div className="details-label">Order Number</div>
-                          <div className="details-value">{allocation.orderNumber}</div>
+                          <div className="details-value">
+                            {allocation.orderNumber}
+                          </div>
                         </div>
                         <div className="details-row">
                           <div className="details-label">Operator</div>
-                          <div className="details-value">{allocation.operator}</div>
+                          <div className="details-value">
+                            {allocation.operator}
+                          </div>
                         </div>
                         <div className="details-row">
                           <div className="details-label">Planned Quantity</div>
-                          <div className="details-value">{allocation.plannedQuantity} units</div>
+                          <div className="details-value">
+                            {allocation.plannedQuantity} units
+                          </div>
                         </div>
                         <div className="details-row">
                           <div className="details-label">Duration</div>
                           <div className="details-value">
-                            {getDaysBetweenDates(allocation.startDate, allocation.endDate)} days
+                            {getDaysBetweenDates(
+                              allocation.startDate,
+                              allocation.endDate
+                            )}{" "}
+                            days
                           </div>
                         </div>
                       </div>
