@@ -16,6 +16,8 @@ import {
 } from "reactstrap";
 import { Link } from "react-router-dom";
 import { toast } from "react-toastify";
+import { FaEdit } from "react-icons/fa";
+import { MdOutlineDelete } from "react-icons/md";
 
 const RmVariable = () => {
   const [modal_list, setModalList] = useState(false);
@@ -279,7 +281,7 @@ const RmVariable = () => {
                                   data-bs-target="#showModal"
                                   onClick={() => tog_edit(item)}
                                 >
-                                  Edit
+                                  <FaEdit size={15}/>
                                 </button>
                               </div>
                               <div className="remove">
@@ -292,7 +294,7 @@ const RmVariable = () => {
                                     tog_delete();
                                   }}
                                 >
-                                  Remove
+                                  <MdOutlineDelete size={17}/>
                                 </button>
                               </div>
                             </div>

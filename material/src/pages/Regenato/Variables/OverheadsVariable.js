@@ -18,6 +18,8 @@ import BreadCrumb from "../../../Components/Common/BreadCrumb";
 import { Link } from "react-router-dom";
 import Flatpickr from "react-flatpickr";
 import { toast } from "react-toastify";
+import { FaEdit } from "react-icons/fa";
+import { MdOutlineDelete } from "react-icons/md";
 
 const OverheadsVariable = () => {
   const [modal_add, setModalList] = useState(false);
@@ -314,7 +316,7 @@ const OverheadsVariable = () => {
                                   data-bs-target="#showModal"
                                   onClick={() => tog_edit(item)}
                                 >
-                                  Edit
+                                  <FaEdit size={15} />
                                 </button>
                                 <button
                                   className="btn btn-sm btn-danger remove-item-btn"
@@ -325,7 +327,7 @@ const OverheadsVariable = () => {
                                     tog_delete();
                                   }}
                                 >
-                                  Remove
+                                  <MdOutlineDelete size={17} />
                                 </button>
                               </div>
                             </td>

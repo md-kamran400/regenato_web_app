@@ -38,13 +38,10 @@ import { ToastContainer, toast } from "react-toastify";
 import HoursPlanningTab from "../HoursPlanningTab";
 import HoursPlanningCard from "../HoursPlanningCard";
 import { PartListHrPlan } from "../HoursPlanningFolder/TestingPartAllocation/PartListHrPlan";
-import AllocatedPartListHrPlan from "../HoursPlanningFolder/TestingPartAllocation/AllocatedPartListHrPlan";
 
 const PartsTable = React.memo(
   ({ partsList, partsListID, updatePartsLists, onAddPart, onUpdatePrts }) => {
     const { _id, listId } = useParams();
-    console.log(partsListID);
-    console.log(_id);
     const rm = "partsList";
     const [modalAdd, setModalAdd] = useState(false);
     const [modal_delete, setModalDelete] = useState(false);
@@ -797,11 +794,6 @@ const PartsTable = React.memo(
                                     porjectID={_id}
                                     partID={partsListID}
                                     partListItemId={item._id}
-                                  />
-                                  <AllocatedPartListHrPlan
-                                    // projectID={_id}
-                                    // partID={partsListID}
-                                    // partListItemId={item._id}
                                   />
                                 </td>
                               </tr>

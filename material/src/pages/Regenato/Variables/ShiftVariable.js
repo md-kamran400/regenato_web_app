@@ -14,7 +14,8 @@ import {
 } from "reactstrap";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-
+import { FaEdit } from "react-icons/fa";
+import { MdOutlineDelete } from "react-icons/md";
 const ShiftVariable = () => {
   const [shiftData, setShiftData] = useState([]);
   const [modalOpen, setModalOpen] = useState(false);
@@ -229,7 +230,7 @@ const ShiftVariable = () => {
                                 className="btn btn-sm btn-success edit-item-btn"
                                 onClick={() => handleEdit(shift)}
                               >
-                                Edit
+                                <FaEdit size={15} />
                               </Button>
                               <Button
                                 className="btn btn-sm btn-danger remove-item-btn"
@@ -239,7 +240,7 @@ const ShiftVariable = () => {
                                 }}
                                 disabled={posting}
                               >
-                                Remove
+                                <MdOutlineDelete size={17} />
                               </Button>
                             </div>
                           </td>

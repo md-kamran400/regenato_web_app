@@ -1,3 +1,9 @@
+// import React from "react";
+
+// export const AllocatedAssembly_subAssembly = () => {
+//   return <div>AllocatedAssembly_subAssembly</div>;
+// };
+
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import {
@@ -15,10 +21,10 @@ import {
   CardBody,
 } from "reactstrap";
 import { toast } from "react-toastify";
-
-export const AllocatedAssemblyPartList = ({
+export const AllocatedAssembly_subAssembly = ({
   porjectID,
   AssemblyListId,
+  subAssembliesId,
   partListItemId,
   onDeleteSuccess,
 }) => {
@@ -35,7 +41,7 @@ export const AllocatedAssemblyPartList = ({
       setError(null);
       try {
         const response = await axios.get(
-          `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/assemblyList/${AssemblyListId}/partsListItems/${partListItemId}/allocations`
+          `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/assemblyList/${AssemblyListId}/subAssemblies/${subAssembliesId}/partsListItems/${partListItemId}/allocations`
         );
 
         if (!response.data.data || response.data.data.length === 0) {
@@ -69,7 +75,7 @@ export const AllocatedAssemblyPartList = ({
   const handleCancelAllocation = async () => {
     try {
       const response = await axios.delete(
-        `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/assemblyList/${AssemblyListId}/partsListItems/${partListItemId}/allocations`
+        `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/assemblyList/${AssemblyListId}/subAssemblies/${subAssembliesId}/partsListItems/${partListItemId}/allocations`
       );
       if (response.status === 200) {
         toast.success("Allocation successfully canceled!");

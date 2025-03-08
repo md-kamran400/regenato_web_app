@@ -24,8 +24,7 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { isSameDay, parseISO, getDay, isSameMonth } from "date-fns";
 
-import AllocatedPartListHrPlan from "./AllocatedPartListHrPlan";
-import Calendar from "./Calendar";
+import { AllocatedPartListHrPlan } from "./AllocatedPartListHrPlan";
 export const PartListHrPlan = ({
   partName,
   manufacturingVariables,
@@ -35,11 +34,11 @@ export const PartListHrPlan = ({
   partListItemId,
 }) => {
   const [machineOptions, setMachineOptions] = useState({});
-  // const [isOpen, setIsOpen] = useState(true);
   const [isConfirmationModalOpen, setIsConfirmationModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("actual");
   const [rows, setRows] = useState({});
   const [operators, setOperators] = useState([]);
+  const [leaveData, setLeaveData] = useState({});
   const [hasStartDate, setHasStartDate] = useState(false);
   const [shiftOptions, setShiftOptions] = useState([]);
   const [selectedShift, setSelectedShift] = useState(null);
@@ -51,6 +50,7 @@ export const PartListHrPlan = ({
   const [isAutoSchedule, setIsAutoSchedule] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
   const [eventDates, setEventDates] = useState([]);
+  const [isDataAllocated, setIsDataAllocated] = useState(false);
 
   useEffect(() => {
     fetch(`${process.env.REACT_APP_BASE_URL}/api/eventScheduler/events`)
@@ -72,6 +72,23 @@ export const PartListHrPlan = ({
       })
       .catch((error) => console.error("Error fetching events:", error));
   }, []);
+
+  useEffect(() => {
+    const fetchAllocatedData = async () => {
+      try {
+        const response = await axios.get(
+          `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/allocation`
+        );
+        if (response.data.data.length > 0) {
+          setIsDataAllocated(true);
+        }
+      } catch (error) {
+        console.error("Error fetching allocated data:", error);
+      }
+    };
+
+    fetchAllocatedData();
+  }, [porjectID, partID, partListItemId]);
 
   // Function to check if the date is an event date or a Sunday
   const isHighlightedOrDisabled = (date) => {
@@ -181,6 +198,7 @@ export const PartListHrPlan = ({
       };
     });
   };
+
   useEffect(() => {
     const fetchOperators = async () => {
       try {
@@ -188,11 +206,26 @@ export const PartListHrPlan = ({
           `${process.env.REACT_APP_BASE_URL}/api/userVariable`
         );
         const data = await response.json();
-        if (response.ok) setOperators(data);
+
+        if (response.ok) {
+          // ✅ Ensure operators are only set when data is available
+          if (Array.isArray(data) && data.length > 0) {
+            // ✅ Exclude leave users when setting operators
+            const activeOperators = data.filter(
+              (user) => !user.leavePeriod || user.leavePeriod.length === 0
+            );
+
+            setOperators(activeOperators);
+          } else {
+            console.warn("No operators found in API response.");
+            setOperators([]); // Set empty array to avoid undefined issues
+          }
+        }
       } catch (err) {
         console.error("Error fetching operators", err);
       }
     };
+
     fetchOperators();
   }, []);
 
@@ -219,8 +252,6 @@ export const PartListHrPlan = ({
 
     fetchShifts();
   }, []);
-
-  console.log(shiftOptions);
 
   useEffect(() => {
     const fetchMachines = async () => {
@@ -267,30 +298,6 @@ export const PartListHrPlan = ({
   const calculatePlannedMinutes = (hours) => {
     return Math.ceil(hours * 60);
   };
-
-  // const calculateEndDate = (startDate, plannedMinutes, shiftMinutes) => {
-  //   console.log("calculateEndDate called with:", {
-  //     startDate,
-  //     plannedMinutes,
-  //     shiftMinutes,
-  //   });
-
-  //   if (!startDate) return ""; // Ensure startDate is provided
-
-  //   const parsedDate = new Date(startDate);
-  //   if (isNaN(parsedDate.getTime())) return ""; // Ensure startDate is valid
-
-  //   const totalDays = Math.ceil(plannedMinutes / (shiftMinutes || 480)); // Use shiftMinutes
-
-  //   parsedDate.setDate(parsedDate.getDate() + totalDays - 1);
-
-  //   console.log(`Selected shift: ${shiftMinutes}`);
-  //   console.log(`Planned minutes: ${plannedMinutes}`);
-
-  //   return parsedDate instanceof Date && !isNaN(parsedDate)
-  //     ? parsedDate.toISOString().split("T")[0]
-  //     : "";
-  // };
 
   const calculateEndDate = (startDate, plannedMinutes, shiftMinutes) => {
     if (!startDate) return ""; // Ensure startDate is provided
@@ -361,46 +368,85 @@ export const PartListHrPlan = ({
     return { ...allRows }; // Ensure state update
   };
 
+  // const handleStartDateChange = (index, rowIndex, date) => {
+  //   if (index === 0) {
+  //     setHasStartDate(!!date);
+  //   }
+
+  //   setRows((prevRows) => {
+  //     const newRows = { ...prevRows };
+
+  //     if (date) {
+  //       if (isAutoSchedule && index === 0) {
+  //         return prefillData(newRows, date);
+  //       } else {
+  //         newRows[index] = newRows[index].map((row, idx) => {
+  //           if (idx === rowIndex) {
+  //             return {
+  //               ...row,
+  //               startDate: date,
+  //               endDate: calculateEndDate(date, row.plannedQtyTime),
+  //             };
+  //           }
+  //           return row;
+  //         });
+  //       }
+  //     } else {
+  //       return manufacturingVariables.reduce((acc, man, idx) => {
+  //         acc[idx] = [
+  //           {
+  //             partType: "Make",
+  //             plannedQuantity: quantity,
+  //             startDate: "",
+  //             endDate: "",
+  //             machineId: "",
+  //             shift: "Shift A",
+  //             plannedQtyTime: calculatePlannedMinutes(man.hours * quantity),
+  //             operatorId: "",
+  //             processName: man.name,
+  //           },
+  //         ];
+  //         return acc;
+  //       }, {});
+  //     }
+  //     return newRows;
+  //   });
+  // };
+
   const handleStartDateChange = (index, rowIndex, date) => {
+    if (!date) return;
+
+    // Function to find the next working day
+    const getNextWorkingDay = (date) => {
+      let nextDay = new Date(date);
+      while (isHighlightedOrDisabled(nextDay)) {
+        nextDay.setDate(nextDay.getDate() + 1);
+      }
+      return nextDay;
+    };
+
+    const nextWorkingDay = getNextWorkingDay(date);
+
     if (index === 0) {
-      setHasStartDate(!!date);
+      setHasStartDate(!!nextWorkingDay);
     }
 
     setRows((prevRows) => {
       const newRows = { ...prevRows };
 
-      if (date) {
-        if (isAutoSchedule && index === 0) {
-          return prefillData(newRows, date);
-        } else {
-          newRows[index] = newRows[index].map((row, idx) => {
-            if (idx === rowIndex) {
-              return {
-                ...row,
-                startDate: date,
-                endDate: calculateEndDate(date, row.plannedQtyTime),
-              };
-            }
-            return row;
-          });
-        }
+      if (isAutoSchedule && index === 0) {
+        return prefillData(newRows, nextWorkingDay);
       } else {
-        return manufacturingVariables.reduce((acc, man, idx) => {
-          acc[idx] = [
-            {
-              partType: "Make",
-              plannedQuantity: quantity,
-              startDate: "",
-              endDate: "",
-              machineId: "",
-              shift: "Shift A",
-              plannedQtyTime: calculatePlannedMinutes(man.hours * quantity),
-              operatorId: "",
-              processName: man.name,
-            },
-          ];
-          return acc;
-        }, {});
+        newRows[index] = newRows[index].map((row, idx) => {
+          if (idx === rowIndex) {
+            return {
+              ...row,
+              startDate: nextWorkingDay,
+              endDate: calculateEndDate(nextWorkingDay, row.plannedQtyTime),
+            };
+          }
+          return row;
+        });
       }
       return newRows;
     });
@@ -470,6 +516,7 @@ export const PartListHrPlan = ({
       return { ...prevRows, [index]: updatedRows };
     });
   };
+
   const handleSubmit = async () => {
     console.log("Submitting allocations...");
     console.log("Rows before processing:", JSON.stringify(rows, null, 2));
@@ -487,7 +534,10 @@ export const PartListHrPlan = ({
         // Reset order number counter for each process
         let orderCounter = 1;
 
-        rows[index].forEach((row) => {
+        rows[index].forEach((row, rowIndex) => {
+          console.log(`Processing row ${rowIndex} in process ${index}:`, row);
+
+          // Check if all required fields are present
           if (
             row.plannedQuantity &&
             row.startDate &&
@@ -523,10 +573,16 @@ export const PartListHrPlan = ({
                 operators.find((op) => op._id === row.operatorId)?.name ||
                 "Unknown",
             });
+          } else {
+            console.warn(
+              `Skipping row ${rowIndex} in process ${index} due to missing or invalid fields:`,
+              row
+            );
           }
         });
       });
 
+      // Convert groupedAllocations object to an array
       const finalAllocations = Object.values(groupedAllocations);
 
       console.log(
@@ -534,6 +590,14 @@ export const PartListHrPlan = ({
         JSON.stringify(finalAllocations, null, 2)
       );
 
+      if (finalAllocations.length === 0) {
+        toast.error(
+          "No valid allocations to submit. Please check your inputs."
+        );
+        return;
+      }
+
+      // Send the grouped allocations to the backend
       const response = await axios.post(
         `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/allocation`,
         { allocations: finalAllocations }
@@ -541,14 +605,19 @@ export const PartListHrPlan = ({
 
       if (response.status === 201) {
         toast.success("Allocations successfully added!");
+        setIsDataAllocated(true); // Update state to reflect that data is allocated
       } else {
         toast.error("Failed to add allocations.");
       }
     } catch (error) {
-      toast.error(error);
+      console.error("Error submitting allocations:", error);
+      toast.error("An error occurred while submitting allocations.");
     }
   };
 
+  const handleDeleteSuccess = () => {
+    setIsDataAllocated(false); // Update the state to reflect that data is deleted
+  };
   return (
     <div style={{ width: "100%", margin: "10px 0" }}>
       <Card>
@@ -577,6 +646,7 @@ export const PartListHrPlan = ({
             <Button
               color={isAutoSchedule ? "primary" : "secondary"}
               onClick={() => setIsAutoSchedule(!isAutoSchedule)}
+              disabled={isDataAllocated}
             >
               {isAutoSchedule ? "Auto Schedule ✅" : "Auto Schedule"}
             </Button>
@@ -586,22 +656,31 @@ export const PartListHrPlan = ({
             >
               Planned
             </Button>
+            {/* <Button
+              color={activeTab === "actual" ? "primary" : "secondary"}
+              onClick={() => setActiveTab("actual")}
+            >
+              Actual
+            </Button> */}
             <Button
               color={activeTab === "actual" ? "primary" : "secondary"}
               onClick={() => setActiveTab("actual")}
+              disabled={isDataAllocated}
             >
               Actual
             </Button>
           </div>
         </CardHeader>
+
         {activeTab === "planned" && (
           <AllocatedPartListHrPlan
             porjectID={porjectID}
             partID={partID}
             partListItemId={partListItemId}
+            onDeleteSuccess={handleDeleteSuccess}
           />
         )}
-        {activeTab === "actual" && (
+        {activeTab === "actual" && !isDataAllocated && (
           <Collapse isOpen={true}>
             <CardBody className="shadow-md">
               {manufacturingVariables.map((man, index) => (
@@ -653,7 +732,7 @@ export const PartListHrPlan = ({
                         !hasStartDate || remainingQuantities[index] <= 0
                       }
                     >
-                      Add Order
+                      Add Row
                     </Button>
                   </CardHeader>
                   <Table bordered responsive>
@@ -754,17 +833,13 @@ export const PartListHrPlan = ({
                               }
                               // readOnly={index !== 0}
                             /> */}
+
                             {/* <DatePicker
-                              selected={selectedDate}
-                              value={row.startDate}
-                              // onChange={(date) => setSelectedDate(date)}
+                              selected={
+                                row.startDate ? new Date(row.startDate) : null
+                              }
                               onChange={(date) =>
-                                handleStartDateChange(
-                                  index,
-                                  rowIndex,
-                                  // e.target.value
-                                  date
-                                )
+                                handleStartDateChange(index, rowIndex, date)
                               }
                               dayClassName={(date) =>
                                 isHighlightedOrDisabled(date)
@@ -772,15 +847,25 @@ export const PartListHrPlan = ({
                                   : ""
                               }
                               renderDayContents={renderDayContents}
-                              customInput={<CustomInput />} // Use the custom input component
+                              customInput={<CustomInput />}
+                              dateFormat="dd-MM-yyyy"
                             /> */}
                             <DatePicker
                               selected={
                                 row.startDate ? new Date(row.startDate) : null
                               }
-                              onChange={(date) =>
-                                handleStartDateChange(index, rowIndex, date)
-                              }
+                              onChange={(date) => {
+                                if (date) {
+                                  const correctedDate = new Date(
+                                    date.toISOString().split("T")[0]
+                                  );
+                                  handleStartDateChange(
+                                    index,
+                                    rowIndex,
+                                    correctedDate
+                                  );
+                                }
+                              }}
                               dayClassName={(date) =>
                                 isHighlightedOrDisabled(date)
                                   ? "highlighted-date"
@@ -799,6 +884,7 @@ export const PartListHrPlan = ({
                                 }
                                 .grayed-out-date {
                                    color: #ccc !important;
+                                  //  disabled
                                   // display:none
                                 }
                               `}</style>
@@ -960,35 +1046,24 @@ export const PartListHrPlan = ({
 
                           <td>
                             <Autocomplete
-                              options={operators.filter((operator) =>
-                                operator.processName.includes(man.name)
-                              )}
+                              options={operators}
                               value={
                                 operators.find(
                                   (op) => op._id === row.operatorId
                                 ) || null
                               }
-                              getOptionLabel={(option) => option.name}
-                              renderOption={(props, option) => {
-                                const isDisabled = rows[index]?.some(
-                                  (r) => r.operatorId === option._id
-                                );
-                                return (
-                                  <li
-                                    {...props}
-                                    style={{
-                                      color: isDisabled ? "gray" : "black",
-                                      pointerEvents: isDisabled
-                                        ? "none"
-                                        : "auto",
-                                    }}
-                                  >
-                                    {option.name}
-                                  </li>
-                                );
-                              }}
+                              getOptionLabel={(option) => option.name || ""}
+                              renderOption={(props, option) => (
+                                <li
+                                  {...props}
+                                  style={{
+                                    color: option.leave ? "gray" : "black",
+                                  }}
+                                >
+                                  {option.name} {option.leave ? "(leave)" : ""}
+                                </li>
+                              )}
                               onChange={(event, newValue) => {
-                                if (!hasStartDate && index !== 0) return;
                                 setRows((prevRows) => {
                                   const updatedRows = [...prevRows[index]];
                                   updatedRows[rowIndex] = {

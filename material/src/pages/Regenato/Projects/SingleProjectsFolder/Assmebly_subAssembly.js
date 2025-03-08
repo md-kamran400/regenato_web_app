@@ -34,6 +34,7 @@ import { FiSettings } from "react-icons/fi";
 import { useLocation } from "react-router-dom";
 import { FaEdit } from "react-icons/fa";
 import { toast } from "react-toastify";
+import { Assembly_SubAssemblyHoursPlanning } from "../HoursPlanningFolder/AssemblyHoursPlanning/Assembly_SubAssemblyHrPlan/Assembly_SubAssemblyHoursPlanning";
 const Assmebly_subAssembly = ({
   projectId,
   subAssembly,
@@ -44,7 +45,7 @@ const Assmebly_subAssembly = ({
   // console.log("sub project id", projectId);
   // console.log("assembly id", assemblyId);
   // console.log("sub assmenly main id", subAssembly);
-  
+
   const { _id } = useParams();
   const location = useLocation();
   const subAssemblyName = location.state?.subAssemblyName || "";
@@ -402,7 +403,7 @@ const Assmebly_subAssembly = ({
 
                       <li style={{ fontSize: "19px" }}>
                         <span class="badge bg-danger-subtle text-danger">
-                          Sub Assmebly
+                          Sub Assembly
                         </span>
                       </li>
                     </ul>
@@ -562,6 +563,24 @@ const Assmebly_subAssembly = ({
                                   </div>
                                 </td>
                               </tr>
+
+                              {expandedRowId === item._id && (
+                                <tr>
+                                  <td colSpan="7">
+                                    <Assembly_SubAssemblyHoursPlanning
+                                      partName={item.partName}
+                                      manufacturingVariables={
+                                        item.manufacturingVariables || []
+                                      }
+                                      quantity={item.quantity}
+                                      porjectID={_id}
+                                      AssemblyListId={assemblyId}
+                                      subAssembliesId={subAssembly._id}
+                                      partListItemId={item._id}
+                                    />
+                                  </td>
+                                </tr>
+                              )}
 
                               {modalOpenId === item._id && (
                                 <Modal

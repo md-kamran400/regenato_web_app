@@ -15,6 +15,8 @@ import {
 import Flatpickr from "react-flatpickr";
 import { Link } from "react-router-dom";
 import { toast } from "react-toastify";
+import { FaEdit } from "react-icons/fa";
+import { MdOutlineDelete } from "react-icons/md";
 
 const ShipmentVariable = () => {
   const [modal_add, setModalList] = useState(false);
@@ -301,7 +303,7 @@ const ShipmentVariable = () => {
                                   data-bs-target="#showModal"
                                   onClick={() => tog_edit(item)}
                                 >
-                                  Edit
+                                  <FaEdit size={15}/>
                                 </button>
                                 <button
                                   className="btn btn-sm btn-danger remove-item-btn"
@@ -312,7 +314,7 @@ const ShipmentVariable = () => {
                                     tog_delete();
                                   }}
                                 >
-                                  Remove
+                                  <MdOutlineDelete size={17}/>
                                 </button>
                               </div>
                             </td>
