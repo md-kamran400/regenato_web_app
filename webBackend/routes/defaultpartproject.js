@@ -2501,6 +2501,7 @@ partproject.post(
 );
 
 // get for allocation
+const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 
 partproject.get(
   "/projects/:projectId/partsLists/:partsListId/partsListItems/:partsListItemsId/allocation",
@@ -2508,8 +2509,17 @@ partproject.get(
     try {
       const { projectId, partsListId, partsListItemsId } = req.params;
 
+      // Validate IDs before querying
+      if (
+        !isValidObjectId(projectId) ||
+        !isValidObjectId(partsListId) ||
+        !isValidObjectId(partsListItemsId)
+      ) {
+        return res.status(400).json({ message: "Invalid or missing ID(s)" });
+      }
+
       // Find the project
-      const project = await PartListProjectModel.findOne({ _id: projectId });
+      const project = await PartListProjectModel.findById(projectId);
 
       if (!project) {
         return res.status(404).json({ message: "Project not found" });
