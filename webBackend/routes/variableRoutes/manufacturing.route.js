@@ -450,6 +450,9 @@ manufacturRouter.put(
 //   }
 // });
 
+// Manufacturing.route.js
+
+// Modify the GET route to update machine status based on allocations
 manufacturRouter.get("/category/:categoryId", async (req, res) => {
   try {
     let { categoryId } = req.params;
@@ -469,11 +472,7 @@ manufacturRouter.get("/category/:categoryId", async (req, res) => {
 
     // Reset availability for machines whose downtime has ended
     manufacturingEntry.subCategories.forEach((machine) => {
-      if (
-        !machine.isAvailable &&
-        machine.unavailableUntil &&
-        new Date(machine.unavailableUntil) < now
-      ) {
+      if (!machine.isAvailable && machine.unavailableUntil && new Date(machine.unavailableUntil) < now) {
         machine.isAvailable = true;
         machine.unavailableUntil = null;
         updated = true;
@@ -491,9 +490,7 @@ manufacturRouter.get("/category/:categoryId", async (req, res) => {
     );
 
     if (!allocationResponse.data || !allocationResponse.data.data) {
-      return res
-        .status(500)
-        .json({ msg: "Failed to retrieve allocation data" });
+      return res.status(500).json({ msg: "Failed to retrieve allocation data" });
     }
 
     const allocationData = allocationResponse.data;
@@ -512,39 +509,33 @@ manufacturRouter.get("/category/:categoryId", async (req, res) => {
               if (!allocatedMachinesByProcess.has(process.processName)) {
                 allocatedMachinesByProcess.set(process.processName, new Set());
               }
-              allocatedMachinesByProcess
-                .get(process.processName)
-                .add(alloc.machineId);
+              allocatedMachinesByProcess.get(process.processName).add(alloc.machineId);
             }
           }
         });
       });
     });
 
-    // After the loop, add this line:
-
     // Update all machines in the manufacturing model based on process allocation
-    manufacturingEntry.subCategories = manufacturingEntry.subCategories.map(
-      (machine) => {
-        if (
-          allocatedMachinesByProcess.has(categoryId) &&
-          allocatedMachinesByProcess.get(categoryId).has(machine.subcategoryId)
-        ) {
-          return {
-            ...machine.toObject(),
-            isAvailable: false,
-            status: "occupied",
-            statusEndDate: now, // Just marking the status, change logic if needed
-          };
-        }
+    manufacturingEntry.subCategories = manufacturingEntry.subCategories.map((machine) => {
+      if (
+        allocatedMachinesByProcess.has(categoryId) &&
+        allocatedMachinesByProcess.get(categoryId).has(machine.subcategoryId)
+      ) {
         return {
           ...machine.toObject(),
-          isAvailable: true,
-          status: "available",
-          statusEndDate: null,
+          isAvailable: false,
+          status: "occupied",
+          statusEndDate: now,
         };
       }
-    );
+      return {
+        ...machine.toObject(),
+        isAvailable: true,
+        status: "available",
+        statusEndDate: null,
+      };
+    });
 
     await manufacturingEntry.save();
 
@@ -554,11 +545,10 @@ manufacturRouter.get("/category/:categoryId", async (req, res) => {
     });
   } catch (error) {
     console.error("Error fetching data:", error.message);
-    res
-      .status(500)
-      .json({ error: "Internal Server Error", details: error.message });
+    res.status(500).json({ error: "Internal Server Error", details: error.message });
   }
 });
+
 
 manufacturRouter.get("/all-category-ids", async (req, res) => {
   try {

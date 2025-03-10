@@ -44,9 +44,9 @@
 
 // module.exports = ManufacturingModel;
 
-
-
 const mongoose = require("mongoose");
+
+// ManufacturingModel.js
 
 const manufacturingSchema = mongoose.Schema({
   categoryId: { type: String, required: true, unique: true },
@@ -56,15 +56,25 @@ const manufacturingSchema = mongoose.Schema({
   totalrate: Number,
   subCategories: [
     {
-      subcategoryId: { type: String, required: true }, // Machine ID
+      subcategoryId: { type: String, required: true },
       name: { type: String, required: true },
       hours: Number,
       hourlyRate: Number,
       totalRate: Number,
       isAvailable: { type: Boolean, default: true },
-      unavailableUntil: { type: Date, default: null },
-      status: { type: String, enum: ["available", "occupied", "downtime"], default: "available" },
-      statusEndDate: { type: Date, default: null },
+      status: {
+        type: String,
+        enum: ["available", "occupied", "downtime"],
+        default: "available",
+      },
+      allocations: [
+        {
+          startDate: { type: Date, required: true },
+          endDate: { type: Date, required: true },
+          projectName: String,
+          partName: String,
+        },
+      ],
       downtimeHistory: [
         {
           startTime: { type: Date, required: true },

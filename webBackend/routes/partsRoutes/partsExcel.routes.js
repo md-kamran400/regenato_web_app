@@ -1149,67 +1149,229 @@ PartsExcelRoutes.get("/categoryshipment/:categoryId", async (req, res) => {
   }
 });
 
+// PartsExcelRoutes.post("/uploadexcel", upload.single("file"), async (req, res) => {
+//   try {
+//     if (!req.file) {
+//       return res.status(400).json({ message: "No file uploaded" });
+//     }
+ 
+//     const workbook = xlsx.read(req.file.buffer, { type: "buffer" });
+//     const sheetName = workbook.SheetNames[0];
+//     const sheetData = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName], {
+//       defval: "",
+//     });
+ 
+//     if (sheetData.length === 0) {
+//       return res
+//         .status(400)
+//         .json({ message: "The uploaded Excel file is empty" });
+//     }
+ 
+//     // Fetch all manufacturing categories with hourlyrate
+//     const manufacturingCategories = await ManufacturingModel.find(
+//       {},
+//       "categoryId hourlyrate"
+//     ).lean();
+//     console.log("Manufacturing Categories:", manufacturingCategories);
+ 
+//     const hourlyRateMap = new Map(
+//       manufacturingCategories.map((item) => [item.categoryId, item.hourlyrate])
+//     );
+//     console.log("Hourly Rate Map:", hourlyRateMap);
+ 
+//     // Group data by Part No.
+//     const partsMap = new Map();
+ 
+//     for (const row of sheetData) {
+//       const partNo = row["Part No."];
+//       const partDescription = row["Part Description"];
+//       const timeInMinutes = parseFloat(row["Time in Minutes"]);
+//       const stage = row["Stage"];
+ 
+//       if (!partNo || !partDescription || isNaN(timeInMinutes) || !stage) {
+//         console.warn(`Skipping row with missing fields: ${JSON.stringify(row)}`);
+//         continue;
+//       }
+ 
+//       // Split stage into categoryId and name
+//       const [categoryId, name] = stage.split(" - ");
+//       if (!categoryId || !name) {
+//         console.warn(`Invalid stage format: ${stage}`);
+//         continue;
+//       }
+ 
+//       // Get hourlyrate for the categoryId
+//       const hourlyrate = hourlyRateMap.get(categoryId.trim());
+//       if (!hourlyrate) {
+//         console.warn(`Hourly rate not found for categoryId: ${categoryId}`);
+//         continue;
+//       }
+ 
+//       // Calculate totalrate
+//       const totalrate = (timeInMinutes / 60) * hourlyrate;
+ 
+//       if (!partsMap.has(partNo)) {
+//         partsMap.set(partNo, {
+//           partNo,
+//           partDescription,
+//           manufacturingVariables: [],
+//         });
+//       }
+ 
+//       const partData = partsMap.get(partNo);
+ 
+//       // Check if the process (categoryId + name) already exists for this part
+//       const existingProcess = partData.manufacturingVariables.find(
+//         (item) =>
+//           item.categoryId === categoryId.trim() && item.name === name.trim()
+//       );
+ 
+//       if (existingProcess) {
+//         // If the process exists, update the hours and totalRate
+//         existingProcess.hours += timeInMinutes / 60;
+//         existingProcess.totalRate += totalrate;
+//       } else {
+//         // If the process does not exist, add it
+//         partData.manufacturingVariables.push({
+//           categoryId: categoryId.trim(),
+//           name: name.trim(),
+//           hours: timeInMinutes / 60,
+//           hourlyRate: hourlyrate, // Map to PartsModel's hourlyRate (capital R)
+//           totalRate: totalrate, // Map to PartsModel's totalRate (capital R)
+//         });
+//       }
+//     }
+ 
+//     const processedParts = [];
+//     const duplicateParts = [];
+//     const operations = [];
+ 
+//     // Fetch existing part IDs to check for duplicates
+//     const existingPartIds = await PartsModel.distinct("id");
+//     const existingPartsSet = new Set(existingPartIds);
+ 
+//     for (const [partNo, partData] of partsMap) {
+//       if (existingPartsSet.has(partNo)) {
+//         duplicateParts.push(partNo);
+//         continue;
+//       }
+ 
+//       const partType = "Make"; // Assuming all parts are of type "Make"
+ 
+//       // Sort manufacturingVariables by categoryId in ascending order
+//       partData.manufacturingVariables.sort((a, b) =>
+//         a.categoryId.localeCompare(b.categoryId)
+//       );
+ 
+//       const totalHours = partData.manufacturingVariables.reduce(
+//         (sum, item) => sum + item.hours,
+//         0
+//       );
+ 
+//       const partDocument = {
+//         id: partNo,
+//         partName: partData.partDescription,
+//         partType,
+//         timePerUnit: totalHours,
+//         manufacturingVariables: partData.manufacturingVariables,
+//       };
+ 
+//       processedParts.push(partNo);
+//       operations.push({
+//         insertOne: { document: partDocument },
+//       });
+ 
+//       existingPartsSet.add(partNo);
+//     }
+ 
+//     // Perform bulk write to MongoDB
+//     if (operations.length > 0) {
+//       await PartsModel.bulkWrite(operations, { ordered: false });
+//     }
+ 
+//     // Send response with processed parts data
+//     res.status(201).json({
+//       message: "File processed successfully",
+//       processedCount: processedParts.length,
+//       duplicateCount: duplicateParts.length,
+//       duplicateIds: duplicateParts,
+//       parts: Array.from(partsMap.values()), // Send processed parts data to frontend
+//     });
+ 
+//     console.log("Response Sent:", {
+//       message: "File processed successfully",
+//       processedCount: processedParts.length,
+//       duplicateCount: duplicateParts.length,
+//       duplicateIds: duplicateParts,
+//       parts: Array.from(partsMap.values()),
+//     });
+//   } catch (error) {
+//     console.error("Error processing file:", error.message);
+//     res.status(500).json({ message: error.message });
+//   }
+// });
+
 PartsExcelRoutes.post("/uploadexcel", upload.single("file"), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ message: "No file uploaded" });
     }
- 
+
     const workbook = xlsx.read(req.file.buffer, { type: "buffer" });
     const sheetName = workbook.SheetNames[0];
     const sheetData = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName], {
       defval: "",
     });
- 
+
     if (sheetData.length === 0) {
       return res
         .status(400)
         .json({ message: "The uploaded Excel file is empty" });
     }
- 
+
     // Fetch all manufacturing categories with hourlyrate
     const manufacturingCategories = await ManufacturingModel.find(
       {},
       "categoryId hourlyrate"
     ).lean();
     console.log("Manufacturing Categories:", manufacturingCategories);
- 
+
     const hourlyRateMap = new Map(
       manufacturingCategories.map((item) => [item.categoryId, item.hourlyrate])
     );
     console.log("Hourly Rate Map:", hourlyRateMap);
- 
+
     // Group data by Part No.
     const partsMap = new Map();
- 
+
     for (const row of sheetData) {
       const partNo = row["Part No."];
       const partDescription = row["Part Description"];
       const timeInMinutes = parseFloat(row["Time in Minutes"]);
       const stage = row["Stage"];
- 
+
       if (!partNo || !partDescription || isNaN(timeInMinutes) || !stage) {
         console.warn(`Skipping row with missing fields: ${JSON.stringify(row)}`);
         continue;
       }
- 
+
       // Split stage into categoryId and name
       const [categoryId, name] = stage.split(" - ");
       if (!categoryId || !name) {
         console.warn(`Invalid stage format: ${stage}`);
         continue;
       }
- 
+
       // Get hourlyrate for the categoryId
       const hourlyrate = hourlyRateMap.get(categoryId.trim());
       if (!hourlyrate) {
         console.warn(`Hourly rate not found for categoryId: ${categoryId}`);
         continue;
       }
- 
+
       // Calculate totalrate
       const totalrate = (timeInMinutes / 60) * hourlyrate;
- 
+
       if (!partsMap.has(partNo)) {
         partsMap.set(partNo, {
           partNo,
@@ -1217,15 +1379,15 @@ PartsExcelRoutes.post("/uploadexcel", upload.single("file"), async (req, res) =>
           manufacturingVariables: [],
         });
       }
- 
+
       const partData = partsMap.get(partNo);
- 
+
       // Check if the process (categoryId + name) already exists for this part
       const existingProcess = partData.manufacturingVariables.find(
         (item) =>
           item.categoryId === categoryId.trim() && item.name === name.trim()
       );
- 
+
       if (existingProcess) {
         // If the process exists, update the hours and totalRate
         existingProcess.hours += timeInMinutes / 60;
@@ -1241,76 +1403,75 @@ PartsExcelRoutes.post("/uploadexcel", upload.single("file"), async (req, res) =>
         });
       }
     }
- 
+
     const processedParts = [];
     const duplicateParts = [];
     const operations = [];
- 
+
     // Fetch existing part IDs to check for duplicates
     const existingPartIds = await PartsModel.distinct("id");
     const existingPartsSet = new Set(existingPartIds);
- 
+
     for (const [partNo, partData] of partsMap) {
       if (existingPartsSet.has(partNo)) {
         duplicateParts.push(partNo);
         continue;
       }
- 
+
       const partType = "Make"; // Assuming all parts are of type "Make"
- 
+
       // Sort manufacturingVariables by categoryId in ascending order
       partData.manufacturingVariables.sort((a, b) =>
         a.categoryId.localeCompare(b.categoryId)
       );
- 
+
       const totalHours = partData.manufacturingVariables.reduce(
         (sum, item) => sum + item.hours,
         0
       );
- 
+
+      // Calculate costPerUnit based on manufacturingVariables
+      const costPerUnit = partData.manufacturingVariables.reduce(
+        (sum, item) => sum + item.totalRate,
+        0
+      );
+
       const partDocument = {
         id: partNo,
         partName: partData.partDescription,
         partType,
         timePerUnit: totalHours,
+        costPerUnit, // Updated costPerUnit
         manufacturingVariables: partData.manufacturingVariables,
       };
- 
+
       processedParts.push(partNo);
       operations.push({
         insertOne: { document: partDocument },
       });
- 
+
       existingPartsSet.add(partNo);
     }
- 
+
     // Perform bulk write to MongoDB
     if (operations.length > 0) {
       await PartsModel.bulkWrite(operations, { ordered: false });
     }
- 
+
     // Send response with processed parts data
     res.status(201).json({
       message: "File processed successfully",
       processedCount: processedParts.length,
       duplicateCount: duplicateParts.length,
       duplicateIds: duplicateParts,
-      parts: Array.from(partsMap.values()), // Send processed parts data to frontend
+      parts: Array.from(partsMap.values()), 
     });
- 
-    console.log("Response Sent:", {
-      message: "File processed successfully",
-      processedCount: processedParts.length,
-      duplicateCount: duplicateParts.length,
-      duplicateIds: duplicateParts,
-      parts: Array.from(partsMap.values()),
-    });
+
   } catch (error) {
     console.error("Error processing file:", error.message);
     res.status(500).json({ message: error.message });
   }
 });
-
 
 PartsExcelRoutes.post(
   "/upload-image/:_id",
