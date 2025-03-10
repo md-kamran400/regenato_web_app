@@ -617,7 +617,7 @@ const Manufacturing = ({
     return `${totalMinutes} m`;
   };
   return (
-    <div className="manufacturing-container">
+    <div className="manufacturing-container" style={{marginTop:'2rem'}}>
       <h5 className="section-title">
         🔧 Manufacturing Variables for {partName}
       </h5>

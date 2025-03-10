@@ -392,8 +392,6 @@ export const SubAssemblyHrPlan = ({
     let totalShiftMinutes = shiftMinutes || 480; // Default to 8-hour shift if not provided
 
     while (remainingMinutes > 0) {
-      parsedDate.setDate(parsedDate.getDate() + 1); // Move to next day
-
       // Skip Sundays and holidays
       while (
         getDay(parsedDate) === 0 ||
@@ -402,11 +400,106 @@ export const SubAssemblyHrPlan = ({
         parsedDate.setDate(parsedDate.getDate() + 1);
       }
 
-      remainingMinutes -= totalShiftMinutes; // Subtract daily shift hours
+      // If remaining minutes are less than the shift minutes, we don't need to move to the next day
+      if (remainingMinutes <= totalShiftMinutes) {
+        break;
+      }
+
+      // Subtract the shift minutes and move to the next day
+      remainingMinutes -= totalShiftMinutes;
+      parsedDate.setDate(parsedDate.getDate() + 1);
     }
 
     return parsedDate.toISOString().split("T")[0];
   };
+
+  // const prefillData = (allRows, startDate) => {
+  //   let currentDate = new Date(startDate);
+
+  //   manufacturingVariables.forEach((man, index) => {
+  //     if (!allRows[index]) return;
+
+  //     allRows[index].forEach((row, rowIdx) => {
+  //       const machineList = machineOptions[man.categoryId] || [];
+  //       const firstMachine =
+  //         machineList.length > 0 ? machineList[0].subcategoryId : "";
+
+  //       const firstOperator =
+  //         operators.find((op) => op.processName.includes(man.name)) || {};
+
+  //       const firstShift = shiftOptions.length > 0 ? shiftOptions[0] : null;
+
+  //       const processStartDate = currentDate.toISOString().split("T")[0];
+
+  //       const plannedMinutes = calculatePlannedMinutes(man.hours * quantity);
+  //       const processEndDate = calculateEndDate(
+  //         processStartDate,
+  //         plannedMinutes
+  //       );
+
+  //       allRows[index][rowIdx] = {
+  //         ...row,
+  //         startDate: processStartDate,
+  //         endDate: processEndDate,
+  //         machineId: firstMachine,
+  //         operatorId: firstOperator._id || "",
+  //         shift: firstShift ? firstShift.name : "",
+  //         startTime: firstShift ? firstShift.startTime : "",
+  //       };
+
+  //       currentDate = new Date(processEndDate);
+  //       currentDate.setDate(currentDate.getDate() + 1);
+  //     });
+  //   });
+
+  //   console.log("Prefilled Data:", JSON.stringify(allRows, null, 2));
+  //   return { ...allRows }; // Ensure state update
+  // };
+
+  // const handleStartDateChange = (index, rowIndex, date) => {
+  //   if (index === 0) {
+  //     setHasStartDate(!!date);
+  //   }
+
+  //   setRows((prevRows) => {
+  //     const newRows = { ...prevRows };
+
+  //     if (date) {
+  //       if (isAutoSchedule && index === 0) {
+  //         return prefillData(newRows, date);
+  //       } else {
+  //         newRows[index] = newRows[index].map((row, idx) => {
+  //           if (idx === rowIndex) {
+  //             return {
+  //               ...row,
+  //               startDate: date,
+  //               endDate: calculateEndDate(date, row.plannedQtyTime),
+  //             };
+  //           }
+  //           return row;
+  //         });
+  //       }
+  //     } else {
+  //       return manufacturingVariables.reduce((acc, man, idx) => {
+  //         acc[idx] = [
+  //           {
+  //             partType: "Make",
+  //             plannedQuantity: quantity,
+  //             startDate: "",
+  //             endDate: "",
+  //             machineId: "",
+  //             shift: "Shift A",
+  //             plannedQtyTime: calculatePlannedMinutes(man.hours * quantity),
+  //             operatorId: "",
+  //             processName: man.name,
+  //           },
+  //         ];
+  //         return acc;
+  //       }, {});
+  //     }
+  //     return newRows;
+  //   });
+  // };
 
   const prefillData = (allRows, startDate) => {
     let currentDate = new Date(startDate);
@@ -429,7 +522,8 @@ export const SubAssemblyHrPlan = ({
         const plannedMinutes = calculatePlannedMinutes(man.hours * quantity);
         const processEndDate = calculateEndDate(
           processStartDate,
-          plannedMinutes
+          plannedMinutes,
+          firstShift ? firstShift.TotalHours : 480
         );
 
         allRows[index][rowIdx] = {
@@ -440,6 +534,7 @@ export const SubAssemblyHrPlan = ({
           operatorId: firstOperator._id || "",
           shift: firstShift ? firstShift.name : "",
           startTime: firstShift ? firstShift.startTime : "",
+          shiftMinutes: firstShift ? firstShift.TotalHours : 480,
         };
 
         currentDate = new Date(processEndDate);
@@ -450,7 +545,6 @@ export const SubAssemblyHrPlan = ({
     console.log("Prefilled Data:", JSON.stringify(allRows, null, 2));
     return { ...allRows }; // Ensure state update
   };
-
   const handleStartDateChange = (index, rowIndex, date) => {
     if (index === 0) {
       setHasStartDate(!!date);
@@ -468,7 +562,11 @@ export const SubAssemblyHrPlan = ({
               return {
                 ...row,
                 startDate: date,
-                endDate: calculateEndDate(date, row.plannedQtyTime),
+                endDate: calculateEndDate(
+                  date,
+                  row.plannedQtyTime,
+                  row.shiftMinutes
+                ),
               };
             }
             return row;
@@ -560,7 +658,10 @@ export const SubAssemblyHrPlan = ({
       return { ...prevRows, [index]: updatedRows };
     });
   };
+
   // const handleSubmit = async () => {
+  //   console.log("Submitting allocations...");
+  //   console.log("Rows before processing:", JSON.stringify(rows, null, 2));
 
   //   try {
   //     if (Object.keys(rows).length === 0) {
@@ -595,11 +696,11 @@ export const SubAssemblyHrPlan = ({
   //           }
 
   //           // Generate order number with padding
-  //           const orderNumber = orderCounter.toString().padStart(3, "0");
+  //           const splitNumber = orderCounter.toString().padStart(3, "0");
   //           orderCounter++; // Increment counter for next row in this process
 
   //           groupedAllocations[key].allocations.push({
-  //             orderNumber, // Add the generated order number
+  //             splitNumber, // Add the generated order number
   //             plannedQuantity: row.plannedQuantity,
   //             startDate: new Date(row.startDate).toISOString(),
   //             startTime: row.startTime || "08:00 AM",
@@ -629,6 +730,7 @@ export const SubAssemblyHrPlan = ({
 
   //     if (response.status === 201) {
   //       toast.success("Allocations successfully added!");
+  //       setIsDataAllocated(true); // Update the state to reflect that data is allocated
   //     } else {
   //       toast.error("Failed to add allocations.");
   //     }
@@ -636,6 +738,7 @@ export const SubAssemblyHrPlan = ({
   //     toast.error(error);
   //   }
   // };
+
   const handleSubmit = async () => {
     console.log("Submitting allocations...");
     console.log("Rows before processing:", JSON.stringify(rows, null, 2));
@@ -643,6 +746,36 @@ export const SubAssemblyHrPlan = ({
     try {
       if (Object.keys(rows).length === 0) {
         alert("No allocations to submit.");
+        return;
+      }
+
+      // Check if all required fields are filled in for each row
+      const areAllFieldsFilled = Object.keys(rows).every((index) =>
+        rows[index].every(
+          (row) =>
+            row.plannedQuantity &&
+            row.startDate &&
+            row.endDate &&
+            row.machineId &&
+            row.shift &&
+            row.operatorId
+        )
+      );
+
+      if (!areAllFieldsFilled) {
+        toast.error("Please fill in all required fields for each row.");
+        return;
+      }
+
+      // Check if remaining quantity is zero for all processes
+      const isRemainingQuantityZero = Object.keys(remainingQuantities).every(
+        (key) => remainingQuantities[key] === 0
+      );
+
+      if (!isRemainingQuantityZero) {
+        toast.error(
+          "Cannot confirm allocation until remaining quantity is zero for all processes."
+        );
         return;
       }
 
@@ -673,11 +806,12 @@ export const SubAssemblyHrPlan = ({
             }
 
             // Generate order number with padding
-            const orderNumber = orderCounter.toString().padStart(3, "0");
+            const splitNumber = orderCounter.toString().padStart(3, "0");
             orderCounter++; // Increment counter for next row in this process
 
             groupedAllocations[key].allocations.push({
-              orderNumber, // Add the generated order number
+              splitNumber, // Add the generated order number
+              AllocationPartType:"Sub Assembly",
               plannedQuantity: row.plannedQuantity,
               startDate: new Date(row.startDate).toISOString(),
               startTime: row.startTime || "08:00 AM",
@@ -1174,8 +1308,23 @@ export const SubAssemblyHrPlan = ({
                 <Button
                   color="success"
                   onClick={openConfirmationModal}
-                  //   disabled={!hasStartDate}
-                  disabled={!hasStartDate || remainingQuantities <= 0}
+                  disabled={
+                    !hasStartDate ||
+                    !Object.keys(remainingQuantities).every(
+                      (key) => remainingQuantities[key] === 0
+                    ) ||
+                    !Object.keys(rows).every((index) =>
+                      rows[index].every(
+                        (row) =>
+                          row.plannedQuantity &&
+                          row.startDate &&
+                          row.endDate &&
+                          row.machineId &&
+                          row.shift &&
+                          row.operatorId
+                      )
+                    )
+                  }
                 >
                   Confirm Allocation
                 </Button>

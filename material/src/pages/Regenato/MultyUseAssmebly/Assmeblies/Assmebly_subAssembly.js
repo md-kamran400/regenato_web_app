@@ -34,6 +34,8 @@ import { FiSettings } from "react-icons/fi";
 import { useLocation } from "react-router-dom";
 import { FaEdit } from "react-icons/fa";
 import { toast } from "react-toastify";
+import { BsFillClockFill } from "react-icons/bs";
+import { HiMiniCurrencyDollar } from "react-icons/hi2";
 const Assmebly_subAssembly = ({
   subAssembly,
   assemblyId,
@@ -75,6 +77,8 @@ const Assmebly_subAssembly = ({
   const toggleAddModal = () => {
     setModalAdd(!modalAdd);
   };
+  const [totalCost, setTotalCost] = useState(0);
+  const [totalHours, setTotalHours] = useState(0);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -354,6 +358,28 @@ const Assmebly_subAssembly = ({
     }
   };
 
+  useEffect(() => {
+    const calculateTotals = () => {
+      const newTotalCost =  subAssembly.partsListItems.reduce(
+        (acc, item) =>
+          acc +
+          parseFloat(item.costPerUnit || 0) * parseInt(item.quantity || 0),
+        0
+      );
+      const newTotalHours =  subAssembly.partsListItems.reduce(
+        (acc, item) =>
+          acc +
+          parseFloat(item.timePerUnit || 0) * parseInt(item.quantity || 0),
+        0
+      );
+
+      setTotalCost(newTotalCost);
+      setTotalHours(formatTime(newTotalHours));
+    };
+
+    calculateTotals();
+  }, [ subAssembly.partsListItems]);
+
   return (
     <>
       <div style={{ padding: "1.5rem" }}>
@@ -376,7 +402,7 @@ const Assmebly_subAssembly = ({
                     }}
                     className="button-group flex justify-content-between align-items-center"
                   >
-                    <ul
+                    {/* <ul
                       style={{
                         listStyleType: "none",
                         padding: 0,
@@ -385,14 +411,139 @@ const Assmebly_subAssembly = ({
                     >
                       <li style={{ fontSize: "25px", marginBottom: "5px" }}>
                         {subAssembly.subAssemblyName}
+                        <li style={{ fontSize: "19px" }}>
+                          <span class="badge bg-danger-subtle text-danger">
+                            Sub Assembly
+                          </span>
+                        </li>
                       </li>
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: "40px",
+                          // marginTop: "-60px",
+                          marginLeft: "18rem",
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            color: "#6c757d",
+                            fontWeight: "bold",
+                          }}
+                        >
+                          <HiMiniCurrencyDollar size={25} />
+                          <h3
+                            style={{
+                              fontSize: "16px",
+                              margin: "0 5px",
+                              fontWeight: "bold",
+                            }}
+                          >
+                            Total Cost :
+                          </h3>
+                          <span
+                            style={{
+                              fontSize: "14px",
+                              marginTop: "3px",
+                              fontWeight: "bold",
+                            }}
+                          >
+                            {Math.round(totalCost)}
+                          </span>
+                        </div>
 
-                      <li style={{ fontSize: "19px" }}>
-                        <span class="badge bg-danger-subtle text-danger">
-                          Sub Assembly
-                        </span>
-                      </li>
-                    </ul>
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            color: "#6c757d",
+                            fontWeight: "bold",
+                          }}
+                        >
+                          <BsFillClockFill size={18} />
+                          <h3
+                            style={{
+                              fontSize: "16px",
+                              margin: "0 5px",
+                              fontWeight: "bold",
+                            }}
+                          >
+                            Total Hours :
+                          </h3>
+                          <span
+                            style={{
+                              fontSize: "14px",
+                              marginTop: "2px",
+                              fontWeight: "bold",
+                            }}
+                          >
+                            {totalHours}
+                          </span>
+                        </div>
+                      </div>
+                    </ul> */}
+
+                    <div style={{ padding: "10px 5px", display:'flex' }}>
+                      {/* Sub Assembly Name */}
+                      <div style={{ fontWeight: "bold", fontSize: "25px" }}>
+                        {subAssembly.subAssemblyName}
+                        <div>
+                          <span
+                            className="badge bg-danger-subtle text-danger"
+                            style={{ fontSize: "19px" }}
+                          >
+                            Sub Assembly
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Total Cost & Total Hours in Parallel */}
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "40px",
+                          marginTop: "-35px",
+                        }}
+                      >
+                        {/* Total Cost */}
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            color: "#6c757d",
+                            fontWeight: "bold",
+                            marginLeft:'30px'
+                          }}
+                        >
+                          <HiMiniCurrencyDollar size={25} />
+                          <h3 style={{ fontSize: "16px", margin: "0 5px",fontWeight: "bold", }}>
+                            Total Cost :
+                          </h3>
+                          <span style={{ fontSize: "14px",fontWeight: "bold", }}>
+                            {Math.round(totalCost)}
+                          </span>
+                        </div>
+
+                        {/* Total Hours */}
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            color: "#6c757d",
+                            fontWeight: "bold",
+                          }}
+                        >
+                          <BsFillClockFill size={18} />
+                          <h3 style={{ fontSize: "16px", margin: "0 5px",fontWeight: "bold", }}>
+                            Total Hours :
+                          </h3>
+                          <span style={{ fontSize: "14px",fontWeight: "bold", }}>{totalHours}</span>
+                        </div>
+                      </div>
+                    </div>
 
                     <UncontrolledDropdown direction="left">
                       <DropdownToggle
@@ -544,8 +695,8 @@ const Assmebly_subAssembly = ({
                                 </td>
                               </tr>
                               {expandedRowId === item._id && (
-                                <tr className="details-row">
-                                  <td colSpan={6}>
+                                <tr>
+                                  <td colSpan={7}>
                                     <div className="details-box">
                                       <h5
                                         className="mb-3 d-flex align-items-center"
@@ -640,7 +791,7 @@ const Assmebly_subAssembly = ({
           <form onSubmit={handleSubmit}>
             <Autocomplete
               options={parts}
-              getOptionLabel={(option) =>  `${option.partName} - ${option.id}`}
+              getOptionLabel={(option) => `${option.partName} - ${option.id}`}
               onChange={handleAutocompleteChange}
               renderInput={(params) => (
                 <TextField

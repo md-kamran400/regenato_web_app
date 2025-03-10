@@ -109,7 +109,7 @@ const List = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 25;
-  const [modal_duplicate, setModalDuplicate] = useState(false); 
+  const [modal_duplicate, setModalDuplicate] = useState(false);
   const [duplicatePartData, setDuplicatePartData] = useState({
     partName: "",
     id: "",
@@ -176,7 +176,7 @@ const List = () => {
         manufacturingVariables: [...item.manufacturingVariables],
         shipmentVariables: [...item.shipmentVariables],
         overheadsAndProfits: [...item.overheadsAndProfits],
-        partsCalculations: [...item.partsCalculations],
+        partType: item.partType, 
       });
     }
     setModalDuplicate(!modal_duplicate);
@@ -205,7 +205,6 @@ const List = () => {
     }
   }, [filterType]);
 
-  
   useEffect(() => {
     if (selectedPartId) {
       fetchData();
@@ -249,7 +248,7 @@ const List = () => {
 
   const handleSortByDate = () => {
     let sorted;
-  
+
     if (sortOrder === "asc") {
       // Sort in descending order
       sorted = [...listData].sort(
@@ -263,10 +262,10 @@ const List = () => {
       );
       setSortOrder("asc");
     }
-  
+
     setListData(sorted);
   };
-  
+
   const filteredData = listData.filter(
     (item) =>
       (searchTerm.length === 0 ||
@@ -278,7 +277,6 @@ const List = () => {
     //   (filterType !== "" && item.projectType === filterType))
   );
 
-
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
   const paginatedData = filteredData.slice(
     (currentPage - 1) * itemsPerPage,
@@ -286,11 +284,10 @@ const List = () => {
   );
 
   const handleSearch = (e) => {
-  const value = e.target.value;
-  setSearchTerm(value); // Reset searchTerm when input is cleared
-  setCurrentPage(1); // Reset to the first page
-};
-
+    const value = e.target.value;
+    setSearchTerm(value); // Reset searchTerm when input is cleared
+    setCurrentPage(1); // Reset to the first page
+  };
 
   const handlePageChange = (page) => {
     setCurrentPage(page);
@@ -308,8 +305,6 @@ const List = () => {
     setSearchTerm(selectedValues); // Now searchTerm is an array
     setCurrentPage(1); // Reset to page 1 when filtering
   };
-  
-  
 
   const partOptions = listData.map((project) => ({
     value: project.partName,
@@ -441,7 +436,7 @@ const List = () => {
             manufacturingVariables: duplicatePartData.manufacturingVariables,
             shipmentVariables: duplicatePartData.shipmentVariables,
             overheadsAndProfits: duplicatePartData.overheadsAndProfits,
-            partsCalculations: duplicatePartData.partsCalculations,
+            partType: duplicatePartData.partType,
           }),
         }
       );
@@ -525,12 +520,12 @@ const List = () => {
   // };
 
   // exel file drag drop
-  
+
   const formatTime = (time) => {
     if (time === 0) {
       return "0 m";
     }
-  
+
     const totalMinutes = Math.round(time * 60); // Convert hours to minutes
     return `${totalMinutes} m`;
   };
@@ -716,7 +711,6 @@ const List = () => {
 
   console.log("Filter applied: ", filterType, filteredData);
 
-
   return (
     <React.Fragment>
       <ToastContainer closeButton={false} />
@@ -760,12 +754,9 @@ const List = () => {
                 onChange={handleSearchChange}
                 styles={customStyles}
               />
-             
             </div>
 
             <div className="col-sm-auto">
-              
-
               <Select
                 options={partTypeOptions}
                 isClearable
@@ -779,8 +770,6 @@ const List = () => {
                 }}
                 styles={customStyles}
               />
-             
-
             </div>
             {selectedRows.length > 0 && (
               <div className="d-flex justify-content-end">

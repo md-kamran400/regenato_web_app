@@ -167,7 +167,7 @@ const Shipment = ({
   };
 
   return (
-    <div className="shipment-container">
+    <div className="shipment-container" style={{ marginTop: "2rem" }}>
       <h5 className="section-title">
         <TbTruckDelivery /> Shipment Variables for {partName}
       </h5>

@@ -338,7 +338,7 @@ const Assmebly_subAssembly = ({
 
     try {
       const response = await fetch(
-        `/api/defpartproject/projects/${projectId}/assemblyList/${assemblyId}/subAssemblies/${subAssembly._id}/partsListItems/${itemToEdit._id}`,
+        `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${projectId}/assemblyList/${assemblyId}/subAssemblies/${subAssembly._id}/partsListItems/${itemToEdit._id}`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },

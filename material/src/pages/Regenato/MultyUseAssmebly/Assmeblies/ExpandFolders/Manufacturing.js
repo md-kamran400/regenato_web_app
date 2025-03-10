@@ -108,11 +108,6 @@ const Manufacturing = ({
     setPosting(true);
     setError(null);
 
-    console.log("🔍 Debugging IDs:");
-    console.log("subAssemblyId:", subAssemblyId);
-    console.log("subAssemblyId:", assemblyId);
-    console.log("partId:", partId);
-    console.log("editId (manufacturingVariableId):", editId);
 
     try {
       const endpoint = `${process.env.REACT_APP_BASE_URL}/api/assmebly/${assemblyId}/subAssemblies/${subAssemblyId}/parts/${partId}/manufacturingVariables/${editId}`;
@@ -217,7 +212,7 @@ const Manufacturing = ({
     return `${totalMinutes} m`;
   };
   return (
-    <div className="manufacturing-container">
+    <div className="manufacturing-container" style={{marginTop:'2rem'}}>
       <h5 className="section-title">
         🔧 Manufacturing Variables for {partName}
       </h5>

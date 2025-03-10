@@ -90,10 +90,7 @@ const Overheads = ({
     setPosting(true);
     setError(null);
 
-    console.log("🔍 Debugging IDs:");
-    console.log("subAssemblyId:", subAssemblyId);
-    console.log("partId:", partId);
-    console.log("editId (shipmentVariableId):", editId);
+
 
     try {
       const endpoint = `${process.env.REACT_APP_BASE_URL}/api/subAssembly/${subAssemblyId}/parts/${partId}/overheadsAndProfits/${editId}`;
@@ -162,7 +159,7 @@ const Overheads = ({
   };
 
   return (
-    <div className="overheads-container">
+    <div className="overheads-container" style={{marginTop:'2rem'}}>
       <h5 className="section-title">💰 Overheads and Profits for {partName}</h5>
       <table className="table align-middle table-nowrap">
         <thead className="table-light">

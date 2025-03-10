@@ -153,7 +153,7 @@ const RawMaterial = ({
   };
 
   return (
-    <div className="Raw Matarial-container">
+    <div className="Raw Matarial-container" style={{marginTop:'2rem'}}>
       <h5 className="section-title">
         <CiSettings /> Raw Materials Variables for {partName}
       </h5>

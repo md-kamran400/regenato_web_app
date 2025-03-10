@@ -34,6 +34,8 @@ import { FiSettings } from "react-icons/fi";
 import { useLocation } from "react-router-dom";
 import { FaEdit } from "react-icons/fa";
 import { toast } from "react-toastify";
+import { BsFillClockFill } from "react-icons/bs";
+import { HiMiniCurrencyDollar } from "react-icons/hi2";
 
 const SingleSubAssembly = () => {
   const { _id } = useParams();
@@ -400,7 +402,7 @@ const SingleSubAssembly = () => {
     if (time === 0) {
       return "0 m";
     }
-  
+
     const totalMinutes = Math.round(time * 60); // Convert hours to minutes
     return `${totalMinutes} m`;
   };
@@ -471,60 +473,76 @@ const SingleSubAssembly = () => {
                       boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.1)",
                     }}
                   >
-                    {/* Left Section */}
-                    <div style={{ display: "flex" }}>
-                      <ul
-                        style={{
-                          listStyleType: "none",
-                          padding: 0,
-                          fontWeight: "600",
-                        }}
-                      >
-                        <li style={{ fontSize: "22px", marginBottom: "5px" }}>
-                          {subAssemblyName}
-                        </li>
-                        <li style={{ fontSize: "18px" }}>
-                          <span className="badge bg-danger-subtle text-danger">
-                            Sub Assembly
-                          </span>
-                        </li>
-                      </ul>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "start",
+                        gap: "70px",
+                      }}
+                    >
+                      {/* Name & Sub Assembly Label */}
+                      <div>
+                        <ul
+                          style={{
+                            listStyleType: "none",
+                            padding: 0,
+                            fontWeight: "600",
+                          }}
+                        >
+                          <li style={{ fontSize: "22px", marginBottom: "5px" }}>
+                            {subAssemblyName}
+                          </li>
+                          <li>
+                            <span
+                              className="badge bg-danger-subtle text-danger"
+                              style={{ fontSize: "18px" }}
+                            >
+                              Sub Assembly
+                            </span>
+                          </li>
+                        </ul>
+                      </div>
+
+                      {/* Total Cost & Total Hours in Parallel */}
                       <div
                         style={{
                           display: "flex",
-                          gap: "20px",
-                          marginTop: "10px",
-                          marginLeft: "70px",
+                          gap: "40px",
+                          marginTop: "5px",
                         }}
                       >
-                        <div>
-                          <h3 style={{ fontSize: "16px", marginBottom: "5px" }}>
-                            Total Cost
+                        {/* Total Cost */}
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            color: "#6c757d",
+                            fontWeight: "bold",
+                          }}
+                        >
+                          <HiMiniCurrencyDollar size={22} />
+                          <h3 style={{ fontSize: "16px", margin: "0 5px" }}>
+                            Total Cost:
                           </h3>
-                          <p
-                            style={{
-                              margin: 0,
-                              fontSize: "14px",
-                              color: "#6c757d",
-                            }}
-                          >
-                            <p>{totalCost}</p>
-                          </p>
+                          <span style={{ fontSize: "14px" }}>
+                            {Math.round(totalCost)}
+                          </span>
                         </div>
 
-                        <div>
-                          <h3 style={{ fontSize: "16px", marginBottom: "5px" }}>
-                            Total Hours
+                        {/* Total Hours */}
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            color: "#6c757d",
+                            fontWeight: "bold",
+                          }}
+                        >
+                          <BsFillClockFill size={18} />
+                          <h3 style={{ fontSize: "16px", margin: "0 5px" }}>
+                            Total Hours:
                           </h3>
-                          <p
-                            style={{
-                              margin: 0,
-                              fontSize: "14px",
-                              color: "#6c757d",
-                            }}
-                          >
-                            <p>{totalHours}</p>
-                          </p>
+                          <span style={{ fontSize: "14px" }}>{totalHours}</span>
                         </div>
                       </div>
                     </div>
@@ -677,8 +695,8 @@ const SingleSubAssembly = () => {
                                 </td>
                               </tr>
                               {expandedRowId === item._id && (
-                                <tr className="details-row">
-                                  <td colSpan={6}>
+                                <tr >
+                                  <td colSpan={7}>
                                     <div className="details-box">
                                       <h5
                                         className="mb-3 d-flex align-items-center"
@@ -768,10 +786,9 @@ const SingleSubAssembly = () => {
           <form onSubmit={handleSubmit}>
             <Autocomplete
               options={parts}
-              getOptionLabel={(option) => 
+              getOptionLabel={(option) =>
                 // option.partName || ""
-                 `${option.partName} - ${option.id}`
-              
+                `${option.partName} - ${option.id}`
               }
               onChange={handleAutocompleteChange}
               renderInput={(params) => (
@@ -784,7 +801,7 @@ const SingleSubAssembly = () => {
               )}
             />
 
-            <div className="form-group" style={{display: "none"}}>
+            <div className="form-group" style={{ display: "none" }}>
               <Label for="partId" className="form-label">
                 Part ID
               </Label>
@@ -811,7 +828,7 @@ const SingleSubAssembly = () => {
               />
             </div> */}
 
-            <div className="form-group" style={{display: "none"}}>
+            <div className="form-group" style={{ display: "none" }}>
               <Label for="costPerUnit" className="form-label">
                 Cost Per Unit
               </Label>
@@ -825,7 +842,7 @@ const SingleSubAssembly = () => {
               />
             </div>
 
-            <div className="form-group" style={{display: "none"}}>
+            <div className="form-group" style={{ display: "none" }}>
               <Label for="timePerUnit" className="form-label">
                 Time Per Unit
               </Label>

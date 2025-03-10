@@ -35,7 +35,9 @@ import { useLocation } from "react-router-dom";
 import { FaEdit } from "react-icons/fa";
 import { toast } from "react-toastify";
 import Assmebly_subAssembly from "./Assmebly_subAssembly";
-
+import { BsFillClockFill } from "react-icons/bs";
+import { FaDollarSign } from "react-icons/fa";
+import { HiMiniCurrencyDollar } from "react-icons/hi2";
 const SingleAssmeblyList = () => {
   const { _id } = useParams();
 
@@ -90,6 +92,8 @@ const SingleAssmeblyList = () => {
   const toggleAddModal = () => {
     setModalAdd(!modalAdd);
   };
+  const [totalCost, setTotalCost] = useState(0);
+  const [totalHours, setTotalHours] = useState(0);
 
   const toggleAddModal_subAssmebly = () => {
     // sub assmebly add modal
@@ -432,7 +436,29 @@ const SingleAssmeblyList = () => {
     }
   };
 
-  console.log("Main value of pats list ", partsListItems);
+  // console.log("Main value of pats list ", partsListItems);
+
+  useEffect(() => {
+    const calculateTotals = () => {
+      const newTotalCost = partsListItems.reduce(
+        (acc, item) =>
+          acc +
+          parseFloat(item.costPerUnit || 0) * parseInt(item.quantity || 0),
+        0
+      );
+      const newTotalHours = partsListItems.reduce(
+        (acc, item) =>
+          acc +
+          parseFloat(item.timePerUnit || 0) * parseInt(item.quantity || 0),
+        0
+      );
+
+      setTotalCost(newTotalCost);
+      setTotalHours(formatTime(newTotalHours));
+    };
+
+    calculateTotals();
+  }, [partsListItems]);
 
   return (
     <>
@@ -461,17 +487,86 @@ const SingleAssmeblyList = () => {
                         listStyleType: "none",
                         padding: 0,
                         fontWeight: "600",
+                        // border: "2px solid",
+                        display: "flex",
                       }}
                     >
                       <li style={{ fontSize: "25px", marginBottom: "5px" }}>
                         {AssemblyName}
+                        <li style={{ fontSize: "19px", marginTop: "5px" }}>
+                          <span class="badge bg-primary-subtle text-primary">
+                            Assembly
+                          </span>
+                        </li>
                       </li>
 
-                      <li style={{ fontSize: "19px" }}>
-                        <span class="badge bg-primary-subtle text-primary">
-                          Assembly
-                        </span>
-                      </li>
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: "40px",
+                          marginTop: "-35px",
+                          marginLeft: "70px",
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            color: "#6c757d",
+                            fontWeight: "bold",
+                          }}
+                        >
+                          <HiMiniCurrencyDollar size={25} />
+                          <h3
+                            style={{
+                              fontSize: "16px",
+                              margin: "0 5px",
+                              fontWeight: "bold",
+                              fontWeight: "bold",
+                            }}
+                          >
+                            Total Cost :
+                          </h3>
+                          <span
+                            style={{
+                              fontSize: "14px",
+                              marginTop: "3px",
+                              fontWeight: "bold",
+                            }}
+                          >
+                            {Math.round(totalCost)}
+                          </span>
+                        </div>
+
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            color: "#6c757d",
+                            fontWeight: "bold",
+                          }}
+                        >
+                          <BsFillClockFill size={18} />
+                          <h3
+                            style={{
+                              fontSize: "16px",
+                              margin: "0 5px",
+                              fontWeight: "bold",
+                            }}
+                          >
+                            Total Hours :
+                          </h3>
+                          <span
+                            style={{
+                              fontSize: "14px",
+                              marginTop: "2px",
+                              fontWeight: "bold",
+                            }}
+                          >
+                            {totalHours}
+                          </span>
+                        </div>
+                      </div>
                     </ul>
 
                     <UncontrolledDropdown direction="left">
@@ -631,78 +726,78 @@ const SingleAssmeblyList = () => {
                                 </td>
                               </tr>
                               {expandedRowId === item._id && (
-                                // <tr className="details-row">
-                                  <td colSpan={7}>
-                                    <div className="details-box">
-                                      <h5
-                                        className="mb-3 d-flex align-items-center"
+                                <tr>
+                                <td colSpan={7}>
+                                  <div className="details-box">
+                                    <h5
+                                      className="mb-3 d-flex align-items-center"
+                                      style={{
+                                        fontWeight: "bold",
+                                        color: "#333",
+                                      }}
+                                    >
+                                      <FiSettings
                                         style={{
+                                          fontSize: "1.2rem",
+                                          marginRight: "10px",
+                                          color: "#2563eb",
                                           fontWeight: "bold",
-                                          color: "#333",
                                         }}
-                                      >
-                                        <FiSettings
-                                          style={{
-                                            fontSize: "1.2rem",
-                                            marginRight: "10px",
-                                            color: "#2563eb",
-                                            fontWeight: "bold",
-                                          }}
-                                        />
-                                        {item.partName}
-                                      </h5>
-
-                                      {/* Raw Materials Section */}
-
-                                      <RawMaterial
-                                        partName={item.partName}
-                                        rmVariables={item.rmVariables || []}
-                                        projectId={_id}
-                                        partId={item._id}
-                                        subAssemblyId={_id}
-                                        source="subAssemblyListFirst"
-                                        onUpdatePrts={fetchAssembly}
-                                        quantity={item.quantity}
                                       />
+                                      {item.partName}
+                                    </h5>
 
-                                      <Manufacturing
-                                        partName={item.partName}
-                                        manufacturingVariables={
-                                          item.manufacturingVariables || []
-                                        }
-                                        partId={item._id}
-                                        quantity={item.quantity}
-                                        subAssemblyId={_id}
-                                        source="subAssemblyListFirst"
-                                        onUpdatePrts={fetchAssembly}
-                                      />
+                                    {/* Raw Materials Section */}
 
-                                      <Shipment
-                                        partName={item.partName}
-                                        shipmentVariables={
-                                          item.shipmentVariables || []
-                                        }
-                                        partId={item._id}
-                                        quantity={item.quantity}
-                                        subAssemblyId={_id}
-                                        source="subAssemblyListFirst"
-                                        onUpdatePrts={fetchAssembly}
-                                      />
-                                      <Overheads
-                                        partName={item.partName}
-                                        projectId={_id}
-                                        partId={item._id}
-                                        quantity={item.quantity}
-                                        subAssemblyId={_id}
-                                        overheadsAndProfits={
-                                          item.overheadsAndProfits
-                                        }
-                                        source="subAssemblyListFirst"
-                                        onUpdatePrts={fetchAssembly}
-                                      />
-                                    </div>
-                                  </td>
-                                // {/* </tr> */}
+                                    <RawMaterial
+                                      partName={item.partName}
+                                      rmVariables={item.rmVariables || []}
+                                      projectId={_id}
+                                      partId={item._id}
+                                      subAssemblyId={_id}
+                                      source="subAssemblyListFirst"
+                                      onUpdatePrts={fetchAssembly}
+                                      quantity={item.quantity}
+                                    />
+
+                                    <Manufacturing
+                                      partName={item.partName}
+                                      manufacturingVariables={
+                                        item.manufacturingVariables || []
+                                      }
+                                      partId={item._id}
+                                      quantity={item.quantity}
+                                      subAssemblyId={_id}
+                                      source="subAssemblyListFirst"
+                                      onUpdatePrts={fetchAssembly}
+                                    />
+
+                                    <Shipment
+                                      partName={item.partName}
+                                      shipmentVariables={
+                                        item.shipmentVariables || []
+                                      }
+                                      partId={item._id}
+                                      quantity={item.quantity}
+                                      subAssemblyId={_id}
+                                      source="subAssemblyListFirst"
+                                      onUpdatePrts={fetchAssembly}
+                                    />
+                                    <Overheads
+                                      partName={item.partName}
+                                      projectId={_id}
+                                      partId={item._id}
+                                      quantity={item.quantity}
+                                      subAssemblyId={_id}
+                                      overheadsAndProfits={
+                                        item.overheadsAndProfits
+                                      }
+                                      source="subAssemblyListFirst"
+                                      onUpdatePrts={fetchAssembly}
+                                    />
+                                  </div>
+                                </td>
+                                 </tr> 
                               )}
                             </React.Fragment>
                           ))
@@ -735,7 +830,7 @@ const SingleAssmeblyList = () => {
           <form onSubmit={handleSubmit}>
             <Autocomplete
               options={parts}
-              getOptionLabel={(option) =>  `${option.partName} - ${option.id}`}
+              getOptionLabel={(option) => `${option.partName} - ${option.id}`}
               onChange={handleAutocompleteChange}
               renderInput={(params) => (
                 <TextField

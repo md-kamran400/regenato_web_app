@@ -82,12 +82,6 @@ const RawMaterial = ({
     setPosting(true);
     setError(null);
 
-    console.log("🔍 Debugging IDs:");
-    console.log("subAssemblyId:", subAssemblyId);
-    console.log("partId:", partId);
-    console.log("editId (Raw sasmeblyid):", editId);
-    console.log("editId (Raw sasmeblyid):", assemblyId);
-
     try {
       const endpoint = `${process.env.REACT_APP_BASE_URL}/api/assmebly/${assemblyId}/subAssemblies/${subAssemblyId}/parts/${partId}/rmVariables/${editId}`;
       console.log("🚀 PUT Request to:", endpoint);
@@ -155,7 +149,7 @@ const RawMaterial = ({
   };
 
   return (
-    <div className="Raw Matarial-container">
+    <div className="Raw Matarial-container" style={{marginTop:'2rem'}}>
       <h5 className="section-title">
         <CiSettings /> Raw Materials Variables for {partName}
       </h5>

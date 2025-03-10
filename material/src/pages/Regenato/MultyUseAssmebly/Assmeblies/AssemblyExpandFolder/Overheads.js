@@ -162,7 +162,7 @@ const Overheads = ({
   };
 
   return (
-    <div className="overheads-container">
+    <div className="overheads-container" style={{marginTop:'2rem'}}>
       <h5 className="section-title">💰 Overheads and Profits for {partName}</h5>
       <table className="table align-middle table-nowrap">
         <thead className="table-light">
