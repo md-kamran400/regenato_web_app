@@ -701,7 +701,7 @@ const PartsTable = React.memo(
                                 {item.partName} ({item.Uid || ""})
                                 {item.codeName || ""}
                               </td>
-                              <td>{parseFloat(item.costPerUnit || 0)}</td>
+                              <td>{Math.round(item.costPerUnit || 0)}</td>
                               <td>{formatTime(item.timePerUnit || 0)}</td>
                               <td>
                                 <div

@@ -27,7 +27,7 @@ const processColors = {
   C19: { bg: "#0D9488", border: "#0F766E" },
 };
 
-export function PlanPage() {
+export function PlanPageNav() {
   const { allocationId } = useParams();
   const [allocationData, setAllocationData] = useState([]);
   const [selectedProject, setSelectedProject] = useState("");
@@ -232,7 +232,7 @@ export function PlanPage() {
       ]
     : [];
 
-  // Inside the PlanPage component, before the return statement
+  // Inside the PlanPageNav component, before the return statement
 
   // Get filtered allocations for the selected project and part
   const filteredAllocations = selectedProjectData
@@ -334,6 +334,7 @@ export function PlanPage() {
               Start: ${event.start?.toLocaleDateString()}
               End: ${event.end?.toLocaleDateString()}
             `;
+
             info.el.setAttribute("title", tooltipContent);
           }}
         />

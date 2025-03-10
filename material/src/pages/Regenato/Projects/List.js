@@ -769,7 +769,7 @@ const List = () => {
       <Modal isOpen={modal_list} toggle={toggleModal} centered>
         <ModalHeader className="bg-light p-3" toggle={toggleModal}>
           {" "}
-          Add Project{" "}
+          Add Production Order{" "}
         </ModalHeader>
         <form
           onSubmit={(e) => {
@@ -780,7 +780,7 @@ const List = () => {
           <ModalBody>
             <div className="mb-3">
               <label htmlFor="parts-field" className="form-label">
-                Project Name
+              Production Order Name
               </label>
               <input
                 type="text"
@@ -812,7 +812,7 @@ const List = () => {
               </Input>
             </div>
             <Button type="submit" color="primary" disabled={isSubmitting}>
-              {isSubmitting ? "Adding..." : "Add Project"}
+              {isSubmitting ? "Adding..." : "Add Production Order"}
             </Button>
           </ModalBody>
         </form>
