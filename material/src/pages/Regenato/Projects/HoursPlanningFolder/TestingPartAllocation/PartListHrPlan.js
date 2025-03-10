@@ -24,8 +24,7 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { isSameDay, parseISO, getDay, isSameMonth } from "date-fns";
 
-
-import  {AllocatedPartListHrPlan}  from "./AllocatedPartListHrPlan";
+import { AllocatedPartListHrPlan } from "./AllocatedPartListHrPlan";
 
 export const PartListHrPlan = ({
   partName,
@@ -53,6 +52,7 @@ export const PartListHrPlan = ({
   const [selectedDate, setSelectedDate] = useState(null);
   const [eventDates, setEventDates] = useState([]);
   const [isDataAllocated, setIsDataAllocated] = useState(false);
+  const [allocatedMachines, setAllocatedMachines] = useState({});
 
   useEffect(() => {
     fetch(`${process.env.REACT_APP_BASE_URL}/api/eventScheduler/events`)
@@ -91,6 +91,53 @@ export const PartListHrPlan = ({
 
     fetchAllocatedData();
   }, [porjectID, partID, partListItemId]);
+
+  useEffect(() => {
+    const fetchMachineAllocations = async () => {
+      try {
+        const response = await axios.get(
+          `${process.env.REACT_APP_BASE_URL}/api/defpartproject/all-allocations`
+        );
+        if (response.data) {
+          const machineAllocations = {};
+
+          response.data.data.forEach((project) => {
+            project.allocations.forEach((process) => {
+              process.allocations.forEach((alloc) => {
+                if (!machineAllocations[alloc.machineId]) {
+                  machineAllocations[alloc.machineId] = [];
+                }
+                machineAllocations[alloc.machineId].push({
+                  startDate: new Date(alloc.startDate),
+                  endDate: new Date(alloc.endDate),
+                });
+              });
+            });
+          });
+
+          setAllocatedMachines(machineAllocations);
+        }
+      } catch (error) {
+        console.error("Error fetching machine allocations:", error);
+      }
+    };
+
+    fetchMachineAllocations();
+  }, []);
+
+  const isMachineAvailable = (machineId, startDate, endDate) => {
+    if (!allocatedMachines[machineId]) return true; // If no allocations, machine is available
+
+    const parsedStart = new Date(startDate);
+    const parsedEnd = new Date(endDate);
+
+    return !allocatedMachines[machineId].some(
+      (alloc) =>
+        (parsedStart >= alloc.startDate && parsedStart <= alloc.endDate) ||
+        (parsedEnd >= alloc.startDate && parsedEnd <= alloc.endDate) ||
+        (parsedStart <= alloc.startDate && parsedEnd >= alloc.endDate)
+    );
+  };
 
   // Function to check if the date is an event date or a Sunday
   const isHighlightedOrDisabled = (date) => {
@@ -857,21 +904,31 @@ export const PartListHrPlan = ({
                                 row.startDate ? new Date(row.startDate) : null
                               }
                               onChange={(date) => {
-                                if (date) {
-                                  const correctedDate = new Date(
-                                    date.toISOString().split("T")[0]
-                                  );
-                                  handleStartDateChange(
-                                    index,
-                                    rowIndex,
-                                    correctedDate
+                                if (!date) return;
+
+                                // Ensure the selected date does not fall into an occupied range
+                                const isAvailable = isMachineAvailable(
+                                  row.machineId,
+                                  date,
+                                  row.endDate
+                                );
+
+                                if (isAvailable) {
+                                  handleStartDateChange(index, rowIndex, date);
+                                } else {
+                                  toast.error(
+                                    "This machine is occupied during the selected dates."
                                   );
                                 }
                               }}
                               dayClassName={(date) =>
-                                isHighlightedOrDisabled(date)
-                                  ? "highlighted-date"
-                                  : ""
+                                isMachineAvailable(
+                                  row.machineId,
+                                  date,
+                                  row.endDate
+                                )
+                                  ? ""
+                                  : "highlighted-date"
                               }
                               renderDayContents={renderDayContents}
                               customInput={<CustomInput />}
@@ -912,7 +969,7 @@ export const PartListHrPlan = ({
                           </td>
 
                           <td>
-                            <Autocomplete
+                            {/* <Autocomplete
                               options={machineOptions[man.categoryId] || []}
                               value={
                                 machineOptions[man.categoryId]?.find(
@@ -965,6 +1022,79 @@ export const PartListHrPlan = ({
                               )}
                               disableClearable={false}
                               disabled={!hasStartDate && index !== 0}
+                            /> */}
+
+                            <Autocomplete
+                              options={
+                                machineOptions[man.categoryId]?.filter(
+                                  (machine) =>
+                                    isMachineAvailable(
+                                      machine.subcategoryId,
+                                      row.startDate,
+                                      row.endDate
+                                    )
+                                ) || []
+                              }
+                              value={
+                                machineOptions[man.categoryId]?.find(
+                                  (machine) =>
+                                    machine.subcategoryId === row.machineId
+                                ) || null
+                              }
+                              getOptionLabel={(option) =>
+                                `${option.name} ${
+                                  isMachineAvailable(
+                                    option.subcategoryId,
+                                    row.startDate,
+                                    row.endDate
+                                  )
+                                    ? ""
+                                    : "(Occupied)"
+                                }`
+                              }
+                              renderOption={(props, option) => {
+                                const isDisabled = !isMachineAvailable(
+                                  option.subcategoryId,
+                                  row.startDate,
+                                  row.endDate
+                                );
+                                return (
+                                  <li
+                                    {...props}
+                                    style={{
+                                      color: isDisabled ? "gray" : "black",
+                                      pointerEvents: isDisabled
+                                        ? "none"
+                                        : "auto",
+                                    }}
+                                  >
+                                    {option.name}{" "}
+                                    {isDisabled ? "(Occupied)" : ""}
+                                  </li>
+                                );
+                              }}
+                              onChange={(event, newValue) => {
+                                if (!hasStartDate) return;
+                                setRows((prevRows) => {
+                                  const updatedRows = [...prevRows[index]];
+                                  updatedRows[rowIndex] = {
+                                    ...updatedRows[rowIndex],
+                                    machineId: newValue
+                                      ? newValue.subcategoryId
+                                      : "",
+                                  };
+                                  return { ...prevRows, [index]: updatedRows };
+                                });
+                              }}
+                              renderInput={(params) => (
+                                <TextField
+                                  {...params}
+                                  label="Machine"
+                                  variant="outlined"
+                                  size="small"
+                                />
+                              )}
+                              disableClearable={false}
                             />
                           </td>
 

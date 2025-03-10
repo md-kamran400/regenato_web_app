@@ -46,6 +46,9 @@ const ManufacturingVariable = () => {
   const [selectedMachine, setSelectedMachine] = useState(null);
   const [selectedParentId, setSelectedParentId] = useState(null);
 
+  const [selectedMachineDetails, setSelectedMachineDetails] = useState(null);
+  const [machineDetailsModalOpen, setMachineDetailsModalOpen] = useState(false);
+
   //sub categroy
   const [modal_add_sub, setModalAddSub] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -56,7 +59,7 @@ const ManufacturingVariable = () => {
     name: "",
     hourlyRate: "",
   });
-  const [lastUsedId, setLastUsedId] = useState('');
+  const [lastUsedId, setLastUsedId] = useState("");
 
   // Toggles for modals
   const [formData, setFormData] = useState({
@@ -242,6 +245,10 @@ const ManufacturingVariable = () => {
   //   }
   // }, []);
 
+  // ManufacturingVariable.js
+
+  // Modify the fetchManufacturing function to update machine status based on allocations
+
   const fetchManufacturing = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -253,56 +260,39 @@ const ManufacturingVariable = () => {
         throw new Error("Failed to fetch manufacturing data");
 
       const manufacturingData = await manufacturingResponse.json();
-      const allocations = await fetchAllAllocations();
-      const currentDate = new Date();
+      const allocationsResponse = await fetch(
+        `${process.env.REACT_APP_BASE_URL}/api/defpartproject/all-allocations`
+      );
+      if (!allocationsResponse.ok)
+        throw new Error("Failed to fetch allocations data");
 
-      const allocatedMachinesByProcess = new Map();
+      const allocationsData = await allocationsResponse.json();
 
-      allocations.forEach((project) => {
+      // Map machine allocations to corresponding machines
+      const allocationMap = new Map();
+      allocationsData.data.forEach((project) => {
         project.allocations.forEach((process) => {
           process.allocations.forEach((alloc) => {
-            if (alloc.machineId) {
-              const startDate = new Date(alloc.startDate);
-              const endDate = new Date(alloc.endDate);
-              if (currentDate >= startDate && currentDate <= endDate) {
-                if (!allocatedMachinesByProcess.has(process.processName)) {
-                  allocatedMachinesByProcess.set(
-                    process.processName,
-                    new Set()
-                  );
-                }
-                allocatedMachinesByProcess
-                  .get(process.processName)
-                  .add(alloc.machineId);
-              }
+            if (!allocationMap.has(alloc.machineId)) {
+              allocationMap.set(alloc.machineId, []);
             }
+            allocationMap.get(alloc.machineId).push({
+              startDate: alloc.startDate,
+              endDate: alloc.endDate,
+            });
           });
         });
       });
 
       const updatedManufacturingData = manufacturingData.map((process) => {
-        const updatedSubCategories = process.subCategories.map((machine) => {
-          if (
-            allocatedMachinesByProcess.has(process.name) &&
-            allocatedMachinesByProcess
-              .get(process.name)
-              .has(machine.subcategoryId)
-          ) {
-            return {
-              ...machine,
-              isAvailable: false,
-              status: "occupied",
-              statusEndDate: currentDate,
-            };
-          }
-
-          return {
-            ...machine,
-            isAvailable: true,
-            status: "available",
-            statusEndDate: null,
-          };
-        });
+        const updatedSubCategories = process.subCategories.map((machine) => ({
+          ...machine,
+          isAvailable: !allocationMap.has(machine.subcategoryId),
+          status: allocationMap.has(machine.subcategoryId)
+            ? "occupied"
+            : "available",
+          allocations: allocationMap.get(machine.subcategoryId) || [],
+        }));
 
         return {
           ...process,
@@ -321,6 +311,13 @@ const ManufacturingVariable = () => {
   useEffect(() => {
     fetchManufacturing();
   }, [fetchManufacturing]);
+
+  const handleMachineRowClick = (machine) => {
+    if (machine.status === "occupied") {
+      setSelectedMachineDetails(machine);
+      setMachineDetailsModalOpen(true);
+    }
+  };
 
   // Handle form input changes
   const handleChange = (e) => {
@@ -408,7 +405,6 @@ const ManufacturingVariable = () => {
     }
   };
 
-  
   const handleSubmit = async (e) => {
     e.preventDefault();
     setPosting(true);
@@ -465,7 +461,7 @@ const ManufacturingVariable = () => {
   };
 
   // Handle form submission for editing a variable (PUT request)
-  
+
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     setPosting(true);
@@ -510,7 +506,7 @@ const ManufacturingVariable = () => {
   };
 
   // Handle delete action
- 
+
   const handleDelete = async (_id) => {
     setPosting(true);
     setError(null);
@@ -728,19 +724,37 @@ const ManufacturingVariable = () => {
                                           getStatusBadge(status);
 
                                         return (
+                                          // <tr
+                                          //   key={subCategory.subcategoryId}
+                                          //   style={{
+                                          //     backgroundColor:
+                                          //       status === "available"
+                                          //         ? "transparent"
+                                          //         : status === "occupied"
+                                          //         ? "#fff3cd"
+                                          //         : "#ffcccc",
+                                          //   }}
+                                          // >
                                           <tr
                                             key={subCategory.subcategoryId}
+                                            onClick={() =>
+                                              handleMachineRowClick(subCategory)
+                                            }
                                             style={{
                                               backgroundColor:
-                                                status === "available"
-                                                  ? "transparent"
-                                                  : status === "occupied"
+                                                subCategory.status ===
+                                                "occupied"
                                                   ? "#fff3cd"
-                                                  : "#ffcccc",
+                                                  : "transparent",
+                                              cursor:
+                                                subCategory.status ===
+                                                "occupied"
+                                                  ? "pointer"
+                                                  : "default",
                                             }}
                                           >
                                             <td>{subCategory.subcategoryId}</td>
-                                            <td>{subCategory.name}</td>
+                                            <td>{subCategory.name} </td>
                                             <td>{subCategory.hourlyRate}</td>
                                             <td>
                                               {subCategory.status ===
@@ -771,13 +785,13 @@ const ManufacturingVariable = () => {
                                                 </span>
                                               )}
                                             </td>
-                                            <td>
+                                            {/* <td>
                                               {subCategory.statusEndDate
                                                 ? new Date(
                                                     subCategory.statusEndDate
                                                   ).toLocaleString()
                                                 : "N/A"}
-                                            </td>
+                                            </td> */}
 
                                             <td className="d-flex gap-2">
                                               <button
@@ -1181,6 +1195,8 @@ const ManufacturingVariable = () => {
         </ModalFooter>
       </Modal>
 
+      {/*  */}
+
       {/* Machine Downtime Modal */}
       {selectedMachine && (
         <MachineDowntimeModal
@@ -1191,6 +1207,59 @@ const ManufacturingVariable = () => {
           onSuccess={fetchManufacturing}
         />
       )}
+
+      <Modal
+        isOpen={machineDetailsModalOpen}
+        toggle={() => setMachineDetailsModalOpen(false)}
+      >
+        <ModalHeader toggle={() => setMachineDetailsModalOpen(false)}>
+          Machine Occupation Details
+        </ModalHeader>
+        <ModalBody>
+          {selectedMachineDetails ? (
+            <>
+              <p>
+                <strong>Machine ID:</strong>{" "}
+                {selectedMachineDetails.subcategoryId}
+              </p>
+              <p>
+                <strong>Machine Name:</strong> {selectedMachineDetails.name}
+              </p>
+              {selectedMachineDetails.allocations &&
+              selectedMachineDetails.allocations.length > 0 ? (
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>Start Date</th>
+                      <th>End Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {selectedMachineDetails.allocations.map((alloc, index) => (
+                      <tr key={index}>
+                        <td>{new Date(alloc.startDate).toLocaleString()}</td>
+                        <td>{new Date(alloc.endDate).toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <p>No allocation data available.</p>
+              )}
+            </>
+          ) : (
+            <p>No machine selected.</p>
+          )}
+        </ModalBody>
+        <ModalFooter>
+          <Button
+            color="secondary"
+            onClick={() => setMachineDetailsModalOpen(false)}
+          >
+            Close
+          </Button>
+        </ModalFooter>
+      </Modal>
 
       {/* Machine Downtime History Modal */}
       {selectedMachine && (

@@ -434,7 +434,7 @@ const MachineCapacity = () => {
         );
       })}
       {selectedMachine && (
-        <Modal isOpen={modalOpen} toggle={toggleModal} size="lg">
+        <Modal isOpen={modalOpen} toggle={toggleModal} size="xl">
           <div
             toggle={toggleModal}
             style={{ marginTop: "10px", fontWeight: "bold" }}
@@ -463,9 +463,10 @@ const MachineCapacity = () => {
                 <Table bordered hover className="mb-0">
                   <thead>
                     <tr>
-                      <th>Project Name</th>
+                      <th>Production Order Name</th>
                       <th>Part Name</th>
                       <th>Process</th>
+                      <th>Operator</th>
                       <th>Start Date</th>
                       <th>End Date</th>
                       <th>Actions</th>
@@ -477,6 +478,7 @@ const MachineCapacity = () => {
                         <td>{allocation.projectName}</td>
                         <td>{allocation.partName}</td>
                         <td>{allocation.processName}</td>
+                        <td>{allocation.operator}</td>
                         <td>
                           {format(
                             new Date(allocation.startDate),

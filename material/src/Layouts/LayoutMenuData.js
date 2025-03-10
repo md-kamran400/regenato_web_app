@@ -82,6 +82,12 @@ const navdata = () => {
               link: "/regenato-operator-view",
               icon: "fa fa-list",
             },
+            {
+              id: "planView",
+              label: "Plan View",
+              link: "/regenato-planPage",
+              icon: "fa fa-list",
+            },
             
           ],
         },
@@ -97,12 +103,12 @@ const navdata = () => {
               link: "/regenato-machine-capacity",
               icon: "fa fa-list",
             },
-            {
-              id: "Operator Capecity",
-              label: "Operator Capacity",
-              link: "/regenato-operator-capacity",
-              icon: "fa fa-list",
-            },
+            // {
+            //   id: "Operator Capecity",
+            //   label: "Operator Capacity",
+            //   link: "/regenato-operator-capacity",
+            //   icon: "fa fa-list",
+            // },
           ],
         },
       ],
