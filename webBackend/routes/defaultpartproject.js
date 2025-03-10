@@ -2022,6 +2022,8 @@ partproject.put(
   }
 );
 
+// put for sub assmeblies raw matarials
+
 partproject.put(
   "/projects/:projectId/assemblyList/:assemblyId/subAssemblies/:subAssemblyId/partsListItems/:partId",
   async (req, res) => {
@@ -2029,28 +2031,36 @@ partproject.put(
     const { quantity } = req.body;
 
     try {
-      const updatedPart = await PartListProjectModel.findByIdAndUpdate(
+      // Find the project and update the nested part quantity
+      const updatedProject = await PartListProjectModel.findOneAndUpdate(
         {
-          $and: [
-            { _id: projectId },
-            { "assemblyList._id": assemblyId },
-            { "assemblyList.subAssemblies._id": subAssemblyId },
-            { "assemblyList.subAssemblies.partsListItems._id": partId },
-          ],
+          _id: projectId,
+          "assemblyList._id": assemblyId,
+          "assemblyList.subAssemblies._id": subAssemblyId,
+          "assemblyList.subAssemblies.partsListItems._id": partId,
         },
         {
           $set: {
-            "assemblyList.subAssemblies.partsListItems.$.quantity": quantity,
+            "assemblyList.$[assembly].subAssemblies.$[subAssembly].partsListItems.$[part].quantity":
+              quantity,
           },
         },
-        { new: true, runValidators: true }
+        {
+          arrayFilters: [
+            { "assembly._id": assemblyId },
+            { "subAssembly._id": subAssemblyId },
+            { "part._id": partId },
+          ],
+          new: true, // Return the updated document
+          runValidators: true, // Run schema validators
+        }
       );
 
-      if (!updatedPart) {
+      if (!updatedProject) {
         return res.status(404).json({ error: "Part not found" });
       }
 
-      res.status(200).json({ success: true, data: updatedPart });
+      res.status(200).json({ success: true, data: updatedProject });
     } catch (error) {
       console.error(error);
       res.status(500).json({ error: "Error updating part quantity" });
@@ -2058,7 +2068,6 @@ partproject.put(
   }
 );
 
-// put for sub assmeblies raw matarials
 partproject.put(
   "/projects/:projectId/assemblyList/:assemblyListId/subassemblies/:subAssembliesId/partsListItems/:partsListItemsId/rmVariables/:rmVariablesId",
   async (req, res) => {
@@ -2802,6 +2811,79 @@ partproject.delete(
   }
 );
 
+partproject.post(
+  "/projects/:projectId/subAssemblyListFirst/:subAssemblyListFirstId/partsListItems/:partListItemId/allocations/:allocationId/dailyTracking",
+  async (req, res) => {
+    try {
+      const {
+        projectId,
+        subAssemblyListFirstId,
+        partListItemId,
+        allocationId,
+      } = req.params;
+      const { dailyTracking } = req.body;
+
+      console.log("Received dailyTracking data:", dailyTracking); // Debugging
+
+      // Find the project
+      const project = await PartListProjectModel.findById(projectId);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+
+      // Find the sub-assembly
+      const subAssembly = project.subAssemblyListFirst.id(
+        subAssemblyListFirstId
+      );
+      if (!subAssembly) {
+        return res.status(404).json({ message: "Sub Assembly not found" });
+      }
+
+      // Find the part list item
+      const partItem = subAssembly.partsListItems.id(partListItemId);
+      if (!partItem) {
+        return res.status(404).json({ message: "Part List Item not found" });
+      }
+
+      // Find the allocation
+      const allocation = partItem.allocations.id(allocationId);
+      if (!allocation) {
+        return res.status(404).json({ message: "Allocation not found" });
+      }
+
+      // Ensure dailyTracking exists
+      if (!allocation.dailyTracking) {
+        allocation.dailyTracking = [];
+      }
+
+      // Format the new daily tracking data
+      const formattedDailyTracking = dailyTracking.map((task) => ({
+        date: new Date(task.date),
+        planned: Number(task.planned),
+        produced: Number(task.produced),
+        dailyStatus: task.dailyStatus,
+      }));
+
+      // Append new tracking data instead of replacing the whole array
+      allocation.dailyTracking.push(...formattedDailyTracking);
+
+      // **IMPORTANT**: Mark the nested array as modified
+      partItem.markModified("allocations");
+
+      // Save the project document
+      await project.save();
+
+      res.status(200).json({
+        message: "Daily tracking updated successfully",
+        updatedDailyTracking: allocation.dailyTracking,
+      });
+    } catch (error) {
+      console.error("Error updating daily tracking:", error);
+      res.status(500).json({ message: "Internal Server Error", error });
+    }
+  }
+);
+
 // assembly allocation code
 partproject.post(
   "/projects/:projectId/assemblyList/:assemblyListId/partsListItems/:partsListItemsId/allocation",
@@ -3078,10 +3160,6 @@ partproject.delete(
     }
   }
 );
-
-//  "/projects/:projectId/assemblyList/:assemblyListId/partsListItems/:partsListItemsId/allocation",
-
-//  "/projects/:projectId/assemblyList/:assemblyListId/subAssemblies/:subAssembliesId/partsListItems/:partsListItemsId/allocation",
 
 // getiing all lists allocation data
 partproject.get("/all-allocations", async (req, res) => {
