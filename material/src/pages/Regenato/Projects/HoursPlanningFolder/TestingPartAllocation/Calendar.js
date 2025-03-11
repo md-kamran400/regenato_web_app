@@ -24,7 +24,7 @@ const Calendar = () => {
   ];
 
   useEffect(() => {
-    fetch("http://localhost:4040/api/eventScheduler/events")
+    fetch(`${process.env.REACT_APP_BASE_URL}/api/eventScheduler/events`)
       .then((response) => response.json())
       .then((data) => setHolidays(data))
       .catch((error) => console.error("Error fetching holidays:", error));

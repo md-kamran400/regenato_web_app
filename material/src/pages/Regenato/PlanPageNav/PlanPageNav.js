@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import FullCalendar from "@fullcalendar/react";
 import resourceTimelinePlugin from "@fullcalendar/resource-timeline";
 import adaptivePlugin from "@fullcalendar/adaptive";
+import dayGridPlugin from "@fullcalendar/daygrid";
 import { Calendar, Clock } from "lucide-react";
 import { Card, CardBody, Badge, Row, Col } from "reactstrap";
 import "./Plan.css";
@@ -38,6 +39,7 @@ export function PlanPageNav() {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [dailyTrackingEvents, setDailyTrackingEvents] = useState([]);
 
   useEffect(() => {
     fetchAllocationData();
@@ -46,7 +48,7 @@ export function PlanPageNav() {
   const fetchAllocationData = async () => {
     try {
       const response = await fetch(
-        "http://localhost:4040/api/defpartproject/all-allocations"
+        `${process.env.REACT_APP_BASE_URL}/api/defpartproject/all-allocations`
       );
       const data = await response.json();
       setAllocationData(data.data);
@@ -173,6 +175,23 @@ export function PlanPageNav() {
         });
       });
     setEvents(eventsList);
+  };
+
+  const transformDailyTrackingData = (dailyTracking, processName) => {
+    return dailyTracking.map((tracking) => ({
+      id: tracking._id,
+      title: `${processName} - ${tracking.dailyStatus}`,
+      start: tracking.date,
+      allDay: true,
+      backgroundColor: "#3B82F6", // You can customize the color
+      borderColor: "#2563EB", // You can customize the color
+      extendedProps: {
+        planned: tracking.planned,
+        produced: tracking.produced,
+        operator: tracking.operator,
+        status: tracking.dailyStatus,
+      },
+    }));
   };
 
   const handleProjectChange = (e) => {
@@ -570,7 +589,7 @@ export function PlanPageNav() {
           </div>
         </div>
         {/* Process Details Panel */}
-        <div className="panel details-panel">
+        {/* <div className="panel details-panel">
           <div className="panel-header">
             <h2 className="panel-title">Process Details</h2>
             {selectedOrder && selectedProcess && (
@@ -654,12 +673,197 @@ export function PlanPageNav() {
                           </div>
                         </div>
                       </div>
+
+                      <div className="daily-tracking-table">
+                        <h4 className="daily-tracking-title">Daily Tracking</h4>
+                        <table className="tracking-table">
+                          <thead>
+                            <tr>
+                              <th>Date</th>
+                              <th>Planned</th>
+                              <th>Produced</th>
+                              <th>Operator</th>
+                              <th>Status</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {allocation.dailyTracking.map((tracking) => (
+                              <tr key={tracking._id}>
+                                <td>{formatDate(tracking.date)}</td>
+                                <td>{tracking.planned}</td>
+                                <td>{tracking.produced}</td>
+                                <td>{tracking.operator}</td>
+                                <td>{tracking.dailyStatus}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  );
+                })}
+          </div>
+        </div> */}
+        
+        <div className="panel details-panel">
+          <div className="panel-header">
+            <h2 className="panel-title">Process Details</h2>
+            {selectedOrder && selectedProcess && (
+              <div className="panel-subtitle">
+                {selectedProcess} - {selectedOrder}
+              </div>
+            )}
+          </div>
+          <div className="panel-content">
+            {selectedOrder &&
+              selectedProcess &&
+              filteredAllocations
+                .filter((p) => p.processName === selectedProcess)
+                .map((processAllocation) => {
+                  const allocation = processAllocation.allocations.find(
+                    (a) => a.splitNumber === selectedOrder
+                  );
+
+                  if (!allocation) return null;
+
+                  const machineCode = allocation.machineId.split("-")[0];
+                  const colors = processColors[machineCode] || {
+                    bg: "#666",
+                    border: "#444",
+                  };
+
+                  // Transform daily tracking data into calendar events
+                  const dailyTrackingEvents = transformDailyTrackingData(
+                    allocation.dailyTracking,
+                    processAllocation.processName
+                  );
+
+                  return (
+                    <div
+                      key={processAllocation._id}
+                      className="details-content"
+                    >
+                      <div className="details-header">
+                        <h3 className="details-title">
+                          {processAllocation.processName}
+                        </h3>
+                        <div className="details-subtitle">
+                          <Clock size={16} className="details-icon" />
+                          <span>
+                            {formatDate(allocation.startDate)} -
+                            {formatDate(allocation.endDate)}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div
+                        className="details-card"
+                        style={{ borderColor: colors.border }}
+                      >
+                        <div className="details-row">
+                          <div className="details-label">Machine ID</div>
+                          <div className="details-value">
+                            {allocation.machineId}
+                          </div>
+                        </div>
+                        <div className="details-row">
+                          <div className="details-label">Order Number</div>
+                          <div className="details-value">
+                            {allocation.splitNumber}
+                          </div>
+                        </div>
+                        <div className="details-row">
+                          <div className="details-label">Operator</div>
+                          <div className="details-value">
+                            {allocation.operator}
+                          </div>
+                        </div>
+                        <div className="details-row">
+                          <div className="details-label">Planned Quantity</div>
+                          <div className="details-value">
+                            {allocation.plannedQuantity} units
+                          </div>
+                        </div>
+                        <div className="details-row">
+                          <div className="details-label">Duration</div>
+                          <div className="details-value">
+                            {getDaysBetweenDates(
+                              allocation.startDate,
+                              allocation.endDate
+                            )}{" "}
+                            days
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Small Calendar for Daily Tracking */}
+                      <div className="small-calendar">
+                        <FullCalendar
+                          plugins={[dayGridPlugin]}
+                          initialView="dayGridMonth"
+                          headerToolbar={{
+                            left: "prev,next",
+                            center: "title",
+                            right: "",
+                          }}
+                          events={dailyTrackingEvents}
+                          eventContent={(arg) => {
+                            return (
+                              <div className="p-1 text-sm text-white">
+                                <div className="font-medium">
+                                  {arg.event.title}
+                                </div>
+                              </div>
+                            );
+                          }}
+                          eventDidMount={(info) => {
+                            const event = info.event;
+                            const props = event.extendedProps;
+
+                            const tooltipContent = `
+                      Process: ${event.title}
+                      Planned: ${props.planned}
+                      Produced: ${props.produced}
+                      Operator: ${props.operator}
+                      Status: ${props.status}
+                    `;
+                            info.el.setAttribute("title", tooltipContent);
+                          }}
+                        />
+                      </div>
+
+                      {/* Daily Tracking Table */}
+                      <div className="daily-tracking-table">
+                        <h4 className="daily-tracking-title">Daily Tracking</h4>
+                        <table className="tracking-table">
+                          <thead>
+                            <tr>
+                              <th>Date</th>
+                              <th>Planned</th>
+                              <th>Produced</th>
+                              <th>Operator</th>
+                              <th>Status</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {allocation.dailyTracking.map((tracking) => (
+                              <tr key={tracking._id}>
+                                <td>{formatDate(tracking.date)}</td>
+                                <td>{tracking.planned}</td>
+                                <td>{tracking.produced}</td>
+                                <td>{tracking.operator}</td>
+                                <td>{tracking.dailyStatus}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
                   );
                 })}
           </div>
         </div>
-      </div>    
+      </div>
     </div>
   );
 }

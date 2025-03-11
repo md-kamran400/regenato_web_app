@@ -704,3 +704,43 @@
   border-color: #3b82f6;
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
 }
+
+.daily-tracking-table {
+  margin-top: 20px;
+}
+
+.tracking-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tracking-table th,
+.tracking-table td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: left;
+}
+
+.tracking-table th {
+  background-color: #f4f4f4;
+}
+
+.daily-tracking-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.small-calendar {
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+
+.small-calendar .fc-header-toolbar {
+  margin-bottom: 10px;
+}
+
+.small-calendar .fc-daygrid-event {
+  padding: 2px;
+  font-size: 12px;
+}

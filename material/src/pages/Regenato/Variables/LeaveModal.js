@@ -35,7 +35,7 @@ const LeaveModal = ({ isOpen, toggle, userId, userName, onLeaveSubmit }) => {
   const fetchLeaveData = async () => {
     try {
       const response = await fetch(
-        `http://localhost:4040/api/userVariable/leave/${userId}`
+        `${process.env.REACT_APP_BASE_URL}/api/userVariable/leave/${userId}`
       );
       if (!response.ok) {
         throw new Error("Failed to fetch leave data");

@@ -25,14 +25,14 @@ const processColors = {
 };
 
 const fetchManufacturingData = async () => {
-  const response = await fetch("http://localhost:4040/api/manufacturing");
+  const response = await fetch(`${process.env.REACT_APP_BASE_URL}/api/manufacturing`);
   const data = await response.json();
   return data;
 };
 
 const fetchAllocationsData = async () => {
   const response = await fetch(
-    "http://localhost:4040/api/defpartproject/all-allocations"
+    `${process.env.REACT_APP_BASE_URL}/api/defpartproject/all-allocations`
   );
   const data = await response.json();
   console.log(data.data)
