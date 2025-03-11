@@ -2652,6 +2652,47 @@ partproject.get(
   }
 );
 
+partproject.post(
+  "/projects/:projectId/partsLists/:partsListId/partsListItems/:partListItemId/allocations/:processId/allocations/:allocationId/dailyTracking",
+  async (req, res) => {
+    try {
+      const { projectId, partsListId, partListItemId, processId, allocationId } = req.params;
+      const { date, planned, produced, dailyStatus } = req.body;
+ 
+      // Find the project
+      const project = await PartListProjectModel.findById(projectId);
+      if (!project) return res.status(404).json({ error: "Project not found" });
+ 
+      // Find the part list
+      const partsList = project.partsLists.find((p) => p._id.toString() === partsListId);
+      if (!partsList) return res.status(404).json({ error: "Parts List not found" });
+ 
+      // Find the part list item
+      const partItem = partsList.partsListItems.find((p) => p._id.toString() === partListItemId);
+      if (!partItem) return res.status(404).json({ error: "Part List Item not found" });
+ 
+      // Find the process
+      const process = partItem.allocations.find((p) => p._id.toString() === processId);
+      if (!process) return res.status(404).json({ error: "Process not found" });
+ 
+      // Find the allocation within the process
+      const allocation = process.allocations.find((a) => a._id.toString() === allocationId);
+      if (!allocation) return res.status(404).json({ error: "Allocation not found" });
+ 
+      // Add daily tracking entry
+      allocation.dailyTracking.push({ date, planned, produced, dailyStatus });
+ 
+      // Save the updated project
+      await project.save();
+ 
+      res.status(201).json({ message: "Daily tracking added successfully", allocation });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Server error" });
+    }
+  }
+);
+
 // subassembly allocation code
 // subAssemblyListFirst
 partproject.post(
@@ -2811,78 +2852,169 @@ partproject.delete(
   }
 );
 
+// partproject.post(
+//   "/projects/:projectId/subAssemblyListFirst/:subAssemblyListFirstId/partsListItems/:partListItemId/allocations/:allocationId/dailyTrack/dailyTracking",
+//   async (req, res) => {
+//     try {
+//       const { projectId, subAssemblyListFirstId, partListItemId, allocationId } = req.params;
+//       const { dailyTracking } = req.body;
+
+//       if (!dailyTracking) {
+//         return res.status(400).json({ message: "dailyTracking data is required" });
+//       }
+
+//       // Find the project
+//       const project = await PartListProjectModel.findById(projectId);
+//       if (!project) {
+//         return res.status(404).json({ message: "Project not found" });
+//       }
+
+//       // Find sub-assembly
+//       const subAssembly = project.subAssemblyListFirst.find(
+//         (sa) => sa._id.toString() === subAssemblyListFirstId
+//       );
+//       if (!subAssembly) {
+//         return res.status(404).json({ message: "Sub-assembly not found" });
+//       }
+
+//       // Find part list item
+//       const partListItem = subAssembly.partsListItems.find(
+//         (pl) => pl._id.toString() === partListItemId
+//       );
+//       if (!partListItem) {
+//         return res.status(404).json({ message: "Part list item not found" });
+//       }
+
+//       // Find allocation
+//       const allocationFound = partListItem.allocations.find(
+//         (alloc) => alloc._id.toString() === allocationId
+//       );
+//       if (!allocationFound) {
+//         return res.status(404).json({ message: "Allocation not found" });
+//       }
+
+//       // Ensure dailyTracking array exists
+//       if (!allocationFound.dailyTracking) {
+//         allocationFound.dailyTracking = [];
+//       }
+
+//       // Push daily tracking data
+//       allocationFound.dailyTracking.push(dailyTracking);
+
+//       // Save the updated document
+//       await project.save();
+
+//       res.status(200).json({
+//         message: "Daily tracking updated successfully",
+//         allocation: allocationFound,
+//       });
+//     } catch (error) {
+//       console.error("Error updating daily tracking:", error);
+//       res.status(500).json({ message: "Internal Server Error", error });
+//     }
+//   }
+// );
+
+
+
+// POST request to add daily tracking data
+
+
+// Daily Tracking POST route
+// Route to add a dailyTracking entry
+
 partproject.post(
-  "/projects/:projectId/subAssemblyListFirst/:subAssemblyListFirstId/partsListItems/:partListItemId/allocations/:allocationId/dailyTracking",
+  "/projects/:projectId/subAssemblyListFirst/:subAssemblyListFirstId/partsListItems/:partListItemId/allocations/:processId/allocations/:allocationId/dailyTracking",
   async (req, res) => {
     try {
-      const {
-        projectId,
-        subAssemblyListFirstId,
-        partListItemId,
-        allocationId,
-      } = req.params;
-      const { dailyTracking } = req.body;
-
-      console.log("Received dailyTracking data:", dailyTracking); // Debugging
-
+      const { projectId, subAssemblyListFirstId, partListItemId, processId, allocationId } = req.params;
+      const { date, progress, status } = req.body; // Modify fields as needed
+ 
+      console.log("Received Params:", req.params); // 🛠 Debugging step 1
+ 
       // Find the project
       const project = await PartListProjectModel.findById(projectId);
-      if (!project) {
-        return res.status(404).json({ message: "Project not found" });
+      if (!project) return res.status(404).json({ error: "Project not found" });
+      console.log("Project Found:", project._id); // 🛠 Debugging step 2
+ 
+      // Check if subAssemblyListFirst exists
+      if (!project.subAssemblyListFirst) {
+        console.error("Error: subAssemblyListFirst is undefined");
+        return res.status(404).json({ error: "subAssemblyListFirst not found in project" });
       }
-
+ 
       // Find the sub-assembly
-      const subAssembly = project.subAssemblyListFirst.id(
-        subAssemblyListFirstId
-      );
+      const subAssembly = project.subAssemblyListFirst.find((s) => s._id.toString() === subAssemblyListFirstId);
       if (!subAssembly) {
-        return res.status(404).json({ message: "Sub Assembly not found" });
+        console.error("Error: subAssembly not found");
+        return res.status(404).json({ error: "SubAssembly not found" });
       }
-
+      console.log("SubAssembly Found:", subAssembly._id); // 🛠 Debugging step 3
+ 
+      // Check if partsListItems exists
+      if (!subAssembly.partsListItems) {
+        console.error("Error: partsListItems is undefined");
+        return res.status(404).json({ error: "partsListItems not found in subAssembly" });
+      }
+ 
       // Find the part list item
-      const partItem = subAssembly.partsListItems.id(partListItemId);
+      const partItem = subAssembly.partsListItems.find((p) => p._id.toString() === partListItemId);
       if (!partItem) {
-        return res.status(404).json({ message: "Part List Item not found" });
+        console.error("Error: Part List Item not found");
+        return res.status(404).json({ error: "Part List Item not found" });
       }
-
+      console.log("Part List Item Found:", partItem._id); // 🛠 Debugging step 4
+ 
+      // Check if allocations exists
+      if (!partItem.allocations) {
+        console.error("Error: allocations is undefined");
+        return res.status(404).json({ error: "allocations not found in partListItem" });
+      }
+ 
+      // Find the process
+      const process = partItem.allocations.find((p) => p._id.toString() === processId);
+      if (!process) {
+        console.error("Error: Process not found");
+        return res.status(404).json({ error: "Process not found" });
+      }
+      console.log("Process Found:", process._id); // 🛠 Debugging step 5
+ 
+      // Check if allocations exists
+      if (!process.allocations) {
+        console.error("Error: allocations is undefined");
+        return res.status(404).json({ error: "Allocations not found in process" });
+      }
+ 
       // Find the allocation
-      const allocation = partItem.allocations.id(allocationId);
+      const allocation = process.allocations.find((a) => a._id.toString() === allocationId);
       if (!allocation) {
-        return res.status(404).json({ message: "Allocation not found" });
+        console.error("Error: Allocation not found");
+        return res.status(404).json({ error: "Allocation not found" });
       }
-
-      // Ensure dailyTracking exists
-      if (!allocation.dailyTracking) {
-        allocation.dailyTracking = [];
-      }
-
-      // Format the new daily tracking data
-      const formattedDailyTracking = dailyTracking.map((task) => ({
-        date: new Date(task.date),
-        planned: Number(task.planned),
-        produced: Number(task.produced),
-        dailyStatus: task.dailyStatus,
-      }));
-
-      // Append new tracking data instead of replacing the whole array
-      allocation.dailyTracking.push(...formattedDailyTracking);
-
-      // **IMPORTANT**: Mark the nested array as modified
-      partItem.markModified("allocations");
-
-      // Save the project document
+      console.log("Allocation Found:", allocation._id); // 🛠 Debugging step 6
+ 
+      // Add a new daily tracking entry
+      const newDailyTracking = { _id: new mongoose.Types.ObjectId(), date, progress, status };
+      if (!allocation.dailyTracking) allocation.dailyTracking = []; // Ensure dailyTracking exists
+      allocation.dailyTracking.push(newDailyTracking);
+ 
+      // Save the updated project
       await project.save();
-
-      res.status(200).json({
-        message: "Daily tracking updated successfully",
-        updatedDailyTracking: allocation.dailyTracking,
+ 
+      res.status(201).json({
+        message: "Daily Tracking added successfully",
+        dailyTracking: newDailyTracking,
       });
     } catch (error) {
-      console.error("Error updating daily tracking:", error);
-      res.status(500).json({ message: "Internal Server Error", error });
+      console.error("Server Error:", error);
+      res.status(500).json({ error: "Server error" });
     }
   }
 );
+
+
+
+// ********************************************
 
 // assembly allocation code
 partproject.post(
