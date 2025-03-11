@@ -497,7 +497,7 @@ const Assmebly_subAssembly = ({
                                   {item.partName} ({item.Uid || ""}){" "}
                                   {item.codeName || ""}
                                 </td>
-                                <td>{parseFloat(item.costPerUnit || 0)}</td>
+                                <td>{Math.round(item.costPerUnit || 0)}</td>
                                 <td>{formatTime(item.timePerUnit || 0)}</td>
                                 <td>
                                   <div
@@ -516,10 +516,16 @@ const Assmebly_subAssembly = ({
                                     </button>
                                   </div>
                                 </td>
-                                <td>
+                                {/* <td>
                                   {parseFloat(item.costPerUnit || 0) *
                                     parseInt(item.quantity || 0)}
-                                </td>
+                                </td> */}
+                                <td>
+                                {Math.round(
+                                  parseFloat(item.costPerUnit || 0) *
+                                    parseInt(item.quantity || 0)
+                                )}
+                              </td>
                                 <td>
                                   {formatTime(
                                     parseFloat(item.timePerUnit || 0) *
