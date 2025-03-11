@@ -3329,6 +3329,46 @@ partproject.delete(
   }
 );
 
+partproject.post(
+  "/projects/:projectId/partsLists/:partsListId/partsListItems/:partListItemId/processes/:processId/allocations/:allocationId/dailyTracking",
+  async (req, res) => {
+    try {
+      const { projectId, partsListId, partListItemId, processId, allocationId } = req.params;
+      const { date, planned, produced, dailyStatus } = req.body;
+
+      // Find the project
+      const project = await PartListProjectModel.findById(projectId);
+      if (!project) return res.status(404).json({ error: "Project not found" });
+
+      // Find the part list
+      const partsList = project.partsLists.find((p) => p._id.toString() === partsListId);
+      if (!partsList) return res.status(404).json({ error: "Parts List not found" });
+
+      // Find the part list item
+      const partItem = partsList.partsListItems.find((p) => p._id.toString() === partListItemId);
+      if (!partItem) return res.status(404).json({ error: "Part List Item not found" });
+
+      // Find the process
+      const process = partItem.allocations.find((p) => p._id.toString() === processId);
+      if (!process) return res.status(404).json({ error: "Process not found" });
+
+      // Find the allocation within the process
+      const allocation = process.allocations.find((a) => a._id.toString() === allocationId);
+      if (!allocation) return res.status(404).json({ error: "Allocation not found" });
+
+      // Add daily tracking entry
+      allocation.dailyTracking.push({ date, planned, produced, dailyStatus });
+
+      // Save the updated project
+      await project.save();
+
+      res.status(201).json({ message: "Daily tracking added successfully", allocation });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Server error" });
+    }
+  }
+); 
 // getiing all lists allocation data
 partproject.get("/all-allocations", async (req, res) => {
   try {

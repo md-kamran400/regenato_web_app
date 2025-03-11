@@ -546,7 +546,6 @@ manufacturRouter.get("/category/:categoryId", async (req, res) => {
         };
       }
     );
- 
     await manufacturingEntry.save();
  
     res.status(200).json({
@@ -560,7 +559,7 @@ manufacturRouter.get("/category/:categoryId", async (req, res) => {
       .json({ error: "Internal Server Error", details: error.message });
   }
 });
- 
+
 manufacturRouter.get("/all-category-ids", async (req, res) => {
   try {
     const allCategoryIds = await ManufacturingModel.distinct("categoryId");
