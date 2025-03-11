@@ -709,7 +709,6 @@ const ManufacturingVariable = () => {
                                         <th>Machine Name</th>
                                         <th>Hourly Rate</th>
                                         <th>Status</th>
-                                        <th>Available After</th>
                                         <th>Action</th>
                                       </tr>
                                     </thead>

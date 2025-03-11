@@ -606,11 +606,12 @@ export const PartListHrPlan = ({
             }
 
             // Generate order number with padding
-            const orderNumber = orderCounter.toString().padStart(3, "0");
+            const splitNumber = orderCounter.toString().padStart(3, "0");
             orderCounter++; // Increment counter for next row in this process
 
             groupedAllocations[key].allocations.push({
-              orderNumber, // Add the generated order number
+              splitNumber, // Add the generated order number
+              AllocationPartType:"Part",
               plannedQuantity: row.plannedQuantity,
               startDate: new Date(row.startDate).toISOString(),
               startTime: row.startTime || "08:00 AM",
