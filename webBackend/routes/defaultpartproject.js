@@ -2657,7 +2657,7 @@ partproject.post(
   async (req, res) => {
     try {
       const { projectId, partsListId, partListItemId, processId, allocationId } = req.params;
-      const { date, planned, produced, dailyStatus } = req.body;
+      const { date, planned, produced,operator, dailyStatus } = req.body;
  
       // Find the project
       const project = await PartListProjectModel.findById(projectId);
@@ -2680,7 +2680,7 @@ partproject.post(
       if (!allocation) return res.status(404).json({ error: "Allocation not found" });
  
       // Add daily tracking entry
-      allocation.dailyTracking.push({ date, planned, produced, dailyStatus });
+      allocation.dailyTracking.push({ date, planned, produced,operator, dailyStatus });
  
       // Save the updated project
       await project.save();
@@ -2692,6 +2692,42 @@ partproject.post(
     }
   }
 );
+
+partproject.get(
+  "/projects/:projectId/partsLists/:partsListId/partsListItems/:partListItemId/allocations/:processId/allocations/:allocationId/dailyTracking",
+  async (req, res) => {
+    try {
+      const { projectId, partsListId, partListItemId, processId, allocationId } = req.params;
+
+      // Find the project
+      const project = await PartListProjectModel.findById(projectId);
+      if (!project) return res.status(404).json({ error: "Project not found" });
+
+      // Find the part list
+      const partsList = project.partsLists.find((p) => p._id.toString() === partsListId);
+      if (!partsList) return res.status(404).json({ error: "Parts List not found" });
+
+      // Find the part list item
+      const partItem = partsList.partsListItems.find((p) => p._id.toString() === partListItemId);
+      if (!partItem) return res.status(404).json({ error: "Part List Item not found" });
+
+      // Find the process
+      const process = partItem.allocations.find((p) => p._id.toString() === processId);
+      if (!process) return res.status(404).json({ error: "Process not found" });
+
+      // Find the allocation within the process
+      const allocation = process.allocations.find((a) => a._id.toString() === allocationId);
+      if (!allocation) return res.status(404).json({ error: "Allocation not found" });
+
+      // Return daily tracking data
+      res.status(200).json({ dailyTracking: allocation.dailyTracking });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Server error" });
+    }
+  }
+);
+
 
 // subassembly allocation code
 // subAssemblyListFirst

@@ -483,10 +483,10 @@ manufacturRouter.get("/category/:categoryId", async (req, res) => {
       await manufacturingEntry.save();
     }
 
-    const BASE_URL = process.env.BASE_URL || "http://0.0.0.0:4040";
+    // const BASE_URL = process.env.BASE_URL || "http://0.0.0.0:4040";
 
     const allocationResponse = await axios.get(
-      `${BASE_URL}/api/defpartproject/all-allocations`
+      `${process.env.BASE_URL}/api/defpartproject/all-allocations`
     );
 
     if (!allocationResponse.data || !allocationResponse.data.data) {

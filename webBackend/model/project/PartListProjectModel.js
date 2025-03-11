@@ -131,6 +131,9 @@ const AllocationPlanningSchema = new mongoose.Schema(
               required: true,
               min: 0,
             },
+            operator: {
+              type: String,
+            },
             dailyStatus: {
               type: String,
             },
