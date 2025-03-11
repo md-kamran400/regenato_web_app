@@ -78,7 +78,9 @@ export function PlanPageNav() {
         if (foundAllocation && foundProject) {
           setSelectedProject(foundProject);
           setSelectedPart(foundPart);
-          setSelectedOrder(foundAllocation.orderNumber);
+          setSelectedOrder(
+            foundAllocation.splitNumber || foundAllocation.orderNumber
+          );
           setSelectedProcess(foundProcess);
           transformData(foundProject, foundPart, data.data);
         } else {
@@ -122,15 +124,17 @@ export function PlanPageNav() {
     if (!selectedProjectData) return;
 
     // Get all unique order numbers for the selected part
-    const orderNumbers = new Set();
+    const splitNumbers = new Set();
     selectedProjectData.allocations
       .filter((alloc) => alloc.partName === partName)
       .forEach((alloc) => {
-        alloc.allocations.forEach((a) => orderNumbers.add(a.orderNumber));
+        alloc.allocations.forEach((a) => {
+          splitNumbers.add(a.splitNumber || a.orderNumber);
+        });
       });
 
     // Create resources (order numbers)
-    const resourcesList = Array.from(orderNumbers).map((orderNum) => ({
+    const resourcesList = Array.from(splitNumbers).map((orderNum) => ({
       id: orderNum,
       title: `Order ${orderNum}`,
     }));
@@ -150,7 +154,7 @@ export function PlanPageNav() {
 
           eventsList.push({
             id: a._id,
-            resourceId: a.orderNumber,
+            resourceId: a.splitNumber || a.orderNumber,
             start: a.startDate,
             end: a.endDate,
             title: `${alloc.processName} - ${a.machineId}`,
@@ -162,7 +166,8 @@ export function PlanPageNav() {
               operator: a.operator,
               plannedQuantity: a.plannedQuantity,
               shift: a.shift,
-              orderNumber: a.orderNumber,
+              splitNumber: a.splitNumber || a.orderNumber,
+              AllocationPartType: a.AllocationPartType,
             },
           });
         });
@@ -191,8 +196,8 @@ export function PlanPageNav() {
   };
 
   const handleEventClick = (info) => {
-    const { orderNumber, processName } = info.event.extendedProps;
-    setSelectedOrder(orderNumber);
+    const { splitNumber, processName } = info.event.extendedProps;
+    setSelectedOrder(splitNumber);
     setSelectedProcess(processName);
   };
 
@@ -232,8 +237,6 @@ export function PlanPageNav() {
       ]
     : [];
 
-  // Inside the PlanPageNav component, before the return statement
-
   // Get filtered allocations for the selected project and part
   const filteredAllocations = selectedProjectData
     ? selectedProjectData.allocations.filter(
@@ -245,7 +248,7 @@ export function PlanPageNav() {
   const uniqueOrders = [
     ...new Set(
       filteredAllocations.flatMap((alloc) =>
-        alloc.allocations.map((a) => a.orderNumber)
+        alloc.allocations.map((a) => a.splitNumber || a.orderNumber)
       )
     ),
   ];
@@ -289,7 +292,6 @@ export function PlanPageNav() {
               </option>
             ))}
           </select>
-          
         </div>
       </div>
 
@@ -334,14 +336,13 @@ export function PlanPageNav() {
               Start: ${event.start?.toLocaleDateString()}
               End: ${event.end?.toLocaleDateString()}
             `;
-
             info.el.setAttribute("title", tooltipContent);
           }}
         />
       </div>
 
       {/* Bottom Panels */}
-      <div className="panels-container">
+      <div className="panels-container" style={{ marginTop: "40px" }}>
         {/* Orders Panel */}
         <div className="panel orders-panel">
           <Card>
@@ -368,7 +369,7 @@ export function PlanPageNav() {
                   const orderAllocations = filteredAllocations.flatMap(
                     (allocation) =>
                       allocation.allocations.filter(
-                        (a) => a.orderNumber === orderNum
+                        (a) => (a.splitNumber || a.orderNumber) === orderNum
                       )
                   );
                   const firstAllocation = orderAllocations[0];
@@ -433,7 +434,7 @@ export function PlanPageNav() {
                                   borderRadius: "12px",
                                 }}
                               >
-                                In Progress
+                                {firstAllocation?.AllocationPartType || "N/A"}
                               </Badge>
                             </div>
 
@@ -516,7 +517,7 @@ export function PlanPageNav() {
             {selectedOrder &&
               filteredAllocations.map((processAllocation) => {
                 const allocation = processAllocation.allocations.find(
-                  (a) => a.orderNumber === selectedOrder
+                  (a) => a.splitNumber === selectedOrder
                 );
 
                 if (!allocation) return null;
@@ -585,7 +586,7 @@ export function PlanPageNav() {
                 .filter((p) => p.processName === selectedProcess)
                 .map((processAllocation) => {
                   const allocation = processAllocation.allocations.find(
-                    (a) => a.orderNumber === selectedOrder
+                    (a) => a.splitNumber === selectedOrder
                   );
 
                   if (!allocation) return null;
@@ -627,7 +628,7 @@ export function PlanPageNav() {
                         <div className="details-row">
                           <div className="details-label">Order Number</div>
                           <div className="details-value">
-                            {allocation.orderNumber}
+                            {allocation.splitNumber}
                           </div>
                         </div>
                         <div className="details-row">
@@ -658,7 +659,7 @@ export function PlanPageNav() {
                 })}
           </div>
         </div>
-      </div>
+      </div>    
     </div>
   );
 }
