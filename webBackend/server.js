@@ -6,7 +6,7 @@ const axios = require("axios");
 // Middleware
 app.use(express.json());
 app.use(cors());
-
+ 
 // Import other routes
 const { RmRouter } = require("./routes/variableRoutes/rmvariable.route");
 const {
@@ -32,7 +32,7 @@ const allocationRoutes = require("./routes/Allocation/allocation.routes");
 const shiftRoutes = require("./routes/variableRoutes/shifts.routes");
 const eventRoutes = require("./routes/variableRoutes/eventScheduler");
 const { PartsExcelRoutes } = require("./routes/partsRoutes/partsExcel.routes");
-
+ 
 // MongoDB connection
 const connect = async () => {
   try {
@@ -44,9 +44,9 @@ const connect = async () => {
     console.log(error);
   }
 };
-
+ 
 // Use the routes
-
+ 
 app.use("/api/rmvariable", RmRouter);
 app.use("/api/manufacturing", manufacturRouter);
 app.use("/api/shipment", ShipmentRouter);
@@ -56,31 +56,31 @@ app.use("/api/manufacturingStatics", manufacturingStaticRouter);
 app.use("/api/userVariable", userVariableRouter);
 app.use("/api/shiftVariable", shiftRoutes);
 app.use("/api/eventScheduler", eventRoutes);
-
+ 
 // Use PartRoutes for handling part-related route
 // Use PartRoutes for handling part-related routes
 // app.use("/api/parts", PartRoutes); // Corrected the route
-
-
+ 
+ 
 // THIS IS ONLY FOR NEW EXCEL LOGIC
 app.use("/api/parts" , PartsExcelRoutes);
-
+ 
 // Use ProjectRouter for handling project-related routes
 app.use("/api/projects", ProjectRouter);
-
+ 
 app.use("/api/defpartproject", partproject);
-
+ 
 app.use("/api/subAssembly", subAssemblyRoutes);
 app.use("/api/assmebly", AssemblyRoutes);
-
+ 
 // for authentication
 app.use("/api/userManagement", UserRoute);
-
+ 
 //for allocation
 app.use("/api/allocation", allocationRoutes);
-
+ 
 // app.use("/api/parts", excelPartroutes)
-
+ 
 app.get("/api/holidays", async (req, res) => {
   try {
     const response = await axios.get(
@@ -91,12 +91,12 @@ app.get("/api/holidays", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch data" });
   }
 });
-
+ 
 const PORT = 4040;
 // app.listen(PORT, () => {
 app.listen(PORT, "0.0.0.0", () => {
   connect();
   console.log(`Server is running on port ${PORT}`);
 });
-
+ 
 // ${process.env.REACT_APP_BASE_URL}/

@@ -116,6 +116,7 @@ export const PartListHrPlan = ({
           });
 
           setAllocatedMachines(machineAllocations);
+          console.log(machineAllocations)
         }
       } catch (error) {
         console.error("Error fetching machine allocations:", error);
@@ -321,6 +322,8 @@ export const PartListHrPlan = ({
     };
     fetchMachines();
   }, [manufacturingVariables]);
+
+  console.log("Machine Options:", machineOptions);
 
   useEffect(() => {
     // Only initialize rows with empty data
@@ -1288,3 +1291,7 @@ export const PartListHrPlan = ({
     </div>
   );
 };
+
+
+
+
