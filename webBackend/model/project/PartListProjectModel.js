@@ -234,3 +234,4 @@ const PartListProjectModel = mongoose.model("PartProject", partprojectSchema);
 module.exports = PartListProjectModel;
 
 //project/:projectid/partlist/:partlistid/partlistItems/:partlistitemsid/allocation
+// /projects/:projectId/assemblyList/:partsListId/subAssemblies/:subAssembliesId/partsListItems/:partListItemId/allocations/:processId/allocations/:allocationId/dailyTracking
