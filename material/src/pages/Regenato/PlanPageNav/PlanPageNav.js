@@ -2,6 +2,9 @@ import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import FullCalendar from "@fullcalendar/react";
 import resourceTimelinePlugin from "@fullcalendar/resource-timeline";
+// import FullCalendar from "@fullcalendar/react";
+import timeGridPlugin from "@fullcalendar/timegrid"; // For week/day view
+import interactionPlugin from "@fullcalendar/interaction"; // For interactivity
 import adaptivePlugin from "@fullcalendar/adaptive";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import { Calendar, Clock } from "lucide-react";
@@ -117,32 +120,76 @@ export function PlanPageNav() {
     }
   };
 
+  // const transformData = (projectName, partName, data) => {
+  //   // Find the selected project
+  //   const selectedProjectData = data.find(
+  //     (project) => project.projectName === projectName
+  //   );
+
+  //   if (!selectedProjectData) return;
+
+  //   // Get all unique order numbers for the selected part
+  //   const splitNumbers = new Set();
+  //   selectedProjectData.allocations
+  //     .filter((alloc) => alloc.partName === partName)
+  //     .forEach((alloc) => {
+  //       alloc.allocations.forEach((a) => {
+  //         if (a.splitNumber) {
+  //           // Ensure it's defined
+  //           splitNumbers.add(a.splitNumber);
+  //         }
+  //       });
+  //     });
+
+  //   // Create resources (order numbers)
+  //   const resourcesList = Array.from(splitNumbers).map((orderNum) => ({
+  //     id: orderNum,
+  //     title: `Order ${orderNum}`,
+  //   }));
+  //   setResources(resourcesList);
+
+  //   // Create events
+  //   const eventsList = [];
+  //   selectedProjectData.allocations
+  //     .filter((alloc) => alloc.partName === partName)
+  //     .forEach((alloc) => {
+  //       alloc.allocations.forEach((a) => {
+  //         const machineCode = a.machineId.split("-")[0];
+  //         const colors = processColors[machineCode] || {
+  //           bg: "#666",
+  //           border: "#444",
+  //         };
+
+  //         eventsList.push({
+  //           id: a._id,
+  //           resourceId: a.splitNumber || a.orderNumber,
+  //           start: a.startDate,
+  //           end: a.endDate,
+  //           title: `${alloc.processName} - ${a.machineId}`,
+  //           backgroundColor: colors.bg,
+  //           borderColor: colors.border,
+  //           extendedProps: {
+  //             processName: alloc.processName,
+  //             machineId: a.machineId,
+  //             operator: a.operator,
+  //             plannedQuantity: a.plannedQuantity,
+  //             shift: a.shift,
+  //             splitNumber: a.splitNumber || a.orderNumber,
+  //             AllocationPartType: a.AllocationPartType,
+  //           },
+  //         });
+  //       });
+  //     });
+  //   setEvents(eventsList);
+  // };
+
   const transformData = (projectName, partName, data) => {
-    // Find the selected project
     const selectedProjectData = data.find(
       (project) => project.projectName === projectName
     );
 
     if (!selectedProjectData) return;
 
-    // Get all unique order numbers for the selected part
-    const splitNumbers = new Set();
-    selectedProjectData.allocations
-      .filter((alloc) => alloc.partName === partName)
-      .forEach((alloc) => {
-        alloc.allocations.forEach((a) => {
-          splitNumbers.add(a.splitNumber || a.orderNumber);
-        });
-      });
-
-    // Create resources (order numbers)
-    const resourcesList = Array.from(splitNumbers).map((orderNum) => ({
-      id: orderNum,
-      title: `Order ${orderNum}`,
-    }));
-    setResources(resourcesList);
-
-    // Create events
     const eventsList = [];
     selectedProjectData.allocations
       .filter((alloc) => alloc.partName === partName)
@@ -154,44 +201,87 @@ export function PlanPageNav() {
             border: "#444",
           };
 
+          const trackingDate = new Date(); // You can replace this with actual tracking date
+          const isDelayed = new Date(a.endDate) < trackingDate;
+
+          // Event for actual planned duration
           eventsList.push({
             id: a._id,
             resourceId: a.splitNumber || a.orderNumber,
             start: a.startDate,
             end: a.endDate,
-            title: `${alloc.processName} - ${a.machineId}`,
+            title: `${alloc.processName} - Planned`,
             backgroundColor: colors.bg,
             borderColor: colors.border,
-            extendedProps: {
-              processName: alloc.processName,
-              machineId: a.machineId,
-              operator: a.operator,
-              plannedQuantity: a.plannedQuantity,
-              shift: a.shift,
-              splitNumber: a.splitNumber || a.orderNumber,
-              AllocationPartType: a.AllocationPartType,
-            },
+            extendedProps: { plannedQuantity: a.plannedQuantity },
           });
+
+          // Event for tracked progress
+          eventsList.push({
+            id: `${a._id}-tracking`,
+            resourceId: a.splitNumber || a.orderNumber,
+            start: a.startDate,
+            end: trackingDate,
+            title: `${alloc.processName} - Tracked (${a.trackedQuantity || 0})`,
+            backgroundColor: isDelayed ? "#DC2626" : "#10B981",
+            borderColor: isDelayed ? "#B91C1C" : "#059669",
+            extendedProps: { trackedQuantity: a.trackedQuantity || 0 },
+          });
+
+          // Delayed period indication
+          if (isDelayed) {
+            eventsList.push({
+              id: `${a._id}-delayed`,
+              resourceId: a.splitNumber || a.orderNumber,
+              start: a.endDate,
+              end: trackingDate,
+              title: `${alloc.processName} - Delayed`,
+              backgroundColor: "#FF0000",
+              borderColor: "#800000",
+            });
+          }
         });
       });
+
     setEvents(eventsList);
   };
 
+  // const transformDailyTrackingData = (dailyTracking, processName) => {
+  //   return dailyTracking.map((tracking) => ({
+  //     id: tracking._id,
+  //     title: `${processName} - ${tracking.dailyStatus}`,
+  //     start: tracking.date,
+  //     allDay: true,
+  //     backgroundColor: "#3B82F6", // You can customize the color
+  //     borderColor: "#2563EB", // You can customize the color
+  //     extendedProps: {
+  //       planned: tracking.planned,
+  //       produced: tracking.produced,
+  //       operator: tracking.operator,
+  //       status: tracking.dailyStatus,
+  //     },
+  //   }));
+  // };
+
   const transformDailyTrackingData = (dailyTracking, processName) => {
-    return dailyTracking.map((tracking) => ({
-      id: tracking._id,
-      title: `${processName} - ${tracking.dailyStatus}`,
-      start: tracking.date,
-      allDay: true,
-      backgroundColor: "#3B82F6", // You can customize the color
-      borderColor: "#2563EB", // You can customize the color
-      extendedProps: {
-        planned: tracking.planned,
-        produced: tracking.produced,
-        operator: tracking.operator,
-        status: tracking.dailyStatus,
-      },
-    }));
+    return dailyTracking.map((tracking) => {
+      const isDelayed = tracking.planned > tracking.produced;
+
+      return {
+        id: tracking._id,
+        title: `${processName} - ${tracking.dailyStatus}`,
+        start: tracking.date,
+        allDay: true,
+        backgroundColor: isDelayed ? "#FF0000" : "#3B82F6", // Red for delays, Blue for normal progress
+        borderColor: isDelayed ? "#B91C1C" : "#2563EB",
+        extendedProps: {
+          planned: tracking.planned,
+          produced: tracking.produced,
+          operator: tracking.operator,
+          status: tracking.dailyStatus,
+        },
+      };
+    });
   };
 
   const handleProjectChange = (e) => {
@@ -256,14 +346,13 @@ export function PlanPageNav() {
       ]
     : [];
 
-  // Get filtered allocations for the selected project and part
-  const filteredAllocations = selectedProjectData
-    ? selectedProjectData.allocations.filter(
-        (alloc) => alloc.partName === selectedPart
-      )
+  const allAllocations = selectedProjectData
+    ? selectedProjectData.allocations
     : [];
+  const filteredAllocations = allAllocations.filter(
+    (alloc) => alloc.partName === selectedPart
+  );
 
-  // Get unique orders for the selected part
   const uniqueOrders = [
     ...new Set(
       filteredAllocations.flatMap((alloc) =>
@@ -271,6 +360,9 @@ export function PlanPageNav() {
       )
     ),
   ];
+  console.log("Final Unique Orders:", uniqueOrders);
+
+  console.log("Filtered Allocations:", filteredAllocations);
 
   return (
     <div className="p-4">
@@ -382,22 +474,37 @@ export function PlanPageNav() {
                   display: "flex",
                   flexDirection: "column",
                   gap: "12px",
+                  maxHeight: "500px",
+                  overflowY: "auto",
+                  paddingRight: "8px", // Prevents scrollbar overlap with content
                 }}
               >
                 {uniqueOrders.map((orderNum) => {
+                  console.log("Rendering Order:", orderNum);
+
                   const orderAllocations = filteredAllocations.flatMap(
                     (allocation) =>
                       allocation.allocations.filter(
                         (a) => (a.splitNumber || a.orderNumber) === orderNum
                       )
                   );
-                  const firstAllocation = orderAllocations[0];
 
+                  console.log(
+                    `Order ${orderNum} Allocations:`,
+                    orderAllocations
+                  );
+
+                  const firstAllocation = orderAllocations[0];
                   // Calculate total planned quantity for the order
                   const totalQuantity = orderAllocations.reduce(
                     (sum, alloc) => sum + (alloc.plannedQuantity || 0),
                     0
                   );
+
+                  if (orderAllocations.length === 0) {
+                    console.warn(`Order ${orderNum} has no allocations!`);
+                    return null; // Avoid rendering empty orders
+                  }
 
                   // Calculate total duration for the order
                   const startDate = new Date(firstAllocation?.startDate);
@@ -524,6 +631,7 @@ export function PlanPageNav() {
             </CardBody>
           </Card>
         </div>
+
         {/* Processes Panel */}
         <div className="panel processes-panel">
           <div className="panel-header">
@@ -704,7 +812,7 @@ export function PlanPageNav() {
                 })}
           </div>
         </div> */}
-        
+
         <div className="panel details-panel">
           <div className="panel-header">
             <h2 className="panel-title">Process Details</h2>
@@ -800,33 +908,39 @@ export function PlanPageNav() {
                       <div className="small-calendar">
                         <FullCalendar
                           plugins={[dayGridPlugin]}
-                          initialView="dayGridMonth"
+                          initialView="dayGridMonth" // Default View
                           headerToolbar={{
-                            left: "prev,next",
+                            left: "prev,next today",
                             center: "title",
-                            right: "",
+                            right: "dayGridDay,dayGridWeek,dayGridMonth", // Allows switching between Day, Week, and Month views
                           }}
-                          events={dailyTrackingEvents}
-                          eventContent={(arg) => {
-                            return (
-                              <div className="p-1 text-sm text-white">
-                                <div className="font-medium">
-                                  {arg.event.title}
-                                </div>
+                          views={{
+                            dayGridDay: { buttonText: "Day" },
+                            dayGridWeek: { buttonText: "Week" },
+                            dayGridMonth: { buttonText: "Month" },
+                          }}
+                          events={transformDailyTrackingData(
+                            allocation.dailyTracking,
+                            processAllocation.processName
+                          )}
+                          eventContent={(arg) => (
+                            <div className="p-1 text-sm text-white">
+                              <div className="font-medium">
+                                {arg.event.title}
                               </div>
-                            );
-                          }}
+                            </div>
+                          )}
                           eventDidMount={(info) => {
                             const event = info.event;
                             const props = event.extendedProps;
 
                             const tooltipContent = `
-                      Process: ${event.title}
-                      Planned: ${props.planned}
-                      Produced: ${props.produced}
-                      Operator: ${props.operator}
-                      Status: ${props.status}
-                    `;
+      Process: ${event.title}
+      Planned: ${props.planned}
+      Produced: ${props.produced}
+      Operator: ${props.operator}
+      Status: ${props.status}
+    `;
                             info.el.setAttribute("title", tooltipContent);
                           }}
                         />
