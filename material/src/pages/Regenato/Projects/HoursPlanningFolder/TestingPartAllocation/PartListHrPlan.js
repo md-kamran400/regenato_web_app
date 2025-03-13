@@ -116,7 +116,7 @@ export const PartListHrPlan = ({
           });
 
           setAllocatedMachines(machineAllocations);
-          console.log(machineAllocations)
+          console.log(machineAllocations);
         }
       } catch (error) {
         console.error("Error fetching machine allocations:", error);
@@ -569,6 +569,21 @@ export const PartListHrPlan = ({
     });
   };
 
+  const isAllFieldsFilled = () => {
+    return Object.keys(rows).every((index) => {
+      return rows[index].every((row) => {
+        return (
+          row.plannedQuantity &&
+          row.startDate &&
+          row.endDate &&
+          row.machineId &&
+          row.shift &&
+          row.operatorId
+        );
+      });
+    });
+  };
+
   const handleSubmit = async () => {
     console.log("Submitting allocations...");
     console.log("Rows before processing:", JSON.stringify(rows, null, 2));
@@ -614,7 +629,7 @@ export const PartListHrPlan = ({
 
             groupedAllocations[key].allocations.push({
               splitNumber, // Add the generated order number
-              AllocationPartType:"Part",
+              AllocationPartType: "Part",
               plannedQuantity: row.plannedQuantity,
               startDate: new Date(row.startDate).toISOString(),
               startTime: row.startTime || "08:00 AM",
@@ -874,35 +889,6 @@ export const PartListHrPlan = ({
                           </td>
 
                           <td>
-                            {/* <Input
-                              type="date"
-                              value={row.startDate}
-                              onChange={(e) =>
-                                handleStartDateChange(
-                                  index,
-                                  rowIndex,
-                                  e.target.value
-                                )
-                              }
-                              // readOnly={index !== 0}
-                            /> */}
-
-                            {/* <DatePicker
-                              selected={
-                                row.startDate ? new Date(row.startDate) : null
-                              }
-                              onChange={(date) =>
-                                handleStartDateChange(index, rowIndex, date)
-                              }
-                              dayClassName={(date) =>
-                                isHighlightedOrDisabled(date)
-                                  ? "highlighted-date"
-                                  : ""
-                              }
-                              renderDayContents={renderDayContents}
-                              customInput={<CustomInput />}
-                              dateFormat="dd-MM-yyyy"
-                            /> */}
                             <DatePicker
                               selected={
                                 row.startDate ? new Date(row.startDate) : null
@@ -974,7 +960,16 @@ export const PartListHrPlan = ({
 
                           <td>
                             {/* <Autocomplete
-                              options={machineOptions[man.categoryId] || []}
+                              options={
+                                machineOptions[man.categoryId]?.filter(
+                                  (machine) =>
+                                    isMachineAvailable(
+                                      machine.subcategoryId,
+                                      row.startDate,
+                                      row.endDate
+                                    )
+                                ) || []
+                              }
                               value={
                                 machineOptions[man.categoryId]?.find(
                                   (machine) =>
@@ -983,11 +978,21 @@ export const PartListHrPlan = ({
                               }
                               getOptionLabel={(option) =>
                                 `${option.name} ${
-                                  option.isAvailable ? "" : "(Occupied)"
+                                  isMachineAvailable(
+                                    option.subcategoryId,
+                                    row.startDate,
+                                    row.endDate
+                                  )
+                                    ? ""
+                                    : "(Occupied)"
                                 }`
                               }
                               renderOption={(props, option) => {
-                                const isDisabled = !option.isAvailable;
+                                const isDisabled = !isMachineAvailable(
+                                  option.subcategoryId,
+                                  row.startDate,
+                                  row.endDate
+                                );
                                 return (
                                   <li
                                     {...props}
@@ -998,13 +1003,13 @@ export const PartListHrPlan = ({
                                         : "auto",
                                     }}
                                   >
-                                    - {option.name}{" "}
+                                    {option.name}{" "}
                                     {isDisabled ? "(Occupied)" : ""}
                                   </li>
                                 );
                               }}
                               onChange={(event, newValue) => {
-                                if (!hasStartDate && index !== 0) return;
+                                if (!hasStartDate) return;
                                 setRows((prevRows) => {
                                   const updatedRows = [...prevRows[index]];
                                   updatedRows[rowIndex] = {
@@ -1025,9 +1030,7 @@ export const PartListHrPlan = ({
                                 />
                               )}
                               disableClearable={false}
-                              disabled={!hasStartDate && index !== 0}
                             /> */}
-
                             <Autocomplete
                               options={
                                 machineOptions[man.categoryId]?.filter(
@@ -1079,6 +1082,23 @@ export const PartListHrPlan = ({
                               }}
                               onChange={(event, newValue) => {
                                 if (!hasStartDate) return;
+
+                                // Check if the machine is already selected in the same row
+                                const isMachineAlreadyUsedInRow = rows[
+                                  index
+                                ]?.some(
+                                  (r, idx) =>
+                                    idx !== rowIndex &&
+                                    r.machineId === newValue.subcategoryId
+                                );
+
+                                if (isMachineAlreadyUsedInRow) {
+                                  toast.warning(
+                                    "This machine is already selected in another row."
+                                  );
+                                  return;
+                                }
+
                                 setRows((prevRows) => {
                                   const updatedRows = [...prevRows[index]];
                                   updatedRows[rowIndex] = {
@@ -1220,6 +1240,7 @@ export const PartListHrPlan = ({
                               disableClearable={false}
                               disabled={!hasStartDate && index !== 0}
                             />
+                            
                           </td>
                           <td>
                             <span
@@ -1247,8 +1268,23 @@ export const PartListHrPlan = ({
                 <Button
                   color="success"
                   onClick={openConfirmationModal}
-                  //   disabled={!hasStartDate}
-                  disabled={!hasStartDate || remainingQuantities <= 0}
+                  disabled={
+                    !hasStartDate ||
+                    !Object.keys(remainingQuantities).every(
+                      (key) => remainingQuantities[key] === 0
+                    ) ||
+                    !Object.keys(rows).every((index) =>
+                      rows[index].every(
+                        (row) =>
+                          row.plannedQuantity &&
+                          row.startDate &&
+                          row.endDate &&
+                          row.machineId &&
+                          row.shift &&
+                          row.operatorId
+                      )
+                    )
+                  }
                 >
                   Confirm Allocation
                 </Button>
@@ -1291,7 +1327,3 @@ export const PartListHrPlan = ({
     </div>
   );
 };
-
-
-
-

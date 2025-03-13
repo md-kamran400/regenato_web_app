@@ -1,3 +1,5 @@
+
+
 // import React, { useState, useEffect } from "react";
 // import axios from "axios";
 // import {
@@ -127,65 +129,6 @@
 
 //     return Math.ceil(totalQuantity / days);
 //   };
-
-//   // const submitDailyTracking = async () => {
-//   //   try {
-//   //     if (!selectedSection || !selectedSection.data.length) {
-//   //       toast.error("No allocation selected.");
-//   //       return;
-//   //     }
-
-//   //     const allocationId = selectedSection.allocationId;
-//   //     const trackingId = selectedSection.data[0]?.trackingId;
-
-//   //     if (!allocationId || !trackingId) {
-//   //       toast.error("Allocation or Tracking ID is missing.");
-//   //       console.error("Missing allocationId or trackingId:", {
-//   //         allocationId,
-//   //         trackingId,
-//   //       });
-//   //       return;
-//   //     }
-
-//   //     const isValid = dailyTracking.every((task) => {
-//   //       return (
-//   //         task.date &&
-//   //         !isNaN(new Date(task.date)) &&
-//   //         !isNaN(Number(task.planned)) &&
-//   //         !isNaN(Number(task.produced)) &&
-//   //         task.dailyStatus
-//   //       );
-//   //     });
-
-//   //     if (!isValid) {
-//   //       toast.error("Invalid daily tracking data. Please check all fields.");
-//   //       return;
-//   //     }
-
-//   //     const formattedDailyTracking = dailyTracking.map((task) => ({
-//   //       date: task.date,
-//   //       planned: Number(task.planned),
-//   //       produced: Number(task.produced),
-//   //       dailyStatus: task.dailyStatus,
-//   //     }));
-
-//   //     const response = await axios.post(
-//   //       `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/subAssemblyListFirst/${subAssemblyListFirstId}/partsListItems/${partListItemId}/allocations/${allocationId}/dailyTrack/${trackingId}/dailyTracking`,
-//   //       { dailyTracking: formattedDailyTracking }
-//   //     );
-
-//   //     if (response.status === 200) {
-//   //       toast.success("Daily Tracking Updated!");
-//   //       setDailyTaskModal(false);
-//   //     }
-//   //   } catch (error) {
-//   //     toast.error("Failed to update daily tracking.");
-//   //     console.error(
-//   //       "Error updating daily tracking:",
-//   //       error.response?.data || error
-//   //     );
-//   //   }
-//   // };
 
 //   const submitDailyTracking = async () => {
 //     try {
@@ -497,6 +440,8 @@
 //   );
 // };
 
+
+
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import {
@@ -528,8 +473,7 @@ export const AllocatedSubAssemblyPlan = ({
   const [selectedSection, setSelectedSection] = useState(null);
   const [deleteConfirmationModal, setDeleteConfirmationModal] = useState(false);
   const [dailyTracking, setDailyTracking] = useState([]);
-
-  console.log(porjectID, subAssemblyListFirstId, partListItemId);
+  const [existingDailyTracking, setExistingDailyTracking] = useState([]);
 
   useEffect(() => {
     const fetchAllocations = async () => {
@@ -586,12 +530,22 @@ export const AllocatedSubAssemblyPlan = ({
     setDeleteConfirmationModal(false);
   };
 
-  const openModal = (section, row) => {
+  const openModal = async (section, row) => {
     setSelectedSection({
       ...section,
       data: [row], // Pass the specific row data
     });
     setDailyTaskModal(true);
+
+    // Fetch existing daily tracking data
+    try {
+      const response = await axios.get(
+        `http://localhost:4040/api/defpartproject/projects/${porjectID}/subAssemblyListFirst/${subAssemblyListFirstId}/partsListItems/${partListItemId}/allocations/${section.allocationId}/allocations/${row.trackingId}/dailyTracking`
+      );
+      setExistingDailyTracking(response.data.dailyTracking || []);
+    } catch (error) {
+      console.error("Error fetching daily tracking data:", error);
+    }
   };
 
   const handleDailyTrackingChange = (index, field, value) => {
@@ -605,7 +559,13 @@ export const AllocatedSubAssemblyPlan = ({
   const addDailyTrackingRow = () => {
     setDailyTracking((prev) => [
       ...prev,
-      { date: "", planned: 0, produced: 0, dailyStatus: "" },
+      {
+        date: "",
+        planned: calculateDailyPlannedQuantity(),
+        produced: 0,
+        dailyStatus: "",
+        operator: selectedSection?.data[0]?.operator || "",
+      },
     ]);
   };
 
@@ -627,6 +587,83 @@ export const AllocatedSubAssemblyPlan = ({
     return Math.ceil(totalQuantity / days);
   };
 
+  // Calculate the remaining quantity to produce
+  const calculateRemainingQuantity = () => {
+    if (!selectedSection || !selectedSection.data[0]) return 0;
+
+    const totalQuantity = selectedSection.data[0].plannedQty;
+    const totalProduced = existingDailyTracking.reduce(
+      (sum, task) => sum + task.produced,
+      0
+    );
+
+    return totalQuantity - totalProduced;
+  };
+
+  // Calculate the actual end date based on the last tracking date
+  // const calculateActualEndDate = () => {
+  //   if (!existingDailyTracking || existingDailyTracking.length === 0) {
+  //     return selectedSection?.data[0]?.endDate || "";
+  //   }
+
+  //   const lastTrackingDate = existingDailyTracking.reduce((latest, task) => {
+  //     const taskDate = new Date(task.date);
+  //     return taskDate > latest ? taskDate : latest;
+  //   }, new Date(0));
+
+  //   return lastTrackingDate.toLocaleDateString();
+  // };
+
+  const calculateActualEndDate = () => {
+    if (!selectedSection || !selectedSection.data[0]) {
+      return ""; // Return empty string if no section or data is selected
+    }
+
+    const totalQuantity = selectedSection.data[0].plannedQty;
+    const dailyPlannedQuantity = calculateDailyPlannedQuantity();
+    const totalProduced = existingDailyTracking.reduce(
+      (sum, task) => sum + (task.produced || 0),
+      0
+    );
+
+    const remainingQuantity = totalQuantity - totalProduced;
+
+    if (remainingQuantity <= 0) {
+      // If all quantities are produced, return the last tracking date
+      const lastTrackingDate = existingDailyTracking.reduce((latest, task) => {
+        const taskDate = new Date(task.date);
+        return taskDate > latest && !isNaN(taskDate) ? taskDate : latest;
+      }, new Date(0));
+
+      // If no valid tracking dates, return the plan end date
+      if (lastTrackingDate.getTime() === new Date(0).getTime()) {
+        return selectedSection.data[0].endDate;
+      }
+
+      return lastTrackingDate.toLocaleDateString();
+    }
+
+    // Calculate the additional days needed based on the remaining quantity
+    const additionalDays = Math.ceil(remainingQuantity / dailyPlannedQuantity);
+
+    // Find the last tracking date
+    const lastTrackingDate = existingDailyTracking.reduce((latest, task) => {
+      const taskDate = new Date(task.date);
+      return taskDate > latest && !isNaN(taskDate) ? taskDate : latest;
+    }, new Date(0));
+
+    // If no valid tracking dates, return the plan end date
+    if (lastTrackingDate.getTime() === new Date(0).getTime()) {
+      return selectedSection.data[0].endDate;
+    }
+
+    // Calculate the new end date by adding the additional days to the last tracking date
+    const newEndDate = new Date(lastTrackingDate);
+    newEndDate.setDate(newEndDate.getDate() + additionalDays);
+
+    return newEndDate.toLocaleDateString();
+  };
+
   const submitDailyTracking = async () => {
     try {
       if (!selectedSection || !selectedSection.data.length) {
@@ -637,9 +674,6 @@ export const AllocatedSubAssemblyPlan = ({
       const allocationId = selectedSection.allocationId;
       const trackingId = selectedSection.data[0]?.trackingId;
 
-      console.log("Allocation ID:", allocationId);
-      console.log("Daily Tracking ID:", trackingId);
-
       if (!allocationId || !trackingId) {
         toast.error("Allocation or Tracking ID is missing.");
         console.error("Missing allocationId or trackingId:", {
@@ -649,6 +683,7 @@ export const AllocatedSubAssemblyPlan = ({
         return;
       }
 
+      // Validate each daily tracking entry
       const isValid = dailyTracking.every((task) => {
         return (
           task.date &&
@@ -664,22 +699,24 @@ export const AllocatedSubAssemblyPlan = ({
         return;
       }
 
-      const formattedDailyTracking = dailyTracking.map((task) => ({
-        date: task.date,
-        planned: Number(task.planned),
-        produced: Number(task.produced),
-        dailyStatus: task.dailyStatus,
-      }));
+      // Post each daily tracking entry individually
+      for (const task of dailyTracking) {
+        const formattedTask = {
+          date: task.date,
+          planned: Number(task.planned),
+          produced: Number(task.produced),
+          dailyStatus: task.dailyStatus,
+          operator: task.operator,
+        };
 
-      const response = await axios.post(
-        `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/subAssemblyListFirst/${subAssemblyListFirstId}/partsListItems/${partListItemId}/allocations/${allocationId}/dailyTrack/${trackingId}/dailyTracking`,
-        { dailyTracking: formattedDailyTracking }
-      );
-
-      if (response.status === 200) {
-        toast.success("Daily Tracking Updated!");
-        setDailyTaskModal(false);
+        const response = await axios.post(
+          `http://localhost:4040/api/defpartproject/projects/${porjectID}/subAssemblyListFirst/${subAssemblyListFirstId}/partsListItems/${partListItemId}/allocations/${allocationId}/allocations/${trackingId}/dailyTracking`,
+          formattedTask // Send the task in the required format
+        );
       }
+
+      toast.success("Daily Tracking Updated Successfully!");
+      setDailyTaskModal(false);
     } catch (error) {
       toast.error("Failed to update daily tracking.");
       console.error(
@@ -687,6 +724,11 @@ export const AllocatedSubAssemblyPlan = ({
         error.response?.data || error
       );
     }
+  };
+
+  const closeDailyTaskModal = () => {
+    setDailyTracking([]); // Clear added rows
+    setDailyTaskModal(false);
   };
 
   return (
@@ -776,8 +818,8 @@ export const AllocatedSubAssemblyPlan = ({
       {/* Modal for Updating Daily Task */}
       <Modal
         isOpen={dailyTaskModal}
-        toggle={() => setDailyTaskModal(false)}
-        style={{ maxWidth: "60vw" }}
+        toggle={closeDailyTaskModal}
+        style={{ maxWidth: "80vw" }}
       >
         <ModalHeader toggle={() => setDailyTaskModal(false)}>
           Update Daily Tracking - {selectedSection?.title}
@@ -791,8 +833,16 @@ export const AllocatedSubAssemblyPlan = ({
                   <span>{selectedSection.data[0].plannedQty}</span>
                 </Col>
                 <Col>
-                  <span style={{ fontWeight: "bold" }}>Planned Quantity: </span>
+                  <span style={{ fontWeight: "bold" }}>
+                    Daily Planned Quantity:{" "}
+                  </span>
                   <span>{calculateDailyPlannedQuantity()}</span>
+                </Col>
+                <Col>
+                  <span style={{ fontWeight: "bold" }}>
+                    Remaining Produce Quantity:{" "}
+                  </span>
+                  <span>{calculateRemainingQuantity()}</span>
                 </Col>
               </Row>
               <Row className="mb-3">
@@ -804,9 +854,12 @@ export const AllocatedSubAssemblyPlan = ({
                   <span style={{ fontWeight: "bold" }}>Plan End Date: </span>
                   <span>{selectedSection.data[0].endDate}</span>
                 </Col>
+                <Col>
+                  <span style={{ fontWeight: "bold" }}>Actual End Date: </span>
+                  <span>{calculateActualEndDate()}</span>
+                </Col>
               </Row>
 
-              {/* Dynamic Daily Tracking Inputs */}
               <Table bordered responsive>
                 <thead>
                   <tr>
@@ -814,6 +867,7 @@ export const AllocatedSubAssemblyPlan = ({
                     <th style={{ width: "8rem" }}>Planned</th>
                     <th style={{ width: "8rem" }}>Produced</th>
                     <th>Status</th>
+                    <th style={{ width: "10rem" }}>Operator</th>
                     <th>Action</th>
                   </tr>
                 </thead>
@@ -846,6 +900,7 @@ export const AllocatedSubAssemblyPlan = ({
                               e.target.value
                             )
                           }
+                          readOnly
                         />
                       </td>
                       <td>
@@ -881,6 +936,21 @@ export const AllocatedSubAssemblyPlan = ({
                         </select>
                       </td>
                       <td>
+                        <input
+                          type="text"
+                          className="form-control"
+                          value={task.operator}
+                          onChange={(e) =>
+                            handleDailyTrackingChange(
+                              index,
+                              "operator",
+                              e.target.value
+                            )
+                          }
+                          readOnly
+                        />
+                      </td>
+                      <td>
                         <Button color="success" onClick={submitDailyTracking}>
                           Update
                         </Button>
@@ -900,13 +970,51 @@ export const AllocatedSubAssemblyPlan = ({
           )}
         </ModalBody>
         <ModalFooter>
-          <Button color="primary" onClick={addDailyTrackingRow}>
+          <Button
+            color="primary"
+            onClick={addDailyTrackingRow}
+            disabled={calculateRemainingQuantity() <= 0}
+          >
             Add Row
           </Button>
           <Button color="secondary" onClick={() => setDailyTaskModal(false)}>
             Close
           </Button>
         </ModalFooter>
+
+        <ModalHeader>Previous Tracking Data</ModalHeader>
+        <ModalBody>
+          <Table bordered responsive>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Planned</th>
+                <th>Produced</th>
+                <th>Status</th>
+                <th>Operator</th>
+              </tr>
+            </thead>
+            <tbody>
+              {!existingDailyTracking.length ? (
+                <tr>
+                  <td colSpan="5" className="text-center">
+                    No daily tracking data available
+                  </td>
+                </tr>
+              ) : (
+                existingDailyTracking.map((task, index) => (
+                  <tr key={index}>
+                    <td>{new Date(task.date).toLocaleDateString()}</td>
+                    <td>{task.planned}</td>
+                    <td>{task.produced}</td>
+                    <td>{task.dailyStatus}</td>
+                    <td>{task.operator}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </Table>
+        </ModalBody>
       </Modal>
 
       {/* Modal for Delete Confirmation */}
