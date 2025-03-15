@@ -33,17 +33,40 @@ export const EventScheduler = () => {
   const [endDate, setEndDate] = useState("");
   const [eventToDelete, setEventToDelete] = useState(null);
 
+  // useEffect(() => {
+  //   axios
+  //     .get(`${process.env.REACT_APP_BASE_URL}/api/eventScheduler/events`)
+  //     .then((response) => {
+  //       const formattedEvents = response.data.map((event) => ({
+  //         title: event.eventName,
+  //         start: moment.utc(event.startDate).local().toDate(),
+  //         end: moment.utc(event.endDate).local().toDate(),
+  //         id: event._id,
+  //       }));
+  //       setEvents(formattedEvents);
+  //     })
+  //     .catch((err) => {
+  //       toast.error("Failed to fetch events");
+  //       console.log(err);
+  //     });
+  // }, []);
+
   useEffect(() => {
     axios
       .get(`${process.env.REACT_APP_BASE_URL}/api/eventScheduler/events`)
       .then((response) => {
-        const formattedEvents = response.data.map((event) => ({
-          title: event.eventName,
-          start: moment.utc(event.startDate).local().toDate(),
-          end: moment.utc(event.endDate).local().toDate(),
-          id: event._id,
-        }));
-        setEvents(formattedEvents);
+        if (Array.isArray(response.data)) {
+          const formattedEvents = response.data.map((event) => ({
+            title: event.eventName,
+            start: moment.utc(event.startDate).local().toDate(),
+            end: moment.utc(event.endDate).local().toDate(),
+            id: event._id,
+          }));
+          setEvents(formattedEvents);
+        } else {
+          console.error('Expected an array but received:', typeof response.data);
+          toast.error("Invalid response format");
+        }
       })
       .catch((err) => {
         toast.error("Failed to fetch events");

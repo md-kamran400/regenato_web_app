@@ -58,8 +58,15 @@ const ShiftVariable = () => {
       const response = await axios.get(
         `${process.env.REACT_APP_BASE_URL}/api/shiftVariable`
       );
-      setShiftData(response.data);
-      generateNextId(response.data);
+
+      // Check if the response data is actually an array
+      if (Array.isArray(response.data)) {
+        setShiftData(response.data);
+        generateNextId(response.data);
+      } else {
+        console.warn("Response data is not an array:", response.data);
+        setShiftData([]);
+      }
     } catch (error) {
       console.error("Error fetching shift data:", error);
       toast.error("Failed to fetch shift data.");
