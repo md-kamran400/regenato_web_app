@@ -605,11 +605,11 @@ const PartsTable = React.memo(
                         {partsList.partsListName}
                       </li>
 
-                      {/* <li style={{ fontSize: "19px" }}>
+                      <li style={{ fontSize: "19px" }}>
                         <span class="badge bg-success-subtle text-success">
                           Parts
                         </span>
-                      </li> */}
+                      </li>
                     </ul>
 
                     <UncontrolledDropdown direction="left">

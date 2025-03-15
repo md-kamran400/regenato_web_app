@@ -30,6 +30,8 @@ export const AllocatedPartListHrPlan = ({
   const [deleteConfirmationModal, setDeleteConfirmationModal] = useState(false);
   const [dailyTracking, setDailyTracking] = useState([]);
   const [existingDailyTracking, setExistingDailyTracking] = useState([]);
+  const [addRowModal, setAddRowModal] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   useEffect(() => {
     const fetchAllocations = async () => {
@@ -104,6 +106,16 @@ export const AllocatedPartListHrPlan = ({
     }
   };
 
+  // Add this function to handle opening the new modal
+  const openAddRowModal = () => {
+    setAddRowModal(true);
+  };
+
+  // Add this function to handle closing the new modal
+  const closeAddRowModal = () => {
+    setAddRowModal(false);
+  };
+
   const handleDailyTrackingChange = (index, field, value) => {
     setDailyTracking((prev) => {
       const updated = [...prev];
@@ -119,7 +131,7 @@ export const AllocatedPartListHrPlan = ({
         date: "",
         planned: calculateDailyPlannedQuantity(),
         produced: 0,
-        dailyStatus: "",
+        dailyStatus: "On Track", // Set a default status
         operator: selectedSection?.data[0]?.operator || "",
       },
     ]);
@@ -155,20 +167,6 @@ export const AllocatedPartListHrPlan = ({
 
     return totalQuantity - totalProduced;
   };
-
-  // Calculate the actual end date based on the last tracking date
-  // const calculateActualEndDate = () => {
-  //   if (!existingDailyTracking || existingDailyTracking.length === 0) {
-  //     return selectedSection?.data[0]?.endDate || "";
-  //   }
-
-  //   const lastTrackingDate = existingDailyTracking.reduce((latest, task) => {
-  //     const taskDate = new Date(task.date);
-  //     return taskDate > latest ? taskDate : latest;
-  //   }, new Date(0));
-
-  //   return lastTrackingDate.toLocaleDateString();
-  // };
 
   const calculateActualEndDate = () => {
     if (!selectedSection || !selectedSection.data[0]) {
@@ -221,6 +219,7 @@ export const AllocatedPartListHrPlan = ({
   };
 
   const submitDailyTracking = async () => {
+    setIsUpdating(true); // Set updating state to true
     try {
       if (!selectedSection || !selectedSection.data.length) {
         toast.error("No allocation selected.");
@@ -239,15 +238,23 @@ export const AllocatedPartListHrPlan = ({
         return;
       }
 
+      // Log the dailyTracking array for debugging
+      // console.log("Daily Tracking Data:", dailyTracking);
+
       // Validate each daily tracking entry
       const isValid = dailyTracking.every((task) => {
-        return (
+        const isValidTask =
           task.date &&
           !isNaN(new Date(task.date)) &&
           !isNaN(Number(task.planned)) &&
           !isNaN(Number(task.produced)) &&
-          task.dailyStatus
-        );
+          task.dailyStatus;
+
+        if (!isValidTask) {
+          console.error("Invalid Task:", task);
+        }
+
+        return isValidTask;
       });
 
       if (!isValid) {
@@ -272,16 +279,28 @@ export const AllocatedPartListHrPlan = ({
       }
 
       toast.success("Daily Tracking Updated Successfully!");
-      setDailyTaskModal(false);
+
+      // Fetch the updated daily tracking data
+      const updatedResponse = await axios.get(
+        `http://localhost:4040/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/allocations/${allocationId}/allocations/${trackingId}/dailyTracking`
+      );
+      setExistingDailyTracking(updatedResponse.data.dailyTracking || []);
+
+      // Close the add row modal
+      closeAddRowModal();
+      setDailyTracking([]);
     } catch (error) {
       toast.error("Failed to update daily tracking.");
       console.error(
         "Error updating daily tracking:",
         error.response?.data || error
       );
+    } finally {
+      setIsUpdating(false); // Set updating state to false
     }
   };
 
+  
   const closeDailyTaskModal = () => {
     setDailyTracking([]); // Clear added rows
     setDailyTaskModal(false);
@@ -339,8 +358,21 @@ export const AllocatedPartListHrPlan = ({
                   {section.data.map((row, rowIndex) => (
                     <tr key={rowIndex}>
                       <td>{row.plannedQty}</td>
-                      <td>{row.startDate}</td>
-                      <td>{row.endDate}</td>
+                      <td>
+                        {new Date(row.startDate).toLocaleDateString("en-GB", {
+                          day: "2-digit",
+                          month: "short",
+                          year: "numeric",
+                        })}
+                      </td>
+                      <td>
+                        {new Date(row.endDate).toLocaleDateString("en-GB", {
+                          day: "2-digit",
+                          month: "short",
+                          year: "numeric",
+                        })}
+                      </td>
+
                       <td>{row.machineId}</td>
                       <td>{row.shift}</td>
                       <td>{row.plannedTime}</td>
@@ -401,143 +433,62 @@ export const AllocatedPartListHrPlan = ({
                   <span>{calculateRemainingQuantity()}</span>
                 </Col>
               </Row>
+
               <Row className="mb-3">
                 <Col>
                   <span style={{ fontWeight: "bold" }}>Start Date: </span>
-                  <span>{selectedSection.data[0].startDate}</span>
+                  <span>
+                    {new Date(
+                      selectedSection.data[0].startDate
+                    ).toLocaleDateString("en-GB", {
+                      day: "2-digit",
+                      month: "short",
+                      year: "numeric",
+                    })}
+                  </span>
                 </Col>
                 <Col>
                   <span style={{ fontWeight: "bold" }}>Plan End Date: </span>
-                  <span>{selectedSection.data[0].endDate}</span>
+                  <span>
+                    {new Date(
+                      selectedSection.data[0].endDate
+                    ).toLocaleDateString("en-GB", {
+                      day: "2-digit",
+                      month: "short",
+                      year: "numeric",
+                    })}
+                  </span>
                 </Col>
                 <Col>
                   <span style={{ fontWeight: "bold" }}>Actual End Date: </span>
-                  <span>{calculateActualEndDate()}</span>
+                  <span>
+                    {new Date(calculateActualEndDate()).toLocaleDateString(
+                      "en-GB",
+                      {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                      }
+                    )}
+                  </span>
                 </Col>
               </Row>
 
-              <Table bordered responsive>
-                <thead>
-                  <tr>
-                    <th>Date</th>
-                    <th style={{ width: "8rem" }}>Planned</th>
-                    <th style={{ width: "8rem" }}>Produced</th>
-                    <th>Status</th>
-                    <th style={{ width: "10rem" }}>Operator</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {dailyTracking.map((task, index) => (
-                    <tr key={index}>
-                      <td>
-                        <input
-                          type="date"
-                          className="form-control"
-                          value={task.date}
-                          onChange={(e) =>
-                            handleDailyTrackingChange(
-                              index,
-                              "date",
-                              e.target.value
-                            )
-                          }
-                        />
-                      </td>
-                      <td>
-                        <input
-                          type="number"
-                          className="form-control"
-                          value={task.planned}
-                          onChange={(e) =>
-                            handleDailyTrackingChange(
-                              index,
-                              "planned",
-                              e.target.value
-                            )
-                          }
-                          readOnly
-                        />
-                      </td>
-                      <td>
-                        <input
-                          type="number"
-                          className="form-control"
-                          value={task.produced}
-                          onChange={(e) =>
-                            handleDailyTrackingChange(
-                              index,
-                              "produced",
-                              e.target.value
-                            )
-                          }
-                        />
-                      </td>
-                      <td>
-                        <select
-                          className="form-control"
-                          value={task.dailyStatus}
-                          onChange={(e) =>
-                            handleDailyTrackingChange(
-                              index,
-                              "dailyStatus",
-                              e.target.value
-                            )
-                          }
-                        >
-                          <option value="">Select Status</option>
-                          <option value="On Track">On Track</option>
-                          <option value="Delayed">Delayed</option>
-                          <option value="Completed">Completed</option>
-                        </select>
-                      </td>
-                      <td>
-                        <input
-                          type="text"
-                          className="form-control"
-                          value={task.operator}
-                          onChange={(e) =>
-                            handleDailyTrackingChange(
-                              index,
-                              "operator",
-                              e.target.value
-                            )
-                          }
-                          readOnly
-                        />
-                      </td>
-                      <td>
-                        <Button color="success" onClick={submitDailyTracking}>
-                          Update
-                        </Button>
-                        <Button
-                          color="danger"
-                          onClick={() => removeDailyTrackingRow(index)}
-                          style={{ marginLeft: "1rem" }}
-                        >
-                          Delete
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </Table>
+              <div
+                className="d-flex justify-content-end"
+                style={{ marginBottom: "-3rem" }}
+              >
+                <Button
+                  color="primary"
+                  onClick={openAddRowModal}
+                  disabled={calculateRemainingQuantity() <= 0}
+                >
+                  Add Row
+                </Button>
+              </div>
             </>
           )}
         </ModalBody>
-        <ModalFooter>
-          <Button
-            color="primary"
-            onClick={addDailyTrackingRow}
-            disabled={calculateRemainingQuantity() <= 0}
-          >
-            Add Row
-          </Button>
-          <Button color="secondary" onClick={() => setDailyTaskModal(false)}>
-            Close
-          </Button>
-        </ModalFooter>
-
         <ModalHeader>Previous Tracking Data</ModalHeader>
         <ModalBody>
           <Table bordered responsive>
@@ -560,10 +511,51 @@ export const AllocatedPartListHrPlan = ({
               ) : (
                 existingDailyTracking.map((task, index) => (
                   <tr key={index}>
-                    <td>{new Date(task.date).toLocaleDateString()}</td>
+                    {/* <td>{new Date(task.date).toLocaleDateString()}</td> */}
+                    <td>
+                      {new Date(task.date).toLocaleDateString("en-GB", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </td>
+
                     <td>{task.planned}</td>
                     <td>{task.produced}</td>
-                    <td>{task.dailyStatus}</td>
+                    {/* <td>{task.dailyStatus}</td> */}
+                    <td>
+                      {task.dailyStatus === "On Track" ? (
+                        <span
+                          className="badge bg-primary-subtle text-primary"
+                          style={{ fontSize: "13px" }}
+                        >
+                          On Track
+                        </span>
+                      ) : task.dailyStatus === "Delayed" ? (
+                        <span
+                          className="badge bg-danger-subtle text-danger"
+                          style={{ fontSize: "13px" }}
+                        >
+                          Delayed
+                        </span>
+                      ) : task.dailyStatus === "Ahead" ? (
+                        <span
+                          className="badge bg-warning-subtle text-warning"
+                          style={{ fontSize: "13px" }}
+                        >
+                          Ahead
+                        </span>
+                      ) : task.dailyStatus === "Not Started" ||
+                        task.produced == null ||
+                        task.produced === 0 ? (
+                        <span
+                          className="badge bg-secondary-subtle text-secondary"
+                          style={{ fontSize: "13px" }}
+                        >
+                          Not Started
+                        </span>
+                      ) : null}
+                    </td>
                     <td>{task.operator}</td>
                   </tr>
                 ))
@@ -594,6 +586,143 @@ export const AllocatedPartListHrPlan = ({
             onClick={() => setDeleteConfirmationModal(false)}
           >
             Cancel
+          </Button>
+        </ModalFooter>
+      </Modal>
+
+      {/* Add Row Modal */}
+      <Modal isOpen={addRowModal} toggle={closeAddRowModal} size="xl">
+        <ModalHeader toggle={closeAddRowModal}>Add Daily Tracking</ModalHeader>
+
+        <ModalBody>
+          <Table bordered responsive>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th style={{ width: "10rem" }}>Planned</th>
+                <th style={{ width: "10rem" }}>Produced</th>
+                <th>Status</th>
+                <th style={{ width: "12rem" }}>Operator</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {dailyTracking.map((task, index) => (
+                <tr key={index}>
+                  <td>
+                    <input
+                      type="date"
+                      className="form-control"
+                      value={task.date}
+                      onChange={(e) =>
+                        handleDailyTrackingChange(index, "date", e.target.value)
+                      }
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="number"
+                      className="form-control"
+                      value={task.planned}
+                      onChange={(e) =>
+                        handleDailyTrackingChange(
+                          index,
+                          "planned",
+                          e.target.value
+                        )
+                      }
+                      readOnly
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="number"
+                      className="form-control"
+                      value={task.produced}
+                      onChange={(e) =>
+                        handleDailyTrackingChange(
+                          index,
+                          "produced",
+                          e.target.value
+                        )
+                      }
+                    />
+                  </td>
+
+                  <td>
+                    {task.produced == null ||
+                    task.produced === 0 ? null : Number(task.produced) ===
+                      Number(task.planned) ? (
+                      <span
+                        className="badge bg-primary-subtle text-primary"
+                        style={{ fontSize: "12px" }}
+                      >
+                        On Track
+                      </span>
+                    ) : Number(task.produced) < Number(task.planned) ? (
+                      <span
+                        className="badge bg-danger-subtle text-danger"
+                        style={{ fontSize: "12px" }}
+                      >
+                        Delayed
+                      </span>
+                    ) : Number(task.produced) > Number(task.planned) ? (
+                      <span
+                        className="badge bg-warning-subtle text-warning"
+                        style={{ fontSize: "12px" }}
+                      >
+                        Ahead
+                      </span>
+                    ) : null}
+                  </td>
+
+                  <td>
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={task.operator}
+                      onChange={(e) =>
+                        handleDailyTrackingChange(
+                          index,
+                          "operator",
+                          e.target.value
+                        )
+                      }
+                      readOnly
+                    />
+                  </td>
+                  <td>
+                   
+                    <Button
+                      color="success"
+                      onClick={submitDailyTracking}
+                      disabled={isUpdating}
+                    >
+                      {isUpdating ? "Updating..." : "Update"}
+                    </Button>
+                    <Button
+                      color="danger"
+                      onClick={() => removeDailyTrackingRow(index)}
+                      style={{ marginLeft: "1rem" }}
+                    >
+                      Delete
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
+        </ModalBody>
+        <ModalFooter>
+          <Button
+            color="primary"
+            onClick={addDailyTrackingRow}
+            disabled={calculateRemainingQuantity() <= 0}
+          >
+            Add Row
+          </Button>
+          <Button color="secondary" onClick={() => setDailyTaskModal(false)}>
+            Close
           </Button>
         </ModalFooter>
       </Modal>

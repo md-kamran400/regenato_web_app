@@ -74,6 +74,9 @@ export const Assembly_SubAssemblyHoursPlanning = ({
       })
       .catch((error) => console.error("Error fetching events:", error));
   }, []);
+
+  // Function to check if the date is an event date or a Sunday
+  
   useEffect(() => {
     const fetchAllocatedData = async () => {
       try {
@@ -82,16 +85,16 @@ export const Assembly_SubAssemblyHoursPlanning = ({
         );
         if (response.data.data.length > 0) {
           setIsDataAllocated(true);
+          setActiveTab("planned"); 
         }
       } catch (error) {
         console.error("Error fetching allocated data:", error);
       }
     };
-
+  
     fetchAllocatedData();
   }, [porjectID, AssemblyListId, subAssembliesId, partListItemId]);
-
-  // Function to check if the date is an event date or a Sunday
+  
   const isHighlightedOrDisabled = (date) => {
     return (
       eventDates.some((eventDate) => isSameDay(eventDate, date)) ||
