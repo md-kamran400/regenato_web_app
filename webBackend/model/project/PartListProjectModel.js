@@ -1,69 +1,5 @@
 const mongoose = require("mongoose");
 
-// allocation modal
-// const AllocationPlanningSchema = new mongoose.Schema(
-//   {
-//     partName: {
-//       type: String,
-//       required: true,
-//     },
-//     processName: {
-//       type: String,
-//       required: true,
-//     },
-//     allocations: [
-//       {
-//         orderNumber: {
-//           type: String,
-//         },
-//         plannedQuantity: {
-//           type: Number,
-//           required: true,
-//           min: 0,
-//         },
-//         startDate: {
-//           type: Date,
-//           required: true,
-//         },
-//         startTime: {
-//           type: String,
-//           required: true,
-//         },
-//         endDate: {
-//           type: Date,
-//           required: true,
-//         },
-//         machineId: {
-//           type: String, //
-//           required: true,
-//         },
-//         shift: {
-//           type: String,
-//           required: true,
-//         },
-//         plannedTime: {
-//           type: Number,
-//           required: true,
-//         },
-//         operator: {
-//           type: String,
-//           required: true,
-//         },
-//       },
-//     ],
-//     createdAt: {
-//       type: Date,
-//       default: Date.now,
-//     },
-//     updatedAt: {
-//       type: Date,
-//       default: Date.now,
-//     },
-//   },
-//   {
-//     timestamps: true,
-//   }
-// );
 const AllocationPlanningSchema = new mongoose.Schema(
   {
     partName: {
@@ -233,5 +169,3 @@ const partprojectSchema = new mongoose.Schema({
 const PartListProjectModel = mongoose.model("PartProject", partprojectSchema);
 module.exports = PartListProjectModel;
 
-//project/:projectid/partlist/:partlistid/partlistItems/:partlistitemsid/allocation
-// /projects/:projectId/assemblyList/:partsListId/subAssemblies/:subAssembliesId/partsListItems/:partListItemId/allocations/:processId/allocations/:allocationId/dailyTracking
