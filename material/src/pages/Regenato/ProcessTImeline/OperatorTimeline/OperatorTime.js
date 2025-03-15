@@ -25,7 +25,9 @@ const processColors = {
 };
 
 const fetchManufacturingData = async () => {
-  const response = await fetch(`${process.env.REACT_APP_BASE_URL}/api/manufacturing`);
+  const response = await fetch(
+    `${process.env.REACT_APP_BASE_URL}/api/manufacturing`
+  );
   const data = await response.json();
   return data;
 };
@@ -36,6 +38,14 @@ const fetchAllocationsData = async () => {
   );
   const data = await response.json();
   return data.data;
+};
+
+const fetchOperatorsData = async () => {
+  const response = await fetch(
+    `${process.env.REACT_APP_BASE_URL}/api/userVariable`
+  );
+  const data = await response.json();
+  return data;
 };
 
 const transformManufacturingData = (manufacturingData) => {
@@ -54,10 +64,10 @@ const transformManufacturingData = (manufacturingData) => {
 
 const transformAllocationsDataForOperators = (
   allocationsData,
-  selectedProcess
+  selectedProcess,
+  operators
 ) => {
-  let operatorEvents = {};
-  let operatorResources = new Set();
+  let operatorEvents = [];
 
   if (Array.isArray(allocationsData)) {
     allocationsData.forEach((project) => {
@@ -65,25 +75,22 @@ const transformAllocationsDataForOperators = (
         allocation.allocations.forEach((alloc) => {
           if (
             selectedProcess &&
-            alloc.machineId.startsWith(`${selectedProcess}-`)
+            alloc.machineId.startsWith(`${selectedProcess}-`) &&
+            operators.includes(alloc.operator)
           ) {
-            const operator = alloc.operator;
-            if (!operatorEvents[operator]) {
-              operatorEvents[operator] = [];
-            }
-            operatorEvents[operator].push({
-              id: `${operator}-${alloc.machineId}-${alloc.startDate}`,
-              resourceId: operator,
+            operatorEvents.push({
+              id: `${alloc.operator}-${alloc.machineId}-${alloc.startDate}`,
+              resourceId: alloc.operator,
               start: alloc.startDate,
               end: alloc.endDate,
-              title: `${alloc.machineId} | ${allocation.partName} | ${alloc.orderNumber}`,
+              title: `${alloc.machineId} | ${allocation.partName} | ${alloc.splitNumber}`,
               backgroundColor: processColors[selectedProcess]?.bg || "#000000",
               borderColor: processColors[selectedProcess]?.border || "#000000",
               textColor: "#ffffff",
               extendedProps: {
                 projectName: allocation.partName,
                 part: allocation.partName,
-                po: alloc.orderNumber,
+                po: alloc.splitNumber,
                 machine: alloc.machineId,
                 operator: alloc.operator,
                 quantity: alloc.plannedQuantity,
@@ -91,68 +98,21 @@ const transformAllocationsDataForOperators = (
                 plannedTime: alloc.plannedTime,
               },
             });
-
-            // Add operator to resources
-            operatorResources.add(operator);
-          }
-        });
-      });
-    });
-  } else if (allocationsData && allocationsData.data) {
-    allocationsData.data.forEach((project) => {
-      project.allocations.forEach((allocation) => {
-        allocation.allocations.forEach((alloc) => {
-          if (
-            selectedProcess &&
-            alloc.machineId.startsWith(`${selectedProcess}-`)
-          ) {
-            const operator = alloc.operator;
-            if (!operatorEvents[operator]) {
-              operatorEvents[operator] = [];
-            }
-            operatorEvents[operator].push({
-              id: `${operator}-${alloc.machineId}-${alloc.startDate}`,
-              resourceId: operator,
-              start: alloc.startDate,
-              end: alloc.endDate,
-              title: `${alloc.machineId} | ${allocation.partName} | ${alloc.orderNumber}`,
-              backgroundColor: processColors[selectedProcess]?.bg || "#000000",
-              borderColor: processColors[selectedProcess]?.border || "#000000",
-              textColor: "#ffffff",
-              extendedProps: {
-                projectName: allocation.partName,
-                part: allocation.partName,
-                po: alloc.orderNumber,
-                machine: alloc.machineId,
-                operator: alloc.operator,
-                quantity: alloc.plannedQuantity,
-                shift: alloc.shift,
-                plannedTime: alloc.plannedTime,
-              },
-            });
-
-            // Add operator to resources
-            operatorResources.add(operator);
           }
         });
       });
     });
   }
 
-  return {
-    events: operatorEvents,
-    resources: Array.from(operatorResources).map((operator) => ({
-      id: operator,
-      title: operator,
-    })),
-  };
+  return operatorEvents;
 };
 
 const OperatorTime = () => {
   const [selectedProcess, setSelectedProcess] = useState("C1");
   const [processes, setProcesses] = useState({});
   const [resources, setResources] = useState([]);
-  const [events, setEvents] = useState({});
+  const [events, setEvents] = useState([]);
+  const [operators, setOperators] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -162,15 +122,28 @@ const OperatorTime = () => {
         setLoading(true);
         const manufacturingData = await fetchManufacturingData();
         const allocationsData = await fetchAllocationsData();
-  
+        const operatorsData = await fetchOperatorsData();
+
         const processesData = transformManufacturingData(manufacturingData);
         setProcesses(processesData);
-  
-        const { events: newEvents, resources: newResources } =
-          transformAllocationsDataForOperators(allocationsData, selectedProcess);
-  
-        setResources(newResources);
-        setEvents(newEvents);
+
+        const operatorNames = operatorsData.map((operator) => operator.name);
+        setOperators(operatorNames);
+
+        // Set all operators as resources
+        const allResources = operatorNames.map((operator) => ({
+          id: operator,
+          title: operator,
+        }));
+        setResources(allResources);
+
+        // Filter events based on the selected process
+        const filteredEvents = transformAllocationsDataForOperators(
+          allocationsData,
+          selectedProcess,
+          operatorNames
+        );
+        setEvents(filteredEvents);
       } catch (err) {
         console.error("Error fetching data:", err);
         setError("Failed to fetch data.");
@@ -178,32 +151,29 @@ const OperatorTime = () => {
         setLoading(false);
       }
     };
-  
+
     fetchData();
   }, [selectedProcess]);
-  
 
   const handleSelectProcess = async (processCode) => {
     setSelectedProcess(processCode);
-    setEvents({});
-    setResources([]);
     setLoading(true);
-  
+
     try {
       const allocationsData = await fetchAllocationsData();
-      const { events: newEvents, resources: newResources } =
-        transformAllocationsDataForOperators(allocationsData, processCode);
-  
-      setResources(newResources);
-      setEvents(newEvents);
+      const filteredEvents = transformAllocationsDataForOperators(
+        allocationsData,
+        processCode,
+        operators
+      );
+      setEvents(filteredEvents);
     } catch (err) {
       console.error("Error fetching data:", err);
       setError("Failed to fetch allocation data.");
     }
-  
+
     setLoading(false);
   };
-  
 
   if (loading) {
     return (
@@ -251,7 +221,7 @@ const OperatorTime = () => {
               "resourceTimelineDay,resourceTimelineWeek,resourceTimelineMonth,resourceTimelineYear",
           }}
           resources={resources}
-          events={Object.values(events).flat()}
+          events={events}
           resourceAreaWidth="150px"
           height="auto"
           contentHeight="auto"

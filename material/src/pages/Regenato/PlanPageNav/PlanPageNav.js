@@ -2,9 +2,6 @@ import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import FullCalendar from "@fullcalendar/react";
 import resourceTimelinePlugin from "@fullcalendar/resource-timeline";
-// import FullCalendar from "@fullcalendar/react";
-import timeGridPlugin from "@fullcalendar/timegrid"; // For week/day view
-import interactionPlugin from "@fullcalendar/interaction"; // For interactivity
 import adaptivePlugin from "@fullcalendar/adaptive";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import { Calendar, Clock } from "lucide-react";
@@ -120,76 +117,32 @@ export function PlanPageNav() {
     }
   };
 
-  // const transformData = (projectName, partName, data) => {
-  //   // Find the selected project
-  //   const selectedProjectData = data.find(
-  //     (project) => project.projectName === projectName
-  //   );
-
-  //   if (!selectedProjectData) return;
-
-  //   // Get all unique order numbers for the selected part
-  //   const splitNumbers = new Set();
-  //   selectedProjectData.allocations
-  //     .filter((alloc) => alloc.partName === partName)
-  //     .forEach((alloc) => {
-  //       alloc.allocations.forEach((a) => {
-  //         if (a.splitNumber) {
-  //           // Ensure it's defined
-  //           splitNumbers.add(a.splitNumber);
-  //         }
-  //       });
-  //     });
-
-  //   // Create resources (order numbers)
-  //   const resourcesList = Array.from(splitNumbers).map((orderNum) => ({
-  //     id: orderNum,
-  //     title: `Order ${orderNum}`,
-  //   }));
-  //   setResources(resourcesList);
-
-  //   // Create events
-  //   const eventsList = [];
-  //   selectedProjectData.allocations
-  //     .filter((alloc) => alloc.partName === partName)
-  //     .forEach((alloc) => {
-  //       alloc.allocations.forEach((a) => {
-  //         const machineCode = a.machineId.split("-")[0];
-  //         const colors = processColors[machineCode] || {
-  //           bg: "#666",
-  //           border: "#444",
-  //         };
-
-  //         eventsList.push({
-  //           id: a._id,
-  //           resourceId: a.splitNumber || a.orderNumber,
-  //           start: a.startDate,
-  //           end: a.endDate,
-  //           title: `${alloc.processName} - ${a.machineId}`,
-  //           backgroundColor: colors.bg,
-  //           borderColor: colors.border,
-  //           extendedProps: {
-  //             processName: alloc.processName,
-  //             machineId: a.machineId,
-  //             operator: a.operator,
-  //             plannedQuantity: a.plannedQuantity,
-  //             shift: a.shift,
-  //             splitNumber: a.splitNumber || a.orderNumber,
-  //             AllocationPartType: a.AllocationPartType,
-  //           },
-  //         });
-  //       });
-  //     });
-  //   setEvents(eventsList);
-  // };
-
   const transformData = (projectName, partName, data) => {
+    // Find the selected project
     const selectedProjectData = data.find(
       (project) => project.projectName === projectName
     );
 
     if (!selectedProjectData) return;
 
+    // Get all unique order numbers for the selected part
+    const splitNumbers = new Set();
+    selectedProjectData.allocations
+      .filter((alloc) => alloc.partName === partName)
+      .forEach((alloc) => {
+        alloc.allocations.forEach((a) => {
+          splitNumbers.add(a.splitNumber || a.orderNumber);
+        });
+      });
+
+    // Create resources (order numbers)
+    const resourcesList = Array.from(splitNumbers).map((orderNum) => ({
+      id: orderNum,
+      title: `Order ${orderNum}`,
+    }));
+    setResources(resourcesList);
+
+    // Create events
     const eventsList = [];
     selectedProjectData.allocations
       .filter((alloc) => alloc.partName === partName)
@@ -201,87 +154,44 @@ export function PlanPageNav() {
             border: "#444",
           };
 
-          const trackingDate = new Date(); // You can replace this with actual tracking date
-          const isDelayed = new Date(a.endDate) < trackingDate;
-
-          // Event for actual planned duration
           eventsList.push({
             id: a._id,
             resourceId: a.splitNumber || a.orderNumber,
             start: a.startDate,
             end: a.endDate,
-            title: `${alloc.processName} - Planned`,
+            title: `${alloc.processName} - ${a.machineId}`,
             backgroundColor: colors.bg,
             borderColor: colors.border,
-            extendedProps: { plannedQuantity: a.plannedQuantity },
+            extendedProps: {
+              processName: alloc.processName,
+              machineId: a.machineId,
+              operator: a.operator,
+              plannedQuantity: a.plannedQuantity,
+              shift: a.shift,
+              splitNumber: a.splitNumber || a.orderNumber,
+              AllocationPartType: a.AllocationPartType,
+            },
           });
-
-          // Event for tracked progress
-          eventsList.push({
-            id: `${a._id}-tracking`,
-            resourceId: a.splitNumber || a.orderNumber,
-            start: a.startDate,
-            end: trackingDate,
-            title: `${alloc.processName} - Tracked (${a.trackedQuantity || 0})`,
-            backgroundColor: isDelayed ? "#DC2626" : "#10B981",
-            borderColor: isDelayed ? "#B91C1C" : "#059669",
-            extendedProps: { trackedQuantity: a.trackedQuantity || 0 },
-          });
-
-          // Delayed period indication
-          if (isDelayed) {
-            eventsList.push({
-              id: `${a._id}-delayed`,
-              resourceId: a.splitNumber || a.orderNumber,
-              start: a.endDate,
-              end: trackingDate,
-              title: `${alloc.processName} - Delayed`,
-              backgroundColor: "#FF0000",
-              borderColor: "#800000",
-            });
-          }
         });
       });
-
     setEvents(eventsList);
   };
 
-  // const transformDailyTrackingData = (dailyTracking, processName) => {
-  //   return dailyTracking.map((tracking) => ({
-  //     id: tracking._id,
-  //     title: `${processName} - ${tracking.dailyStatus}`,
-  //     start: tracking.date,
-  //     allDay: true,
-  //     backgroundColor: "#3B82F6", // You can customize the color
-  //     borderColor: "#2563EB", // You can customize the color
-  //     extendedProps: {
-  //       planned: tracking.planned,
-  //       produced: tracking.produced,
-  //       operator: tracking.operator,
-  //       status: tracking.dailyStatus,
-  //     },
-  //   }));
-  // };
-
   const transformDailyTrackingData = (dailyTracking, processName) => {
-    return dailyTracking.map((tracking) => {
-      const isDelayed = tracking.planned > tracking.produced;
-
-      return {
-        id: tracking._id,
-        title: `${processName} - ${tracking.dailyStatus}`,
-        start: tracking.date,
-        allDay: true,
-        backgroundColor: isDelayed ? "#FF0000" : "#3B82F6", // Red for delays, Blue for normal progress
-        borderColor: isDelayed ? "#B91C1C" : "#2563EB",
-        extendedProps: {
-          planned: tracking.planned,
-          produced: tracking.produced,
-          operator: tracking.operator,
-          status: tracking.dailyStatus,
-        },
-      };
-    });
+    return dailyTracking.map((tracking) => ({
+      id: tracking._id,
+      title: `${processName} - ${tracking.dailyStatus}`,
+      start: tracking.date,
+      allDay: true,
+      backgroundColor: "#3B82F6", // You can customize the color
+      borderColor: "#2563EB", // You can customize the color
+      extendedProps: {
+        planned: tracking.planned,
+        produced: tracking.produced,
+        operator: tracking.operator,
+        status: tracking.dailyStatus,
+      },
+    }));
   };
 
   const handleProjectChange = (e) => {
@@ -346,13 +256,16 @@ export function PlanPageNav() {
       ]
     : [];
 
-  const allAllocations = selectedProjectData
-    ? selectedProjectData.allocations
-    : [];
-  const filteredAllocations = allAllocations.filter(
-    (alloc) => alloc.partName === selectedPart
-  );
 
+
+  // Get filtered allocations for the selected project and part
+  const filteredAllocations = selectedProjectData
+    ? selectedProjectData.allocations.filter(
+        (alloc) => alloc.partName === selectedPart
+      )
+    : [];
+
+  // Get unique orders for the selected part
   const uniqueOrders = [
     ...new Set(
       filteredAllocations.flatMap((alloc) =>
@@ -360,9 +273,6 @@ export function PlanPageNav() {
       )
     ),
   ];
-  console.log("Final Unique Orders:", uniqueOrders);
-
-  console.log("Filtered Allocations:", filteredAllocations);
 
   return (
     <div className="p-4">
@@ -453,9 +363,17 @@ export function PlanPageNav() {
       </div>
 
       {/* Bottom Panels */}
-      <div className="panels-container" style={{ marginTop: "40px" }}>
+      <div
+        className="panels-container"
+        style={{
+          marginTop: "40px",
+          width: "100%",
+          display: "flex",
+          gap: "16px",
+        }}
+      >
         {/* Orders Panel */}
-        <div className="panel orders-panel">
+        <div className="panel orders-panel" style={{ flex: 1 }}>
           <Card>
             <CardBody>
               <div style={{ marginBottom: "16px" }}>
@@ -494,19 +412,80 @@ export function PlanPageNav() {
                     orderAllocations
                   );
 
+                  // If there are no allocations for this order, still render it but with a message
+                  if (orderAllocations.length === 0) {
+                    console.warn(`Order ${orderNum} has no allocations!`);
+                    return (
+                      <Card
+                        key={orderNum}
+                        style={{
+                          background:
+                            orderNum === selectedOrder ? "#e0f2fe" : "#f9fafb",
+                          border: `1px solid ${
+                            orderNum === selectedOrder ? "#7dd3fc" : "#e5e7eb"
+                          }`,
+                          borderRadius: "8px",
+                          padding: "12px",
+                          cursor: "pointer",
+                          transition: "all 0.2s ease",
+                        }}
+                        onClick={() => {
+                          setSelectedOrder(orderNum);
+                          setSelectedProcess(null);
+                        }}
+                      >
+                        <CardBody style={{ padding: "0" }}>
+                          <Row>
+                            <Col>
+                              <div
+                                style={{
+                                  display: "flex",
+                                  justifyContent: "space-between",
+                                  alignItems: "center",
+                                  marginBottom: "8px",
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    fontSize: "16px",
+                                    fontWeight: "500",
+                                    color: "#111827",
+                                  }}
+                                >
+                                  Order #{orderNum}
+                                </div>
+                                <Badge
+                                  color="primary"
+                                  style={{
+                                    fontSize: "12px",
+                                    padding: "4px 8px",
+                                    borderRadius: "12px",
+                                  }}
+                                >
+                                  No Allocations
+                                </Badge>
+                              </div>
+                              <div
+                                style={{
+                                  fontSize: "14px",
+                                  color: "#666",
+                                }}
+                              >
+                                No allocations found for this order.
+                              </div>
+                            </Col>
+                          </Row>
+                        </CardBody>
+                      </Card>
+                    );
+                  }
+
                   const firstAllocation = orderAllocations[0];
-                  // Calculate total planned quantity for the order
                   const totalQuantity = orderAllocations.reduce(
                     (sum, alloc) => sum + (alloc.plannedQuantity || 0),
                     0
                   );
 
-                  if (orderAllocations.length === 0) {
-                    console.warn(`Order ${orderNum} has no allocations!`);
-                    return null; // Avoid rendering empty orders
-                  }
-
-                  // Calculate total duration for the order
                   const startDate = new Date(firstAllocation?.startDate);
                   const endDate = new Date(firstAllocation?.endDate);
                   const totalDuration = Math.ceil(
@@ -631,9 +610,8 @@ export function PlanPageNav() {
             </CardBody>
           </Card>
         </div>
-
         {/* Processes Panel */}
-        <div className="panel processes-panel">
+        <div className="panel processes-panel" style={{ flex: 1 }}>
           <div className="panel-header">
             <h2 className="panel-title">Processes</h2>
             {selectedOrder && (
@@ -696,124 +674,11 @@ export function PlanPageNav() {
               })}
           </div>
         </div>
-        {/* Process Details Panel */}
-        {/* <div className="panel details-panel">
-          <div className="panel-header">
-            <h2 className="panel-title">Process Details</h2>
-            {selectedOrder && selectedProcess && (
-              <div className="panel-subtitle">
-                {selectedProcess} - {selectedOrder}
-              </div>
-            )}
-          </div>
-          <div className="panel-content">
-            {selectedOrder &&
-              selectedProcess &&
-              filteredAllocations
-                .filter((p) => p.processName === selectedProcess)
-                .map((processAllocation) => {
-                  const allocation = processAllocation.allocations.find(
-                    (a) => a.splitNumber === selectedOrder
-                  );
 
-                  if (!allocation) return null;
-
-                  const machineCode = allocation.machineId.split("-")[0];
-                  const colors = processColors[machineCode] || {
-                    bg: "#666",
-                    border: "#444",
-                  };
-
-                  return (
-                    <div
-                      key={processAllocation._id}
-                      className="details-content"
-                    >
-                      <div className="details-header">
-                        <h3 className="details-title">
-                          {processAllocation.processName}
-                        </h3>
-                        <div className="details-subtitle">
-                          <Clock size={16} className="details-icon" />
-                          <span>
-                            {formatDate(allocation.startDate)} -
-                            {formatDate(allocation.endDate)}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div
-                        className="details-card"
-                        style={{ borderColor: colors.border }}
-                      >
-                        <div className="details-row">
-                          <div className="details-label">Machine ID</div>
-                          <div className="details-value">
-                            {allocation.machineId}
-                          </div>
-                        </div>
-                        <div className="details-row">
-                          <div className="details-label">Order Number</div>
-                          <div className="details-value">
-                            {allocation.splitNumber}
-                          </div>
-                        </div>
-                        <div className="details-row">
-                          <div className="details-label">Operator</div>
-                          <div className="details-value">
-                            {allocation.operator}
-                          </div>
-                        </div>
-                        <div className="details-row">
-                          <div className="details-label">Planned Quantity</div>
-                          <div className="details-value">
-                            {allocation.plannedQuantity} units
-                          </div>
-                        </div>
-                        <div className="details-row">
-                          <div className="details-label">Duration</div>
-                          <div className="details-value">
-                            {getDaysBetweenDates(
-                              allocation.startDate,
-                              allocation.endDate
-                            )}{" "}
-                            days
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="daily-tracking-table">
-                        <h4 className="daily-tracking-title">Daily Tracking</h4>
-                        <table className="tracking-table">
-                          <thead>
-                            <tr>
-                              <th>Date</th>
-                              <th>Planned</th>
-                              <th>Produced</th>
-                              <th>Operator</th>
-                              <th>Status</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {allocation.dailyTracking.map((tracking) => (
-                              <tr key={tracking._id}>
-                                <td>{formatDate(tracking.date)}</td>
-                                <td>{tracking.planned}</td>
-                                <td>{tracking.produced}</td>
-                                <td>{tracking.operator}</td>
-                                <td>{tracking.dailyStatus}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  );
-                })}
-          </div>
-        </div> */}
-
-        <div className="panel details-panel">
+        <div
+          className="panel details-panel"
+          style={{ flex: "0 0 50%", maxWidth: "50%" }}
+        >
           <div className="panel-header">
             <h2 className="panel-title">Process Details</h2>
             {selectedOrder && selectedProcess && (

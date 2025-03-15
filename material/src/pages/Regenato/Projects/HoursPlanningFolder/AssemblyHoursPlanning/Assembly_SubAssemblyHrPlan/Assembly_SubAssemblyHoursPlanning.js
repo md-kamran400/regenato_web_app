@@ -870,26 +870,14 @@ export const Assembly_SubAssemblyHoursPlanning = ({
                           <Autocomplete
                             options={shiftOptions || []}
                             value={
-                              row.shift
-                                ? shiftOptions.find(
-                                    (option) => option.name === row.shift
-                                  ) || null
-                                : null
+                              shiftOptions.find(
+                                (option) => option.name === row.shift
+                              ) || null
                             }
                             onChange={(event, newValue) => {
                               if (!newValue) return;
-                              const isShiftAlreadyUsed = rows[index]?.some(
-                                (r, idx) =>
-                                  idx !== rowIndex && r.shift === newValue.name
-                              );
 
-                              if (isShiftAlreadyUsed) {
-                                toast.warning(
-                                  "This shift is already selected in another row."
-                                );
-                                return;
-                              }
-
+                              // No uniqueness check for shift (allow multiple selections)
                               setRows((prevRows) => ({
                                 ...prevRows,
                                 [index]: prevRows[index].map((row, rowIdx) =>
@@ -916,27 +904,9 @@ export const Assembly_SubAssemblyHoursPlanning = ({
                                 label="Shift"
                                 variant="outlined"
                                 size="small"
-                                placeholder="Select Shift" // Add placeholder for default label
+                                placeholder="Select Shift"
                               />
                             )}
-                            renderOption={(props, option) => {
-                              // Disable the option if it's already selected in another row
-                              const isDisabled = rows[index]?.some(
-                                (r) => r.shift === option.name
-                              );
-
-                              return (
-                                <li
-                                  {...props}
-                                  style={{
-                                    color: isDisabled ? "gray" : "black",
-                                    pointerEvents: isDisabled ? "none" : "auto",
-                                  }}
-                                >
-                                  {option.name}
-                                </li>
-                              );
-                            }}
                             disablePortal
                             autoHighlight
                             noOptionsText="No shifts available"
@@ -946,7 +916,7 @@ export const Assembly_SubAssemblyHoursPlanning = ({
                           <td>{row.plannedQtyTime} m</td>
 
                           <td>
-                            <Autocomplete
+                            {/* <Autocomplete
                               options={operators}
                               value={
                                 operators.find(
@@ -984,6 +954,95 @@ export const Assembly_SubAssemblyHoursPlanning = ({
                               )}
                               disableClearable={false}
                               disabled={!hasStartDate && index !== 0}
+                            /> */}
+                            <Autocomplete
+                              options={operators}
+                              value={
+                                operators.find(
+                                  (op) => op._id === row.operatorId
+                                ) || null
+                              }
+                              getOptionLabel={(option) => option.name || ""}
+                              renderOption={(props, option) => {
+                                // Check if the operator is already assigned in an overlapping date range
+                                const isOperatorAlreadySelected = rows[
+                                  index
+                                ]?.some(
+                                  (r) =>
+                                    r.operatorId === option._id &&
+                                    new Date(r.startDate) <=
+                                      new Date(rows[index][rowIndex].endDate) &&
+                                    new Date(r.endDate) >=
+                                      new Date(rows[index][rowIndex].startDate)
+                                );
+
+                                return (
+                                  <li
+                                    {...props}
+                                    style={{
+                                      color: isOperatorAlreadySelected
+                                        ? "lightgray"
+                                        : "black",
+                                      pointerEvents: isOperatorAlreadySelected
+                                        ? "none"
+                                        : "auto",
+                                    }}
+                                  >
+                                    {option.name}{" "}
+                                    {isOperatorAlreadySelected
+                                      ? "(Already Selected)"
+                                      : ""}
+                                  </li>
+                                );
+                              }}
+                              onChange={(event, newValue) => {
+                                if (!newValue) return;
+
+                                const newOperatorId = newValue._id;
+                                const newStartDate = new Date(
+                                  rows[index][rowIndex].startDate
+                                );
+                                const newEndDate = new Date(
+                                  rows[index][rowIndex].endDate
+                                );
+
+                                // Check if the operator is already selected in an overlapping date range
+                                const isOperatorAlreadySelected = rows[
+                                  index
+                                ]?.some(
+                                  (r, idx) =>
+                                    idx !== rowIndex &&
+                                    r.operatorId === newOperatorId &&
+                                    newStartDate <= new Date(r.endDate) &&
+                                    newEndDate >= new Date(r.startDate)
+                                );
+
+                                if (isOperatorAlreadySelected) {
+                                  toast.warning(
+                                    "This operator is already assigned within this date range."
+                                  );
+                                  return;
+                                }
+
+                                // Proceed with setting the operator if validation passes
+                                setRows((prevRows) => {
+                                  const updatedRows = [...prevRows[index]];
+                                  updatedRows[rowIndex] = {
+                                    ...updatedRows[rowIndex],
+                                    operatorId: newOperatorId,
+                                  };
+                                  return { ...prevRows, [index]: updatedRows };
+                                });
+                              }}
+                              renderInput={(params) => (
+                                <TextField
+                                  {...params}
+                                  label="Operator"
+                                  variant="outlined"
+                                  size="small"
+                                />
+                              )}
+                              disableClearable={false}
                             />
                           </td>
                           <td>

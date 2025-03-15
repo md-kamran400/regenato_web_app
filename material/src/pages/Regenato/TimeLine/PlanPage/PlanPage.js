@@ -361,9 +361,17 @@ export function PlanPage() {
       </div>
 
       {/* Bottom Panels */}
-      <div className="panels-container" style={{ marginTop: "40px" }}>
+      <div
+        className="panels-container"
+        style={{
+          marginTop: "40px",
+          width: "100%",
+          display: "flex",
+          gap: "16px",
+        }}
+      >
         {/* Orders Panel */}
-        <div className="panel orders-panel">
+        <div className="panel orders-panel" style={{ flex: 1 }}>
           <Card>
             <CardBody>
               <div style={{ marginBottom: "16px" }}>
@@ -382,22 +390,37 @@ export function PlanPage() {
                   display: "flex",
                   flexDirection: "column",
                   gap: "12px",
+                  maxHeight: "500px",
+                  overflowY: "auto",
+                  paddingRight: "8px", // Prevents scrollbar overlap with content
                 }}
               >
                 {uniqueOrders.map((orderNum) => {
+                  console.log("Rendering Order:", orderNum);
+
                   const orderAllocations = filteredAllocations.flatMap(
                     (allocation) =>
                       allocation.allocations.filter(
                         (a) => (a.splitNumber || a.orderNumber) === orderNum
                       )
                   );
-                  const firstAllocation = orderAllocations[0];
 
+                  console.log(
+                    `Order ${orderNum} Allocations:`,
+                    orderAllocations
+                  );
+
+                  const firstAllocation = orderAllocations[0];
                   // Calculate total planned quantity for the order
                   const totalQuantity = orderAllocations.reduce(
                     (sum, alloc) => sum + (alloc.plannedQuantity || 0),
                     0
                   );
+
+                  if (orderAllocations.length === 0) {
+                    console.warn(`Order ${orderNum} has no allocations!`);
+                    return null; // Avoid rendering empty orders
+                  }
 
                   // Calculate total duration for the order
                   const startDate = new Date(firstAllocation?.startDate);
@@ -525,7 +548,7 @@ export function PlanPage() {
           </Card>
         </div>
         {/* Processes Panel */}
-        <div className="panel processes-panel">
+        <div className="panel processes-panel" style={{ flex: 1 }}>
           <div className="panel-header">
             <h2 className="panel-title">Processes</h2>
             {selectedOrder && (
@@ -588,124 +611,11 @@ export function PlanPage() {
               })}
           </div>
         </div>
-        {/* Process Details Panel */}
-        {/* <div className="panel details-panel">
-          <div className="panel-header">
-            <h2 className="panel-title">Process Details</h2>
-            {selectedOrder && selectedProcess && (
-              <div className="panel-subtitle">
-                {selectedProcess} - {selectedOrder}
-              </div>
-            )}
-          </div>
-          <div className="panel-content">
-            {selectedOrder &&
-              selectedProcess &&
-              filteredAllocations
-                .filter((p) => p.processName === selectedProcess)
-                .map((processAllocation) => {
-                  const allocation = processAllocation.allocations.find(
-                    (a) => a.splitNumber === selectedOrder
-                  );
 
-                  if (!allocation) return null;
-
-                  const machineCode = allocation.machineId.split("-")[0];
-                  const colors = processColors[machineCode] || {
-                    bg: "#666",
-                    border: "#444",
-                  };
-
-                  return (
-                    <div
-                      key={processAllocation._id}
-                      className="details-content"
-                    >
-                      <div className="details-header">
-                        <h3 className="details-title">
-                          {processAllocation.processName}
-                        </h3>
-                        <div className="details-subtitle">
-                          <Clock size={16} className="details-icon" />
-                          <span>
-                            {formatDate(allocation.startDate)} -
-                            {formatDate(allocation.endDate)}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div
-                        className="details-card"
-                        style={{ borderColor: colors.border }}
-                      >
-                        <div className="details-row">
-                          <div className="details-label">Machine ID</div>
-                          <div className="details-value">
-                            {allocation.machineId}
-                          </div>
-                        </div>
-                        <div className="details-row">
-                          <div className="details-label">Order Number</div>
-                          <div className="details-value">
-                            {allocation.splitNumber}
-                          </div>
-                        </div>
-                        <div className="details-row">
-                          <div className="details-label">Operator</div>
-                          <div className="details-value">
-                            {allocation.operator}
-                          </div>
-                        </div>
-                        <div className="details-row">
-                          <div className="details-label">Planned Quantity</div>
-                          <div className="details-value">
-                            {allocation.plannedQuantity} units
-                          </div>
-                        </div>
-                        <div className="details-row">
-                          <div className="details-label">Duration</div>
-                          <div className="details-value">
-                            {getDaysBetweenDates(
-                              allocation.startDate,
-                              allocation.endDate
-                            )}{" "}
-                            days
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="daily-tracking-table">
-                        <h4 className="daily-tracking-title">Daily Tracking</h4>
-                        <table className="tracking-table">
-                          <thead>
-                            <tr>
-                              <th>Date</th>
-                              <th>Planned</th>
-                              <th>Produced</th>
-                              <th>Operator</th>
-                              <th>Status</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {allocation.dailyTracking.map((tracking) => (
-                              <tr key={tracking._id}>
-                                <td>{formatDate(tracking.date)}</td>
-                                <td>{tracking.planned}</td>
-                                <td>{tracking.produced}</td>
-                                <td>{tracking.operator}</td>
-                                <td>{tracking.dailyStatus}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  );
-                })}
-          </div>
-        </div> */}
-        
-        <div className="panel details-panel">
+        <div
+          className="panel details-panel"
+          style={{ flex: "0 0 50%", maxWidth: "50%" }}
+        >
           <div className="panel-header">
             <h2 className="panel-title">Process Details</h2>
             {selectedOrder && selectedProcess && (
@@ -800,33 +710,39 @@ export function PlanPage() {
                       <div className="small-calendar">
                         <FullCalendar
                           plugins={[dayGridPlugin]}
-                          initialView="dayGridMonth"
+                          initialView="dayGridMonth" // Default View
                           headerToolbar={{
-                            left: "prev,next",
+                            left: "prev,next today",
                             center: "title",
-                            right: "",
+                            right: "dayGridDay,dayGridWeek,dayGridMonth", // Allows switching between Day, Week, and Month views
                           }}
-                          events={dailyTrackingEvents}
-                          eventContent={(arg) => {
-                            return (
-                              <div className="p-1 text-sm text-white">
-                                <div className="font-medium">
-                                  {arg.event.title}
-                                </div>
+                          views={{
+                            dayGridDay: { buttonText: "Day" },
+                            dayGridWeek: { buttonText: "Week" },
+                            dayGridMonth: { buttonText: "Month" },
+                          }}
+                          events={transformDailyTrackingData(
+                            allocation.dailyTracking,
+                            processAllocation.processName
+                          )}
+                          eventContent={(arg) => (
+                            <div className="p-1 text-sm text-white">
+                              <div className="font-medium">
+                                {arg.event.title}
                               </div>
-                            );
-                          }}
+                            </div>
+                          )}
                           eventDidMount={(info) => {
                             const event = info.event;
                             const props = event.extendedProps;
 
                             const tooltipContent = `
-                      Process: ${event.title}
-                      Planned: ${props.planned}
-                      Produced: ${props.produced}
-                      Operator: ${props.operator}
-                      Status: ${props.status}
-                    `;
+      Process: ${event.title}
+      Planned: ${props.planned}
+      Produced: ${props.produced}
+      Operator: ${props.operator}
+      Status: ${props.status}
+    `;
                             info.el.setAttribute("title", tooltipContent);
                           }}
                         />

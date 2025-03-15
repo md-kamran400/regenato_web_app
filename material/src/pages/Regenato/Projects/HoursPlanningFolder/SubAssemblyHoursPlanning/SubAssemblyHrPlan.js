@@ -48,6 +48,7 @@ export const SubAssemblyHrPlan = ({
   const [selectedDate, setSelectedDate] = useState(null);
   const [eventDates, setEventDates] = useState([]);
   const [isDataAllocated, setIsDataAllocated] = useState(false);
+    const [allocatedMachines, setAllocatedMachines] = useState({});
 
   const openConfirmationModal = () => {
     setIsConfirmationModalOpen(true);
@@ -411,6 +412,20 @@ export const SubAssemblyHrPlan = ({
     }
 
     return parsedDate.toISOString().split("T")[0];
+  };
+
+  const isMachineAvailable = (machineId, startDate, endDate) => {
+    if (!allocatedMachines[machineId]) return true; // If no allocations, machine is available
+
+    const parsedStart = new Date(startDate);
+    const parsedEnd = new Date(endDate);
+
+    return !allocatedMachines[machineId].some(
+      (alloc) =>
+        (parsedStart >= alloc.startDate && parsedStart <= alloc.endDate) ||
+        (parsedEnd >= alloc.startDate && parsedEnd <= alloc.endDate) ||
+        (parsedStart <= alloc.startDate && parsedEnd >= alloc.endDate)
+    );
   };
 
   // const prefillData = (allRows, startDate) => {
@@ -811,7 +826,7 @@ export const SubAssemblyHrPlan = ({
 
             groupedAllocations[key].allocations.push({
               splitNumber, // Add the generated order number
-              AllocationPartType:"Sub Assembly",
+              AllocationPartType: "Sub Assembly",
               plannedQuantity: row.plannedQuantity,
               startDate: new Date(row.startDate).toISOString(),
               startTime: row.startTime || "08:00 AM",
@@ -1108,7 +1123,16 @@ export const SubAssemblyHrPlan = ({
 
                           <td>
                             <Autocomplete
-                              options={machineOptions[man.categoryId] || []}
+                              options={
+                                machineOptions[man.categoryId]?.filter(
+                                  (machine) =>
+                                    isMachineAvailable(
+                                      machine.subcategoryId,
+                                      row.startDate,
+                                      row.endDate
+                                    )
+                                ) || []
+                              }
                               value={
                                 machineOptions[man.categoryId]?.find(
                                   (machine) =>
@@ -1117,11 +1141,21 @@ export const SubAssemblyHrPlan = ({
                               }
                               getOptionLabel={(option) =>
                                 `${option.name} ${
-                                  option.isAvailable ? "" : "(Occupied)"
+                                  isMachineAvailable(
+                                    option.subcategoryId,
+                                    row.startDate,
+                                    row.endDate
+                                  )
+                                    ? ""
+                                    : "(Occupied)"
                                 }`
                               }
                               renderOption={(props, option) => {
-                                const isDisabled = !option.isAvailable;
+                                const isDisabled = !isMachineAvailable(
+                                  option.subcategoryId,
+                                  row.startDate,
+                                  row.endDate
+                                );
                                 return (
                                   <li
                                     {...props}
@@ -1132,13 +1166,30 @@ export const SubAssemblyHrPlan = ({
                                         : "auto",
                                     }}
                                   >
-                                    - {option.name}{" "}
+                                    {option.name}{" "}
                                     {isDisabled ? "(Occupied)" : ""}
                                   </li>
                                 );
                               }}
                               onChange={(event, newValue) => {
-                                if (!hasStartDate && index !== 0) return;
+                                if (!hasStartDate) return;
+
+                                // Check if the machine is already selected in the same row
+                                const isMachineAlreadyUsedInRow = rows[
+                                  index
+                                ]?.some(
+                                  (r, idx) =>
+                                    idx !== rowIndex &&
+                                    r.machineId === newValue.subcategoryId
+                                );
+
+                                if (isMachineAlreadyUsedInRow) {
+                                  toast.warning(
+                                    "This machine is already selected in another row."
+                                  );
+                                  return;
+                                }
+
                                 setRows((prevRows) => {
                                   const updatedRows = [...prevRows[index]];
                                   updatedRows[rowIndex] = {
@@ -1159,33 +1210,20 @@ export const SubAssemblyHrPlan = ({
                                 />
                               )}
                               disableClearable={false}
-                              disabled={!hasStartDate && index !== 0}
                             />
                           </td>
 
                           <Autocomplete
                             options={shiftOptions || []}
                             value={
-                              row.shift
-                                ? shiftOptions.find(
-                                    (option) => option.name === row.shift
-                                  ) || null
-                                : null
+                              shiftOptions.find(
+                                (option) => option.name === row.shift
+                              ) || null
                             }
                             onChange={(event, newValue) => {
                               if (!newValue) return;
-                              const isShiftAlreadyUsed = rows[index]?.some(
-                                (r, idx) =>
-                                  idx !== rowIndex && r.shift === newValue.name
-                              );
 
-                              if (isShiftAlreadyUsed) {
-                                toast.warning(
-                                  "This shift is already selected in another row."
-                                );
-                                return;
-                              }
-
+                              // No uniqueness check for shift (allow multiple selections)
                               setRows((prevRows) => ({
                                 ...prevRows,
                                 [index]: prevRows[index].map((row, rowIdx) =>
@@ -1212,27 +1250,9 @@ export const SubAssemblyHrPlan = ({
                                 label="Shift"
                                 variant="outlined"
                                 size="small"
-                                placeholder="Select Shift" // Add placeholder for default label
+                                placeholder="Select Shift"
                               />
                             )}
-                            renderOption={(props, option) => {
-                              // Disable the option if it's already selected in another row
-                              const isDisabled = rows[index]?.some(
-                                (r) => r.shift === option.name
-                              );
-
-                              return (
-                                <li
-                                  {...props}
-                                  style={{
-                                    color: isDisabled ? "gray" : "black",
-                                    pointerEvents: isDisabled ? "none" : "auto",
-                                  }}
-                                >
-                                  {option.name}
-                                </li>
-                              );
-                            }}
                             disablePortal
                             autoHighlight
                             noOptionsText="No shifts available"
@@ -1242,7 +1262,7 @@ export const SubAssemblyHrPlan = ({
                           <td>{row.plannedQtyTime} m</td>
 
                           <td>
-                            <Autocomplete
+                            {/* <Autocomplete
                               options={operators}
                               value={
                                 operators.find(
@@ -1280,6 +1300,95 @@ export const SubAssemblyHrPlan = ({
                               )}
                               disableClearable={false}
                               disabled={!hasStartDate && index !== 0}
+                            /> */}
+                            <Autocomplete
+                              options={operators}
+                              value={
+                                operators.find(
+                                  (op) => op._id === row.operatorId
+                                ) || null
+                              }
+                              getOptionLabel={(option) => option.name || ""}
+                              renderOption={(props, option) => {
+                                // Check if the operator is already assigned in an overlapping date range
+                                const isOperatorAlreadySelected = rows[
+                                  index
+                                ]?.some(
+                                  (r) =>
+                                    r.operatorId === option._id &&
+                                    new Date(r.startDate) <=
+                                      new Date(rows[index][rowIndex].endDate) &&
+                                    new Date(r.endDate) >=
+                                      new Date(rows[index][rowIndex].startDate)
+                                );
+
+                                return (
+                                  <li
+                                    {...props}
+                                    style={{
+                                      color: isOperatorAlreadySelected
+                                        ? "lightgray"
+                                        : "black",
+                                      pointerEvents: isOperatorAlreadySelected
+                                        ? "none"
+                                        : "auto",
+                                    }}
+                                  >
+                                    {option.name}{" "}
+                                    {isOperatorAlreadySelected
+                                      ? "(Already Selected)"
+                                      : ""}
+                                  </li>
+                                );
+                              }}
+                              onChange={(event, newValue) => {
+                                if (!newValue) return;
+
+                                const newOperatorId = newValue._id;
+                                const newStartDate = new Date(
+                                  rows[index][rowIndex].startDate
+                                );
+                                const newEndDate = new Date(
+                                  rows[index][rowIndex].endDate
+                                );
+
+                                // Check if the operator is already selected in an overlapping date range
+                                const isOperatorAlreadySelected = rows[
+                                  index
+                                ]?.some(
+                                  (r, idx) =>
+                                    idx !== rowIndex &&
+                                    r.operatorId === newOperatorId &&
+                                    newStartDate <= new Date(r.endDate) &&
+                                    newEndDate >= new Date(r.startDate)
+                                );
+
+                                if (isOperatorAlreadySelected) {
+                                  toast.warning(
+                                    "This operator is already assigned within this date range."
+                                  );
+                                  return;
+                                }
+
+                                // Proceed with setting the operator if validation passes
+                                setRows((prevRows) => {
+                                  const updatedRows = [...prevRows[index]];
+                                  updatedRows[rowIndex] = {
+                                    ...updatedRows[rowIndex],
+                                    operatorId: newOperatorId,
+                                  };
+                                  return { ...prevRows, [index]: updatedRows };
+                                });
+                              }}
+                              renderInput={(params) => (
+                                <TextField
+                                  {...params}
+                                  label="Operator"
+                                  variant="outlined"
+                                  size="small"
+                                />
+                              )}
+                              disableClearable={false}
                             />
                           </td>
                           <td>

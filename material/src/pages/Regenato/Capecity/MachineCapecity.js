@@ -155,7 +155,12 @@ const MachineCapacity = () => {
                   const allocEndDate = parseISO(machineAlloc.endDate);
 
                   // Check if allocation date range overlaps with selected date range
-                  return allocStartDate <= endDate && allocEndDate >= startDate;
+                  return (
+                    (allocStartDate >= startDate &&
+                      allocStartDate <= endDate) ||
+                    (allocEndDate >= startDate && allocEndDate <= endDate) ||
+                    (allocStartDate <= startDate && allocEndDate >= endDate)
+                  );
                 }),
               };
             })
