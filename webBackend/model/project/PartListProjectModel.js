@@ -46,7 +46,7 @@ const AllocationPlanningSchema = new mongoose.Schema(
         shiftTotalTime: {
           type: Number,
         },
-        perMachinetotalTime: {
+        dailyPlannedQty: {
           type: Number,
         },
         plannedTime: {
@@ -57,7 +57,7 @@ const AllocationPlanningSchema = new mongoose.Schema(
           type: String,
           required: true,
         },
-        actualEndDate: { type: Date },
+        actualEndDate: { type: Date }, // NEW FIELD to store calculated actual end date
         dailyTracking: [
           {
             date: {
