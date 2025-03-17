@@ -44,16 +44,17 @@ export const Assembly_SubAssemblyHoursPlanning = ({
   const [hasStartDate, setHasStartDate] = useState(false);
   const [shiftOptions, setShiftOptions] = useState([]);
   const [selectedShift, setSelectedShift] = useState(null);
+  const openConfirmationModal = () => {
+    setIsConfirmationModalOpen(true);
+  };
   const [remainingQuantity, setRemainingQuantity] = useState(quantity);
   const [remainingQuantities, setRemainingQuantities] = useState({});
   const [isAutoSchedule, setIsAutoSchedule] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
   const [eventDates, setEventDates] = useState([]);
   const [isDataAllocated, setIsDataAllocated] = useState(false);
+  const [allocatedMachines, setAllocatedMachines] = useState({});
 
-  const openConfirmationModal = () => {
-    setIsConfirmationModalOpen(true);
-  };
   useEffect(() => {
     fetch(`${process.env.REACT_APP_BASE_URL}/api/eventScheduler/events`)
       .then((response) => response.json())
@@ -75,8 +76,6 @@ export const Assembly_SubAssemblyHoursPlanning = ({
       .catch((error) => console.error("Error fetching events:", error));
   }, []);
 
-  // Function to check if the date is an event date or a Sunday
-  
   useEffect(() => {
     const fetchAllocatedData = async () => {
       try {
@@ -91,10 +90,59 @@ export const Assembly_SubAssemblyHoursPlanning = ({
         console.error("Error fetching allocated data:", error);
       }
     };
-  
+
     fetchAllocatedData();
   }, [porjectID, AssemblyListId, subAssembliesId, partListItemId]);
-  
+
+  useEffect(() => {
+    const fetchMachineAllocations = async () => {
+      try {
+        const response = await axios.get(
+          `${process.env.REACT_APP_BASE_URL}/api/defpartproject/all-allocations`
+        );
+        if (response.data) {
+          const machineAllocations = {};
+
+          response.data.data.forEach((project) => {
+            project.allocations.forEach((process) => {
+              process.allocations.forEach((alloc) => {
+                if (!machineAllocations[alloc.machineId]) {
+                  machineAllocations[alloc.machineId] = [];
+                }
+                machineAllocations[alloc.machineId].push({
+                  startDate: new Date(alloc.startDate),
+                  endDate: new Date(alloc.endDate),
+                });
+              });
+            });
+          });
+
+          setAllocatedMachines(machineAllocations);
+          console.log(machineAllocations);
+        }
+      } catch (error) {
+        console.error("Error fetching machine allocations:", error);
+      }
+    };
+
+    fetchMachineAllocations();
+  }, []);
+
+  const isMachineAvailable = (machineId, startDate, endDate) => {
+    if (!allocatedMachines[machineId]) return true; // If no allocations, machine is available
+
+    const parsedStart = new Date(startDate);
+    const parsedEnd = new Date(endDate);
+
+    return !allocatedMachines[machineId].some(
+      (alloc) =>
+        (parsedStart >= alloc.startDate && parsedStart <= alloc.endDate) ||
+        (parsedEnd >= alloc.startDate && parsedEnd <= alloc.endDate) ||
+        (parsedStart <= alloc.startDate && parsedEnd >= alloc.endDate)
+    );
+  };
+
+  // Function to check if the date is an event date or a Sunday
   const isHighlightedOrDisabled = (date) => {
     return (
       eventDates.some((eventDate) => isSameDay(eventDate, date)) ||
@@ -277,6 +325,8 @@ export const Assembly_SubAssemblyHoursPlanning = ({
     fetchMachines();
   }, [manufacturingVariables]);
 
+  console.log("Machine Options:", machineOptions);
+
   useEffect(() => {
     // Only initialize rows with empty data
     const initialRows = manufacturingVariables.reduce((acc, man, index) => {
@@ -372,46 +422,85 @@ export const Assembly_SubAssemblyHoursPlanning = ({
     return { ...allRows }; // Ensure state update
   };
 
+  // const handleStartDateChange = (index, rowIndex, date) => {
+  //   if (index === 0) {
+  //     setHasStartDate(!!date);
+  //   }
+
+  //   setRows((prevRows) => {
+  //     const newRows = { ...prevRows };
+
+  //     if (date) {
+  //       if (isAutoSchedule && index === 0) {
+  //         return prefillData(newRows, date);
+  //       } else {
+  //         newRows[index] = newRows[index].map((row, idx) => {
+  //           if (idx === rowIndex) {
+  //             return {
+  //               ...row,
+  //               startDate: date,
+  //               endDate: calculateEndDate(date, row.plannedQtyTime),
+  //             };
+  //           }
+  //           return row;
+  //         });
+  //       }
+  //     } else {
+  //       return manufacturingVariables.reduce((acc, man, idx) => {
+  //         acc[idx] = [
+  //           {
+  //             partType: "Make",
+  //             plannedQuantity: quantity,
+  //             startDate: "",
+  //             endDate: "",
+  //             machineId: "",
+  //             shift: "Shift A",
+  //             plannedQtyTime: calculatePlannedMinutes(man.hours * quantity),
+  //             operatorId: "",
+  //             processName: man.name,
+  //           },
+  //         ];
+  //         return acc;
+  //       }, {});
+  //     }
+  //     return newRows;
+  //   });
+  // };
+
   const handleStartDateChange = (index, rowIndex, date) => {
+    if (!date) return;
+
+    // Function to find the next working day
+    const getNextWorkingDay = (date) => {
+      let nextDay = new Date(date);
+      while (isHighlightedOrDisabled(nextDay)) {
+        nextDay.setDate(nextDay.getDate() + 1);
+      }
+      return nextDay;
+    };
+
+    const nextWorkingDay = getNextWorkingDay(date);
+
     if (index === 0) {
-      setHasStartDate(!!date);
+      setHasStartDate(!!nextWorkingDay);
     }
 
     setRows((prevRows) => {
       const newRows = { ...prevRows };
 
-      if (date) {
-        if (isAutoSchedule && index === 0) {
-          return prefillData(newRows, date);
-        } else {
-          newRows[index] = newRows[index].map((row, idx) => {
-            if (idx === rowIndex) {
-              return {
-                ...row,
-                startDate: date,
-                endDate: calculateEndDate(date, row.plannedQtyTime),
-              };
-            }
-            return row;
-          });
-        }
+      if (isAutoSchedule && index === 0) {
+        return prefillData(newRows, nextWorkingDay);
       } else {
-        return manufacturingVariables.reduce((acc, man, idx) => {
-          acc[idx] = [
-            {
-              partType: "Make",
-              plannedQuantity: quantity,
-              startDate: "",
-              endDate: "",
-              machineId: "",
-              shift: "Shift A",
-              plannedQtyTime: calculatePlannedMinutes(man.hours * quantity),
-              operatorId: "",
-              processName: man.name,
-            },
-          ];
-          return acc;
-        }, {});
+        newRows[index] = newRows[index].map((row, idx) => {
+          if (idx === rowIndex) {
+            return {
+              ...row,
+              startDate: nextWorkingDay,
+              endDate: calculateEndDate(nextWorkingDay, row.plannedQtyTime),
+            };
+          }
+          return row;
+        });
       }
       return newRows;
     });
@@ -482,6 +571,21 @@ export const Assembly_SubAssemblyHoursPlanning = ({
     });
   };
 
+  const isAllFieldsFilled = () => {
+    return Object.keys(rows).every((index) => {
+      return rows[index].every((row) => {
+        return (
+          row.plannedQuantity &&
+          row.startDate &&
+          row.endDate &&
+          row.machineId &&
+          row.shift &&
+          row.operatorId
+        );
+      });
+    });
+  };
+
   const handleSubmit = async () => {
     console.log("Submitting allocations...");
     console.log("Rows before processing:", JSON.stringify(rows, null, 2));
@@ -499,7 +603,10 @@ export const Assembly_SubAssemblyHoursPlanning = ({
         // Reset order number counter for each process
         let orderCounter = 1;
 
-        rows[index].forEach((row) => {
+        rows[index].forEach((row, rowIndex) => {
+          console.log(`Processing row ${rowIndex} in process ${index}:`, row);
+
+          // Check if all required fields are present
           if (
             row.plannedQuantity &&
             row.startDate &&
@@ -519,11 +626,17 @@ export const Assembly_SubAssemblyHoursPlanning = ({
             }
 
             // Generate order number with padding
-            const orderNumber = orderCounter.toString().padStart(3, "0");
+            const splitNumber = orderCounter.toString().padStart(3, "0");
             orderCounter++; // Increment counter for next row in this process
 
+            // Find the selected shift to get the TotalHours
+            const selectedShift = shiftOptions.find(
+              (shift) => shift.name === row.shift
+            );
+
             groupedAllocations[key].allocations.push({
-              orderNumber, // Add the generated order number
+              splitNumber, // Add the generated order number
+              AllocationPartType: "Part",
               plannedQuantity: row.plannedQuantity,
               startDate: new Date(row.startDate).toISOString(),
               startTime: row.startTime || "08:00 AM",
@@ -534,11 +647,18 @@ export const Assembly_SubAssemblyHoursPlanning = ({
               operator:
                 operators.find((op) => op._id === row.operatorId)?.name ||
                 "Unknown",
+              shiftTotalTime: selectedShift ? selectedShift.TotalHours : 0, // Add shiftTotalTime
             });
+          } else {
+            console.warn(
+              `Skipping row ${rowIndex} in process ${index} due to missing or invalid fields:`,
+              row
+            );
           }
         });
       });
 
+      // Convert groupedAllocations object to an array
       const finalAllocations = Object.values(groupedAllocations);
 
       console.log(
@@ -546,6 +666,14 @@ export const Assembly_SubAssemblyHoursPlanning = ({
         JSON.stringify(finalAllocations, null, 2)
       );
 
+      if (finalAllocations.length === 0) {
+        toast.error(
+          "No valid allocations to submit. Please check your inputs."
+        );
+        return;
+      }
+
+      // Send the grouped allocations to the backend
       const response = await axios.post(
         `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/assemblyList/${AssemblyListId}/subAssemblies/${subAssembliesId}/partsListItems/${partListItemId}/allocation`,
         { allocations: finalAllocations }
@@ -553,12 +681,13 @@ export const Assembly_SubAssemblyHoursPlanning = ({
 
       if (response.status === 201) {
         toast.success("Allocations successfully added!");
-        setIsDataAllocated(true); // Update the state to reflect that data is allocated
+        setIsDataAllocated(true); // Update state to reflect that data is allocated
       } else {
         toast.error("Failed to add allocations.");
       }
     } catch (error) {
-      toast.error(error);
+      console.error("Error submitting allocations:", error);
+      toast.error("An error occurred while submitting allocations.");
     }
   };
 
@@ -593,7 +722,7 @@ export const Assembly_SubAssemblyHoursPlanning = ({
             <Button
               color={isAutoSchedule ? "primary" : "secondary"}
               onClick={() => setIsAutoSchedule(!isAutoSchedule)}
-              disabled={isDataAllocated} // Disable when data is allocated
+              disabled={isDataAllocated}
             >
               {isAutoSchedule ? "Auto Schedule ✅" : "Auto Schedule"}
             </Button>
@@ -603,10 +732,16 @@ export const Assembly_SubAssemblyHoursPlanning = ({
             >
               Planned
             </Button>
+            {/* <Button
+              color={activeTab === "actual" ? "primary" : "secondary"}
+              onClick={() => setActiveTab("actual")}
+            >
+              Actual
+            </Button> */}
             <Button
               color={activeTab === "actual" ? "primary" : "secondary"}
               onClick={() => setActiveTab("actual")}
-              disabled={isDataAllocated} // Disable when data is allocated
+              disabled={isDataAllocated}
             >
               Actual
             </Button>
@@ -767,13 +902,32 @@ export const Assembly_SubAssemblyHoursPlanning = ({
                               selected={
                                 row.startDate ? new Date(row.startDate) : null
                               }
-                              onChange={(date) =>
-                                handleStartDateChange(index, rowIndex, date)
-                              }
+                              onChange={(date) => {
+                                if (!date) return;
+
+                                // Ensure the selected date does not fall into an occupied range
+                                const isAvailable = isMachineAvailable(
+                                  row.machineId,
+                                  date,
+                                  row.endDate
+                                );
+
+                                if (isAvailable) {
+                                  handleStartDateChange(index, rowIndex, date);
+                                } else {
+                                  toast.error(
+                                    "This machine is occupied during the selected dates."
+                                  );
+                                }
+                              }}
                               dayClassName={(date) =>
-                                isHighlightedOrDisabled(date)
-                                  ? "highlighted-date"
-                                  : ""
+                                isMachineAvailable(
+                                  row.machineId,
+                                  date,
+                                  row.endDate
+                                )
+                                  ? ""
+                                  : "highlighted-date"
                               }
                               renderDayContents={renderDayContents}
                               customInput={<CustomInput />}
@@ -814,8 +968,17 @@ export const Assembly_SubAssemblyHoursPlanning = ({
                           </td>
 
                           <td>
-                            <Autocomplete
-                              options={machineOptions[man.categoryId] || []}
+                            {/* <Autocomplete
+                              options={
+                                machineOptions[man.categoryId]?.filter(
+                                  (machine) =>
+                                    isMachineAvailable(
+                                      machine.subcategoryId,
+                                      row.startDate,
+                                      row.endDate
+                                    )
+                                ) || []
+                              }
                               value={
                                 machineOptions[man.categoryId]?.find(
                                   (machine) =>
@@ -824,11 +987,21 @@ export const Assembly_SubAssemblyHoursPlanning = ({
                               }
                               getOptionLabel={(option) =>
                                 `${option.name} ${
-                                  option.isAvailable ? "" : "(Occupied)"
+                                  isMachineAvailable(
+                                    option.subcategoryId,
+                                    row.startDate,
+                                    row.endDate
+                                  )
+                                    ? ""
+                                    : "(Occupied)"
                                 }`
                               }
                               renderOption={(props, option) => {
-                                const isDisabled = !option.isAvailable;
+                                const isDisabled = !isMachineAvailable(
+                                  option.subcategoryId,
+                                  row.startDate,
+                                  row.endDate
+                                );
                                 return (
                                   <li
                                     {...props}
@@ -839,13 +1012,13 @@ export const Assembly_SubAssemblyHoursPlanning = ({
                                         : "auto",
                                     }}
                                   >
-                                    - {option.name}{" "}
+                                    {option.name}{" "}
                                     {isDisabled ? "(Occupied)" : ""}
                                   </li>
                                 );
                               }}
                               onChange={(event, newValue) => {
-                                if (!hasStartDate && index !== 0) return;
+                                if (!hasStartDate) return;
                                 setRows((prevRows) => {
                                   const updatedRows = [...prevRows[index]];
                                   updatedRows[rowIndex] = {
@@ -866,11 +1039,99 @@ export const Assembly_SubAssemblyHoursPlanning = ({
                                 />
                               )}
                               disableClearable={false}
-                              disabled={!hasStartDate && index !== 0}
+                            /> */}
+                            <Autocomplete
+                              options={
+                                machineOptions[man.categoryId]?.filter(
+                                  (machine) =>
+                                    isMachineAvailable(
+                                      machine.subcategoryId,
+                                      row.startDate,
+                                      row.endDate
+                                    )
+                                ) || []
+                              }
+                              value={
+                                machineOptions[man.categoryId]?.find(
+                                  (machine) =>
+                                    machine.subcategoryId === row.machineId
+                                ) || null
+                              }
+                              getOptionLabel={(option) =>
+                                `${option.name} ${
+                                  isMachineAvailable(
+                                    option.subcategoryId,
+                                    row.startDate,
+                                    row.endDate
+                                  )
+                                    ? ""
+                                    : "(Occupied)"
+                                }`
+                              }
+                              renderOption={(props, option) => {
+                                const isDisabled = !isMachineAvailable(
+                                  option.subcategoryId,
+                                  row.startDate,
+                                  row.endDate
+                                );
+                                return (
+                                  <li
+                                    {...props}
+                                    style={{
+                                      color: isDisabled ? "gray" : "black",
+                                      pointerEvents: isDisabled
+                                        ? "none"
+                                        : "auto",
+                                    }}
+                                  >
+                                    {option.name}{" "}
+                                    {isDisabled ? "(Occupied)" : ""}
+                                  </li>
+                                );
+                              }}
+                              onChange={(event, newValue) => {
+                                if (!hasStartDate) return;
+
+                                // Check if the machine is already selected in the same row
+                                const isMachineAlreadyUsedInRow = rows[
+                                  index
+                                ]?.some(
+                                  (r, idx) =>
+                                    idx !== rowIndex &&
+                                    r.machineId === newValue.subcategoryId
+                                );
+
+                                if (isMachineAlreadyUsedInRow) {
+                                  toast.warning(
+                                    "This machine is already selected in another row."
+                                  );
+                                  return;
+                                }
+
+                                setRows((prevRows) => {
+                                  const updatedRows = [...prevRows[index]];
+                                  updatedRows[rowIndex] = {
+                                    ...updatedRows[rowIndex],
+                                    machineId: newValue
+                                      ? newValue.subcategoryId
+                                      : "",
+                                  };
+                                  return { ...prevRows, [index]: updatedRows };
+                                });
+                              }}
+                              renderInput={(params) => (
+                                <TextField
+                                  {...params}
+                                  label="Machine"
+                                  variant="outlined"
+                                  size="small"
+                                />
+                              )}
+                              disableClearable={false}
                             />
                           </td>
 
-                          <Autocomplete
+                          {/* <Autocomplete
                             options={shiftOptions || []}
                             value={
                               shiftOptions.find(
@@ -914,50 +1175,57 @@ export const Assembly_SubAssemblyHoursPlanning = ({
                             autoHighlight
                             noOptionsText="No shifts available"
                             disabled={!hasStartDate && index !== 0}
+                          /> */}
+
+                          <Autocomplete
+                            options={shiftOptions || []}
+                            value={
+                              shiftOptions.find(
+                                (option) => option.name === row.shift
+                              ) || null
+                            }
+                            onChange={(event, newValue) => {
+                              if (!newValue) return;
+
+                              // No uniqueness check for shift (allow multiple selections)
+                              setRows((prevRows) => ({
+                                ...prevRows,
+                                [index]: prevRows[index].map((row, rowIdx) =>
+                                  rowIdx === rowIndex
+                                    ? {
+                                        ...row,
+                                        shift: newValue.name,
+                                        startTime: newValue.startTime,
+                                        shiftMinutes: newValue.TotalHours, // Set shiftMinutes based on TotalHours
+                                        endDate: calculateEndDate(
+                                          row.startDate,
+                                          row.plannedQtyTime,
+                                          newValue.TotalHours
+                                        ),
+                                      }
+                                    : row
+                                ),
+                              }));
+                            }}
+                            getOptionLabel={(option) => option.name}
+                            renderInput={(params) => (
+                              <TextField
+                                {...params}
+                                label="Shift"
+                                variant="outlined"
+                                size="small"
+                                placeholder="Select Shift"
+                              />
+                            )}
+                            disablePortal
+                            autoHighlight
+                            noOptionsText="No shifts available"
+                            disabled={!hasStartDate && index !== 0}
                           />
 
                           <td>{row.plannedQtyTime} m</td>
 
                           <td>
-                            {/* <Autocomplete
-                              options={operators}
-                              value={
-                                operators.find(
-                                  (op) => op._id === row.operatorId
-                                ) || null
-                              }
-                              getOptionLabel={(option) => option.name || ""}
-                              renderOption={(props, option) => (
-                                <li
-                                  {...props}
-                                  style={{
-                                    color: option.leave ? "gray" : "black",
-                                  }}
-                                >
-                                  {option.name} {option.leave ? "(leave)" : ""}
-                                </li>
-                              )}
-                              onChange={(event, newValue) => {
-                                setRows((prevRows) => {
-                                  const updatedRows = [...prevRows[index]];
-                                  updatedRows[rowIndex] = {
-                                    ...updatedRows[rowIndex],
-                                    operatorId: newValue ? newValue._id : "",
-                                  };
-                                  return { ...prevRows, [index]: updatedRows };
-                                });
-                              }}
-                              renderInput={(params) => (
-                                <TextField
-                                  {...params}
-                                  label="Operator"
-                                  variant="outlined"
-                                  size="small"
-                                />
-                              )}
-                              disableClearable={false}
-                              disabled={!hasStartDate && index !== 0}
-                            /> */}
                             <Autocomplete
                               options={operators}
                               value={
@@ -1074,8 +1342,23 @@ export const Assembly_SubAssemblyHoursPlanning = ({
                 <Button
                   color="success"
                   onClick={openConfirmationModal}
-                  //   disabled={!hasStartDate}
-                  disabled={!hasStartDate || remainingQuantities <= 0}
+                  disabled={
+                    !hasStartDate ||
+                    !Object.keys(remainingQuantities).every(
+                      (key) => remainingQuantities[key] === 0
+                    ) ||
+                    !Object.keys(rows).every((index) =>
+                      rows[index].every(
+                        (row) =>
+                          row.plannedQuantity &&
+                          row.startDate &&
+                          row.endDate &&
+                          row.machineId &&
+                          row.shift &&
+                          row.operatorId
+                      )
+                    )
+                  }
                 >
                   Confirm Allocation
                 </Button>

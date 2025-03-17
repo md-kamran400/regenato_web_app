@@ -316,7 +316,7 @@ export function PlanPageNav() {
         </div>
       </div>
 
-      <div className="border rounded-lg shadow-sm">
+      {/* <div className="border rounded-lg shadow-sm">
         <FullCalendar
           plugins={[resourceTimelinePlugin, adaptivePlugin]}
           initialView="resourceTimelineMonth"
@@ -338,9 +338,9 @@ export function PlanPageNav() {
             return (
               <div className="p-1 text-sm text-white">
                 <div className="font-medium">
-                  {arg.event.extendedProps.processName}
+                  {arg.event.extendedProps.processName} - {arg.event.extendedProps.machineId} - {arg.event.extendedProps.operator}
                 </div>
-                <div>{arg.event.extendedProps.machineId}</div>
+                
               </div>
             );
           }}
@@ -360,7 +360,52 @@ export function PlanPageNav() {
             info.el.setAttribute("title", tooltipContent);
           }}
         />
-      </div>
+      </div> */}
+
+      <div className="border rounded-lg shadow-sm">
+  <FullCalendar
+    plugins={[resourceTimelinePlugin, adaptivePlugin]}
+    initialView="resourceTimelineMonth"
+    schedulerLicenseKey="CC-Attribution-NonCommercial-NoDerivatives"
+    headerToolbar={{
+      left: "prev,next today",
+      center: "title",
+      right: "resourceTimelineDay,resourceTimelineWeek,resourceTimelineMonth",
+    }}
+    resources={resources}
+    events={events}
+    resourceAreaWidth="200px"
+    height="auto"
+    slotMinWidth={100}
+    resourceAreaHeaderContent="Order Number"
+    eventClick={handleEventClick}
+    initialDate={new Date()} // Set the initial date to today
+    eventContent={(arg) => {
+      return (
+        <div className="p-1 text-sm text-white">
+          <div className="font-medium">
+            {arg.event.extendedProps.processName} - {arg.event.extendedProps.machineId} - {arg.event.extendedProps.operator}
+          </div>
+        </div>
+      );
+    }}
+    eventDidMount={(info) => {
+      const event = info.event;
+      const props = event.extendedProps;
+
+      const tooltipContent = `
+        Process: ${props.processName}
+        Machine: ${props.machineId}
+        Operator: ${props.operator}
+        Quantity: ${props.plannedQuantity}
+        Shift: ${props.shift}
+        Start: ${event.start?.toLocaleDateString()}
+        End: ${event.end?.toLocaleDateString()}
+      `;
+      info.el.setAttribute("title", tooltipContent);
+    }}
+  />
+</div>
 
       {/* Bottom Panels */}
       <div

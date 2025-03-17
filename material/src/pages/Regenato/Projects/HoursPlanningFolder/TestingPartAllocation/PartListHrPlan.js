@@ -83,6 +83,7 @@ export const PartListHrPlan = ({
         );
         if (response.data.data.length > 0) {
           setIsDataAllocated(true);
+          setActiveTab("planned"); 
         }
       } catch (error) {
         console.error("Error fetching allocated data:", error);
@@ -584,26 +585,125 @@ export const PartListHrPlan = ({
     });
   };
 
+  // const handleSubmit = async () => {
+  //   console.log("Submitting allocations...");
+  //   console.log("Rows before processing:", JSON.stringify(rows, null, 2));
+
+  //   try {
+  //     if (Object.keys(rows).length === 0) {
+  //       alert("No allocations to submit.");
+  //       return;
+  //     }
+
+  //     // Step 1: Group allocations by partName and processName
+  //     const groupedAllocations = {};
+
+  //     Object.keys(rows).forEach((index) => {
+  //       // Reset order number counter for each process
+  //       let orderCounter = 1;
+
+  //       rows[index].forEach((row, rowIndex) => {
+  //         console.log(`Processing row ${rowIndex} in process ${index}:`, row);
+
+  //         // Check if all required fields are present
+  //         if (
+  //           row.plannedQuantity &&
+  //           row.startDate &&
+  //           row.endDate &&
+  //           row.machineId &&
+  //           row.shift &&
+  //           row.operatorId
+  //         ) {
+  //           const key = `${partName}-${row.processName}`;
+
+  //           if (!groupedAllocations[key]) {
+  //             groupedAllocations[key] = {
+  //               partName: partName,
+  //               processName: row.processName,
+  //               allocations: [],
+  //             };
+  //           }
+
+  //           // Generate order number with padding
+  //           const splitNumber = orderCounter.toString().padStart(3, "0");
+  //           orderCounter++; // Increment counter for next row in this process
+
+  //           groupedAllocations[key].allocations.push({
+  //             splitNumber, // Add the generated order number
+  //             AllocationPartType: "Part",
+  //             plannedQuantity: row.plannedQuantity,
+  //             startDate: new Date(row.startDate).toISOString(),
+  //             startTime: row.startTime || "08:00 AM",
+  //             endDate: new Date(row.endDate).toISOString(),
+  //             machineId: row.machineId,
+  //             shift: row.shift,
+  //             plannedTime: row.plannedQtyTime,
+  //             operator:
+  //               operators.find((op) => op._id === row.operatorId)?.name ||
+  //               "Unknown",
+  //           });
+  //         } else {
+  //           console.warn(
+  //             `Skipping row ${rowIndex} in process ${index} due to missing or invalid fields:`,
+  //             row
+  //           );
+  //         }
+  //       });
+  //     });
+
+  //     // Convert groupedAllocations object to an array
+  //     const finalAllocations = Object.values(groupedAllocations);
+
+  //     console.log(
+  //       "Final Nested Allocations:",
+  //       JSON.stringify(finalAllocations, null, 2)
+  //     );
+
+  //     if (finalAllocations.length === 0) {
+  //       toast.error(
+  //         "No valid allocations to submit. Please check your inputs."
+  //       );
+  //       return;
+  //     }
+
+  //     // Send the grouped allocations to the backend
+  //     const response = await axios.post(
+  //       `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/allocation`,
+  //       { allocations: finalAllocations }
+  //     );
+
+  //     if (response.status === 201) {
+  //       toast.success("Allocations successfully added!");
+  //       setIsDataAllocated(true); // Update state to reflect that data is allocated
+  //     } else {
+  //       toast.error("Failed to add allocations.");
+  //     }
+  //   } catch (error) {
+  //     console.error("Error submitting allocations:", error);
+  //     toast.error("An error occurred while submitting allocations.");
+  //   }
+  // };
+
   const handleSubmit = async () => {
     console.log("Submitting allocations...");
     console.log("Rows before processing:", JSON.stringify(rows, null, 2));
-
+  
     try {
       if (Object.keys(rows).length === 0) {
         alert("No allocations to submit.");
         return;
       }
-
+  
       // Step 1: Group allocations by partName and processName
       const groupedAllocations = {};
-
+  
       Object.keys(rows).forEach((index) => {
         // Reset order number counter for each process
         let orderCounter = 1;
-
+  
         rows[index].forEach((row, rowIndex) => {
           console.log(`Processing row ${rowIndex} in process ${index}:`, row);
-
+  
           // Check if all required fields are present
           if (
             row.plannedQuantity &&
@@ -614,7 +714,7 @@ export const PartListHrPlan = ({
             row.operatorId
           ) {
             const key = `${partName}-${row.processName}`;
-
+  
             if (!groupedAllocations[key]) {
               groupedAllocations[key] = {
                 partName: partName,
@@ -622,11 +722,16 @@ export const PartListHrPlan = ({
                 allocations: [],
               };
             }
-
+  
             // Generate order number with padding
             const splitNumber = orderCounter.toString().padStart(3, "0");
             orderCounter++; // Increment counter for next row in this process
-
+  
+            // Find the selected shift to get the TotalHours
+            const selectedShift = shiftOptions.find(
+              (shift) => shift.name === row.shift
+            );
+  
             groupedAllocations[key].allocations.push({
               splitNumber, // Add the generated order number
               AllocationPartType: "Part",
@@ -640,6 +745,7 @@ export const PartListHrPlan = ({
               operator:
                 operators.find((op) => op._id === row.operatorId)?.name ||
                 "Unknown",
+              shiftTotalTime: selectedShift ? selectedShift.TotalHours : 0, // Add shiftTotalTime
             });
           } else {
             console.warn(
@@ -649,28 +755,28 @@ export const PartListHrPlan = ({
           }
         });
       });
-
+  
       // Convert groupedAllocations object to an array
       const finalAllocations = Object.values(groupedAllocations);
-
+  
       console.log(
         "Final Nested Allocations:",
         JSON.stringify(finalAllocations, null, 2)
       );
-
+  
       if (finalAllocations.length === 0) {
         toast.error(
           "No valid allocations to submit. Please check your inputs."
         );
         return;
       }
-
+  
       // Send the grouped allocations to the backend
       const response = await axios.post(
         `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/allocation`,
         { allocations: finalAllocations }
       );
-
+  
       if (response.status === 201) {
         toast.success("Allocations successfully added!");
         setIsDataAllocated(true); // Update state to reflect that data is allocated
@@ -1122,7 +1228,7 @@ export const PartListHrPlan = ({
                             />
                           </td>
 
-                          <Autocomplete
+                          {/* <Autocomplete
                             options={shiftOptions || []}
                             value={
                               shiftOptions.find(
@@ -1166,7 +1272,53 @@ export const PartListHrPlan = ({
                             autoHighlight
                             noOptionsText="No shifts available"
                             disabled={!hasStartDate && index !== 0}
-                          />
+                          /> */}
+
+<Autocomplete
+  options={shiftOptions || []}
+  value={
+    shiftOptions.find(
+      (option) => option.name === row.shift
+    ) || null
+  }
+  onChange={(event, newValue) => {
+    if (!newValue) return;
+
+    // No uniqueness check for shift (allow multiple selections)
+    setRows((prevRows) => ({
+      ...prevRows,
+      [index]: prevRows[index].map((row, rowIdx) =>
+        rowIdx === rowIndex
+          ? {
+              ...row,
+              shift: newValue.name,
+              startTime: newValue.startTime,
+              shiftMinutes: newValue.TotalHours, // Set shiftMinutes based on TotalHours
+              endDate: calculateEndDate(
+                row.startDate,
+                row.plannedQtyTime,
+                newValue.TotalHours
+              ),
+            }
+          : row
+      ),
+    }));
+  }}
+  getOptionLabel={(option) => option.name}
+  renderInput={(params) => (
+    <TextField
+      {...params}
+      label="Shift"
+      variant="outlined"
+      size="small"
+      placeholder="Select Shift"
+    />
+  )}
+  disablePortal
+  autoHighlight
+  noOptionsText="No shifts available"
+  disabled={!hasStartDate && index !== 0}
+/>
 
                           <td>{row.plannedQtyTime} m</td>
 
