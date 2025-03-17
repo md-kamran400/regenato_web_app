@@ -43,6 +43,12 @@ const AllocationPlanningSchema = new mongoose.Schema(
           type: String,
           required: true,
         },
+        shiftTotalTime: {
+          type: Number,
+        },
+        perMachinetotalTime: {
+          type: Number,
+        },
         plannedTime: {
           type: Number,
           required: true,
@@ -51,6 +57,7 @@ const AllocationPlanningSchema = new mongoose.Schema(
           type: String,
           required: true,
         },
+        actualEndDate: { type: Date },
         dailyTracking: [
           {
             date: {
@@ -168,4 +175,3 @@ const partprojectSchema = new mongoose.Schema({
 });
 const PartListProjectModel = mongoose.model("PartProject", partprojectSchema);
 module.exports = PartListProjectModel;
-

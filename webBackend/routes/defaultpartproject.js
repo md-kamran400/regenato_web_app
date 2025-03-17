@@ -2450,42 +2450,101 @@ partproject.post("/projects/:projectId/assemblyList", async (req, res) => {
 
 // ============================================ allocation ===============================
 
+// partproject.post(
+//   "/projects/:projectId/partsLists/:partsListId/partsListItems/:partsListItemsId/allocation",
+//   async (req, res) => {
+//     try {
+//       const { projectId, partsListId, partsListItemsId } = req.params;
+//       const { allocations } = req.body;
+
+//       if (!Array.isArray(allocations) || allocations.length === 0) {
+//         return res.status(400).json({ message: "Invalid allocation data" });
+//       }
+
+//       // Find the project that contains the given partsListId
+//       const project = await PartListProjectModel.findOne({ _id: projectId });
+
+//       if (!project) {
+//         return res.status(404).json({ message: "Project not found" });
+//       }
+
+//       // Find the correct parts list
+//       const partsList = project.partsLists.find(
+//         (list) => list._id.toString() === partsListId
+//       );
+
+//       if (!partsList) {
+//         return res.status(404).json({ message: "Parts List not found" });
+//       }
+
+//       // Find the correct part inside the parts list
+//       const partItem = partsList.partsListItems.find(
+//         (item) => item._id.toString() === partsListItemsId
+//       );
+
+//       if (!partItem) {
+//         return res.status(404).json({ message: "Part List Item not found" });
+//       }
+
+//       // Append new allocations
+//       allocations.forEach((alloc) => {
+//         partItem.allocations.push({
+//           partName: alloc.partName,
+//           processName: alloc.processName,
+//           allocations: alloc.allocations,
+//         });
+//       });
+
+//       // Save the updated project
+//       await project.save();
+
+//       res.status(201).json({
+//         message: "Allocations added successfully",
+//         data: partItem.allocations,
+//       });
+//     } catch (error) {
+//       console.error("Error adding allocations:", error);
+//       res.status(500).json({ message: "Server error", error: error.message });
+//     }
+//   }
+// );
+
 partproject.post(
   "/projects/:projectId/partsLists/:partsListId/partsListItems/:partsListItemsId/allocation",
   async (req, res) => {
     try {
       const { projectId, partsListId, partsListItemsId } = req.params;
       const { allocations } = req.body;
-
+ 
       if (!Array.isArray(allocations) || allocations.length === 0) {
         return res.status(400).json({ message: "Invalid allocation data" });
       }
-
+ 
       // Find the project that contains the given partsListId
       const project = await PartListProjectModel.findOne({ _id: projectId });
-
+ 
       if (!project) {
         return res.status(404).json({ message: "Project not found" });
       }
-
+ 
       // Find the correct parts list
       const partsList = project.partsLists.find(
         (list) => list._id.toString() === partsListId
       );
-
+ 
       if (!partsList) {
         return res.status(404).json({ message: "Parts List not found" });
       }
-
+ 
       // Find the correct part inside the parts list
       const partItem = partsList.partsListItems.find(
         (item) => item._id.toString() === partsListItemsId
       );
-
+ 
       if (!partItem) {
         return res.status(404).json({ message: "Part List Item not found" });
       }
-
+ 
       // Append new allocations
       allocations.forEach((alloc) => {
         partItem.allocations.push({
@@ -2494,10 +2553,10 @@ partproject.post(
           allocations: alloc.allocations,
         });
       });
-
+ 
       // Save the updated project
       await project.save();
-
+ 
       res.status(201).json({
         message: "Allocations added successfully",
         data: partItem.allocations,
@@ -2648,6 +2707,7 @@ partproject.post(
     }
   }
 );
+
 
 partproject.get(
   "/projects/:projectId/partsLists/:partsListId/partsListItems/:partListItemId/allocations/:processId/allocations/:allocationId/dailyTracking",
