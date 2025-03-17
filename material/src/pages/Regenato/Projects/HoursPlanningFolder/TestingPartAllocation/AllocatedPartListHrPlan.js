@@ -462,14 +462,14 @@ export const AllocatedPartListHrPlan = ({
                 <Col>
                   <span style={{ fontWeight: "bold" }}>Actual End Date: </span>
                   <span>
-                    {new Date(calculateActualEndDate()).toLocaleDateString(
+                    {/* {new Date(calculateActualEndDate()).toLocaleDateString(
                       "en-GB",
                       {
                         day: "2-digit",
                         month: "short",
                         year: "numeric",
                       }
-                    )}
+                    )} */}
                   </span>
                 </Col>
               </Row>
