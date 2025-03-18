@@ -48,16 +48,39 @@ export const AllocatedPartListHrPlan = ({
           const formattedSections = response.data.data.map((item) => ({
             allocationId: item._id,
             title: item.processName,
-            data: item.allocations.map((allocation) => ({
-              trackingId: allocation._id,
-              plannedQty: allocation.plannedQuantity,
-              startDate: new Date(allocation.startDate).toLocaleDateString(),
-              endDate: new Date(allocation.endDate).toLocaleDateString(),
-              machineId: allocation.machineId,
-              shift: allocation.shift,
-              plannedTime: `${allocation.plannedTime} min`,
-              operator: allocation.operator,
-            })),
+            data: item.allocations.map((allocation) => {
+              // Calculate daily planned quantity
+              const shiftTotalTime = allocation.shiftTotalTime; // Total working time per day in minutes
+              const perMachinetotalTime = allocation.perMachinetotalTime; // Time required to produce one part
+              const plannedQuantity = allocation.plannedQuantity; // Total planned quantity
+
+              // Calculate total time required to produce all parts
+              const totalTimeRequired = plannedQuantity * perMachinetotalTime;
+
+              // If total time required is less than or equal to shift time, dailyPlannedQty = plannedQuantity
+              // Otherwise, calculate based on shift time
+              const dailyPlannedQty =
+                totalTimeRequired <= shiftTotalTime
+                  ? plannedQuantity
+                  : Math.floor(shiftTotalTime / perMachinetotalTime);
+
+              return {
+                trackingId: allocation._id,
+                plannedQty: allocation.plannedQuantity,
+                startDate: new Date(allocation.startDate).toLocaleDateString(),
+                endDate: new Date(allocation.endDate).toLocaleDateString(),
+                machineId: allocation.machineId,
+                shift: allocation.shift,
+                plannedTime: `${allocation.plannedTime} min`,
+                operator: allocation.operator,
+                actualEndDate: allocation.actualEndDate
+                  ? new Date(allocation.actualEndDate).toLocaleDateString()
+                  : "N/A",
+                dailyPlannedQty: dailyPlannedQty, // Updated calculation
+                shiftTotalTime: allocation.shiftTotalTime,
+                perMachinetotalTime: allocation.perMachinetotalTime,
+              };
+            }),
           }));
           setSections(formattedSections);
         }
@@ -129,7 +152,7 @@ export const AllocatedPartListHrPlan = ({
       ...prev,
       {
         date: "",
-        planned: calculateDailyPlannedQuantity(),
+        planned: selectedSection?.data[0]?.dailyPlannedQty || "", // Use dailyPlannedQty as the default value
         produced: 0,
         dailyStatus: "On Track", // Set a default status
         operator: selectedSection?.data[0]?.operator || "",
@@ -139,20 +162,6 @@ export const AllocatedPartListHrPlan = ({
 
   const removeDailyTrackingRow = (index) => {
     setDailyTracking((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const calculateDailyPlannedQuantity = () => {
-    if (!selectedSection || !selectedSection.data[0]) return 0;
-
-    const totalQuantity = selectedSection.data[0].plannedQty;
-    const startDate = new Date(selectedSection.data[0].startDate);
-    const endDate = new Date(selectedSection.data[0].endDate);
-
-    const timeDifference = endDate - startDate;
-    const daysDifference = Math.ceil(timeDifference / (1000 * 60 * 60 * 24));
-    const days = daysDifference < 1 ? 1 : daysDifference;
-
-    return Math.ceil(totalQuantity / days);
   };
 
   // Calculate the remaining quantity to produce
@@ -166,56 +175,6 @@ export const AllocatedPartListHrPlan = ({
     );
 
     return totalQuantity - totalProduced;
-  };
-
-  const calculateActualEndDate = () => {
-    if (!selectedSection || !selectedSection.data[0]) {
-      return ""; // Return empty string if no section or data is selected
-    }
-
-    const totalQuantity = selectedSection.data[0].plannedQty;
-    const dailyPlannedQuantity = calculateDailyPlannedQuantity();
-    const totalProduced = existingDailyTracking.reduce(
-      (sum, task) => sum + (task.produced || 0),
-      0
-    );
-
-    const remainingQuantity = totalQuantity - totalProduced;
-
-    if (remainingQuantity <= 0) {
-      // If all quantities are produced, return the last tracking date
-      const lastTrackingDate = existingDailyTracking.reduce((latest, task) => {
-        const taskDate = new Date(task.date);
-        return taskDate > latest && !isNaN(taskDate) ? taskDate : latest;
-      }, new Date(0));
-
-      // If no valid tracking dates, return the plan end date
-      if (lastTrackingDate.getTime() === new Date(0).getTime()) {
-        return selectedSection.data[0].endDate;
-      }
-
-      return lastTrackingDate.toLocaleDateString();
-    }
-
-    // Calculate the additional days needed based on the remaining quantity
-    const additionalDays = Math.ceil(remainingQuantity / dailyPlannedQuantity);
-
-    // Find the last tracking date
-    const lastTrackingDate = existingDailyTracking.reduce((latest, task) => {
-      const taskDate = new Date(task.date);
-      return taskDate > latest && !isNaN(taskDate) ? taskDate : latest;
-    }, new Date(0));
-
-    // If no valid tracking dates, return the plan end date
-    if (lastTrackingDate.getTime() === new Date(0).getTime()) {
-      return selectedSection.data[0].endDate;
-    }
-
-    // Calculate the new end date by adding the additional days to the last tracking date
-    const newEndDate = new Date(lastTrackingDate);
-    newEndDate.setDate(newEndDate.getDate() + additionalDays);
-
-    return newEndDate.toLocaleDateString();
   };
 
   const submitDailyTracking = async () => {
@@ -300,7 +259,6 @@ export const AllocatedPartListHrPlan = ({
     }
   };
 
-  
   const closeDailyTaskModal = () => {
     setDailyTracking([]); // Clear added rows
     setDailyTaskModal(false);
@@ -412,6 +370,7 @@ export const AllocatedPartListHrPlan = ({
         <ModalHeader toggle={() => setDailyTaskModal(false)}>
           Update Daily Tracking - {selectedSection?.title}
         </ModalHeader>
+
         <ModalBody>
           {selectedSection && (
             <>
@@ -424,7 +383,8 @@ export const AllocatedPartListHrPlan = ({
                   <span style={{ fontWeight: "bold" }}>
                     Daily Planned Quantity:{" "}
                   </span>
-                  <span>{calculateDailyPlannedQuantity()}</span>
+                  <span>{selectedSection.data[0].dailyPlannedQty}</span>{" "}
+                  {/* Display dailyPlannedQty */}
                 </Col>
                 <Col>
                   <span style={{ fontWeight: "bold" }}>
@@ -461,16 +421,7 @@ export const AllocatedPartListHrPlan = ({
                 </Col>
                 <Col>
                   <span style={{ fontWeight: "bold" }}>Actual End Date: </span>
-                  <span>
-                    {/* {new Date(calculateActualEndDate()).toLocaleDateString(
-                      "en-GB",
-                      {
-                        day: "2-digit",
-                        month: "short",
-                        year: "numeric",
-                      }
-                    )} */}
-                  </span>
+                  <span>{selectedSection.data[0].actualEndDate}</span>{" "}
                 </Col>
               </Row>
 
@@ -511,7 +462,6 @@ export const AllocatedPartListHrPlan = ({
               ) : (
                 existingDailyTracking.map((task, index) => (
                   <tr key={index}>
-                    {/* <td>{new Date(task.date).toLocaleDateString()}</td> */}
                     <td>
                       {new Date(task.date).toLocaleDateString("en-GB", {
                         day: "2-digit",
@@ -522,7 +472,7 @@ export const AllocatedPartListHrPlan = ({
 
                     <td>{task.planned}</td>
                     <td>{task.produced}</td>
-                    {/* <td>{task.dailyStatus}</td> */}
+
                     <td>
                       {task.dailyStatus === "On Track" ? (
                         <span
@@ -692,7 +642,6 @@ export const AllocatedPartListHrPlan = ({
                     />
                   </td>
                   <td>
-                   
                     <Button
                       color="success"
                       onClick={submitDailyTracking}
