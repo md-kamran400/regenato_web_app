@@ -423,8 +423,6 @@
   color: #6b7280;
 }
 
-
-
 .process-machine {
   font-size: 0.75rem;
   color: #4b5563;
@@ -705,4 +703,181 @@
   outline: none;
   border-color: #3b82f6;
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+/* Orders Panel Styling */
+.orders-panel {
+  flex: 1;
+  background-color: #f8fafc; /* Soft background color */
+  padding: 16px;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+}
+
+.order-card {
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid #ddd;
+  margin-bottom: 12px;
+}
+
+.order-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.order-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+.order-badge {
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 12px;
+  background-color: #3b82f6;
+  color: white;
+}
+
+.order-info {
+  font-size: 14px;
+  color: #666;
+}
+
+.order-info div {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+/* Processes Panel */
+.processes-panel {
+  flex: 1;
+  background-color: #f8fafc; /* Soft background color */
+  padding: 16px;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* Scrollable Panel */
+.scrollable-panel {
+  max-height: 400px; /* Set a fixed height */
+  overflow-y: auto; /* Enable scrolling */
+  padding-right: 8px; /* Prevent scrollbar overlap */
+}
+
+/* Customize scrollbar */
+.scrollable-panel::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollable-panel::-webkit-scrollbar-thumb {
+  background-color: #d1d5db; /* Light gray scrollbar */
+  border-radius: 6px;
+}
+
+.scrollable-panel::-webkit-scrollbar-track {
+  background: #f3f4f6; /* Slightly darker background */
+}
+
+/* Process Card */
+.process-card {
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border: 1px solid #ddd;
+  margin-bottom: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease-in-out;
+  background-color: #ffffff; /* White background */
+}
+
+.process-card.selected {
+  border-color: #2563eb;
+  background-color: #e0ecff;
+}
+
+/* Process Title */
+.process-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 12px;
+}
+
+/* Split Box */
+.split-box {
+  padding: 10px;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  background-color: #f9fafb;
+}
+
+/* Split Header */
+.split-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 6px;
+}
+
+/* Split Details */
+.split-details {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: #666;
+}
+
+/* Process Details Panel */
+.details-panel {
+  flex: 0 0 50%;
+  max-width: 50%;
+  background-color: #f8fafc;
+  padding: 16px;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+  overflow-y: auto;
+  max-height: 500px;
+}
+
+/* Table Styling */
+.details-table,
+.tracking-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.details-table td,
+.tracking-table td {
+  padding: 8px;
+  font-size: 14px;
+}
+
+.details-table tr:nth-child(even),
+.tracking-table tr:nth-child(even) {
+  background-color: #f3f4f6;
+}
+
+.tracking-table th {
+  background: #3b82f6;
+  color: white;
+  padding: 8px;
+}
+
+/* Daily Tracking Status Colors */
+.tracking-table td[style] {
+  font-weight: bold;
+}
+
+/* No Data Message */
+.no-data-message {
+  text-align: center;
+  font-size: 14px;
+  color: #666;
+  margin-top: 20px;
 }
