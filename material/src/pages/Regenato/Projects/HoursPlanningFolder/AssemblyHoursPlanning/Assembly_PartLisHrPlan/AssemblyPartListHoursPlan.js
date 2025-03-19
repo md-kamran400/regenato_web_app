@@ -83,8 +83,8 @@ export const AssemblyPartListHoursPlan = ({
         );
         if (response.data.data.length > 0) {
           setIsDataAllocated(true);
+          setActiveTab("planned");
         }
-        console.log(response);
       } catch (error) {
         console.error("Error fetching allocated data:", error);
       }
