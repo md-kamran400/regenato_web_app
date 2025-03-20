@@ -360,13 +360,13 @@ export const PartListHrPlan = ({
 
   // const calculateEndDate = (startDate, plannedMinutes, shiftMinutes) => {
   //   if (!startDate) return ""; // Ensure startDate is provided
-  
+
   //   let parsedDate = new Date(startDate);
   //   if (isNaN(parsedDate.getTime())) return ""; // Ensure startDate is valid
-  
+
   //   let remainingMinutes = plannedMinutes;
   //   let totalShiftMinutes = shiftMinutes || 480; // Default to 8-hour shift if not provided
-  
+
   //   while (remainingMinutes > 0) {
   //     // Skip Sundays and holidays
   //     while (
@@ -375,27 +375,27 @@ export const PartListHrPlan = ({
   //     ) {
   //       parsedDate.setDate(parsedDate.getDate() + 1);
   //     }
-  
+
   //     // Subtract the shift minutes
   //     remainingMinutes -= totalShiftMinutes;
-  
+
   //     // If there are still remaining minutes, move to the next day
   //     if (remainingMinutes > 0) {
   //       parsedDate.setDate(parsedDate.getDate() + 1);
   //     }
   //   }
-  
+
   //   return parsedDate.toISOString().split("T")[0];
   // };
   // const calculateEndDate = (startDate, plannedMinutes, shiftMinutes) => {
   //   if (!startDate) return ""; // Ensure startDate is provided
-  
+
   //   let parsedDate = new Date(startDate);
   //   if (isNaN(parsedDate.getTime())) return ""; // Ensure startDate is valid
-  
+
   //   let remainingMinutes = plannedMinutes;
   //   let totalShiftMinutes = shiftMinutes || 480; // Default to 8-hour shift if not provided
-  
+
   //   while (remainingMinutes > 0) {
   //     // Skip Sundays and holidays
   //     while (
@@ -404,51 +404,50 @@ export const PartListHrPlan = ({
   //     ) {
   //       parsedDate.setDate(parsedDate.getDate() + 1);
   //     }
-  
+
   //     // If remaining minutes are less than the shift minutes, we don't need to move to the next day
   //     if (remainingMinutes <= totalShiftMinutes) {
   //       break;
   //     }
-  
+
   //     // Subtract the shift minutes and move to the next day
   //     remainingMinutes -= totalShiftMinutes;
   //     parsedDate.setDate(parsedDate.getDate() + 1);
   //   }
-  
+
   //   return parsedDate.toISOString().split("T")[0];
   // };
-  
+
   const calculateEndDate = (startDate, plannedMinutes, shiftMinutes = 480) => {
-    if (!startDate || !plannedMinutes) return ""; 
-    
+    if (!startDate || !plannedMinutes) return "";
+
     let parsedDate = new Date(startDate);
-    if (isNaN(parsedDate.getTime())) return ""; 
-  
+    if (isNaN(parsedDate.getTime())) return "";
+
     // Calculate total number of full working days needed
     let totalDays = Math.ceil(plannedMinutes / shiftMinutes);
     let currentDate = new Date(parsedDate);
     let daysAdded = 0;
-  
+
     while (daysAdded < totalDays) {
       // Skip non-working days (Sundays and holidays)
       while (
-        getDay(currentDate) === 0 || 
-        eventDates.some(d => isSameDay(d, currentDate))
+        getDay(currentDate) === 0 ||
+        eventDates.some((d) => isSameDay(d, currentDate))
       ) {
         currentDate.setDate(currentDate.getDate() + 1);
       }
-      
+
       daysAdded++;
-      
+
       // If there are still days to add, move to the next day
       if (daysAdded < totalDays) {
         currentDate.setDate(currentDate.getDate() + 1);
       }
     }
-  
-    return currentDate.toISOString().split('T')[0];
+
+    return currentDate.toISOString().split("T")[0];
   };
-  
 
   const prefillData = (allRows, startDate) => {
     let currentDate = new Date(startDate);
@@ -585,16 +584,16 @@ export const PartListHrPlan = ({
   };
   const handleStartDateChange = (index, rowIndex, date) => {
     if (!date) return;
-  
+
     const nextWorkingDay = getNextWorkingDay(date);
-  
+
     if (index === 0) {
       setHasStartDate(!!nextWorkingDay);
     }
-  
+
     setRows((prevRows) => {
       const newRows = { ...prevRows };
-  
+
       if (isAutoSchedule && index === 0) {
         const isAvailable = isMachineAvailable(
           newRows[index][rowIndex].machineId,
@@ -604,7 +603,7 @@ export const PartListHrPlan = ({
             newRows[index][rowIndex].plannedQtyTime
           )
         );
-  
+
         if (isAvailable) {
           return prefillData(newRows, nextWorkingDay);
         } else {
@@ -617,7 +616,7 @@ export const PartListHrPlan = ({
           nextWorkingDay,
           newRows[index][rowIndex].endDate
         );
-  
+
         if (isAvailable) {
           newRows[index] = newRows[index].map((row, idx) => {
             if (idx === rowIndex) {
