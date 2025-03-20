@@ -2607,105 +2607,6 @@ partproject.get(
   }
 );
 
-// partproject.post(
-//   "/projects/:projectId/partsLists/:partsListId/partsListItems/:partListItemId/allocations/:processId/allocations/:allocationId/dailyTracking",
-//   async (req, res) => {
-//     try {
-//       const {
-//         projectId,
-//         partsListId,
-//         partListItemId,
-//         processId,
-//         allocationId,
-//       } = req.params;
-//       const { date, planned, produced, operator, dailyStatus } = req.body;
-
-//       // Find the project
-//       const project = await PartListProjectModel.findById(projectId);
-//       if (!project) return res.status(404).json({ error: "Project not found" });
-
-//       // Find the part list
-//       const partsList = project.partsLists.find(
-//         (p) => p._id.toString() === partsListId
-//       );
-//       if (!partsList)
-//         return res.status(404).json({ error: "Parts List not found" });
-
-//       // Find the part list item
-//       const partItem = partsList.partsListItems.find(
-//         (p) => p._id.toString() === partListItemId
-//       );
-//       if (!partItem)
-//         return res.status(404).json({ error: "Part List Item not found" });
-
-//       // Find the process
-//       const process = partItem.allocations.find(
-//         (p) => p._id.toString() === processId
-//       );
-//       if (!process) return res.status(404).json({ error: "Process not found" });
-
-//       // Find the allocation within the process
-//       const allocation = process.allocations.find(
-//         (a) => a._id.toString() === allocationId
-//       );
-//       if (!allocation)
-//         return res.status(404).json({ error: "Allocation not found" });
-
-//       // Calculate daily planned quantity
-//       const shiftTotalTime = allocation.shiftTotalTime; // Total working time per day in minutes
-//       const perMachinetotalTime = allocation.perMachinetotalTime; // Time required to produce one part
-//       const plannedQuantity = allocation.plannedQuantity; // Total planned quantity
-
-//       const dailyPlannedQty = Math.floor(shiftTotalTime / perMachinetotalTime);
-//       allocation.dailyPlannedQty = dailyPlannedQty;
-
-//       // Add daily tracking entry
-//       allocation.dailyTracking.push({
-//         date,
-//         planned,
-//         produced,
-//         operator,
-//         dailyStatus,
-//       });
-
-//       // Calculate total produced quantity
-//       let totalProduced = allocation.dailyTracking.reduce(
-//         (sum, entry) => sum + entry.produced,
-//         0
-//       );
-
-//       // Calculate remaining quantity
-//       let remainingQuantity = plannedQuantity - totalProduced;
-
-//       // Calculate actual end date
-//       let actualEndDate = new Date(allocation.startDate);
-
-//       if (remainingQuantity > 0) {
-//         // Calculate extra days needed
-//         const extraDaysNeeded = Math.ceil(remainingQuantity / dailyPlannedQty);
-//         actualEndDate.setDate(actualEndDate.getDate() + extraDaysNeeded);
-//       } else {
-//         // If remaining quantity is zero or negative, set actualEndDate to the last tracking date
-//         actualEndDate = new Date(
-//           allocation.dailyTracking[allocation.dailyTracking.length - 1].date
-//         );
-//       }
-
-//       allocation.actualEndDate = actualEndDate;
-
-//       // Save the updated project
-//       await project.save();
-
-//       res
-//         .status(201)
-//         .json({ message: "Daily tracking added successfully", allocation });
-//     } catch (error) {
-//       console.error(error);
-//       res.status(500).json({ error: "Server error" });
-//     }
-//   }
-// );
-
 partproject.post(
   "/projects/:projectId/partsLists/:partsListId/partsListItems/:partListItemId/allocations/:processId/allocations/:allocationId/dailyTracking",
   async (req, res) => {
@@ -2719,47 +2620,38 @@ partproject.post(
       } = req.params;
       const { date, planned, produced, operator, dailyStatus } = req.body;
 
-      // Find the project
       const project = await PartListProjectModel.findById(projectId);
       if (!project) return res.status(404).json({ error: "Project not found" });
 
-      // Find the part list
       const partsList = project.partsLists.find(
         (p) => p._id.toString() === partsListId
       );
       if (!partsList)
         return res.status(404).json({ error: "Parts List not found" });
 
-      // Find the part list item
       const partItem = partsList.partsListItems.find(
         (p) => p._id.toString() === partListItemId
       );
       if (!partItem)
         return res.status(404).json({ error: "Part List Item not found" });
 
-      // Find the process
       const process = partItem.allocations.find(
         (p) => p._id.toString() === processId
       );
       if (!process) return res.status(404).json({ error: "Process not found" });
 
-      // Find the allocation within the process
       const allocation = process.allocations.find(
         (a) => a._id.toString() === allocationId
       );
       if (!allocation)
         return res.status(404).json({ error: "Allocation not found" });
 
-      // Calculate daily planned quantity
-      const shiftTotalTime = allocation.shiftTotalTime; // Total working time per day in minutes
-      const perMachinetotalTime = allocation.perMachinetotalTime; // Time required to produce one part
-      const plannedQuantity = allocation.plannedQuantity; // Total planned quantity
-
-      // Calculate total time required to produce all parts
+      // Calculate daily planned qty
+      const shiftTotalTime = allocation.shiftTotalTime;
+      const perMachinetotalTime = allocation.perMachinetotalTime;
+      const plannedQuantity = allocation.plannedQuantity;
       const totalTimeRequired = plannedQuantity * perMachinetotalTime;
 
-      // If total time required is less than or equal to shift time, dailyPlannedQty = plannedQuantity
-      // Otherwise, calculate based on shift time
       const dailyPlannedQty =
         totalTimeRequired <= shiftTotalTime
           ? plannedQuantity
@@ -2767,7 +2659,7 @@ partproject.post(
 
       allocation.dailyPlannedQty = dailyPlannedQty;
 
-      // Add daily tracking entry
+      // Add today's tracking
       allocation.dailyTracking.push({
         date,
         planned,
@@ -2776,43 +2668,61 @@ partproject.post(
         dailyStatus,
       });
 
-      // Calculate total produced quantity
-      let totalProduced = allocation.dailyTracking.reduce(
-        (sum, entry) => sum + entry.produced,
-        0
-      );
+      // Sort tracking by date (safety)
+      allocation.dailyTracking.sort((a, b) => new Date(a.date) - new Date(b.date));
 
-      // Calculate remaining quantity
-      let remainingQuantity = plannedQuantity - totalProduced;
+      // Re-calculate cumulative production
+      let cumulativeProduced = 0;
+      let cumulativePlanned = 0;
+      let deficit = 0; // unproduced qty
+      let surplus = 0; // overproduced qty
+      allocation.dailyTracking.forEach((entry) => {
+        cumulativeProduced += entry.produced;
+        cumulativePlanned += entry.planned;
 
-      // Calculate actual end date
-      let actualEndDate = new Date(allocation.startDate);
+        const dailyDiff = entry.produced - entry.planned;
+        if (dailyDiff < 0) {
+          deficit += Math.abs(dailyDiff);
+        } else if (dailyDiff > 0) {
+          // if there was prior deficit, reduce it
+          if (deficit > 0) {
+            const usedToCover = Math.min(deficit, dailyDiff);
+            deficit -= usedToCover;
+            surplus += (dailyDiff - usedToCover);
+          } else {
+            surplus += dailyDiff;
+          }
+        }
+      });
 
-      if (remainingQuantity > 0) {
-        // Calculate extra days needed
-        const extraDaysNeeded = Math.ceil(remainingQuantity / dailyPlannedQty);
-        actualEndDate.setDate(actualEndDate.getDate() + extraDaysNeeded);
-      } else {
-        // If remaining quantity is zero or negative, set actualEndDate to the last tracking date
-        actualEndDate = new Date(
-          allocation.dailyTracking[allocation.dailyTracking.length - 1].date
-        );
+      // Determine how many extra days required due to deficit
+      let totalDeficit = deficit;
+      let extraDays = 0;
+      if (totalDeficit > 0) {
+        extraDays = Math.ceil(totalDeficit / dailyPlannedQty);
       }
 
-      allocation.actualEndDate = actualEndDate;
+      // Calculate actualEndDate
+      const originalEndDate = new Date(allocation.endDate);
+      const calculatedEndDate = new Date(originalEndDate);
+      calculatedEndDate.setDate(originalEndDate.getDate() + extraDays);
 
-      // Save the updated project
+      allocation.actualEndDate = calculatedEndDate;
+
+      // Save project
       await project.save();
 
-      res
-        .status(201)
-        .json({ message: "Daily tracking added successfully", allocation });
+      res.status(201).json({
+        message: "Daily tracking added successfully",
+        allocation,
+      });
     } catch (error) {
       console.error(error);
       res.status(500).json({ error: "Server error" });
     }
   }
 );
+
 partproject.get(
   "/projects/:projectId/partsLists/:partsListId/partsListItems/:partListItemId/allocations/:processId/allocations/:allocationId/dailyTracking",
   async (req, res) => {
@@ -2864,6 +2774,8 @@ partproject.get(
     }
   }
 );
+
+
 
 // subassembly allocation code
 // subAssemblyListFirst
@@ -3024,6 +2936,115 @@ partproject.delete(
   }
 );
 
+// partproject.post(
+//   "/projects/:projectId/subAssemblyListFirst/:partsListId/partsListItems/:partListItemId/allocations/:processId/allocations/:allocationId/dailyTracking",
+//   async (req, res) => {
+//     try {
+//       const {
+//         projectId,
+//         partsListId,
+//         partListItemId,
+//         processId,
+//         allocationId,
+//       } = req.params;
+//       const { date, planned, produced, operator, dailyStatus } = req.body;
+
+//       // Find the project
+//       const project = await PartListProjectModel.findById(projectId);
+//       if (!project) return res.status(404).json({ error: "Project not found" });
+
+//       // Find the part list
+//       const partsList = project.subAssemblyListFirst.find(
+//         (p) => p._id.toString() === partsListId
+//       );
+//       if (!partsList)
+//         return res.status(404).json({ error: "Parts List not found" });
+
+//       // Find the part list item
+//       const partItem = partsList.partsListItems.find(
+//         (p) => p._id.toString() === partListItemId
+//       );
+//       if (!partItem)
+//         return res.status(404).json({ error: "Part List Item not found" });
+
+//       // Find the process
+//       const process = partItem.allocations.find(
+//         (p) => p._id.toString() === processId
+//       );
+//       if (!process) return res.status(404).json({ error: "Process not found" });
+
+//       // Find the allocation within the process
+//       const allocation = process.allocations.find(
+//         (a) => a._id.toString() === allocationId
+//       );
+//       if (!allocation)
+//         return res.status(404).json({ error: "Allocation not found" });
+
+//       // Calculate daily planned quantity
+//       const shiftTotalTime = allocation.shiftTotalTime; // Total working time per day in minutes
+//       const perMachinetotalTime = allocation.perMachinetotalTime; // Time required to produce one part
+//       const plannedQuantity = allocation.plannedQuantity; // Total planned quantity
+
+//       // Calculate total time required to produce all parts
+//       const totalTimeRequired = plannedQuantity * perMachinetotalTime;
+
+//       // If total time required is less than or equal to shift time, dailyPlannedQty = plannedQuantity
+//       // Otherwise, calculate based on shift time
+//       const dailyPlannedQty =
+//         totalTimeRequired <= shiftTotalTime
+//           ? plannedQuantity
+//           : Math.floor(shiftTotalTime / perMachinetotalTime);
+
+//       allocation.dailyPlannedQty = dailyPlannedQty;
+
+//       // Add daily tracking entry
+//       allocation.dailyTracking.push({
+//         date,
+//         planned,
+//         produced,
+//         operator,
+//         dailyStatus,
+//       });
+
+//       // Calculate total produced quantity
+//       let totalProduced = allocation.dailyTracking.reduce(
+//         (sum, entry) => sum + entry.produced,
+//         0
+//       );
+
+//       // Calculate remaining quantity
+//       let remainingQuantity = plannedQuantity - totalProduced;
+
+//       // Calculate actual end date
+//       let actualEndDate = new Date(allocation.startDate);
+
+//       if (remainingQuantity > 0) {
+//         // Calculate extra days needed
+//         const extraDaysNeeded = Math.ceil(remainingQuantity / dailyPlannedQty);
+//         actualEndDate.setDate(actualEndDate.getDate() + extraDaysNeeded);
+//       } else {
+//         // If remaining quantity is zero or negative, set actualEndDate to the last tracking date
+//         actualEndDate = new Date(
+//           allocation.dailyTracking[allocation.dailyTracking.length - 1].date
+//         );
+//       }
+
+//       allocation.actualEndDate = actualEndDate;
+
+//       // Save the updated project
+//       await project.save();
+
+//       res
+//         .status(201)
+//         .json({ message: "Daily tracking added successfully", allocation });
+//     } catch (error) {
+//       console.error(error);
+//       res.status(500).json({ error: "Server error" });
+//     }
+//   }
+// );
+
+
 partproject.post(
   "/projects/:projectId/subAssemblyListFirst/:partsListId/partsListItems/:partListItemId/allocations/:processId/allocations/:allocationId/dailyTracking",
   async (req, res) => {
@@ -3037,47 +3058,38 @@ partproject.post(
       } = req.params;
       const { date, planned, produced, operator, dailyStatus } = req.body;
 
-      // Find the project
       const project = await PartListProjectModel.findById(projectId);
       if (!project) return res.status(404).json({ error: "Project not found" });
 
-      // Find the part list
       const partsList = project.subAssemblyListFirst.find(
         (p) => p._id.toString() === partsListId
       );
       if (!partsList)
         return res.status(404).json({ error: "Parts List not found" });
 
-      // Find the part list item
       const partItem = partsList.partsListItems.find(
         (p) => p._id.toString() === partListItemId
       );
       if (!partItem)
         return res.status(404).json({ error: "Part List Item not found" });
 
-      // Find the process
       const process = partItem.allocations.find(
         (p) => p._id.toString() === processId
       );
       if (!process) return res.status(404).json({ error: "Process not found" });
 
-      // Find the allocation within the process
       const allocation = process.allocations.find(
         (a) => a._id.toString() === allocationId
       );
       if (!allocation)
         return res.status(404).json({ error: "Allocation not found" });
 
-      // Calculate daily planned quantity
-      const shiftTotalTime = allocation.shiftTotalTime; // Total working time per day in minutes
-      const perMachinetotalTime = allocation.perMachinetotalTime; // Time required to produce one part
-      const plannedQuantity = allocation.plannedQuantity; // Total planned quantity
-
-      // Calculate total time required to produce all parts
+      // Calculate daily planned qty
+      const shiftTotalTime = allocation.shiftTotalTime;
+      const perMachinetotalTime = allocation.perMachinetotalTime;
+      const plannedQuantity = allocation.plannedQuantity;
       const totalTimeRequired = plannedQuantity * perMachinetotalTime;
 
-      // If total time required is less than or equal to shift time, dailyPlannedQty = plannedQuantity
-      // Otherwise, calculate based on shift time
       const dailyPlannedQty =
         totalTimeRequired <= shiftTotalTime
           ? plannedQuantity
@@ -3085,7 +3097,7 @@ partproject.post(
 
       allocation.dailyPlannedQty = dailyPlannedQty;
 
-      // Add daily tracking entry
+      // Add today's tracking
       allocation.dailyTracking.push({
         date,
         planned,
@@ -3094,37 +3106,54 @@ partproject.post(
         dailyStatus,
       });
 
-      // Calculate total produced quantity
-      let totalProduced = allocation.dailyTracking.reduce(
-        (sum, entry) => sum + entry.produced,
-        0
-      );
+      // Sort tracking by date (safety)
+      allocation.dailyTracking.sort((a, b) => new Date(a.date) - new Date(b.date));
 
-      // Calculate remaining quantity
-      let remainingQuantity = plannedQuantity - totalProduced;
+      // Re-calculate cumulative production
+      let cumulativeProduced = 0;
+      let cumulativePlanned = 0;
+      let deficit = 0; // unproduced qty
+      let surplus = 0; // overproduced qty
+      allocation.dailyTracking.forEach((entry) => {
+        cumulativeProduced += entry.produced;
+        cumulativePlanned += entry.planned;
 
-      // Calculate actual end date
-      let actualEndDate = new Date(allocation.startDate);
+        const dailyDiff = entry.produced - entry.planned;
+        if (dailyDiff < 0) {
+          deficit += Math.abs(dailyDiff);
+        } else if (dailyDiff > 0) {
+          // if there was prior deficit, reduce it
+          if (deficit > 0) {
+            const usedToCover = Math.min(deficit, dailyDiff);
+            deficit -= usedToCover;
+            surplus += (dailyDiff - usedToCover);
+          } else {
+            surplus += dailyDiff;
+          }
+        }
+      });
 
-      if (remainingQuantity > 0) {
-        // Calculate extra days needed
-        const extraDaysNeeded = Math.ceil(remainingQuantity / dailyPlannedQty);
-        actualEndDate.setDate(actualEndDate.getDate() + extraDaysNeeded);
-      } else {
-        // If remaining quantity is zero or negative, set actualEndDate to the last tracking date
-        actualEndDate = new Date(
-          allocation.dailyTracking[allocation.dailyTracking.length - 1].date
-        );
+      // Determine how many extra days required due to deficit
+      let totalDeficit = deficit;
+      let extraDays = 0;
+      if (totalDeficit > 0) {
+        extraDays = Math.ceil(totalDeficit / dailyPlannedQty);
       }
 
-      allocation.actualEndDate = actualEndDate;
+      // Calculate actualEndDate
+      const originalEndDate = new Date(allocation.endDate);
+      const calculatedEndDate = new Date(originalEndDate);
+      calculatedEndDate.setDate(originalEndDate.getDate() + extraDays);
 
-      // Save the updated project
+      allocation.actualEndDate = calculatedEndDate;
+
+      // Save project
       await project.save();
 
-      res
-        .status(201)
-        .json({ message: "Daily tracking added successfully", allocation });
+      res.status(201).json({
+        message: "Daily tracking added successfully",
+        allocation,
+      });
     } catch (error) {
       console.error(error);
       res.status(500).json({ error: "Server error" });
