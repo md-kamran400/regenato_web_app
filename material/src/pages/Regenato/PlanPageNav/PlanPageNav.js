@@ -4,29 +4,27 @@ import FullCalendar from "@fullcalendar/react";
 import resourceTimelinePlugin from "@fullcalendar/resource-timeline";
 import adaptivePlugin from "@fullcalendar/adaptive";
 import dayGridPlugin from "@fullcalendar/daygrid";
+import { FaRegCalendarAlt } from "react-icons/fa";
 import { Calendar, Clock } from "lucide-react";
 import { Card, CardBody, Badge, Row, Col, Table, CardTitle } from "reactstrap";
-
 import "./PlanPage.css";
 
-const processColors = {
-  C1: { bg: "#3B82F6", border: "#2563EB" },
-  C2: { bg: "#10B981", border: "#059669" },
-  C3: { bg: "#F59E0B", border: "#D97706" },
-  C4: { bg: "#EF4444", border: "#DC2626" },
-  C5: { bg: "#8B5CF6", border: "#7C3AED" },
-  C6: { bg: "#EC4899", border: "#DB2777" },
-  C7: { bg: "#06B6D4", border: "#0891B2" },
-  C8: { bg: "#F97316", border: "#EA580C" },
-  C9: { bg: "#2563EB", border: "#1D4ED8" },
-  C11: { bg: "#DC2626", border: "#B91C1C" },
-  C12: { bg: "#059669", border: "#047857" },
-  C13: { bg: "#7C3AED", border: "#6D28D9" },
-  C14: { bg: "#DB2777", border: "#BE185D" },
-  C15: { bg: "#9333EA", border: "#7E22CE" },
-  C17: { bg: "#4F46E5", border: "#4338CA" },
-  C18: { bg: "#0EA5E9", border: "#0284C7" },
-  C19: { bg: "#0D9488", border: "#0F766E" },
+const generateRandomColor = () => {
+  const letters = "0123456789ABCDEF";
+  let color = "#";
+  for (let i = 0; i < 6; i++) {
+    color += letters[Math.floor(Math.random() * 16)];
+  }
+  return color;
+};
+
+const processColors = {};
+
+const getProcessColor = (processName) => {
+  if (!processColors[processName]) {
+    processColors[processName] = generateRandomColor();
+  }
+  return processColors[processName];
 };
 
 export function PlanPageNav() {
@@ -134,10 +132,7 @@ export function PlanPageNav() {
       .forEach((alloc) => {
         alloc.allocations.forEach((a) => {
           const machineCode = a.machineId.split("-")[0];
-          const colors = processColors[machineCode] || {
-            bg: "#666",
-            border: "#444",
-          };
+          const colors = getProcessColor(alloc.processName);
 
           // Calculate the status based on actual end date and daily tracking
           let statusColor = "#B0BEC5"; // Default Grey
@@ -195,19 +190,6 @@ export function PlanPageNav() {
     }));
   };
 
-  // const handleSplitClick = (processAllocation, allocation) => {
-  //   setSelectedSplit({
-  //     processName: processAllocation.processName,
-  //     machineId: allocation.machineId,
-  //     operator: allocation.operator,
-  //     plannedQuantity: allocation.plannedQuantity,
-  //     startDate: allocation.startDate,
-  //     endDate: allocation.endDate,
-  //     actualEndDate: allocation.actualEndDate,
-  //     dailyTracking: allocation.dailyTracking || [],
-  //   });
-  // };
-
   const handleProcessClick = (processAllocation) => {
     setSelectedProcess(processAllocation.processName);
     setSelectedSplit({
@@ -215,6 +197,7 @@ export function PlanPageNav() {
       allocations: processAllocation.allocations, // Pass all splits
     });
   };
+
   const handleProjectChange = (e) => {
     const newProject = e.target.value;
     setSelectedProject(newProject);
@@ -368,56 +351,61 @@ export function PlanPageNav() {
         </div>
       </div>
 
-      {/* <div className="border rounded-lg shadow-sm">
-        <FullCalendar
-          plugins={[resourceTimelinePlugin, adaptivePlugin]}
-          initialView={
-            events.length > 0 &&
-            getDaysBetweenDates(
-              events[0].start,
-              events[events.length - 1].end
-            ) > 30
-              ? "yearView"
-              : "resourceTimelineMonth"
-          }
-          schedulerLicenseKey="CC-Attribution-NonCommercial-NoDerivatives"
-          headerToolbar={{
-            left: "prev,next today",
-            center: "title",
-            right:
-              "resourceTimelineDay,resourceTimelineWeek,resourceTimelineMonth,yearView",
-          }}
-          views={{
-            yearView: {
-              type: "resourceTimeline",
-              duration: { months: 12 },
-              slotDuration: { months: 1 },
-              buttonText: "Year",
-              slotWidth: 100, // Adjust this value for better readability
-            },
-          }}
-          resources={resources}
-          events={events}
-          resourceAreaWidth="200px"
-          height="auto"
-          slotMinWidth={100}
-          resourceAreaHeaderContent="Part Name"
-          eventClick={handleEventClick}
-          eventContent={(arg) => {
-            return (
-              <div className="p-1 text-sm text-white">
-                <div className="font-medium">
-                  {arg.event.extendedProps.processName} - {arg.event.extendedProps.machineId} - {arg.event.extendedProps.operator}
-                </div>
-                
+      {/* FullCalendar with Year View */}
+      <FullCalendar
+        plugins={[resourceTimelinePlugin, adaptivePlugin]}
+        initialView="resourceTimelineMonth"
+        schedulerLicenseKey="CC-Attribution-NonCommercial-NoDerivatives"
+        headerToolbar={{
+          left: "prev,next today",
+          center: "title",
+          right:
+            "resourceTimelineDay,resourceTimelineWeek,resourceTimelineMonth,resourceTimelineYear",
+        }}
+        resources={resources}
+        events={events.map((event) => ({
+          ...event,
+          backgroundColor: getProcessColor(event.extendedProps.processName),
+          borderColor: getProcessColor(event.extendedProps.processName),
+        }))}
+        resourceAreaWidth="200px"
+        height="auto"
+        slotMinWidth={100}
+        resourceAreaHeaderContent="Order Number"
+        eventClick={handleEventClick}
+        initialDate={new Date()}
+        views={{
+          resourceTimelineYear: {
+            type: "resourceTimeline",
+            duration: { years: 1 }, // Set the duration to 1 year
+            slotDuration: { months: 1 }, // Display slots as months
+            slotLabelFormat: { month: "long" }, // Show full month names (e.g., "January")
+            slotWidth: 100, // Adjust the width of each month slot
+          },
+        }}
+        eventContent={(arg) => {
+          const processColor = getProcessColor(
+            arg.event.extendedProps.processName
+          );
+          return (
+            <div
+              className="p-1 text-sm text-white"
+              style={{ backgroundColor: processColor }}
+            >
+              <div className="font-medium">
+                {arg.event.extendedProps.processName} -{" "}
+                {arg.event.extendedProps.machineId} -{" "}
+                {arg.event.extendedProps.operator}
               </div>
-            );
-          }}
-          eventDidMount={(info) => {
-            const event = info.event;
-            const props = event.extendedProps;
+            </div>
+          );
+        }}
+        eventDidMount={(info) => {
+          const event = info.event;
+          const props = event.extendedProps;
+          const processColor = getProcessColor(props.processName);
 
-            const tooltipContent = `
+          const tooltipContent = `
       Process: ${props.processName}
       Machine: ${props.machineId}
       Operator: ${props.operator}
@@ -426,55 +414,11 @@ export function PlanPageNav() {
       Start: ${event.start?.toLocaleDateString()}
       End: ${event.end?.toLocaleDateString()}
     `;
-            info.el.setAttribute("title", tooltipContent);
-          }}
-        />
-      </div> */}
-
-      <div className="border rounded-lg shadow-sm">
-  <FullCalendar
-    plugins={[resourceTimelinePlugin, adaptivePlugin]}
-    initialView="resourceTimelineMonth"
-    schedulerLicenseKey="CC-Attribution-NonCommercial-NoDerivatives"
-    headerToolbar={{
-      left: "prev,next today",
-      center: "title",
-      right: "resourceTimelineDay,resourceTimelineWeek,resourceTimelineMonth",
-    }}
-    resources={resources}
-    events={events}
-    resourceAreaWidth="200px"
-    height="auto"
-    slotMinWidth={100}
-    resourceAreaHeaderContent="Order Number"
-    eventClick={handleEventClick}
-    initialDate={new Date()} // Set the initial date to today
-    eventContent={(arg) => {
-      return (
-        <div className="p-1 text-sm text-white">
-          <div className="font-medium">
-            {arg.event.extendedProps.processName} - {arg.event.extendedProps.machineId} - {arg.event.extendedProps.operator}
-          </div>
-        </div>
-      );
-    }}
-    eventDidMount={(info) => {
-      const event = info.event;
-      const props = event.extendedProps;
-
-      const tooltipContent = `
-        Process: ${props.processName}
-        Machine: ${props.machineId}
-        Operator: ${props.operator}
-        Quantity: ${props.plannedQuantity}
-        Shift: ${props.shift}
-        Start: ${event.start?.toLocaleDateString()}
-        End: ${event.end?.toLocaleDateString()}
-      `;
-      info.el.setAttribute("title", tooltipContent);
-    }}
-  />
-</div>
+          info.el.setAttribute("title", tooltipContent);
+          info.el.style.backgroundColor = processColor;
+          info.el.style.borderColor = processColor;
+        }}
+      />
 
       {/* Bottom Panels */}
       <div
@@ -629,13 +573,25 @@ export function PlanPageNav() {
                             </span>
                           </div>
                           <div className="split-details">
-                            <span>
-                              Start: {formatDate(allocation.startDate)}
-                            </span>
-                            <span>End: {formatDate(allocation.endDate)}</span>
-                            <span>
-                              Planned Qty: {allocation.plannedQuantity}
-                            </span>
+                            <div className="details-process">
+                              <div className="detail-item">
+                                <span className="detail-value">
+                                  <FaRegCalendarAlt className="calendar-icon" />
+                                  {formatDate(allocation.startDate)}
+                                </span>
+                              </div>
+                              <div className="detail-item">
+                                <span className="detail-value">
+                                  {formatDate(allocation.endDate)}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="detail-item">
+                              {/* <span className="detail-label">Planned Qty:</span> */}
+                              <span className="detail-value">
+                                {allocation.plannedQuantity}
+                              </span>
+                            </div>
                           </div>
                         </div>
                       ))}
@@ -693,7 +649,6 @@ export function PlanPageNav() {
                   </CardBody>
                 </Card>
 
-                {/* Small Calendar for Process Timeline */}
                 {/* Small Calendar for Process Timeline */}
                 <div className="small-calendar">
                   <FullCalendar
