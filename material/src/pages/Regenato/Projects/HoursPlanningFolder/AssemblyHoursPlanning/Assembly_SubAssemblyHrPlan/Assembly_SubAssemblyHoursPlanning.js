@@ -44,6 +44,9 @@ export const Assembly_SubAssemblyHoursPlanning = ({
   const [hasStartDate, setHasStartDate] = useState(false);
   const [shiftOptions, setShiftOptions] = useState([]);
   const [selectedShift, setSelectedShift] = useState(null);
+  const openConfirmationModal = () => {
+    setIsConfirmationModalOpen(true);
+  };
   const [remainingQuantity, setRemainingQuantity] = useState(quantity);
   const [remainingQuantities, setRemainingQuantities] = useState({});
   const [isAutoSchedule, setIsAutoSchedule] = useState(false);
@@ -51,11 +54,7 @@ export const Assembly_SubAssemblyHoursPlanning = ({
   const [eventDates, setEventDates] = useState([]);
   const [isDataAllocated, setIsDataAllocated] = useState(false);
   const [allocatedMachines, setAllocatedMachines] = useState({});
-  const [operatorAllocations, setOperatorAllocations] = useState({});
 
-  const openConfirmationModal = () => {
-    setIsConfirmationModalOpen(true);
-  };
   useEffect(() => {
     fetch(`${process.env.REACT_APP_BASE_URL}/api/eventScheduler/events`)
       .then((response) => response.json())
@@ -77,8 +76,6 @@ export const Assembly_SubAssemblyHoursPlanning = ({
       .catch((error) => console.error("Error fetching events:", error));
   }, []);
 
-  // Function to check if the date is an event date or a Sunday
-
   useEffect(() => {
     const fetchAllocatedData = async () => {
       try {
@@ -95,84 +92,63 @@ export const Assembly_SubAssemblyHoursPlanning = ({
     };
 
     fetchAllocatedData();
-  }, [porjectID, AssemblyListId, subAssembliesId, partListItemId]);
+  }, [porjectID, AssemblyListId, partListItemId]);
 
   useEffect(() => {
-    const fetchAllocations = async () => {
+    const fetchMachineAllocations = async () => {
       try {
         const response = await axios.get(
           `${process.env.REACT_APP_BASE_URL}/api/defpartproject/all-allocations`
         );
-        if (response.data && response.data.data) {
+        if (response.data) {
           const machineAllocations = {};
-          const operatorAllocations = {};
 
           response.data.data.forEach((project) => {
             project.allocations.forEach((process) => {
               process.allocations.forEach((alloc) => {
-                // Process machine allocations
-                if (alloc.machineId) {
-                  if (!machineAllocations[alloc.machineId]) {
-                    machineAllocations[alloc.machineId] = [];
-                  }
-                  machineAllocations[alloc.machineId].push({
-                    startDate: new Date(alloc.startDate),
-                    endDate: new Date(alloc.endDate),
-                  });
+                if (!machineAllocations[alloc.machineId]) {
+                  machineAllocations[alloc.machineId] = [];
                 }
-
-                // Process operator allocations
-                if (alloc.operator) {
-                  if (!operatorAllocations[alloc.operator]) {
-                    operatorAllocations[alloc.operator] = [];
-                  }
-                  operatorAllocations[alloc.operator].push({
-                    startDate: new Date(alloc.startDate),
-                    endDate: new Date(alloc.endDate),
-                  });
-                }
+                machineAllocations[alloc.machineId].push({
+                  startDate: new Date(alloc.startDate),
+                  endDate: new Date(alloc.endDate),
+                });
               });
             });
           });
 
           setAllocatedMachines(machineAllocations);
-          setOperatorAllocations(operatorAllocations);
+          console.log(machineAllocations);
         }
       } catch (error) {
-        console.error("Error fetching allocations:", error);
+        console.error("Error fetching machine allocations:", error);
       }
     };
 
-    fetchAllocations();
+    fetchMachineAllocations();
   }, []);
 
   const isMachineAvailable = (machineId, startDate, endDate) => {
-    if (!allocatedMachines[machineId]) return true; // If no allocations, machine is available
+    if (!machineId || !allocatedMachines[machineId]) return true; // If no machine or no allocations, machine is available
 
     const parsedStart = new Date(startDate);
     const parsedEnd = new Date(endDate);
 
-    return !allocatedMachines[machineId].some(
-      (alloc) =>
-        (parsedStart >= alloc.startDate && parsedStart <= alloc.endDate) ||
-        (parsedEnd >= alloc.startDate && parsedEnd <= alloc.endDate) ||
-        (parsedStart <= alloc.startDate && parsedEnd >= alloc.endDate)
-    );
+    // Check if the machine is already allocated for the given date range
+    return !allocatedMachines[machineId].some((alloc) => {
+      const allocStart = new Date(alloc.startDate);
+      const allocEnd = new Date(alloc.endDate);
+
+      // Check for overlapping date ranges
+      return (
+        (parsedStart >= allocStart && parsedStart <= allocEnd) || // Start date is within an allocated range
+        (parsedEnd >= allocStart && parsedEnd <= allocEnd) || // End date is within an allocated range
+        (parsedStart <= allocStart && parsedEnd >= allocEnd) // New range completely overlaps an allocated range
+      );
+    });
   };
 
-  const isOperatorAvailable = (operatorName, startDate, endDate) => {
-    if (!operatorAllocations[operatorName]) return true; // If no allocations, operator is available
-
-    const parsedStart = new Date(startDate);
-    const parsedEnd = new Date(endDate);
-
-    return !operatorAllocations[operatorName].some(
-      (alloc) =>
-        (parsedStart >= alloc.startDate && parsedStart <= alloc.endDate) ||
-        (parsedEnd >= alloc.startDate && parsedEnd <= alloc.endDate) ||
-        (parsedStart <= alloc.startDate && parsedEnd >= alloc.endDate)
-    );
-  };
+  // Function to check if the date is an event date or a Sunday
   const isHighlightedOrDisabled = (date) => {
     return (
       eventDates.some((eventDate) => isSameDay(eventDate, date)) ||
@@ -222,10 +198,10 @@ export const Assembly_SubAssemblyHoursPlanning = ({
             ? calculatePlannedMinutes(quantity * man.hours)
             : "",
           startDate: "",
+          startTime: "",
           endDate: "",
           machineId: "",
           shift: "",
-          operator: "", // Do not pre-select an operator
           processName: man.name,
         },
       ];
@@ -355,6 +331,8 @@ export const Assembly_SubAssemblyHoursPlanning = ({
     fetchMachines();
   }, [manufacturingVariables]);
 
+  console.log("Machine Options:", machineOptions);
+
   useEffect(() => {
     // Only initialize rows with empty data
     const initialRows = manufacturingVariables.reduce((acc, man, index) => {
@@ -382,34 +360,37 @@ export const Assembly_SubAssemblyHoursPlanning = ({
   };
 
   const calculateEndDate = (startDate, plannedMinutes, shiftMinutes) => {
-    if (!startDate) return ""; // Ensure startDate is provided
+    if (!startDate) return "";
 
     let parsedDate = new Date(startDate);
-    if (isNaN(parsedDate.getTime())) return ""; // Ensure startDate is valid
+    if (isNaN(parsedDate.getTime())) return "";
 
     let remainingMinutes = plannedMinutes;
-    let totalShiftMinutes = shiftMinutes || 480; // Default to 8-hour shift if not provided
+    let totalShiftMinutes = shiftMinutes || 480;
 
     while (remainingMinutes > 0) {
-      parsedDate.setDate(parsedDate.getDate() + 1); // Move to next day
-
-      // Skip Sundays and holidays
+      parsedDate.setDate(parsedDate.getDate() + 1);
       while (
         getDay(parsedDate) === 0 ||
         eventDates.some((d) => isSameDay(d, parsedDate))
       ) {
         parsedDate.setDate(parsedDate.getDate() + 1);
       }
+      remainingMinutes -= totalShiftMinutes;
 
-      remainingMinutes -= totalShiftMinutes; // Subtract daily shift hours
+      if (remainingMinutes > 0) {
+        parsedDate.setDate(parsedDate.getDate() + 1);
+      }
+    }
+
+    if (parsedDate < new Date(startDate)) {
+      parsedDate = new Date(startDate);
     }
 
     return parsedDate.toISOString().split("T")[0];
   };
 
   const prefillData = (allRows, startDate) => {
-    if (!startDate) return allRows; // Ensure we don't prefill unless startDate is chosen
-
     let currentDate = new Date(startDate);
 
     manufacturingVariables.forEach((man, index) => {
@@ -417,28 +398,30 @@ export const Assembly_SubAssemblyHoursPlanning = ({
 
       allRows[index].forEach((row, rowIdx) => {
         const machineList = machineOptions[man.categoryId] || [];
-        const firstMachine =
-          machineList.length > 0 ? machineList[0].subcategoryId : "";
-
-        // Auto-select the first available operator based on availability
-        const firstAvailableOperator = operators.find((op) =>
-          isOperatorAvailable(
-            op.name,
-            startDate,
-            calculateEndDate(
-              startDate,
-              calculatePlannedMinutes(man.hours * quantity)
-            )
+        const firstAvailableMachine = machineList.find((machine) =>
+          isMachineAvailable(
+            machine.subcategoryId,
+            currentDate,
+            calculateEndDate(currentDate, row.plannedQtyTime)
           )
         );
 
+        const firstMachine = firstAvailableMachine
+          ? firstAvailableMachine.subcategoryId
+          : "";
+
+        const firstOperator =
+          operators.find((op) => op.processName.includes(man.name)) || {};
+
         const firstShift = shiftOptions.length > 0 ? shiftOptions[0] : null;
+
         const processStartDate = currentDate.toISOString().split("T")[0];
 
         const plannedMinutes = calculatePlannedMinutes(man.hours * quantity);
         const processEndDate = calculateEndDate(
           processStartDate,
-          plannedMinutes
+          plannedMinutes,
+          firstShift?.TotalHours
         );
 
         allRows[index][rowIdx] = {
@@ -446,63 +429,89 @@ export const Assembly_SubAssemblyHoursPlanning = ({
           startDate: processStartDate,
           endDate: processEndDate,
           machineId: firstMachine,
-          operator: firstAvailableOperator ? firstAvailableOperator.name : "", // Auto-assign operator
+          operatorId: firstOperator._id || "",
           shift: firstShift ? firstShift.name : "",
           startTime: firstShift ? firstShift.startTime : "",
         };
 
+        // Update currentDate to the day after the end date
         currentDate = new Date(processEndDate);
         currentDate.setDate(currentDate.getDate() + 1);
+
+        // Skip Sundays and holidays for the next process
+        while (
+          getDay(currentDate) === 0 ||
+          eventDates.some((d) => isSameDay(d, currentDate))
+        ) {
+          currentDate.setDate(currentDate.getDate() + 1);
+        }
       });
     });
 
-    console.log(
-      "Prefilled Data (with auto-selected operator):",
-      JSON.stringify(allRows, null, 2)
-    );
+    console.log("Prefilled Data:", JSON.stringify(allRows, null, 2));
     return { ...allRows }; // Ensure state update
   };
 
   const handleStartDateChange = (index, rowIndex, date) => {
+    if (!date) return;
+
+    // Function to find the next working day
+    const getNextWorkingDay = (date) => {
+      let nextDay = new Date(date);
+      while (isHighlightedOrDisabled(nextDay)) {
+        nextDay.setDate(nextDay.getDate() + 1);
+      }
+      return nextDay;
+    };
+
+    const nextWorkingDay = getNextWorkingDay(date);
+
     if (index === 0) {
-      setHasStartDate(!!date);
+      setHasStartDate(!!nextWorkingDay);
     }
 
     setRows((prevRows) => {
       const newRows = { ...prevRows };
 
-      if (date) {
-        if (isAutoSchedule && index === 0) {
-          return prefillData(newRows, date);
+      if (isAutoSchedule && index === 0) {
+        // Perform machine availability check for auto-schedule mode
+        const isAvailable = isMachineAvailable(
+          newRows[index][rowIndex].machineId,
+          nextWorkingDay,
+          calculateEndDate(
+            nextWorkingDay,
+            newRows[index][rowIndex].plannedQtyTime
+          )
+        );
+
+        if (isAvailable) {
+          return prefillData(newRows, nextWorkingDay);
         } else {
+          toast.error("This machine is occupied during the selected dates.");
+          return newRows; // Do not update rows if machine is unavailable
+        }
+      } else {
+        // Check machine availability for manual mode
+        const isAvailable = isMachineAvailable(
+          newRows[index][rowIndex].machineId,
+          nextWorkingDay,
+          newRows[index][rowIndex].endDate
+        );
+
+        if (isAvailable) {
           newRows[index] = newRows[index].map((row, idx) => {
             if (idx === rowIndex) {
               return {
                 ...row,
-                startDate: date,
-                endDate: calculateEndDate(date, row.plannedQtyTime),
+                startDate: nextWorkingDay,
+                endDate: calculateEndDate(nextWorkingDay, row.plannedQtyTime),
               };
             }
             return row;
           });
+        } else {
+          toast.error("This machine is occupied during the selected dates.");
         }
-      } else {
-        return manufacturingVariables.reduce((acc, man, idx) => {
-          acc[idx] = [
-            {
-              partType: "Make",
-              plannedQuantity: quantity,
-              startDate: "",
-              endDate: "",
-              machineId: "",
-              shift: "Shift A",
-              plannedQtyTime: calculatePlannedMinutes(man.hours * quantity),
-              operatorId: "",
-              processName: man.name,
-            },
-          ];
-          return acc;
-        }, {});
       }
       return newRows;
     });
@@ -573,6 +582,21 @@ export const Assembly_SubAssemblyHoursPlanning = ({
     });
   };
 
+  const isAllFieldsFilled = () => {
+    return Object.keys(rows).every((index) => {
+      return rows[index].every((row) => {
+        return (
+          row.plannedQuantity &&
+          row.startDate &&
+          row.endDate &&
+          row.machineId &&
+          row.shift &&
+          row.operatorId
+        );
+      });
+    });
+  };
+
   const handleSubmit = async () => {
     console.log("Submitting allocations...");
     console.log("Rows before processing:", JSON.stringify(rows, null, 2));
@@ -590,7 +614,10 @@ export const Assembly_SubAssemblyHoursPlanning = ({
         // Reset order number counter for each process
         let orderCounter = 1;
 
-        rows[index].forEach((row) => {
+        rows[index].forEach((row, rowIndex) => {
+          console.log(`Processing row ${rowIndex} in process ${index}:`, row);
+
+          // Check if all required fields are present
           if (
             row.plannedQuantity &&
             row.startDate &&
@@ -610,11 +637,19 @@ export const Assembly_SubAssemblyHoursPlanning = ({
             }
 
             // Generate order number with padding
-            const orderNumber = orderCounter.toString().padStart(3, "0");
+            const splitNumber = orderCounter.toString().padStart(3, "0");
             orderCounter++; // Increment counter for next row in this process
+            // Find the selected shift to get the TotalHours
+            const selectedShift = shiftOptions.find(
+              (shift) => shift.name === row.shift
+            );
+
+            // Get the manufacturing variable for this process
+            const man = manufacturingVariables[index];
 
             groupedAllocations[key].allocations.push({
-              orderNumber, // Add the generated order number
+              splitNumber, // Add the generated order number
+              AllocationPartType: "Part",
               plannedQuantity: row.plannedQuantity,
               startDate: new Date(row.startDate).toISOString(),
               startTime: row.startTime || "08:00 AM",
@@ -625,11 +660,19 @@ export const Assembly_SubAssemblyHoursPlanning = ({
               operator:
                 operators.find((op) => op._id === row.operatorId)?.name ||
                 "Unknown",
+              shiftTotalTime: selectedShift ? selectedShift.TotalHours : 0, // Add shiftTotalTime
+              perMachinetotalTime: Math.ceil(man.hours * 60), // Add perMachinetotalTime dynamically
             });
+          } else {
+            console.warn(
+              `Skipping row ${rowIndex} in process ${index} due to missing or invalid fields:`,
+              row
+            );
           }
         });
       });
 
+      // Convert groupedAllocations object to an array
       const finalAllocations = Object.values(groupedAllocations);
 
       console.log(
@@ -637,6 +680,14 @@ export const Assembly_SubAssemblyHoursPlanning = ({
         JSON.stringify(finalAllocations, null, 2)
       );
 
+      if (finalAllocations.length === 0) {
+        toast.error(
+          "No valid allocations to submit. Please check your inputs."
+        );
+        return;
+      }
+
+      // Send the grouped allocations to the backend
       const response = await axios.post(
         `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/assemblyList/${AssemblyListId}/subAssemblies/${subAssembliesId}/partsListItems/${partListItemId}/allocation`,
         { allocations: finalAllocations }
@@ -644,18 +695,20 @@ export const Assembly_SubAssemblyHoursPlanning = ({
 
       if (response.status === 201) {
         toast.success("Allocations successfully added!");
-        setIsDataAllocated(true); // Update the state to reflect that data is allocated
+        setIsDataAllocated(true); // Update state to reflect that data is allocated
       } else {
         toast.error("Failed to add allocations.");
       }
     } catch (error) {
-      toast.error(error);
+      console.error("Error submitting allocations:", error);
+      toast.error("An error occurred while submitting allocations.");
     }
   };
 
   const handleDeleteSuccess = () => {
-    setIsDataAllocated(false); // Update the state to reflect that data is deleted
+    setIsDataAllocated(false);
   };
+
   return (
     <div style={{ width: "100%", margin: "10px 0" }}>
       <Card>
@@ -684,7 +737,7 @@ export const Assembly_SubAssemblyHoursPlanning = ({
             <Button
               color={isAutoSchedule ? "primary" : "secondary"}
               onClick={() => setIsAutoSchedule(!isAutoSchedule)}
-              disabled={isDataAllocated} // Disable when data is allocated
+              disabled={isDataAllocated}
             >
               {isAutoSchedule ? "Auto Schedule ✅" : "Auto Schedule"}
             </Button>
@@ -694,10 +747,16 @@ export const Assembly_SubAssemblyHoursPlanning = ({
             >
               Planned
             </Button>
+            {/* <Button
+              color={activeTab === "actual" ? "primary" : "secondary"}
+              onClick={() => setActiveTab("actual")}
+            >
+              Actual
+            </Button> */}
             <Button
               color={activeTab === "actual" ? "primary" : "secondary"}
               onClick={() => setActiveTab("actual")}
-              disabled={isDataAllocated} // Disable when data is allocated
+              disabled={isDataAllocated}
             >
               Actual
             </Button>
@@ -774,10 +833,11 @@ export const Assembly_SubAssemblyHoursPlanning = ({
                         {/* <th style={{ width: "15%" }}>Part Type</th> */}
                         <th>Planned Quantity</th>
                         <th style={{ width: "10%" }}>Start Date</th>
-                        <th style={{ width: "15%" }}>Start Time</th>
+
                         <th style={{ width: "8%" }}>End Date</th>
                         <th style={{ width: "25%" }}>Machine ID</th>
                         <th style={{ width: "20%" }}>Shift</th>
+                        <th style={{ width: "15%" }}>Start Time</th>
                         <th>Planned Qty Time</th>
                         <th style={{ width: "50%" }}>Operator</th>
                         <th>Actions</th>
@@ -854,17 +914,72 @@ export const Assembly_SubAssemblyHoursPlanning = ({
                           </td>
 
                           <td>
+                            {/* <DatePicker
+                              selected={
+                                row.startDate ? new Date(row.startDate) : null
+                              }
+                              onChange={(date) => {
+                                if (!date) return;
+
+                                // Ensure the selected date does not fall into an occupied range
+                                const isAvailable = isMachineAvailable(
+                                  row.machineId,
+                                  date,
+                                  row.endDate
+                                );
+
+                                if (isAvailable) {
+                                  handleStartDateChange(index, rowIndex, date);
+                                } else {
+                                  toast.error(
+                                    "This machine is occupied during the selected dates."
+                                  );
+                                }
+                              }}
+                              dayClassName={(date) =>
+                                isMachineAvailable(
+                                  row.machineId,
+                                  date,
+                                  row.endDate
+                                )
+                                  ? ""
+                                  : "highlighted-date"
+                              }
+                              renderDayContents={renderDayContents}
+                              customInput={<CustomInput />}
+                              dateFormat="dd-MM-yyyy"
+                            /> */}
+
                             <DatePicker
                               selected={
                                 row.startDate ? new Date(row.startDate) : null
                               }
-                              onChange={(date) =>
-                                handleStartDateChange(index, rowIndex, date)
-                              }
+                              onChange={(date) => {
+                                if (!date) return;
+
+                                // Perform machine availability check
+                                const isAvailable = isMachineAvailable(
+                                  row.machineId,
+                                  date,
+                                  row.endDate
+                                );
+
+                                if (isAvailable) {
+                                  handleStartDateChange(index, rowIndex, date);
+                                } else {
+                                  toast.error(
+                                    "This machine is occupied during the selected dates."
+                                  );
+                                }
+                              }}
                               dayClassName={(date) =>
-                                isHighlightedOrDisabled(date)
-                                  ? "highlighted-date"
-                                  : ""
+                                isMachineAvailable(
+                                  row.machineId,
+                                  date,
+                                  row.endDate
+                                )
+                                  ? ""
+                                  : "highlighted-date"
                               }
                               renderDayContents={renderDayContents}
                               customInput={<CustomInput />}
@@ -883,21 +998,6 @@ export const Assembly_SubAssemblyHoursPlanning = ({
                                   // display:none
                                 }
                               `}</style>
-                          </td>
-
-                          <td>
-                            <Input
-                              type="time"
-                              value={row.startTime}
-                              onChange={(e) => {
-                                setRows((prevRows) => {
-                                  const updatedRows = [...prevRows[index]];
-                                  updatedRows[rowIndex].startTime =
-                                    e.target.value;
-                                  return { ...prevRows, [index]: updatedRows };
-                                });
-                              }}
-                            />
                           </td>
 
                           <td>
@@ -956,6 +1056,22 @@ export const Assembly_SubAssemblyHoursPlanning = ({
                               }}
                               onChange={(event, newValue) => {
                                 if (!hasStartDate) return;
+
+                                // Check if the machine is already selected in the same row
+                                const isMachineAlreadyUsedInRow = rows[
+                                  index
+                                ]?.some(
+                                  (r, idx) =>
+                                    idx !== rowIndex &&
+                                    r.machineId === newValue.subcategoryId
+                                );
+
+                                if (isMachineAlreadyUsedInRow) {
+                                  toast.warning(
+                                    "This machine is already selected in another row."
+                                  );
+                                  return;
+                                }
 
                                 setRows((prevRows) => {
                                   const updatedRows = [...prevRows[index]];
@@ -1026,6 +1142,21 @@ export const Assembly_SubAssemblyHoursPlanning = ({
                             disabled={!hasStartDate && index !== 0}
                           />
 
+                          <td>
+                            <Input
+                              type="time"
+                              value={row.startTime}
+                              onChange={(e) => {
+                                setRows((prevRows) => {
+                                  const updatedRows = [...prevRows[index]];
+                                  updatedRows[rowIndex].startTime =
+                                    e.target.value;
+                                  return { ...prevRows, [index]: updatedRows };
+                                });
+                              }}
+                            />
+                          </td>
+
                           <td>{row.plannedQtyTime} m</td>
 
                           <td>
@@ -1033,33 +1164,38 @@ export const Assembly_SubAssemblyHoursPlanning = ({
                               options={operators}
                               value={
                                 operators.find(
-                                  (op) => op.name === row.operator
+                                  (op) => op._id === row.operatorId
                                 ) || null
                               }
                               getOptionLabel={(option) => option.name || ""}
                               renderOption={(props, option) => {
-                                const isOperatorAvailableInRange =
-                                  isOperatorAvailable(
-                                    option.name,
-                                    row.startDate,
-                                    row.endDate
-                                  );
+                                // Check if the operator is already assigned in an overlapping date range
+                                const isOperatorAlreadySelected = rows[
+                                  index
+                                ]?.some(
+                                  (r) =>
+                                    r.operatorId === option._id &&
+                                    new Date(r.startDate) <=
+                                      new Date(rows[index][rowIndex].endDate) &&
+                                    new Date(r.endDate) >=
+                                      new Date(rows[index][rowIndex].startDate)
+                                );
 
                                 return (
                                   <li
                                     {...props}
                                     style={{
-                                      color: isOperatorAvailableInRange
-                                        ? "black"
-                                        : "lightgray",
-                                      pointerEvents: isOperatorAvailableInRange
-                                        ? "auto"
-                                        : "none",
+                                      color: isOperatorAlreadySelected
+                                        ? "lightgray"
+                                        : "black",
+                                      pointerEvents: isOperatorAlreadySelected
+                                        ? "none"
+                                        : "auto",
                                     }}
                                   >
                                     {option.name}{" "}
-                                    {!isOperatorAvailableInRange
-                                      ? "(Already Allocated)"
+                                    {isOperatorAlreadySelected
+                                      ? "(Already Selected)"
                                       : ""}
                                   </li>
                                 );
@@ -1067,21 +1203,28 @@ export const Assembly_SubAssemblyHoursPlanning = ({
                               onChange={(event, newValue) => {
                                 if (!newValue) return;
 
-                                const newOperatorName = newValue.name;
-                                const newStartDate = new Date(row.startDate);
-                                const newEndDate = new Date(row.endDate);
+                                const newOperatorId = newValue._id;
+                                const newStartDate = new Date(
+                                  rows[index][rowIndex].startDate
+                                );
+                                const newEndDate = new Date(
+                                  rows[index][rowIndex].endDate
+                                );
 
-                                // Check if the operator is already allocated in the selected date range
-                                const isOperatorAvailableInRange =
-                                  isOperatorAvailable(
-                                    newOperatorName,
-                                    newStartDate,
-                                    newEndDate
-                                  );
+                                // Check if the operator is already selected in an overlapping date range
+                                const isOperatorAlreadySelected = rows[
+                                  index
+                                ]?.some(
+                                  (r, idx) =>
+                                    idx !== rowIndex &&
+                                    r.operatorId === newOperatorId &&
+                                    newStartDate <= new Date(r.endDate) &&
+                                    newEndDate >= new Date(r.startDate)
+                                );
 
-                                if (!isOperatorAvailableInRange) {
+                                if (isOperatorAlreadySelected) {
                                   toast.warning(
-                                    "This operator is already allocated within this date range."
+                                    "This operator is already assigned within this date range."
                                   );
                                   return;
                                 }
@@ -1091,7 +1234,7 @@ export const Assembly_SubAssemblyHoursPlanning = ({
                                   const updatedRows = [...prevRows[index]];
                                   updatedRows[rowIndex] = {
                                     ...updatedRows[rowIndex],
-                                    operator: newOperatorName,
+                                    operatorId: newOperatorId,
                                   };
                                   return { ...prevRows, [index]: updatedRows };
                                 });
@@ -1133,8 +1276,23 @@ export const Assembly_SubAssemblyHoursPlanning = ({
                 <Button
                   color="success"
                   onClick={openConfirmationModal}
-                  //   disabled={!hasStartDate}
-                  disabled={!hasStartDate || remainingQuantities <= 0}
+                  disabled={
+                    !hasStartDate ||
+                    !Object.keys(remainingQuantities).every(
+                      (key) => remainingQuantities[key] === 0
+                    ) ||
+                    !Object.keys(rows).every((index) =>
+                      rows[index].every(
+                        (row) =>
+                          row.plannedQuantity &&
+                          row.startDate &&
+                          row.endDate &&
+                          row.machineId &&
+                          row.shift &&
+                          row.operatorId
+                      )
+                    )
+                  }
                 >
                   Confirm Allocation
                 </Button>
