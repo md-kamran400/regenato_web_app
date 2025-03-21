@@ -103,11 +103,11 @@ export const AllocatedAssemblyPartList = ({
 
     fetchAllocations();
   }, [porjectID, AssemblyListId, partListItemId]);
-
+//http://localhost:4040/api/defpartproject/projects/67dbd3166d077404b82ca7c1/assemblyList/67dcda142102c09a0b630b37/partsListItems/67d7745d777f0299660b8b1e/allocations
   const handleCancelAllocation = async () => {
     try {
       const response = await axios.delete(
-        `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/assemblyList/${AssemblyListId}/partsListItems/${partListItemId}/allocation`
+        `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/assemblyList/${AssemblyListId}/partsListItems/${partListItemId}/allocations`
       );
       if (response.status === 200) {
         toast.success("Allocation successfully canceled!");
