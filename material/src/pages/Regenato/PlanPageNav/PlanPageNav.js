@@ -207,6 +207,21 @@ export function PlanPageNav() {
     // Reset resources and events
     setResources([]);
     setEvents([]);
+
+    // Find the selected project data
+    const selectedProjectData = allocationData.find(
+      (project) => project.projectName === newProject
+    );
+
+    // If the selected project has allocations, set the first part as selected
+    if (selectedProjectData && selectedProjectData.allocations.length > 0) {
+      setSelectedPart(selectedProjectData.allocations[0].partName);
+      transformData(
+        newProject,
+        selectedProjectData.allocations[0].partName,
+        allocationData
+      );
+    }
   };
 
   const handlePartChange = (e) => {
@@ -251,23 +266,23 @@ export function PlanPageNav() {
     (project) => project.projectName === selectedProject
   );
 
+  // Extract unique part names from all projects
+  const uniqueParts = new Set();
+  if (selectedProjectData) {
+    selectedProjectData.allocations.forEach((part) => {
+      uniqueParts.add(part.partName);
+    });
+  }
+
+  // Convert Set to an Array
+  const uniquePartList = [...uniqueParts];
+
   // Get filtered allocations for the selected project and part
   const filteredAllocations = selectedProjectData
     ? selectedProjectData.allocations.filter(
         (alloc) => alloc.partName === selectedPart
       )
     : [];
-
-  // Extract unique part names from all projects
-  const uniqueParts = new Set();
-  allocationData.forEach((project) => {
-    project.allocations.forEach((part) => {
-      uniqueParts.add(part.partName);
-    });
-  });
-
-  // Convert Set to an Array
-  const uniquePartList = [...uniqueParts];
 
   const getStatusColor = (status) => {
     if (status === "On Track") return "#3B82F6"; // Green
