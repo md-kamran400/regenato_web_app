@@ -29,8 +29,18 @@ export const AllocatedAssembly_subAssembly = ({
   const [dailyTaskModal, setDailyTaskModal] = useState(false);
   const [selectedSection, setSelectedSection] = useState(null);
   const [deleteConfirmationModal, setDeleteConfirmationModal] = useState(false);
-  const [dailyTracking, setDailyTracking] = useState([]);
+  const [dailyTracking, setDailyTracking] = useState([
+    {
+      date: "",
+      planned: 0,
+      produced: 0,
+      dailyStatus: "On Track",
+      operator: "",
+    },
+  ]);
+
   const [existingDailyTracking, setExistingDailyTracking] = useState([]);
+  const [actulEndDateData, setactulEndDateData] = useState([]);
   const [addRowModal, setAddRowModal] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
 
@@ -74,9 +84,9 @@ export const AllocatedAssembly_subAssembly = ({
                 shift: allocation.shift,
                 plannedTime: `${allocation.plannedTime} min`,
                 operator: allocation.operator,
-                actualEndDate: allocation.actualEndDate
-                  ? new Date(allocation.actualEndDate).toLocaleDateString()
-                  : "N/A",
+                actualEndDate: allocation.actualEndDate || allocation.endDate,
+                // ? new Date(allocation.actualEndDate).toLocaleDateString()
+                // : "N/A",
                 dailyPlannedQty: dailyPlannedQty, // Updated calculation
                 shiftTotalTime: allocation.shiftTotalTime,
                 perMachinetotalTime: allocation.perMachinetotalTime,
@@ -113,10 +123,22 @@ export const AllocatedAssembly_subAssembly = ({
   };
 
   const openModal = async (section, row) => {
+    console.log("Row Data:", row); // Debugging: Check if actualEndDate is present
     setSelectedSection({
       ...section,
       data: [row], // Pass the specific row data
     });
+
+    setDailyTracking([
+      {
+        date: "",
+        planned: Number(row.dailyPlannedQty) || 0, // Ensure planned is correctly set
+        produced: 0,
+        dailyStatus: "On Track",
+        operator: row.operator || "",
+      },
+    ]);
+
     setDailyTaskModal(true);
 
     // Fetch existing daily tracking data
@@ -125,70 +147,52 @@ export const AllocatedAssembly_subAssembly = ({
         `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/assemblyList/${AssemblyListId}/subAssemblies/${subAssembliesId}/partsListItems/${partListItemId}/allocations/${section.allocationId}/allocations/${row.trackingId}/dailyTracking`
       );
       setExistingDailyTracking(response.data.dailyTracking || []);
+
+      // Update the actualEndDateData state with the fetched data
+      setactulEndDateData(response.data);
     } catch (error) {
       console.error("Error fetching daily tracking data:", error);
     }
   };
 
-  // Add this function to handle opening the new modal
   const openAddRowModal = () => {
     setAddRowModal(true);
   };
 
-  // Add this function to handle closing the new modal
   const closeAddRowModal = () => {
     setAddRowModal(false);
   };
 
-  // const handleDailyTrackingChange = (index, field, value) => {
-  //   setDailyTracking((prev) => {
-  //     const updated = [...prev];
-  //     updated[index][field] = value;
-  //     return updated;
-  //   });
-  // };
   const handleDailyTrackingChange = (index, field, value) => {
     setDailyTracking((prev) => {
       const updated = [...prev];
+
+      // SAFETY CHECK
+      if (!updated[index]) {
+        console.warn(`Index ${index} is undefined`);
+        return prev; // or return updated without modification
+      }
+
       updated[index][field] = value;
 
-      // Update the status based on the produced and planned values
       if (field === "produced") {
-        const produced = Number(value);
-        const planned = Number(updated[index].planned);
+        const produced = Number(value) || 0;
+        const planned =
+          Number(updated[index].planned) ||
+          Number(selectedSection?.data[0]?.dailyPlannedQty) ||
+          0;
 
-        if (produced > 0) {
-          if (produced === planned) {
-            updated[index].dailyStatus = "On Track";
-          } else if (produced < planned) {
-            updated[index].dailyStatus = "Delayed";
-          } else if (produced > planned) {
-            updated[index].dailyStatus = "Ahead";
-          }
+        if (produced === planned) {
+          updated[index].dailyStatus = "On Track";
+        } else if (produced > planned) {
+          updated[index].dailyStatus = "Ahead";
         } else {
-          updated[index].dailyStatus = "Not Started";
+          updated[index].dailyStatus = "Delayed";
         }
       }
 
       return updated;
     });
-  };
-
-  const addDailyTrackingRow = () => {
-    setDailyTracking((prev) => [
-      ...prev,
-      {
-        date: "",
-        planned: selectedSection?.data[0]?.dailyPlannedQty || "", // Use dailyPlannedQty as the default value
-        produced: 0,
-        dailyStatus: "On Track", // Set a default status
-        operator: selectedSection?.data[0]?.operator || "",
-      },
-    ]);
-  };
-
-  const removeDailyTrackingRow = (index) => {
-    setDailyTracking((prev) => prev.filter((_, i) => i !== index));
   };
 
   // Calculate the remaining quantity to produce
@@ -224,35 +228,34 @@ export const AllocatedAssembly_subAssembly = ({
         return;
       }
 
-      // Calculate the status for each task before posting
-      const updatedDailyTracking = dailyTracking.map((task) => {
-        const produced = Number(task.produced);
-        const planned = Number(task.planned);
+      // Validate each daily tracking entry
+      const isValid = dailyTracking.every((task) => {
+        const isValidTask =
+          task.date &&
+          !isNaN(new Date(task.date)) &&
+          !isNaN(Number(task.planned)) &&
+          !isNaN(Number(task.produced)) &&
+          task.dailyStatus;
 
-        let dailyStatus = "Not Started";
-        if (produced > 0) {
-          if (produced === planned) {
-            dailyStatus = "On Track";
-          } else if (produced < planned) {
-            dailyStatus = "Delayed";
-          } else if (produced > planned) {
-            dailyStatus = "Ahead";
-          }
+        if (!isValidTask) {
+          console.error("Invalid Task:", task);
         }
 
-        return {
-          ...task,
-          dailyStatus, // Update the status based on the produced and planned values
-        };
+        return isValidTask;
       });
 
+      if (!isValid) {
+        toast.error("Invalid daily tracking data. Please check all fields.");
+        return;
+      }
+
       // Post each daily tracking entry individually
-      for (const task of updatedDailyTracking) {
+      for (const task of dailyTracking) {
         const formattedTask = {
           date: task.date,
           planned: Number(task.planned),
           produced: Number(task.produced),
-          dailyStatus: task.dailyStatus, // Use the calculated status
+          dailyStatus: task.dailyStatus,
           operator: task.operator,
         };
 
@@ -270,9 +273,22 @@ export const AllocatedAssembly_subAssembly = ({
       );
       setExistingDailyTracking(updatedResponse.data.dailyTracking || []);
 
+      // Update the actualEndDateData state with the fetched data
+      setactulEndDateData(updatedResponse.data);
+
+      // Reset the dailyTracking state to its initial value
+      setDailyTracking([
+        {
+          date: "",
+          planned: Number(selectedSection.data[0].dailyPlannedQty) || 0,
+          produced: 0,
+          dailyStatus: "On Track",
+          operator: selectedSection.data[0].operator || "",
+        },
+      ]);
+
       // Close the add row modal
       closeAddRowModal();
-      setDailyTracking([]);
     } catch (error) {
       toast.error("Failed to update daily tracking.");
       console.error(
@@ -387,6 +403,7 @@ export const AllocatedAssembly_subAssembly = ({
       </Container>
 
       {/* Modal for Updating Daily Task */}
+
       <Modal
         isOpen={dailyTaskModal}
         toggle={closeDailyTaskModal}
@@ -408,8 +425,7 @@ export const AllocatedAssembly_subAssembly = ({
                   <span style={{ fontWeight: "bold" }}>
                     Daily Planned Quantity:{" "}
                   </span>
-                  <span>{selectedSection.data[0].dailyPlannedQty}</span>{" "}
-                  {/* Display dailyPlannedQty */}
+                  <span>{selectedSection.data[0].dailyPlannedQty}</span>
                 </Col>
                 <Col>
                   <span style={{ fontWeight: "bold" }}>
@@ -446,7 +462,23 @@ export const AllocatedAssembly_subAssembly = ({
                 </Col>
                 <Col>
                   <span style={{ fontWeight: "bold" }}>Actual End Date: </span>
-                  <span>{selectedSection.data[0].actualEndDate}</span>{" "}
+                  <span style={{ fontWeight: "bold", color: "red" }}>
+                    {actulEndDateData.actualEndDate
+                      ? new Date(
+                          actulEndDateData.actualEndDate
+                        ).toLocaleDateString("en-GB", {
+                          day: "2-digit",
+                          month: "short",
+                          year: "numeric",
+                        })
+                      : new Date(
+                          selectedSection.data[0].endDate
+                        ).toLocaleDateString("en-GB", {
+                          day: "2-digit",
+                          month: "short",
+                          year: "numeric",
+                        })}
+                  </span>
                 </Col>
               </Row>
 
@@ -494,38 +526,38 @@ export const AllocatedAssembly_subAssembly = ({
                         year: "numeric",
                       })}
                     </td>
-
                     <td>{task.planned}</td>
                     <td>{task.produced}</td>
-
                     <td>
-                      {task.produced == null || task.produced === 0 ? (
-                        <span
-                          className="badge bg-secondary-subtle text-secondary"
-                          style={{ fontSize: "12px" }}
-                        >
-                          Not Started
-                        </span>
-                      ) : Number(task.produced) === Number(task.planned) ? (
+                      {task.dailyStatus === "On Track" ? (
                         <span
                           className="badge bg-primary-subtle text-primary"
-                          style={{ fontSize: "12px" }}
+                          style={{ fontSize: "13px" }}
                         >
                           On Track
                         </span>
-                      ) : Number(task.produced) < Number(task.planned) ? (
+                      ) : task.dailyStatus === "Delayed" ? (
                         <span
                           className="badge bg-danger-subtle text-danger"
-                          style={{ fontSize: "12px" }}
+                          style={{ fontSize: "13px" }}
                         >
                           Delayed
                         </span>
-                      ) : Number(task.produced) > Number(task.planned) ? (
+                      ) : task.dailyStatus === "Ahead" ? (
                         <span
                           className="badge bg-warning-subtle text-warning"
-                          style={{ fontSize: "12px" }}
+                          style={{ fontSize: "13px" }}
                         >
                           Ahead
+                        </span>
+                      ) : task.dailyStatus === "Not Started" ||
+                        task.produced == null ||
+                        task.produced === 0 ? (
+                        <span
+                          className="badge bg-secondary-subtle text-secondary"
+                          style={{ fontSize: "13px" }}
+                        >
+                          Not Started
                         </span>
                       ) : null}
                     </td>
@@ -563,138 +595,120 @@ export const AllocatedAssembly_subAssembly = ({
         </ModalFooter>
       </Modal>
 
-      {/* Add Row Modal */}
-      <Modal isOpen={addRowModal} toggle={closeAddRowModal} size="xl">
+      {/* daily trackin modal */}
+      <Modal isOpen={addRowModal} toggle={closeAddRowModal} size="l">
         <ModalHeader toggle={closeAddRowModal}>Add Daily Tracking</ModalHeader>
-
         <ModalBody>
-          <Table bordered responsive>
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th style={{ width: "10rem" }}>Planned</th>
-                <th style={{ width: "10rem" }}>Produced</th>
-                <th>Status</th>
-                <th style={{ width: "12rem" }}>Operator</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {dailyTracking.map((task, index) => (
-                <tr key={index}>
-                  <td>
-                    <input
-                      type="date"
-                      className="form-control"
-                      value={task.date}
-                      onChange={(e) =>
-                        handleDailyTrackingChange(index, "date", e.target.value)
-                      }
-                    />
-                  </td>
-                  <td>
-                    <input
-                      type="number"
-                      className="form-control"
-                      value={task.planned}
-                      onChange={(e) =>
-                        handleDailyTrackingChange(
-                          index,
-                          "planned",
-                          e.target.value
-                        )
-                      }
-                      readOnly
-                    />
-                  </td>
-                  <td>
-                    <input
-                      type="number"
-                      className="form-control"
-                      value={task.produced}
-                      onChange={(e) =>
-                        handleDailyTrackingChange(
-                          index,
-                          "produced",
-                          e.target.value
-                        )
-                      }
-                    />
-                  </td>
+          <form>
+            {/* Date Input */}
+            <div className="form-group">
+              <label>Date</label>
+              <input
+                type="date"
+                className="form-control"
+                value={dailyTracking.length > 0 ? dailyTracking[0].date : ""}
+                onChange={(e) =>
+                  handleDailyTrackingChange(0, "date", e.target.value)
+                }
+              />
+            </div>
 
-                  <td>
-                    {task.produced == null ||
-                    task.produced === 0 ? null : Number(task.produced) ===
-                      Number(task.planned) ? (
-                      <span
-                        className="badge bg-primary-subtle text-primary"
-                        style={{ fontSize: "12px" }}
-                      >
-                        On Track
-                      </span>
-                    ) : Number(task.produced) < Number(task.planned) ? (
-                      <span
-                        className="badge bg-danger-subtle text-danger"
-                        style={{ fontSize: "12px" }}
-                      >
-                        Delayed
-                      </span>
-                    ) : Number(task.produced) > Number(task.planned) ? (
-                      <span
-                        className="badge bg-warning-subtle text-warning"
-                        style={{ fontSize: "12px" }}
-                      >
-                        Ahead
-                      </span>
-                    ) : null}
-                  </td>
+            {/* Planned and Produced Inputs in a Row */}
+            <div className="form-row" style={{ display: "flex", gap: "5px" }}>
+              <div className="form-group col-md-6">
+                <label>Planned</label>
+                <input
+                  type="number"
+                  className="form-control"
+                  value={
+                    dailyTracking[0]?.planned ||
+                    selectedSection?.data[0]?.dailyPlannedQty ||
+                    ""
+                  }
+                  readOnly
+                />
+              </div>
+              <div className="form-group col-md-6">
+                <label>Produced</label>
+                <input
+                  type="number"
+                  className="form-control"
+                  value={
+                    dailyTracking.length > 0 ? dailyTracking[0].produced : ""
+                  }
+                  onChange={(e) =>
+                    handleDailyTrackingChange(0, "produced", e.target.value)
+                  }
+                />
+              </div>
+            </div>
 
-                  <td>
-                    <input
-                      type="text"
-                      className="form-control"
-                      value={task.operator}
-                      onChange={(e) =>
-                        handleDailyTrackingChange(
-                          index,
-                          "operator",
-                          e.target.value
-                        )
+            {/* Produced Status (Styled like an input) */}
+            {dailyTracking.length > 0 &&
+              dailyTracking[0].produced !== undefined &&
+              dailyTracking[0].planned !== undefined && (
+                <div className="form-group">
+                  <label>Status</label>
+                  <div
+                    className="form-control"
+                    style={{
+                      backgroundColor: "#f8f9fa", // Light gray background
+                      border: "1px solid #ced4da", // Border like an input
+                      padding: "0.375rem 0.75rem", // Input padding
+                      borderRadius: "0.25rem", // Rounded corners like an input
+                      color: "#495057", // Text color
+                    }}
+                  >
+                    {(() => {
+                      const produced = Number(dailyTracking[0].produced) || 0;
+                      const planned = Number(dailyTracking[0].planned) || 0;
+
+                      if (produced === 0) {
+                        return (
+                          <span className="text-danger">
+                            Please Enter Produced Quantity
+                          </span>
+                        );
                       }
-                      readOnly
-                    />
-                  </td>
-                  <td>
-                    <Button
-                      color="success"
-                      onClick={submitDailyTracking}
-                      disabled={isUpdating}
-                    >
-                      {isUpdating ? "Updating..." : "Update"}
-                    </Button>
-                    <Button
-                      color="danger"
-                      onClick={() => removeDailyTrackingRow(index)}
-                      style={{ marginLeft: "1rem" }}
-                    >
-                      Delete
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </Table>
+
+                      if (Number(produced) === Number(planned)) {
+                        return <span className="text-primary">On Track</span>;
+                      } else if (produced > planned) {
+                        return <span className="text-warning">Ahead</span>;
+                      } else if (produced < planned) {
+                        return <span className="text-danger">Delayed</span>;
+                      }
+
+                      return null;
+                    })()}
+                  </div>
+                </div>
+              )}
+
+            {/* Operator Input */}
+            <div className="form-group">
+              <label>Operator</label>
+              <input
+                type="text"
+                className="form-control"
+                value={
+                  dailyTracking[0]?.operator ||
+                  selectedSection?.data[0]?.operator ||
+                  ""
+                }
+                readOnly
+              />
+            </div>
+          </form>
         </ModalBody>
         <ModalFooter>
+          {/* Update Button */}
           <Button
             color="primary"
-            onClick={addDailyTrackingRow}
-            disabled={calculateRemainingQuantity() <= 0}
+            onClick={submitDailyTracking}
+            disabled={isUpdating}
           >
-            Add Row
-          </Button>
-          <Button color="secondary" onClick={() => setDailyTaskModal(false)}>
-            Close
+            {isUpdating ? "Updating..." : "Update"}
           </Button>
         </ModalFooter>
       </Modal>
