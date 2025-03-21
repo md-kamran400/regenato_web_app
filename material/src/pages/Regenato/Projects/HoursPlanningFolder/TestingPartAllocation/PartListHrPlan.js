@@ -381,66 +381,7 @@ export const PartListHrPlan = ({
     return Math.ceil(hours * 60);
   };
 
-  // const calculateEndDate = (startDate, plannedMinutes, shiftMinutes) => {
-  //   if (!startDate) return ""; // Ensure startDate is provided
-
-  //   let parsedDate = new Date(startDate);
-  //   if (isNaN(parsedDate.getTime())) return ""; // Ensure startDate is valid
-
-  //   let remainingMinutes = plannedMinutes;
-  //   let totalShiftMinutes = shiftMinutes || 480; // Default to 8-hour shift if not provided
-
-  //   while (remainingMinutes > 0) {
-  //     // Skip Sundays and holidays
-  //     while (
-  //       getDay(parsedDate) === 0 ||
-  //       eventDates.some((d) => isSameDay(d, parsedDate))
-  //     ) {
-  //       parsedDate.setDate(parsedDate.getDate() + 1);
-  //     }
-
-  //     // Subtract the shift minutes
-  //     remainingMinutes -= totalShiftMinutes;
-
-  //     // If there are still remaining minutes, move to the next day
-  //     if (remainingMinutes > 0) {
-  //       parsedDate.setDate(parsedDate.getDate() + 1);
-  //     }
-  //   }
-
-  //   return parsedDate.toISOString().split("T")[0];
-  // };
-  // const calculateEndDate = (startDate, plannedMinutes, shiftMinutes) => {
-  //   if (!startDate) return ""; // Ensure startDate is provided
-
-  //   let parsedDate = new Date(startDate);
-  //   if (isNaN(parsedDate.getTime())) return ""; // Ensure startDate is valid
-
-  //   let remainingMinutes = plannedMinutes;
-  //   let totalShiftMinutes = shiftMinutes || 480; // Default to 8-hour shift if not provided
-
-  //   while (remainingMinutes > 0) {
-  //     // Skip Sundays and holidays
-  //     while (
-  //       getDay(parsedDate) === 0 ||
-  //       eventDates.some((d) => isSameDay(d, parsedDate))
-  //     ) {
-  //       parsedDate.setDate(parsedDate.getDate() + 1);
-  //     }
-
-  //     // If remaining minutes are less than the shift minutes, we don't need to move to the next day
-  //     if (remainingMinutes <= totalShiftMinutes) {
-  //       break;
-  //     }
-
-  //     // Subtract the shift minutes and move to the next day
-  //     remainingMinutes -= totalShiftMinutes;
-  //     parsedDate.setDate(parsedDate.getDate() + 1);
-  //   }
-
-  //   return parsedDate.toISOString().split("T")[0];
-  // };
-
+ 
   const calculateEndDate = (startDate, plannedMinutes, shiftMinutes = 480) => {
     if (!startDate || !plannedMinutes) return "";
 
@@ -535,6 +476,12 @@ export const PartListHrPlan = ({
     return { ...allRows };
   };
 
+  const formatDate = (dateObj) => {
+    const year = dateObj.getFullYear();
+    const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+    const day = String(dateObj.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`; // Format: YYYY-MM-DD
+  };
  
   const getNextWorkingDay = (date) => {
     let nextDay = new Date(date);
@@ -544,136 +491,7 @@ export const PartListHrPlan = ({
     return nextDay;
   };
 
-  // const handleStartDateChange = (index, rowIndex, date) => {
-  //   if (!date) return;
-
-  //   const nextWorkingDay = getNextWorkingDay(date);
-
-  //   if (index === 0) {
-  //     setHasStartDate(!!nextWorkingDay);
-  //   }
-
-  //   setRows((prevRows) => {
-  //     const newRows = { ...prevRows };
-
-  //     if (isAutoSchedule && index === 0) {
-  //       const isAvailable = isMachineAvailable(
-  //         newRows[index][rowIndex].machineId,
-  //         nextWorkingDay,
-  //         calculateEndDate(
-  //           nextWorkingDay,
-  //           newRows[index][rowIndex].plannedQtyTime
-  //         )
-  //       );
-
-  //       if (isAvailable) {
-  //         return prefillData(newRows, nextWorkingDay);
-  //       } else {
-  //         toast.error("This machine is occupied during the selected dates.");
-  //         return newRows;
-  //       }
-  //     } else {
-  //       const isAvailable = isMachineAvailable(
-  //         newRows[index][rowIndex].machineId,
-  //         nextWorkingDay,
-  //         newRows[index][rowIndex].endDate
-  //       );
-
-  //       if (isAvailable) {
-  //         newRows[index] = newRows[index].map((row, idx) => {
-  //           if (idx === rowIndex) {
-  //             return {
-  //               ...row,
-  //               startDate: nextWorkingDay,
-  //               endDate: calculateEndDate(nextWorkingDay, row.plannedQtyTime),
-  //             };
-  //           }
-  //           return row;
-  //         });
-  //       } else {
-  //         toast.error("This machine is occupied during the selected dates.");
-  //       }
-  //     }
-  //     return newRows;
-  //   });
-  // };
-// =======================================
-  // const handleStartDateChange = (index, rowIndex, date) => {
-  //   if (!date) return;
-  
-  //   const nextWorkingDay = getNextWorkingDay(date);
-  
-  //   if (index === 0) {
-  //     setHasStartDate(!!nextWorkingDay);
-  //   }
-  
-  //   setRows((prevRows) => {
-  //     const newRows = { ...prevRows };
-  
-  //     // AUTO SCHEDULE MODE FIXED
-  //     if (isAutoSchedule && index === 0) {
-  //       let currentDate = new Date(nextWorkingDay); // Start date for first process
-  
-  //       manufacturingVariables.forEach((man, processIndex) => {
-  //         const shift = shiftOptions.length > 0 ? shiftOptions[0] : null; // Default to first shift
-  
-  //         newRows[processIndex] = newRows[processIndex].map((row) => {
-  //           // Calculate start date
-  //           let processStartDate = currentDate;
-  
-  //           // Calculate end date correctly
-  //           const processEndDate = calculateEndDate(
-  //             processStartDate,
-  //             row.plannedQtyTime,
-  //             shift?.TotalHours
-  //           );
-  
-  //           // DO NOT MOVE TO NEXT DAY IMMEDIATELY
-  //           // Instead, set currentDate = endDate and move only if required later
-  //           currentDate = new Date(processEndDate);
-  
-  //           return {
-  //             ...row,
-  //             startDate: processStartDate.toISOString().split("T")[0],
-  //             endDate: processEndDate,
-  //             shift: shift?.name || "",
-  //             startTime: shift?.startTime || "",
-  //           };
-  //         });
-  
-  //         // After finishing current process rows, move to next working day
-  //         currentDate.setDate(currentDate.getDate() + 1);
-  //         currentDate = getNextWorkingDay(currentDate);
-  //       });
-  
-  //       return newRows;
-  //     } 
-  //     // MANUAL MODE - Unchanged
-  //     else {
-  //       const shift = shiftOptions.find(
-  //         (option) => option.name === newRows[index][rowIndex].shift
-  //       );
-  
-  //       newRows[index] = newRows[index].map((row, idx) => {
-  //         if (idx === rowIndex) {
-  //           return {
-  //             ...row,
-  //             startDate: nextWorkingDay,
-  //             endDate: calculateEndDate(
-  //               nextWorkingDay,
-  //               row.plannedQtyTime,
-  //               shift?.TotalHours
-  //             ),
-  //           };
-  //         }
-  //         return row;
-  //       });
-  //     }
-  
-  //     return newRows;
-  //   });
-  // };
-  
+ 
   const calculateStartAndEndDates = (inputStartDate, plannedMinutes, shiftMinutes = 480) => {
     let parsedStartDate = new Date(inputStartDate);
     let remainingMinutes = plannedMinutes;
@@ -709,83 +527,14 @@ export const PartListHrPlan = ({
   
     // Final end date
     const endDate = new Date(currentDate);
-  
+
     return {
-      startDate: startDate.toISOString().split("T")[0],
-      endDate: endDate.toISOString().split("T")[0],
+      startDate: formatDate(startDate),
+      endDate: formatDate(endDate),
     };
+    
   };
 
-  // const handleStartDateChange = (index, rowIndex, date) => {
-  //   if (!date) return;
-  
-  //   const nextWorkingDay = getNextWorkingDay(date);
-  
-  //   if (index === 0) {
-  //     setHasStartDate(!!nextWorkingDay);
-  //   }
-  
-  //   setRows((prevRows) => {
-  //     const newRows = { ...prevRows };
-  
-  //     // AUTO SCHEDULE MODE
-  //     if (isAutoSchedule && index === 0) {
-  //       let currentDate = new Date(nextWorkingDay);
-  
-  //       manufacturingVariables.forEach((man, processIndex) => {
-  //         const shift = shiftOptions.length > 0 ? shiftOptions[0] : null;
-  
-  //         newRows[processIndex] = newRows[processIndex].map((row) => {
-  //           const { startDate, endDate } = calculateStartAndEndDates(
-  //             currentDate,
-  //             row.plannedQtyTime,
-  //             shift?.TotalHours
-  //           );
-  
-  //           // Prepare for next process
-  //           currentDate = new Date(endDate);
-  //           currentDate.setDate(currentDate.getDate() + 1);
-  //           currentDate = getNextWorkingDay(currentDate);
-  
-  //           return {
-  //             ...row,
-  //             startDate,
-  //             endDate,
-  //             shift: shift?.name || "",
-  //             startTime: shift?.startTime || "",
-  //           };
-  //         });
-  //       });
-  
-  //       return newRows;
-  //     } 
-  //     // MANUAL MODE
-  //     else {
-  //       const shift = shiftOptions.find(
-  //         (option) => option.name === newRows[index][rowIndex].shift
-  //       );
-  
-  //       newRows[index] = newRows[index].map((row, idx) => {
-  //         if (idx === rowIndex) {
-  //           const { startDate, endDate } = calculateStartAndEndDates(
-  //             nextWorkingDay,
-  //             row.plannedQtyTime,
-  //             shift?.TotalHours
-  //           );
-  
-  //           return {
-  //             ...row,
-  //             startDate,
-  //             endDate,
-  //           };
-  //         }
-  //         return row;
-  //       });
-  //     }
-  
-  //     return newRows;
-  //   });
-  // };
   
   const handleStartDateChange = (index, rowIndex, date) => {
     if (!date) return;
@@ -799,7 +548,7 @@ export const PartListHrPlan = ({
     setRows((prevRows) => {
       const newRows = { ...prevRows };
   
-      // AUTO SCHEDULE MODE
+      // === AUTO SCHEDULE MODE ===
       if (isAutoSchedule && index === 0) {
         let currentDate = new Date(nextWorkingDay);
   
@@ -813,7 +562,7 @@ export const PartListHrPlan = ({
               shift?.TotalHours
             );
   
-            // 👉 Find Available Machine
+            // 👉 Auto-pick Machine
             const machineList = machineOptions[man.categoryId] || [];
             const firstAvailableMachine = machineList.find((machine) =>
               isMachineAvailable(
@@ -827,7 +576,7 @@ export const PartListHrPlan = ({
               ? firstAvailableMachine.subcategoryId
               : "";
   
-            // 👉 Find Available Operator
+            // 👉 Auto-pick Operator
             const firstOperator = operators.find((op) =>
               isOperatorAvailable(
                 op.name,
@@ -855,7 +604,7 @@ export const PartListHrPlan = ({
   
         return newRows;
       } 
-      // MANUAL MODE
+      // === MANUAL MODE ===
       else {
         const shift = shiftOptions.find(
           (option) => option.name === newRows[index][rowIndex].shift
@@ -869,34 +618,12 @@ export const PartListHrPlan = ({
               shift?.TotalHours
             );
   
-            // 👉 Also set machineId and operatorId here
-            const machineList = machineOptions[manufacturingVariables[index].categoryId] || [];
-            const firstAvailableMachine = machineList.find((machine) =>
-              isMachineAvailable(
-                machine.subcategoryId,
-                startDate,
-                endDate
-              )
-            );
-  
-            const machineId = firstAvailableMachine
-              ? firstAvailableMachine.subcategoryId
-              : "";
-  
-            const firstOperator = operators.find((op) =>
-              isOperatorAvailable(
-                op.name,
-                startDate,
-                endDate
-              )
-            );
-  
             return {
               ...row,
               startDate,
               endDate,
-              machineId: machineId,
-              operatorId: firstOperator ? firstOperator._id : "",
+              // MachineId and OperatorId remain as they are (empty)
+              // So user picks manually
             };
           }
           return row;
@@ -1304,42 +1031,6 @@ export const PartListHrPlan = ({
                           </td>
 
                           <td>
-                            {/* <DatePicker
-                              selected={
-                                row.startDate ? new Date(row.startDate) : null
-                              }
-                              onChange={(date) => {
-                                if (!date) return;
-
-                                // Ensure the selected date does not fall into an occupied range
-                                const isAvailable = isMachineAvailable(
-                                  row.machineId,
-                                  date,
-                                  row.endDate
-                                );
-
-                                if (isAvailable) {
-                                  handleStartDateChange(index, rowIndex, date);
-                                } else {
-                                  toast.error(
-                                    "This machine is occupied during the selected dates."
-                                  );
-                                }
-                              }}
-                              dayClassName={(date) =>
-                                isMachineAvailable(
-                                  row.machineId,
-                                  date,
-                                  row.endDate
-                                )
-                                  ? ""
-                                  : "highlighted-date"
-                              }
-                              renderDayContents={renderDayContents}
-                              customInput={<CustomInput />}
-                              dateFormat="dd-MM-yyyy"
-                            /> */}
-
                             <DatePicker
                               selected={
                                 row.startDate ? new Date(row.startDate) : null

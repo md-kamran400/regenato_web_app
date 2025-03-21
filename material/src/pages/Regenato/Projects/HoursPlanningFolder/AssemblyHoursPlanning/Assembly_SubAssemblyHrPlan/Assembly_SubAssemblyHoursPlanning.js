@@ -476,6 +476,13 @@ export const Assembly_SubAssemblyHoursPlanning = ({
     return { ...allRows };
   };
 
+  const formatDate = (dateObj) => {
+    const year = dateObj.getFullYear();
+    const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+    const day = String(dateObj.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`; // Format: YYYY-MM-DD
+  };
+
   const getNextWorkingDay = (date) => {
     let nextDay = new Date(date);
     while (isHighlightedOrDisabled(nextDay)) {
@@ -525,8 +532,8 @@ export const Assembly_SubAssemblyHoursPlanning = ({
     const endDate = new Date(currentDate);
 
     return {
-      startDate: startDate.toISOString().split("T")[0],
-      endDate: endDate.toISOString().split("T")[0],
+      startDate: formatDate(startDate),
+      endDate: formatDate(endDate),
     };
   };
 
@@ -542,7 +549,7 @@ export const Assembly_SubAssemblyHoursPlanning = ({
     setRows((prevRows) => {
       const newRows = { ...prevRows };
 
-      // AUTO SCHEDULE MODE
+      // === AUTO SCHEDULE MODE ===
       if (isAutoSchedule && index === 0) {
         let currentDate = new Date(nextWorkingDay);
 
@@ -556,7 +563,7 @@ export const Assembly_SubAssemblyHoursPlanning = ({
               shift?.TotalHours
             );
 
-            // 👉 Find Available Machine
+            // 👉 Auto-pick Machine
             const machineList = machineOptions[man.categoryId] || [];
             const firstAvailableMachine = machineList.find((machine) =>
               isMachineAvailable(machine.subcategoryId, startDate, endDate)
@@ -566,7 +573,7 @@ export const Assembly_SubAssemblyHoursPlanning = ({
               ? firstAvailableMachine.subcategoryId
               : "";
 
-            // 👉 Find Available Operator
+            // 👉 Auto-pick Operator
             const firstOperator = operators.find((op) =>
               isOperatorAvailable(op.name, startDate, endDate)
             );
@@ -590,7 +597,7 @@ export const Assembly_SubAssemblyHoursPlanning = ({
 
         return newRows;
       }
-      // MANUAL MODE
+      // === MANUAL MODE ===
       else {
         const shift = shiftOptions.find(
           (option) => option.name === newRows[index][rowIndex].shift
@@ -604,27 +611,12 @@ export const Assembly_SubAssemblyHoursPlanning = ({
               shift?.TotalHours
             );
 
-            // 👉 Also set machineId and operatorId here
-            const machineList =
-              machineOptions[manufacturingVariables[index].categoryId] || [];
-            const firstAvailableMachine = machineList.find((machine) =>
-              isMachineAvailable(machine.subcategoryId, startDate, endDate)
-            );
-
-            const machineId = firstAvailableMachine
-              ? firstAvailableMachine.subcategoryId
-              : "";
-
-            const firstOperator = operators.find((op) =>
-              isOperatorAvailable(op.name, startDate, endDate)
-            );
-
             return {
               ...row,
               startDate,
               endDate,
-              machineId: machineId,
-              operatorId: firstOperator ? firstOperator._id : "",
+              // MachineId and OperatorId remain as they are (empty)
+              // So user picks manually
             };
           }
           return row;
