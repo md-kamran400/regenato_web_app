@@ -55,7 +55,7 @@ export const Assembly_SubAssemblyHoursPlanning = ({
   const [isDataAllocated, setIsDataAllocated] = useState(false);
   const [allocatedMachines, setAllocatedMachines] = useState({});
   const [operatorAllocations, setOperatorAllocations] = useState({});
-  
+
   useEffect(() => {
     fetch(`${process.env.REACT_APP_BASE_URL}/api/eventScheduler/events`)
       .then((response) => response.json())
@@ -413,68 +413,6 @@ export const Assembly_SubAssemblyHoursPlanning = ({
     return parsedDate.toISOString().split("T")[0];
   };
 
-  // const prefillData = (allRows, startDate) => {
-  //   let currentDate = new Date(startDate);
-
-  //   manufacturingVariables.forEach((man, index) => {
-  //     if (!allRows[index]) return;
-
-  //     allRows[index].forEach((row, rowIdx) => {
-  //       const machineList = machineOptions[man.categoryId] || [];
-  //       const firstAvailableMachine = machineList.find((machine) =>
-  //         isMachineAvailable(
-  //           machine.subcategoryId,
-  //           currentDate,
-  //           calculateEndDate(currentDate, row.plannedQtyTime)
-  //         )
-  //       );
-
-  //       const firstMachine = firstAvailableMachine
-  //         ? firstAvailableMachine.subcategoryId
-  //         : "";
-
-  //       const firstOperator =
-  //         operators.find((op) => op.processName.includes(man.name)) || {};
-
-  //       const firstShift = shiftOptions.length > 0 ? shiftOptions[0] : null;
-
-  //       const processStartDate = currentDate.toISOString().split("T")[0];
-
-  //       const plannedMinutes = calculatePlannedMinutes(man.hours * quantity);
-  //       const processEndDate = calculateEndDate(
-  //         processStartDate,
-  //         plannedMinutes,
-  //         firstShift?.TotalHours
-  //       );
-
-  //       allRows[index][rowIdx] = {
-  //         ...row,
-  //         startDate: processStartDate,
-  //         endDate: processEndDate,
-  //         machineId: firstMachine,
-  //         operatorId: firstOperator._id || "",
-  //         shift: firstShift ? firstShift.name : "",
-  //         startTime: firstShift ? firstShift.startTime : "",
-  //       };
-
-  //       // Update currentDate to the day after the end date
-  //       currentDate = new Date(processEndDate);
-  //       currentDate.setDate(currentDate.getDate() + 1);
-
-  //       // Skip Sundays and holidays for the next process
-  //       while (
-  //         getDay(currentDate) === 0 ||
-  //         eventDates.some((d) => isSameDay(d, currentDate))
-  //       ) {
-  //         currentDate.setDate(currentDate.getDate() + 1);
-  //       }
-  //     });
-  //   });
-
-  //   console.log("Prefilled Data:", JSON.stringify(allRows, null, 2));
-  //   return { ...allRows }; // Ensure state update
-  // };
-
   const prefillData = (allRows, startDate) => {
     let currentDate = new Date(startDate);
 
@@ -538,17 +476,62 @@ export const Assembly_SubAssemblyHoursPlanning = ({
     return { ...allRows };
   };
 
+  const getNextWorkingDay = (date) => {
+    let nextDay = new Date(date);
+    while (isHighlightedOrDisabled(nextDay)) {
+      nextDay.setDate(nextDay.getDate() + 1);
+    }
+    return nextDay;
+  };
+
+  const calculateStartAndEndDates = (
+    inputStartDate,
+    plannedMinutes,
+    shiftMinutes = 480
+  ) => {
+    let parsedStartDate = new Date(inputStartDate);
+    let remainingMinutes = plannedMinutes;
+    let totalShiftMinutes = shiftMinutes;
+    let currentDate = new Date(parsedStartDate);
+
+    // Skip holidays or Sundays initially
+    while (
+      getDay(currentDate) === 0 ||
+      eventDates.some((d) => isSameDay(d, currentDate))
+    ) {
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    // Keep track of start date
+    const startDate = new Date(currentDate);
+
+    // Loop to calculate how many days needed
+    while (remainingMinutes > 0) {
+      // If it's a working day
+      if (
+        getDay(currentDate) !== 0 &&
+        !eventDates.some((d) => isSameDay(d, currentDate))
+      ) {
+        remainingMinutes -= totalShiftMinutes;
+      }
+
+      // If remaining minutes still left, go to next day
+      if (remainingMinutes > 0) {
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+    }
+
+    // Final end date
+    const endDate = new Date(currentDate);
+
+    return {
+      startDate: startDate.toISOString().split("T")[0],
+      endDate: endDate.toISOString().split("T")[0],
+    };
+  };
+
   const handleStartDateChange = (index, rowIndex, date) => {
     if (!date) return;
-
-    // Function to find the next working day
-    const getNextWorkingDay = (date) => {
-      let nextDay = new Date(date);
-      while (isHighlightedOrDisabled(nextDay)) {
-        nextDay.setDate(nextDay.getDate() + 1);
-      }
-      return nextDay;
-    };
 
     const nextWorkingDay = getNextWorkingDay(date);
 
@@ -559,46 +542,95 @@ export const Assembly_SubAssemblyHoursPlanning = ({
     setRows((prevRows) => {
       const newRows = { ...prevRows };
 
+      // AUTO SCHEDULE MODE
       if (isAutoSchedule && index === 0) {
-        // Perform machine availability check for auto-schedule mode
-        const isAvailable = isMachineAvailable(
-          newRows[index][rowIndex].machineId,
-          nextWorkingDay,
-          calculateEndDate(
-            nextWorkingDay,
-            newRows[index][rowIndex].plannedQtyTime
-          )
-        );
+        let currentDate = new Date(nextWorkingDay);
 
-        if (isAvailable) {
-          return prefillData(newRows, nextWorkingDay);
-        } else {
-          toast.error("This machine is occupied during the selected dates.");
-          return newRows; // Do not update rows if machine is unavailable
-        }
-      } else {
-        // Check machine availability for manual mode
-        const isAvailable = isMachineAvailable(
-          newRows[index][rowIndex].machineId,
-          nextWorkingDay,
-          newRows[index][rowIndex].endDate
-        );
+        manufacturingVariables.forEach((man, processIndex) => {
+          const shift = shiftOptions.length > 0 ? shiftOptions[0] : null;
 
-        if (isAvailable) {
-          newRows[index] = newRows[index].map((row, idx) => {
-            if (idx === rowIndex) {
-              return {
-                ...row,
-                startDate: nextWorkingDay,
-                endDate: calculateEndDate(nextWorkingDay, row.plannedQtyTime),
-              };
-            }
-            return row;
+          newRows[processIndex] = newRows[processIndex].map((row) => {
+            const { startDate, endDate } = calculateStartAndEndDates(
+              currentDate,
+              row.plannedQtyTime,
+              shift?.TotalHours
+            );
+
+            // 👉 Find Available Machine
+            const machineList = machineOptions[man.categoryId] || [];
+            const firstAvailableMachine = machineList.find((machine) =>
+              isMachineAvailable(machine.subcategoryId, startDate, endDate)
+            );
+
+            const machineId = firstAvailableMachine
+              ? firstAvailableMachine.subcategoryId
+              : "";
+
+            // 👉 Find Available Operator
+            const firstOperator = operators.find((op) =>
+              isOperatorAvailable(op.name, startDate, endDate)
+            );
+
+            // Prepare for next process
+            currentDate = new Date(endDate);
+            currentDate.setDate(currentDate.getDate() + 1);
+            currentDate = getNextWorkingDay(currentDate);
+
+            return {
+              ...row,
+              startDate,
+              endDate,
+              shift: shift?.name || "",
+              startTime: shift?.startTime || "",
+              machineId: machineId,
+              operatorId: firstOperator ? firstOperator._id : "",
+            };
           });
-        } else {
-          toast.error("This machine is occupied during the selected dates.");
-        }
+        });
+
+        return newRows;
       }
+      // MANUAL MODE
+      else {
+        const shift = shiftOptions.find(
+          (option) => option.name === newRows[index][rowIndex].shift
+        );
+
+        newRows[index] = newRows[index].map((row, idx) => {
+          if (idx === rowIndex) {
+            const { startDate, endDate } = calculateStartAndEndDates(
+              nextWorkingDay,
+              row.plannedQtyTime,
+              shift?.TotalHours
+            );
+
+            // 👉 Also set machineId and operatorId here
+            const machineList =
+              machineOptions[manufacturingVariables[index].categoryId] || [];
+            const firstAvailableMachine = machineList.find((machine) =>
+              isMachineAvailable(machine.subcategoryId, startDate, endDate)
+            );
+
+            const machineId = firstAvailableMachine
+              ? firstAvailableMachine.subcategoryId
+              : "";
+
+            const firstOperator = operators.find((op) =>
+              isOperatorAvailable(op.name, startDate, endDate)
+            );
+
+            return {
+              ...row,
+              startDate,
+              endDate,
+              machineId: machineId,
+              operatorId: firstOperator ? firstOperator._id : "",
+            };
+          }
+          return row;
+        });
+      }
+
       return newRows;
     });
   };
