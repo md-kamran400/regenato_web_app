@@ -1,8 +1,10 @@
+require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
 const partproject = express.Router();
 const PartListProjectModel = require("../model/project/PartListProjectModel");
 const ManufacturingModel = require("../model/manufacturingmodel");
+const axios = require("axios");
 
 // ============================================ PART-LIST CODE START ===============================
 // Create a new project with a parts list named after the project
@@ -2717,6 +2719,161 @@ partproject.post(
       allocation.actualEndDate = calculatedEndDate;
 
       // Save project
+      await project.save();
+
+      res.status(201).json({
+        message: "Daily tracking added successfully",
+        allocation,
+      });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Server error" });
+    }
+  }
+);
+
+// ================================================================
+
+partproject.post(
+  "/projects/:projectId/partsLists/:partsListId/partsListItems/:partListItemId/allocations/:processId/allocations/:allocationId/dailyTracking",
+  async (req, res) => {
+    try {
+      const {
+        projectId,
+        partsListId,
+        partListItemId,
+        processId,
+        allocationId,
+      } = req.params;
+      const { date, planned, produced, operator, dailyStatus } = req.body;
+
+      const project = await PartListProjectModel.findById(projectId);
+      if (!project) return res.status(404).json({ error: "Project not found" });
+
+      const partsList = project.partsLists.find(
+        (p) => p._id.toString() === partsListId
+      );
+      if (!partsList)
+        return res.status(404).json({ error: "Parts List not found" });
+
+      const partItem = partsList.partsListItems.find(
+        (p) => p._id.toString() === partListItemId
+      );
+      if (!partItem)
+        return res.status(404).json({ error: "Part List Item not found" });
+
+      const process = partItem.allocations.find(
+        (p) => p._id.toString() === processId
+      );
+      if (!process) return res.status(404).json({ error: "Process not found" });
+
+      const allocation = process.allocations.find(
+        (a) => a._id.toString() === allocationId
+      );
+      if (!allocation)
+        return res.status(404).json({ error: "Allocation not found" });
+
+      // Step 1: Fetch holidays
+      const holidaysResponse = await axios.get(
+        `${process.env.BASE_URL}/api/eventScheduler/events`
+      );
+      const holidays = holidaysResponse.data;
+
+      // Create a Set of holiday dates in 'YYYY-MM-DD' format for fast lookup
+      const holidayDates = new Set();
+      holidays.forEach((event) => {
+        const start = new Date(event.startDate);
+        const end = new Date(event.endDate);
+        for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+          holidayDates.add(d.toISOString().split("T")[0]);
+        }
+      });
+
+      // Step 2: Generate working days between startDate and endDate
+      const workingDays = [];
+      let current = new Date(allocation.startDate);
+      const end = new Date(allocation.endDate);
+      while (current <= end) {
+        const day = current.getDay(); // 0 = Sunday
+        const dateStr = current.toISOString().split("T")[0];
+        if (day !== 0 && !holidayDates.has(dateStr)) {
+          workingDays.push(new Date(current));
+        }
+        current.setDate(current.getDate() + 1);
+      }
+
+      // Step 3: Calculate daily planned quantity based on working days
+      const plannedQuantity = allocation.plannedQuantity;
+      const numberOfWorkingDays = workingDays.length;
+
+      const dailyPlannedQty =
+        numberOfWorkingDays > 0
+          ? Math.ceil(plannedQuantity / numberOfWorkingDays)
+          : 0;
+
+      allocation.dailyPlannedQty = dailyPlannedQty;
+
+      // Step 4: Push today's tracking
+      allocation.dailyTracking.push({
+        date,
+        planned,
+        produced,
+        operator,
+        dailyStatus,
+      });
+
+      // Step 5: Sort tracking by date
+      allocation.dailyTracking.sort(
+        (a, b) => new Date(a.date) - new Date(b.date)
+      );
+
+      // Step 6: Recalculate cumulative production
+      let cumulativeProduced = 0;
+      let cumulativePlanned = 0;
+      let deficit = 0;
+      let surplus = 0;
+      allocation.dailyTracking.forEach((entry) => {
+        cumulativeProduced += entry.produced;
+        cumulativePlanned += entry.planned;
+
+        const dailyDiff = entry.produced - entry.planned;
+        if (dailyDiff < 0) {
+          deficit += Math.abs(dailyDiff);
+        } else if (dailyDiff > 0) {
+          if (deficit > 0) {
+            const usedToCover = Math.min(deficit, dailyDiff);
+            deficit -= usedToCover;
+            surplus += dailyDiff - usedToCover;
+          } else {
+            surplus += dailyDiff;
+          }
+        }
+      });
+
+      // Step 7: Recalculate extra days needed
+      let totalDeficit = deficit;
+      let extraDays = 0;
+      if (totalDeficit > 0 && dailyPlannedQty > 0) {
+        extraDays = Math.ceil(totalDeficit / dailyPlannedQty);
+      }
+
+      // Step 8: Calculate actual end date
+      const originalEndDate = new Date(allocation.endDate);
+      let calculatedEndDate = new Date(originalEndDate);
+
+      // Add extra days while skipping Sundays & holidays
+      while (extraDays > 0) {
+        calculatedEndDate.setDate(calculatedEndDate.getDate() + 1);
+        const day = calculatedEndDate.getDay();
+        const dateStr = calculatedEndDate.toISOString().split("T")[0];
+        if (day !== 0 && !holidayDates.has(dateStr)) {
+          extraDays--;
+        }
+      }
+
+      allocation.actualEndDate = calculatedEndDate;
+
+      // Step 9: Save project
       await project.save();
 
       res.status(201).json({
