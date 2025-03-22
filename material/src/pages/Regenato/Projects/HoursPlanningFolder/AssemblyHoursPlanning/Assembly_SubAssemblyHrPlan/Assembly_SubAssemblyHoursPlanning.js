@@ -942,13 +942,13 @@ export const Assembly_SubAssemblyHoursPlanning = ({
                       <tr>
                         {/* <th style={{ width: "15%" }}>Part Type</th> */}
                         <th>Planned Quantity</th>
-                        <th style={{ width: "10%" }}>Start Date</th>
-
-                        <th style={{ width: "8%" }}>End Date</th>
-                        <th style={{ width: "25%" }}>Machine ID</th>
+                        <th>Planned Qty Time</th>
                         <th style={{ width: "20%" }}>Shift</th>
                         <th style={{ width: "15%" }}>Start Time</th>
-                        <th>Planned Qty Time</th>
+                        <th style={{ width: "10%" }}>Start Date</th>
+                        <th style={{ width: "8%" }}>End Date</th>
+
+                        <th style={{ width: "25%" }}>Machine ID</th>
                         <th style={{ width: "50%" }}>Operator</th>
                         <th>Actions</th>
                       </tr>
@@ -1022,6 +1022,78 @@ export const Assembly_SubAssemblyHoursPlanning = ({
                               />
                             )}
                           </td>
+                          <td>{row.plannedQtyTime} m</td>
+                          <td>
+                            <Autocomplete
+                              options={shiftOptions || []}
+                              value={
+                                shiftOptions.find(
+                                  (option) => option.name === row.shift
+                                ) || null
+                              }
+                              onChange={(event, newValue) => {
+                                if (!newValue) return;
+
+                                setRows((prevRows) => ({
+                                  ...prevRows,
+                                  [index]: prevRows[index].map(
+                                    (row, rowIdx) => {
+                                      if (rowIdx === rowIndex) {
+                                        let updatedEndDate = row.endDate;
+                                        // Only recalculate if startDate exists
+                                        if (row.startDate) {
+                                          const recalculated =
+                                            calculateStartAndEndDates(
+                                              row.startDate,
+                                              row.plannedQtyTime,
+                                              newValue.TotalHours
+                                            );
+                                          updatedEndDate = recalculated.endDate;
+                                        }
+                                        return {
+                                          ...row,
+                                          shift: newValue.name,
+                                          startTime: newValue.startTime,
+                                          shiftMinutes: newValue.TotalHours,
+                                          endDate: updatedEndDate,
+                                        };
+                                      }
+                                      return row;
+                                    }
+                                  ),
+                                }));
+                              }}
+                              getOptionLabel={(option) => option.name}
+                              renderInput={(params) => (
+                                <TextField
+                                  {...params}
+                                  label="Shift"
+                                  variant="outlined"
+                                  size="small"
+                                  placeholder="Select Shift"
+                                />
+                              )}
+                              disablePortal
+                              autoHighlight
+                              noOptionsText="No shifts available"
+                              disabled={!hasStartDate && index !== 0}
+                            />
+                          </td>
+
+                          <td>
+                            <Input
+                              type="time"
+                              value={row.startTime}
+                              onChange={(e) => {
+                                setRows((prevRows) => {
+                                  const updatedRows = [...prevRows[index]];
+                                  updatedRows[rowIndex].startTime =
+                                    e.target.value;
+                                  return { ...prevRows, [index]: updatedRows };
+                                });
+                              }}
+                            />
+                          </td>
 
                           <td>
                             <DatePicker
@@ -1061,21 +1133,24 @@ export const Assembly_SubAssemblyHoursPlanning = ({
                             />
 
                             <style>{`
-                                .highlighted-date {
-                                  background-color: #f06548 !important;
-                                  color: black !important;
-                                  border-radius: 50%;
-                                }
-                                .grayed-out-date {
-                                   color: #ccc !important;
-                                  //  disabled
-                                  // display:none
-                                }
-                              `}</style>
+                                                  .highlighted-date {
+                                                    background-color: #f06548 !important;
+                                                    color: black !important;
+                                                    border-radius: 50%;
+                                                  }
+                                                  .grayed-out-date {
+                                                     color: #ccc !important;
+                                                    //  disabled
+                                                    // display:none
+                                                  }
+                                                `}</style>
                           </td>
-
                           <td>
-                            <Input type="date" value={row.endDate} readOnly />
+                            <Input
+                              type="date"
+                              value={row.endDate}
+                              placeholder="DD-MM-YYYY"
+                            />
                           </td>
 
                           <td>
@@ -1169,70 +1244,6 @@ export const Assembly_SubAssemblyHoursPlanning = ({
                               disableClearable={false}
                             />
                           </td>
-
-                          <Autocomplete
-                            options={shiftOptions || []}
-                            value={
-                              shiftOptions.find(
-                                (option) => option.name === row.shift
-                              ) || null
-                            }
-                            onChange={(event, newValue) => {
-                              if (!newValue) return;
-
-                              // No uniqueness check for shift (allow multiple selections)
-                              setRows((prevRows) => ({
-                                ...prevRows,
-                                [index]: prevRows[index].map((row, rowIdx) =>
-                                  rowIdx === rowIndex
-                                    ? {
-                                        ...row,
-                                        shift: newValue.name,
-                                        startTime: newValue.startTime,
-                                        shiftMinutes: newValue.TotalHours, // Set shiftMinutes based on TotalHours
-                                        endDate: calculateEndDate(
-                                          row.startDate,
-                                          row.plannedQtyTime,
-                                          newValue.TotalHours
-                                        ),
-                                      }
-                                    : row
-                                ),
-                              }));
-                            }}
-                            getOptionLabel={(option) => option.name}
-                            renderInput={(params) => (
-                              <TextField
-                                {...params}
-                                label="Shift"
-                                variant="outlined"
-                                size="small"
-                                placeholder="Select Shift"
-                              />
-                            )}
-                            disablePortal
-                            autoHighlight
-                            noOptionsText="No shifts available"
-                            disabled={!hasStartDate && index !== 0}
-                          />
-
-                          <td>
-                            <Input
-                              type="time"
-                              value={row.startTime}
-                              onChange={(e) => {
-                                setRows((prevRows) => {
-                                  const updatedRows = [...prevRows[index]];
-                                  updatedRows[rowIndex].startTime =
-                                    e.target.value;
-                                  return { ...prevRows, [index]: updatedRows };
-                                });
-                              }}
-                            />
-                          </td>
-
-                          <td>{row.plannedQtyTime} m</td>
-
                           <td>
                             <Autocomplete
                               options={operators.filter((op) =>
@@ -1280,6 +1291,24 @@ export const Assembly_SubAssemblyHoursPlanning = ({
                                 );
                               }}
                               onChange={(event, newValue) => {
+                                if (!hasStartDate) return;
+
+                                // Check if operator is already selected in another row
+                                const isOperatorAlreadyUsedInRow = rows[
+                                  index
+                                ]?.some(
+                                  (r, idx) =>
+                                    idx !== rowIndex &&
+                                    r.operatorId === newValue?._id
+                                );
+
+                                if (isOperatorAlreadyUsedInRow) {
+                                  toast.warning(
+                                    "This operator is already selected in another row."
+                                  );
+                                  return;
+                                }
+
                                 setRows((prevRows) => {
                                   const updatedRows = [...prevRows[index]];
                                   updatedRows[rowIndex] = {

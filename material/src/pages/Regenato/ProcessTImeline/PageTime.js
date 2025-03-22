@@ -3,6 +3,7 @@ import Calendar from "@fullcalendar/react";
 import resourceTimelinePlugin from "@fullcalendar/resource-timeline";
 import adaptivePlugin from "@fullcalendar/adaptive";
 import "./PageTime.css"; // Import the CSS file
+import { Loader } from "lucide-react";
 
 const processColors = {
   C1: { bg: "#3B82F6", border: "#2563EB" },
@@ -25,7 +26,9 @@ const processColors = {
 };
 
 const fetchManufacturingData = async () => {
-  const response = await fetch(`${process.env.REACT_APP_BASE_URL}/api/manufacturing`);
+  const response = await fetch(
+    `${process.env.REACT_APP_BASE_URL}/api/manufacturing`
+  );
   const data = await response.json();
   return data;
 };
@@ -35,7 +38,7 @@ const fetchAllocationsData = async () => {
     `${process.env.REACT_APP_BASE_URL}/api/defpartproject/all-allocations`
   );
   const data = await response.json();
-  console.log(data.data)
+  console.log(data.data);
   return data.data; // Assuming the response structure has a `data` field
 };
 
@@ -143,7 +146,11 @@ const TimePage = () => {
   if (loading) {
     return (
       <div className="timeline-container">
-        <div className="loading-container">Loading timeline data...</div>
+        <div className="loader-overlay">
+          <div className="spinner-border text-primary" role="status">
+            <span className="visually-hidden">Loading...</span>
+          </div>
+        </div>
       </div>
     );
   }
@@ -230,7 +237,7 @@ const TimePage = () => {
               const divElement = document.createElement("div");
               divElement.className = "timeline-event";
               divElement.style.height = "24px";
-              divElement.innerText = `${props.machine} | ${props.part} | ${props.po} | ${props.operator}`;
+              divElement.innerText = `${props.machine} | ${props.part} | ${props.projectName} | ${props.operator}`;
 
               return { domNodes: [divElement] };
             }}
@@ -246,7 +253,6 @@ const TimePage = () => {
                 Project: ${props.projectName || "N/A"}
                 Machine: ${props.machine || "N/A"}
                 Part: ${props.part || "N/A"}
-                PO: ${props.po || "N/A"}
                 Operator: ${props.operator || "N/A"}
                 Quantity: ${props.quantity || "N/A"}
                 Shift: ${props.shift || "N/A"}

@@ -15,7 +15,9 @@ import {
   CardBody,
 } from "reactstrap";
 import { toast } from "react-toastify";
-
+import DatePicker from "react-datepicker";
+import "../../TestingPartAllocation/AllocatedPartListHrPlan.css";
+import moment from "moment";
 export const AllocatedAssemblyPartList = ({
   porjectID,
   AssemblyListId,
@@ -42,6 +44,71 @@ export const AllocatedAssemblyPartList = ({
   const [actulEndDateData, setactulEndDateData] = useState([]);
   const [addRowModal, setAddRowModal] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isDateBlocked, setIsDateBlocked] = useState(false);
+  const [highlightDates, setHighlightDates] = useState([]);
+
+  useEffect(() => {
+    const fetchHighlightDates = async () => {
+      try {
+        // Fetch all events (including holidays)
+        const response = await axios.get(
+          `${process.env.REACT_APP_BASE_URL}/api/eventScheduler/events`
+        );
+        const dates = [];
+        response.data.forEach((event) => {
+          const start = new Date(event.startDate);
+          const end = new Date(event.endDate);
+          let current = new Date(start);
+          while (current <= end) {
+            dates.push(new Date(current));
+            current.setDate(current.getDate() + 1);
+          }
+        });
+        // Filter out holiday dates (events with eventName === "HOLIDAY")
+        const holidayDates = response.data
+          .filter((event) => event.eventName === "HOLIDAY")
+          .flatMap((event) => {
+            const start = new Date(event.startDate);
+            const end = new Date(event.endDate);
+            let current = new Date(start);
+            const dates = [];
+            while (current <= end) {
+              dates.push(new Date(current));
+              current.setDate(current.getDate() + 1);
+            }
+            return dates;
+          });
+        // Combine all dates and holiday dates
+        const combinedDates = [...dates, ...holidayDates];
+        console.log("Highlight Dates:", combinedDates); // Debugging: Log the combined dates
+        setHighlightDates(combinedDates);
+      } catch (error) {
+        console.error("Error fetching highlight dates:", error);
+      }
+    };
+    fetchHighlightDates();
+  }, []);
+
+  const getExcludedDates = () => {
+    if (
+      !selectedSection?.data[0]?.startDate ||
+      !actulEndDateData.actualEndDate
+    ) {
+      return [];
+    }
+
+    const startDate = new Date(selectedSection.data[0].startDate);
+    const endDate = new Date(actulEndDateData.actualEndDate);
+    const excludedDates = [];
+    let current = new Date(startDate);
+
+    while (current <= endDate) {
+      excludedDates.push(new Date(current));
+      current.setDate(current.getDate() + 1);
+    }
+
+    return excludedDates;
+  };
 
   useEffect(() => {
     const fetchAllocations = async () => {
@@ -77,7 +144,7 @@ export const AllocatedAssemblyPartList = ({
               return {
                 trackingId: allocation._id,
                 plannedQty: allocation.plannedQuantity,
-                startDate: new Date(allocation.startDate).toLocaleDateString(),
+                startDate: new Date(allocation.startDate).toLocaleDateString(), //start date
                 endDate: new Date(allocation.endDate).toLocaleDateString(),
                 machineId: allocation.machineId,
                 shift: allocation.shift,
@@ -103,7 +170,7 @@ export const AllocatedAssemblyPartList = ({
 
     fetchAllocations();
   }, [porjectID, AssemblyListId, partListItemId]);
-//http://localhost:4040/api/defpartproject/projects/67dbd3166d077404b82ca7c1/assemblyList/67dcda142102c09a0b630b37/partsListItems/67d7745d777f0299660b8b1e/allocations
+
   const handleCancelAllocation = async () => {
     try {
       const response = await axios.delete(
@@ -148,7 +215,7 @@ export const AllocatedAssemblyPartList = ({
       setExistingDailyTracking(response.data.dailyTracking || []);
 
       // Update the actualEndDateData state with the fetched data
-      setactulEndDateData(response.data);
+      setactulEndDateData(response.data); //actual end date
     } catch (error) {
       console.error("Error fetching daily tracking data:", error);
     }
@@ -402,7 +469,6 @@ export const AllocatedAssemblyPartList = ({
       </Container>
 
       {/* Modal for Updating Daily Task */}
-
       <Modal
         isOpen={dailyTaskModal}
         toggle={closeDailyTaskModal}
@@ -602,14 +668,59 @@ export const AllocatedAssemblyPartList = ({
             {/* Date Input */}
             <div className="form-group">
               <label>Date</label>
-              <input
-                type="date"
-                className="form-control"
-                value={dailyTracking.length > 0 ? dailyTracking[0].date : ""}
-                onChange={(e) =>
-                  handleDailyTrackingChange(0, "date", e.target.value)
-                }
-              />
+              <div>
+                <DatePicker
+                  selected={
+                    dailyTracking[0].date
+                      ? new Date(dailyTracking[0].date)
+                      : null
+                  }
+                  onChange={(date) =>
+                    handleDailyTrackingChange(0, "date", date)
+                  }
+                  dateFormat="dd-MM-yyyy"
+                  className="form-control-date"
+                  placeholderText="DD-MM-YYYY"
+                  minDate={new Date(selectedSection?.data[0]?.startDate)}
+                  maxDate={
+                    actulEndDateData?.actualEndDate
+                      ? new Date(actulEndDateData.actualEndDate)
+                      : selectedSection?.data[0]?.endDate
+                      ? new Date(selectedSection.data[0].endDate)
+                      : null
+                  }
+                  filterDate={(date) => {
+                    const isHoliday = highlightDates.some(
+                      (d) => d.toDateString() === date.toDateString()
+                    );
+                    const isSunday = date.getDay() === 0;
+
+                    const maxAllowedDate = actulEndDateData?.actualEndDate
+                      ? new Date(actulEndDateData.actualEndDate)
+                      : selectedSection?.data[0]?.endDate
+                      ? new Date(selectedSection.data[0].endDate)
+                      : null;
+
+                    // Block if holiday, Sunday, or after actual end date
+                    if (maxAllowedDate && date > maxAllowedDate) {
+                      return false;
+                    }
+
+                    return !isHoliday && !isSunday;
+                  }}
+                  dayClassName={(date) => {
+                    const isHighlighted = highlightDates.some(
+                      (d) => d.toDateString() === date.toDateString()
+                    );
+                    const isSunday = date.getDay() === 0;
+
+                    if (isHighlighted || isSunday) {
+                      return "highlighted-date";
+                    }
+                    return undefined;
+                  }}
+                />
+              </div>
             </div>
 
             {/* Planned and Produced Inputs in a Row */}

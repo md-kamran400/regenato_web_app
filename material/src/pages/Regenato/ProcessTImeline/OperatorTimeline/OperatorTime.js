@@ -178,7 +178,11 @@ const OperatorTime = () => {
   if (loading) {
     return (
       <div className="timeline-container">
-        <div className="loading-container">Loading timeline data...</div>
+        <div className="loader-overlay">
+          <div className="spinner-border text-primary" role="status">
+            <span className="visually-hidden">Loading...</span>
+          </div>
+        </div>
       </div>
     );
   }

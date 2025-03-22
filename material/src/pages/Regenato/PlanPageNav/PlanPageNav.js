@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import FullCalendar from "@fullcalendar/react";
 import resourceTimelinePlugin from "@fullcalendar/resource-timeline";
+import { FaArrowLeft, FaArrowRight } from "react-icons/fa";
 import adaptivePlugin from "@fullcalendar/adaptive";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import { FaRegCalendarAlt } from "react-icons/fa";
@@ -253,7 +254,16 @@ export function PlanPageNav() {
     return Math.ceil((end - start) / (1000 * 60 * 60 * 24));
   };
 
-  if (loading) return <div>Loading...</div>;
+  if (loading)
+    return (
+      <div>
+        <div className="loader-overlay">
+          <div className="spinner-border text-primary" role="status">
+            <span className="visually-hidden">Loading...</span>
+          </div>
+        </div>
+      </div>
+    );
   if (error) return <div>{error}</div>;
 
   // Get unique projects for the dropdown
@@ -387,16 +397,20 @@ export function PlanPageNav() {
         height="auto"
         slotMinWidth={100}
         resourceAreaHeaderContent="Order Number"
-        eventClick={handleEventClick}
         initialDate={new Date()}
         views={{
           resourceTimelineYear: {
             type: "resourceTimeline",
-            duration: { years: 1 }, // Set the duration to 1 year
-            slotDuration: { months: 1 }, // Display slots as months
-            slotLabelFormat: { month: "long" }, // Show full month names (e.g., "January")
-            slotWidth: 100, // Adjust the width of each month slot
+            duration: { years: 1 },
+            slotDuration: { months: 1 },
+            slotLabelFormat: { month: "long" },
+            slotWidth: 100,
           },
+        }}
+        eventClick={(e) => {
+          // Prevent clicking behavior
+          e.jsEvent.preventDefault();
+          e.jsEvent.stopPropagation();
         }}
         eventContent={(arg) => {
           const processColor = getProcessColor(
@@ -405,7 +419,12 @@ export function PlanPageNav() {
           return (
             <div
               className="p-1 text-sm text-white"
-              style={{ backgroundColor: processColor }}
+              style={{
+                backgroundColor: processColor,
+                pointerEvents: "none",
+                cursor: "not-allowed", // Visual feedback
+                opacity: 0.6, // Optional dim effect
+              }}
             >
               <div className="font-medium">
                 {arg.event.extendedProps.processName} -{" "}
@@ -421,17 +440,20 @@ export function PlanPageNav() {
           const processColor = getProcessColor(props.processName);
 
           const tooltipContent = `
-      Process: ${props.processName}
-      Machine: ${props.machineId}
-      Operator: ${props.operator}
-      Quantity: ${props.plannedQuantity}
-      Shift: ${props.shift}
-      Start: ${event.start?.toLocaleDateString()}
-      End: ${event.end?.toLocaleDateString()}
-    `;
+            Process: ${props.processName}
+            Machine: ${props.machineId}
+            Operator: ${props.operator}
+            Quantity: ${props.plannedQuantity}
+            Shift: ${props.shift}
+            Start: ${event.start?.toLocaleDateString()}
+            End: ${event.end?.toLocaleDateString()}
+          `;
           info.el.setAttribute("title", tooltipContent);
           info.el.style.backgroundColor = processColor;
           info.el.style.borderColor = processColor;
+          info.el.style.pointerEvents = "none"; // Disable events
+          info.el.style.cursor = "not-allowed"; // Cursor visual
+          info.el.style.opacity = "0.6";
         }}
       />
 

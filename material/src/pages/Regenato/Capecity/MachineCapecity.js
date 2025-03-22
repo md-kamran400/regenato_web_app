@@ -274,6 +274,7 @@ const MachineCapacity = () => {
                 selectsStart
                 startDate={startDate}
                 endDate={endDate}
+                dateFormat="dd-MM-yyyy"
                 className="form-control"
               />
             </div>
@@ -286,6 +287,7 @@ const MachineCapacity = () => {
                 startDate={startDate}
                 endDate={endDate}
                 minDate={startDate}
+                dateFormat="dd-MM-yyyy"
                 className="form-control"
               />
             </div>
@@ -293,8 +295,7 @@ const MachineCapacity = () => {
 
           <div className="alert alert-info mb-3">
             <strong>Selected Date Range:</strong>{" "}
-            {format(startDate, "MMM dd, yyyy")} -{" "}
-            {format(endDate, "MMM dd, yyyy")}
+            {format(startDate, "dd-MM-yyyy")} - {format(endDate, "dd-MM-yyyy")}
           </div>
         </CardBody>
       </Card>

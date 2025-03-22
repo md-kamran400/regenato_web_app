@@ -1,0 +1,59 @@
+/* Variables.css */
+.page-content {
+  display: flex;
+  min-height: 100vh;
+}
+
+.sidebar {
+  background-color: #f8f9fa;
+  padding: 20px;
+  width: 250px; /* Fixed width for sidebar */
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+  position: fixed; /* Fix the sidebar */
+  height: 100vh; /* Full height */
+  overflow-y: auto; /* Add scroll if content overflows */
+}
+
+.main-content {
+  margin-left: 250px; /* Match sidebar width */
+  flex: 1; /* Take remaining space */
+  padding: 20px;
+  background-color: #fff; /* Optional: Add background color */
+  height: 100vh; /* Full height */
+  overflow-y: auto; /* Make it scrollable */
+  position: fixed;
+}
+
+.sidebar .nav {
+  flex-direction: column;
+}
+
+.sidebar .nav-link {
+  color: #333;
+  padding: 10px 15px;
+  margin: 5px 0;
+  border-radius: 5px;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.sidebar .nav-link:hover {
+  background-color: #e9ecef;
+}
+
+.sidebar .nav-link.active {
+  background-color: #007bff;
+  color: white;
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    width: 100%; /* Full width on small screens */
+    height: auto;
+    position: relative; /* Remove fixed position */
+  }
+
+  .main-content {
+    margin-left: 0; /* Remove margin on small screens */
+  }
+}
