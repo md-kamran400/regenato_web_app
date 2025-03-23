@@ -659,8 +659,8 @@ export function PlanPage() {
                       Process Details
                     </CardTitle>
                     <div className="table-responsive">
-                      <Table bordered striped hover className="details-table">
-                        <thead>
+                      <table className="table table-striped vertical-lines horizontals-lines">
+                        <thead style={{ backgroundColor: "#f3f4f6" }}>
                           <tr>
                             <th>Split Number</th>
                             <th>Operator</th>
@@ -682,7 +682,7 @@ export function PlanPage() {
                             </tr>
                           ))}
                         </tbody>
-                      </Table>
+                      </table>
                     </div>
                   </CardBody>
                 </Card>
@@ -774,37 +774,39 @@ export function PlanPage() {
                 {/* Daily Tracking Table */}
                 <div className="daily-tracking-table">
                   <h4 className="daily-tracking-title">Daily Tracking</h4>
-                  <table className="tracking-table">
-                    <thead>
-                      <tr>
-                        <th>Date</th>
-                        <th>Planned</th>
-                        <th>Produced</th>
-                        <th>Operator</th>
-                        <th>Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {selectedSplit.allocations?.map((allocation) =>
-                        allocation.dailyTracking?.map((tracking) => (
-                          <tr key={tracking._id}>
-                            <td>{formatDate(tracking.date)}</td>
-                            <td>{tracking.planned}</td>
-                            <td>{tracking.produced}</td>
-                            <td>{tracking.operator}</td>
-                            <td
-                              style={{
-                                fontWeight: "bold",
-                                color: getStatusColor(tracking.dailyStatus),
-                              }}
-                            >
-                              {tracking.dailyStatus}
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
+                  <div className="table-responsive">
+                    <table className="table table-striped vertical-lines horizontals-lines">
+                      <thead style={{backgroundColor:'#f3f4f6'}}>
+                        <tr>
+                          <th>Date</th>
+                          <th>Planned</th>
+                          <th>Produced</th>
+                          <th>Operator</th>
+                          <th>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {selectedSplit.allocations?.map((allocation) =>
+                          allocation.dailyTracking?.map((tracking) => (
+                            <tr key={tracking._id}>
+                              <td>{formatDate(tracking.date)}</td>
+                              <td>{tracking.planned}</td>
+                              <td>{tracking.produced}</td>
+                              <td>{tracking.operator}</td>
+                              <td
+                                style={{
+                                  fontWeight: "bold",
+                                  color: getStatusColor(tracking.dailyStatus),
+                                }}
+                              >
+                                {tracking.dailyStatus}
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </>
             ) : (

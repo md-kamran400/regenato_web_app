@@ -72,6 +72,7 @@ import {
   Pagination,
   PaginationItem,
   PaginationLink,
+  Badge
 } from "reactstrap";
 import FeatherIcon from "feather-icons-react";
 import { ToastContainer, toast } from "react-toastify";
@@ -182,6 +183,8 @@ const List = () => {
   const toggleModal = () => {
     setModalList(!modal_list);
   };
+
+
 
   // function to toggle edit the modal
   const toggleEditModal = (item = null) => {
@@ -530,6 +533,40 @@ const List = () => {
     }
   };
 
+  const getStatus = (project) => {
+    let status = "On Track";
+    let statusColor = "primary";
+ 
+    const checkAllocations = (list) => {
+      list.forEach((partsList) => {
+        partsList.partsListItems.forEach((item) => {
+          item.allocations.forEach((allocationGroup) => {
+            allocationGroup.allocations.forEach((allocation) => {
+              if (allocation.actualEndDate && allocation.endDate) {
+                const actualEnd = new Date(allocation.actualEndDate);
+                const plannedEnd = new Date(allocation.endDate);
+ 
+                if (actualEnd > plannedEnd) {
+                  status = "Delayed";
+                  statusColor = "danger";
+                } else if (actualEnd < plannedEnd) {
+                  status = "Ahead";
+                  statusColor = "success";
+                }
+              }
+            });
+          });
+        });
+      });
+    };
+ 
+    checkAllocations(project.partsLists);
+    checkAllocations(project.subAssemblyListFirst);
+    checkAllocations(project.assemblyList);
+ 
+    return <Badge color={statusColor}>{status}</Badge>;
+  };
+
   // In your List component, add this function
   const getMachineHours = (project, machineName) => {
     return project.machineHours && project.machineHours[machineName]
@@ -629,8 +666,8 @@ const List = () => {
         )}
         <div className="table-container">
           <div className="table-responsive">
-            <table className="table table-striped">
-              <thead>
+            <table className="table table-striped vertical-lines horizontals-lines">
+              <thead style={{backgroundColor:'#f3f4f6'}}>
                 <tr>
                   <th
                     className="sticky-col"
@@ -649,8 +686,9 @@ const List = () => {
                     <FaSort size={15} onClick={handleSortByDate} />
                   </th>
                   <th className="child_parts">Production Order-Types</th>
-                  <th className="child_parts">Total Cost</th>
+                  <th className="child_parts">Total Cost (INR)</th>
                   <th className="child_parts">Total Hour</th>
+                  <th className="child_parts">Status</th>
                   {manufacturingData.map((item) => (
                     <th key={item._id} className="child_parts">
                       {item.name}
@@ -679,6 +717,7 @@ const List = () => {
                     <td>{item.projectType}</td>
                     <td>{Math.ceil(item.costPerUnit)}</td>
                     <td>{formatTime(item.timePerUnit)}</td>
+                    <td>{getStatus(item)}</td>
                     {manufacturingData.map((machine) => (
                       <td key={machine._id}>
                         {formatTime(

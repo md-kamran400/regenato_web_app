@@ -1,17 +1,4 @@
-.highlighted-date {
-  background-color: red !important;
-  color: white !important;
-  border-radius: 50% !important;
-}
-
-.form-control-date{
-  width: 26rem !important;
-  padding: 2%;
-  border-radius: 5px;
-  border: 1px solid rgb(201, 197, 197);
-}
-
-/* =========== ui issue for tabel */
+/* Vertical lines */
 .vertical-lines th,
 .vertical-lines td {
   border-left: 2px solid #dee2e6;

@@ -35,7 +35,10 @@ import { useLocation } from "react-router-dom";
 import { FaEdit } from "react-icons/fa";
 import { toast } from "react-toastify";
 import { BsFillClockFill } from "react-icons/bs";
-import { HiMiniCurrencyDollar } from "react-icons/hi2";
+import { TbCoinRupee } from "react-icons/tb";
+import { LuClock3 } from "react-icons/lu";
+import "./Assemblies.css";
+
 const Assmebly_subAssembly = ({
   subAssembly,
   assemblyId,
@@ -360,13 +363,13 @@ const Assmebly_subAssembly = ({
 
   useEffect(() => {
     const calculateTotals = () => {
-      const newTotalCost =  subAssembly.partsListItems.reduce(
+      const newTotalCost = subAssembly.partsListItems.reduce(
         (acc, item) =>
           acc +
           parseFloat(item.costPerUnit || 0) * parseInt(item.quantity || 0),
         0
       );
-      const newTotalHours =  subAssembly.partsListItems.reduce(
+      const newTotalHours = subAssembly.partsListItems.reduce(
         (acc, item) =>
           acc +
           parseFloat(item.timePerUnit || 0) * parseInt(item.quantity || 0),
@@ -378,7 +381,7 @@ const Assmebly_subAssembly = ({
     };
 
     calculateTotals();
-  }, [ subAssembly.partsListItems]);
+  }, [subAssembly.partsListItems]);
 
   return (
     <>
@@ -387,10 +390,18 @@ const Assmebly_subAssembly = ({
           lg={12}
           style={{
             boxSizing: "border-box",
-            borderTop: "20px solid rgb(240, 101, 72)",
-            borderRadius: "5px",
+            boxShadow:
+              "rgba(0, 0, 0, 0.02) 0px 1px 3px 0px, rgba(27, 31, 35, 0.15) 0px 0px 0px 1px",
+            borderRadius: "3px",
+            marginBottom: "20px",
           }}
         >
+          {" "}
+          <div class="card ribbon-box  shadow-none mb-lg-0">
+            <div class="card-body">
+              <div class="ribbon ribbon-danger ribbon-shape">Sub Assembly</div>
+            </div>
+          </div>
           <Row>
             <Col lg={12}>
               <Card>
@@ -485,7 +496,7 @@ const Assmebly_subAssembly = ({
                       </div>
                     </ul> */}
 
-                    <div style={{ padding: "10px 5px", display:'flex' }}>
+                    <div style={{ padding: "10px 5px", display: "flex" }}>
                       {/* Sub Assembly Name */}
                       <div style={{ fontWeight: "bold", fontSize: "25px" }}>
                         {subAssembly.subAssemblyName}
@@ -515,14 +526,22 @@ const Assmebly_subAssembly = ({
                             alignItems: "center",
                             color: "#6c757d",
                             fontWeight: "bold",
-                            marginLeft:'30px'
+                            marginLeft: "30px",
                           }}
                         >
-                          <HiMiniCurrencyDollar size={25} />
-                          <h3 style={{ fontSize: "16px", margin: "0 5px",fontWeight: "bold", }}>
+                          <TbCoinRupee size={22} />
+                          <h3
+                            style={{
+                              fontSize: "16px",
+                              margin: "0 5px",
+                              fontWeight: "bold",
+                            }}
+                          >
                             Total Cost :
                           </h3>
-                          <span style={{ fontSize: "14px",fontWeight: "bold", }}>
+                          <span
+                            style={{ fontSize: "14px", fontWeight: "bold" }}
+                          >
                             {Math.round(totalCost)}
                           </span>
                         </div>
@@ -536,11 +555,21 @@ const Assmebly_subAssembly = ({
                             fontWeight: "bold",
                           }}
                         >
-                          <BsFillClockFill size={18} />
-                          <h3 style={{ fontSize: "16px", margin: "0 5px",fontWeight: "bold", }}>
+                          <LuClock3 size={20} />
+                          <h3
+                            style={{
+                              fontSize: "16px",
+                              margin: "0 5px",
+                              fontWeight: "bold",
+                            }}
+                          >
                             Total Hours :
                           </h3>
-                          <span style={{ fontSize: "14px",fontWeight: "bold", }}>{totalHours}</span>
+                          <span
+                            style={{ fontSize: "14px", fontWeight: "bold" }}
+                          >
+                            {totalHours}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -583,9 +612,9 @@ const Assmebly_subAssembly = ({
                     </Button>
                   </div>
 
-                  <div className="table-wrapper">
+                  <div className="table table-striped vertical-lines horizontals-lines">
                     <table className="project-table">
-                      <thead>
+                      <thead style={{ backgroundColor: "#f3f4f6" }}>
                         <tr>
                           <th onClick={() => handleRowClickParts("name")}>
                             Name
@@ -593,7 +622,7 @@ const Assmebly_subAssembly = ({
                           <th>Cost Per Unit</th>
                           <th>Machining Hours</th>
                           <th>Quantity</th>
-                          <th>Total Cost</th>
+                          <th>Total Cost (INR)</th>
                           <th>Total Machining Hours</th>
                           <th>Action</th>
                         </tr>

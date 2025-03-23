@@ -275,7 +275,7 @@ export const SubAssmeblies = () => {
             <tr>
               <th style={{ fontWeight: "bold" }}>Sub-Assembly Name</th>
               <th style={{ fontWeight: "bold" }}>Sub-Assembly ID</th>
-              <th style={{ fontWeight: "bold" }}>Total Cost</th>
+              <th style={{ fontWeight: "bold" }}>Total Cost (INR)</th>
               <th style={{ fontWeight: "bold" }}>Total Hours</th>
               <th style={{ fontWeight: "bold" }}>Action</th>
             </tr>

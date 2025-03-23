@@ -9,7 +9,7 @@ import { Link } from "react-router-dom";
 import { debounce } from "lodash";
 import { Spinner } from "reactstrap";
 import { RiDeleteBin6Line } from "react-icons/ri";
-import "./projectParts.css"
+import "./projectParts.css";
 
 import {
   Card,
@@ -176,7 +176,7 @@ const List = () => {
         manufacturingVariables: [...item.manufacturingVariables],
         shipmentVariables: [...item.shipmentVariables],
         overheadsAndProfits: [...item.overheadsAndProfits],
-        partType: item.partType, 
+        partType: item.partType,
       });
     }
     setModalDuplicate(!modal_duplicate);
@@ -795,8 +795,11 @@ const List = () => {
             </div>
           </div>
         )}
-        <table className="table table-striped vertical-lines horizontals-lines" style={{border:'2px solid black'}}>
-          <thead style={{backgroundColor:'#f3f4f6'}}>
+        <table
+          className="table table-striped vertical-lines horizontals-lines"
+          style={{ border: "2px solid black" }}
+        >
+          <thead style={{ backgroundColor: "#f3f4f6" }}>
             <tr>
               <th style={{ cursor: "pointer" }}>
                 <input
@@ -817,15 +820,15 @@ const List = () => {
               <th>Client Number</th>
               <th>Cost per Unit</th>
               <th>Total Hours</th>
-              <th>Total Cost</th>
+              <th>Total Cost (INR) </th>
               <th>Total Quantity</th>
 
               <th>Actions</th>
             </tr>
           </thead>
-          <tbody style={{border:'2px solid black'}}>
+          <tbody style={{ border: "2px solid black" }}>
             {paginatedData.map((item, index) => (
-              <tr key={index} style={{border:'2px solid black'}}>
+              <tr key={index} style={{ border: "2px solid black" }}>
                 <td>
                   <input
                     type="checkbox"
@@ -833,7 +836,15 @@ const List = () => {
                     onChange={() => handleRowSelect(item._id)}
                   />
                 </td>
-                <td>{new Date(item.createdAt).toISOString().split("T")[0]}</td>
+                {/* <td>{new Date(item.createdAt).toISOString().split("T")[0]}</td> */}
+                <td>
+                  {new Date(item.createdAt).toLocaleDateString("en-GB", {
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric",
+                  })}
+                </td>
+
                 <td>
                   {item.partType === "Make" ? (
                     <Link

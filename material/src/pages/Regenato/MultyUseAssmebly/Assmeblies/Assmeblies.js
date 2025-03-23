@@ -16,6 +16,7 @@ import {
 import { Link } from "react-router-dom";
 import FeatherIcon from "feather-icons-react/build/FeatherIcon";
 import { toast } from "react-toastify";
+import "./Assemblies.css"
 
 export const Assmeblies = () => {
   const [ListData, setListData] = useState([]);
@@ -257,12 +258,12 @@ export const Assmeblies = () => {
           </div>
         </Row>
 
-        <table className="table table-striped">
-          <thead>
+        <table className="table table-striped vertical-lines horizontals-lines">
+          <thead style={{backgroundColor:'#f3f4f6'}}>
             <tr>
               <th style={{ fontWeight: "bold" }}>Assembly Name</th>
               <th style={{ fontWeight: "bold" }}>Assembly ID</th>
-              <th style={{ fontWeight: "bold" }}>Total Cost</th>
+              <th style={{ fontWeight: "bold" }}>Total Cost (INR)</th>
               <th style={{ fontWeight: "bold" }}>Total Hours</th>
               <th style={{ fontWeight: "bold" }}>Action</th>
             </tr>

@@ -683,3 +683,23 @@ h5 i.icon {
   border-radius: 4px;
 }
 
+/* =========== ui issue for tabel */
+.vertical-lines th,
+.vertical-lines td {
+  border-left: 2px solid #dee2e6;
+  border-right: 2px solid #dee2e6;
+  border-top: 2px solid #dee2e6;  /* Horizontal lines - top */
+  border-bottom: 2px solid #dee2e6; /* Horizontal lines - bottom */
+}
+
+/* Collapse borders for clean look */
+.vertical-lines {
+  border-collapse: collapse;
+  background-color: #f9f9f9; /* Table background color */
+}
+
+/* Header styling */
+.vertical-lines thead {
+  background-color: #a00e0e; /* Dark header color */
+  color: rgb(0, 0, 0); 
+}

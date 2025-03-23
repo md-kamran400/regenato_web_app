@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from "react"; //add assembly
 // import "../project.css";
-import "../projectForProjects.css"
+import "../projectForProjects.css";
 import {
   Card,
   Button,
@@ -748,11 +748,17 @@ const AssemblyTable = React.memo(
         lg={12}
         style={{
           boxSizing: "border-box",
-          borderTop: "20px solid rgb(75, 56, 179)",
-
-          borderRadius: "5px",
+          boxShadow:
+            "rgba(0, 0, 0, 0.02) 0px 1px 3px 0px, rgba(27, 31, 35, 0.15) 0px 0px 0px 1px",
+          borderRadius: "3px",
+          marginBottom: "20px",
         }}
       >
+        <div class="card ribbon-box  shadow-none mb-lg-0">
+          <div class="card-body">
+            <div class="ribbon ribbon-primary ribbon-shape">Assembly</div>
+          </div>
+        </div>
         <Row>
           <Col lg={12}>
             <Card>
@@ -821,20 +827,17 @@ const AssemblyTable = React.memo(
                 </div>
                 <div className="button-group">
                   <Button
+                    color="success"
                     className="add-btn"
                     onClick={toggleAddModal}
-                    style={{
-                      backgroundColor: "rgb(69, 203, 133)",
-                      color: "white",
-                    }}
                   >
                     <i className="ri-add-line align-bottom me-1"></i> Add Part
                   </Button>
                 </div>
 
                 <div className="table-wrapper">
-                  <table className="project-table">
-                    <thead>
+                  <table className="table table-striped vertical-lines horizontals-lines">
+                    <thead style={{ backgroundColor: "#f3f4f6" }}>
                       <tr>
                         <th onClick={() => handleRowClickParts("name")}>
                           Name
@@ -953,7 +956,7 @@ const AssemblyTable = React.memo(
 
                             {expandedRowId === item._id && (
                               <tr>
-                                <td colSpan='7'>
+                                <td colSpan="7">
                                   <AssemblyPartListHoursPlan
                                     partName={item.partName}
                                     manufacturingVariables={

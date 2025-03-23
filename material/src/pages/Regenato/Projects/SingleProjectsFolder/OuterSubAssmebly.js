@@ -534,10 +534,17 @@ const OuterSubAssmebly = React.memo(
           lg={12}
           style={{
             boxSizing: "border-box",
-            borderTop: "20px solid rgb(240, 101, 72)",
-            borderRadius: "5px",
+            boxShadow:
+              "rgba(0, 0, 0, 0.02) 0px 1px 3px 0px, rgba(27, 31, 35, 0.15) 0px 0px 0px 1px",
+            borderRadius: "3px",
+            marginBottom: "20px",
           }}
         >
+          <div class="card ribbon-box  shadow-none mb-lg-0">
+            <div class="card-body">
+              <div class="ribbon ribbon-danger ribbon-shape" >Sub Assembly</div>
+            </div>
+          </div>
           <Row>
             <Col lg={12}>
               <Card>
@@ -616,8 +623,8 @@ const OuterSubAssmebly = React.memo(
                   </div>
 
                   <div className="table-wrapper">
-                    <table className="project-table">
-                      <thead>
+                    <table className="table table-striped vertical-lines horizontals-lines">
+                      <thead style={{backgroundColor:'#f3f4f6'}}>
                         <tr>
                           <th onClick={() => handleRowClickParts("name")}>
                             Name
@@ -625,7 +632,7 @@ const OuterSubAssmebly = React.memo(
                           <th>Cost Per Unit</th>
                           <th>Machining Hours</th>
                           <th>Quantity</th>
-                          <th>Total Cost</th>
+                          <th>Total Cost (INR)</th>
                           <th>Total Machining Hours</th>
                           <th>Action</th>
                         </tr>

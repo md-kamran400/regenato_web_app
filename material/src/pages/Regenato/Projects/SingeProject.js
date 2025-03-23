@@ -29,10 +29,6 @@ import { Link, useParams } from "react-router-dom";
 // import "./project.css";
 import "./projectForProjects.css"
 import { FiSettings } from "react-icons/fi";
-// import RawMaterial from "./ExpandFolders/RawMaterial";
-// import Manufacturing from "./ExpandFolders/Manufacturing";
-// import Shipment from "./ExpandFolders/Shipment";
-// import Overheads from "./ExpandFolders/Overheads";
 import { MdOutlineDelete } from "react-icons/md";
 import AssemblyTable from "./SingleProjectsFolder/AssemblyTable";
 import SubAssemblyTable from "./SingleProjectsFolder/SubAssemblyTable";
@@ -874,7 +870,7 @@ const SingeProject = () => {
     <React.Fragment>
       <div className="page-content">
         <Container fluid>
-          <div className="project-header">
+          <div className="project-header" style={{marginTop:'-2rem'}}>
             {/* Left Section */}
             <div className="header-section left">
               <h2 className="project-name" style={{ fontWeight: "bold" }}>

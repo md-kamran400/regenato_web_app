@@ -37,6 +37,9 @@ import { toast } from "react-toastify";
 import { BsFillClockFill } from "react-icons/bs";
 import { HiMiniCurrencyDollar } from "react-icons/hi2";
 import "./subAssemblies.css";
+import { TbCoinRupee } from "react-icons/tb";
+import { LuClock3 } from "react-icons/lu";
+
 const SingleSubAssembly = () => {
   const { _id } = useParams();
 
@@ -454,10 +457,17 @@ const SingleSubAssembly = () => {
           lg={12}
           style={{
             boxSizing: "border-box",
-            borderTop: "20px solid rgb(240, 101, 72)",
-            borderRadius: "5px",
+            boxShadow:
+              "rgba(0, 0, 0, 0.02) 0px 1px 3px 0px, rgba(27, 31, 35, 0.15) 0px 0px 0px 1px",
+            borderRadius: "3px",
+            marginBottom: "20px",
           }}
         >
+          <div class="card ribbon-box  shadow-none mb-lg-0">
+            <div class="card-body">
+              <div class="ribbon ribbon-danger ribbon-shape">Sub Assembly</div>
+            </div>
+          </div>
           <Row>
             <Col lg={12}>
               <Card>
@@ -469,8 +479,7 @@ const SingleSubAssembly = () => {
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "space-between",
-                      backgroundColor: "#f8f9fa",
-                      boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.1)",
+                      
                     }}
                   >
                     <div
@@ -520,7 +529,7 @@ const SingleSubAssembly = () => {
                             fontWeight: "bold",
                           }}
                         >
-                          <HiMiniCurrencyDollar size={22} />
+                          <TbCoinRupee size={22} />
                           <h3 style={{ fontSize: "16px", margin: "0 5px" }}>
                             Total Cost:
                           </h3>
@@ -538,7 +547,7 @@ const SingleSubAssembly = () => {
                             fontWeight: "bold",
                           }}
                         >
-                          <BsFillClockFill size={18} />
+                          <LuClock3 size={19} />
                           <h3 style={{ fontSize: "16px", margin: "0 5px" }}>
                             Total Hours:
                           </h3>
@@ -595,7 +604,7 @@ const SingleSubAssembly = () => {
                           <th>Cost Per Unit</th>
                           <th>Machining Hours</th>
                           <th>Quantity</th>
-                          <th>Total Cost</th>
+                          <th>Total Cost (INR)</th>
                           <th>Total Machining Hours</th>
                           <th>Action</th>
                         </tr>
@@ -677,7 +686,7 @@ const SingleSubAssembly = () => {
                                     {/* <span>
                                     <FiEdit size={20} />
                                   </span> */}
-                                   
+
                                     <span
                                       style={{
                                         color: "red",

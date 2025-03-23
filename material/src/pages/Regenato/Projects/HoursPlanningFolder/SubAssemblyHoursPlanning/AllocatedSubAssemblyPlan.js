@@ -144,8 +144,10 @@ export const AllocatedSubAssemblyPlan = ({
               return {
                 trackingId: allocation._id,
                 plannedQty: allocation.plannedQuantity,
-                startDate: new Date(allocation.startDate).toLocaleDateString(), //start date
-                endDate: new Date(allocation.endDate).toLocaleDateString(),
+                // startDate: new Date(allocation.startDate).toLocaleDateString(), //start date
+                // endDate: new Date(allocation.endDate).toLocaleDateString(),
+                startDate: moment(allocation.startDate).format("DD MMM YYYY"), // Updated
+                endDate: moment(allocation.endDate).format("DD MMM YYYY"), // Updated
                 machineId: allocation.machineId,
                 shift: allocation.shift,
                 plannedTime: `${allocation.plannedTime} min`,
@@ -405,55 +407,44 @@ export const AllocatedSubAssemblyPlan = ({
                   </h4>
                 </Col>
               </Row>
-
-              <Table bordered responsive>
-                <thead>
-                  <tr className="table-secondary">
-                    <th>Planned Quantity</th>
-                    <th>Start Date</th>
-                    <th>End Date</th>
-                    <th>Machine ID</th>
-                    <th>Shift</th>
-                    <th>Planned Time</th>
-                    <th>Operator</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {section.data.map((row, rowIndex) => (
-                    <tr key={rowIndex}>
-                      <td>{row.plannedQty}</td>
-                      <td>
-                        {new Date(row.startDate).toLocaleDateString("en-GB", {
-                          day: "2-digit",
-                          month: "short",
-                          year: "numeric",
-                        })}
-                      </td>
-                      <td>
-                        {new Date(row.endDate).toLocaleDateString("en-GB", {
-                          day: "2-digit",
-                          month: "short",
-                          year: "numeric",
-                        })}
-                      </td>
-
-                      <td>{row.machineId}</td>
-                      <td>{row.shift}</td>
-                      <td>{row.plannedTime}</td>
-                      <td>{row.operator}</td>
-                      <td>
-                        <Button
-                          color="primary"
-                          onClick={() => openModal(section, row)} // Pass the row data
-                        >
-                          Update Input
-                        </Button>
-                      </td>
+              <div className="table-responsive">
+                <table className="table table-striped vertical-lines horizontals-lines">
+                  <thead style={{ backgroundColor: "#f3f4f6" }}>
+                    <tr>
+                      <th>Planned Quantity</th>
+                      <th>Start Date</th>
+                      <th>End Date</th>
+                      <th>Machine ID</th>
+                      <th>Shift</th>
+                      <th>Planned Time</th>
+                      <th>Operator</th>
+                      <th>Action</th>
                     </tr>
-                  ))}
-                </tbody>
-              </Table>
+                  </thead>
+                  <tbody>
+                    {section.data.map((row, rowIndex) => (
+                      <tr key={rowIndex}>
+                        <td>{row.plannedQty}</td>
+                        <td>{moment(row.startDate).format("DD MMM YYYY")}</td>
+                        <td>{moment(row.endDate).format("DD MMM YYYY")} </td>
+
+                        <td>{row.machineId}</td>
+                        <td>{row.shift}</td>
+                        <td>{row.plannedTime}</td>
+                        <td>{row.operator}</td>
+                        <td>
+                          <Button
+                            color="primary"
+                            onClick={() => openModal(section, row)} // Pass the row data
+                          >
+                            Update Input
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           ))
         )}
@@ -504,45 +495,29 @@ export const AllocatedSubAssemblyPlan = ({
                 <Col>
                   <span style={{ fontWeight: "bold" }}>Start Date: </span>
                   <span>
-                    {new Date(
-                      selectedSection.data[0].startDate
-                    ).toLocaleDateString("en-GB", {
-                      day: "2-digit",
-                      month: "short",
-                      year: "numeric",
-                    })}
+                    {moment(selectedSection.data[0].startDate).format(
+                      "DD MMM YYYY"
+                    )}
                   </span>
                 </Col>
                 <Col>
                   <span style={{ fontWeight: "bold" }}>Plan End Date: </span>
                   <span>
-                    {new Date(
-                      selectedSection.data[0].endDate
-                    ).toLocaleDateString("en-GB", {
-                      day: "2-digit",
-                      month: "short",
-                      year: "numeric",
-                    })}
+                    {moment(selectedSection.data[0].endDate).format(
+                      "DD MMM YYYY"
+                    )}
                   </span>
                 </Col>
                 <Col>
                   <span style={{ fontWeight: "bold" }}>Actual End Date: </span>
                   <span style={{ fontWeight: "bold", color: "red" }}>
                     {actulEndDateData.actualEndDate
-                      ? new Date(
-                          actulEndDateData.actualEndDate
-                        ).toLocaleDateString("en-GB", {
-                          day: "2-digit",
-                          month: "short",
-                          year: "numeric",
-                        })
-                      : new Date(
-                          selectedSection.data[0].endDate
-                        ).toLocaleDateString("en-GB", {
-                          day: "2-digit",
-                          month: "short",
-                          year: "numeric",
-                        })}
+                      ? moment(actulEndDateData.actualEndDate).format(
+                          "DD MMM YYYY"
+                        ) // Updated
+                      : moment(selectedSection.data[0].endDate).format(
+                          "DD MMM YYYY"
+                        )}
                   </span>
                 </Col>
               </Row>
@@ -564,74 +539,72 @@ export const AllocatedSubAssemblyPlan = ({
         </ModalBody>
         <ModalHeader>Previous Tracking Data</ModalHeader>
         <ModalBody>
-          <Table bordered responsive>
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Planned</th>
-                <th>Produced</th>
-                <th>Status</th>
-                <th>Operator</th>
-              </tr>
-            </thead>
-            <tbody>
-              {!existingDailyTracking.length ? (
+          <div className="table-responsive">
+            <table className="table table-striped vertical-lines horizontals-lines">
+              <thead style={{ backgroundColor: "#f3f4f6" }}>
                 <tr>
-                  <td colSpan="5" className="text-center">
-                    No daily tracking data available
-                  </td>
+                  <th>Date</th>
+                  <th>Planned</th>
+                  <th>Produced</th>
+                  <th>Status</th>
+                  <th>Operator</th>
                 </tr>
-              ) : (
-                existingDailyTracking.map((task, index) => (
-                  <tr key={index}>
-                    <td>
-                      {new Date(task.date).toLocaleDateString("en-GB", {
-                        day: "2-digit",
-                        month: "short",
-                        year: "numeric",
-                      })}
+              </thead>
+              <tbody>
+                {!existingDailyTracking.length ? (
+                  <tr>
+                    <td colSpan="5" className="text-center">
+                      No daily tracking data available
                     </td>
-                    <td>{task.planned}</td>
-                    <td>{task.produced}</td>
-                    <td>
-                      {task.dailyStatus === "On Track" ? (
-                        <span
-                          className="badge bg-primary-subtle text-primary"
-                          style={{ fontSize: "13px" }}
-                        >
-                          On Track
-                        </span>
-                      ) : task.dailyStatus === "Delayed" ? (
-                        <span
-                          className="badge bg-danger-subtle text-danger"
-                          style={{ fontSize: "13px" }}
-                        >
-                          Delayed
-                        </span>
-                      ) : task.dailyStatus === "Ahead" ? (
-                        <span
-                          className="badge bg-warning-subtle text-warning"
-                          style={{ fontSize: "13px" }}
-                        >
-                          Ahead
-                        </span>
-                      ) : task.dailyStatus === "Not Started" ||
-                        task.produced == null ||
-                        task.produced === 0 ? (
-                        <span
-                          className="badge bg-secondary-subtle text-secondary"
-                          style={{ fontSize: "13px" }}
-                        >
-                          Not Started
-                        </span>
-                      ) : null}
-                    </td>
-                    <td>{task.operator}</td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </Table>
+                ) : (
+                  existingDailyTracking.map((task, index) => (
+                    <tr key={index}>
+                      <td>
+                       {moment(task.date).format("DD MMM YYYY")}
+                      </td>
+                      <td>{task.planned}</td>
+                      <td>{task.produced}</td>
+                      <td>
+                        {task.dailyStatus === "On Track" ? (
+                          <span
+                            className="badge bg-primary-subtle text-primary"
+                            style={{ fontSize: "13px" }}
+                          >
+                            On Track
+                          </span>
+                        ) : task.dailyStatus === "Delayed" ? (
+                          <span
+                            className="badge bg-danger-subtle text-danger"
+                            style={{ fontSize: "13px" }}
+                          >
+                            Delayed
+                          </span>
+                        ) : task.dailyStatus === "Ahead" ? (
+                          <span
+                            className="badge bg-warning-subtle text-warning"
+                            style={{ fontSize: "13px" }}
+                          >
+                            Ahead
+                          </span>
+                        ) : task.dailyStatus === "Not Started" ||
+                          task.produced == null ||
+                          task.produced === 0 ? (
+                          <span
+                            className="badge bg-secondary-subtle text-secondary"
+                            style={{ fontSize: "13px" }}
+                          >
+                            Not Started
+                          </span>
+                        ) : null}
+                      </td>
+                      <td>{task.operator}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </ModalBody>
       </Modal>
 
