@@ -5,6 +5,9 @@ import { MdClose } from "react-icons/md";
 import ProfileDropdown from "../Components/Common/ProfileDropdown";
 import "./navbar.css";
 import navdata from "../Layouts/LayoutMenuData";
+import logo from "../assets/logo/regenato logo.png";
+import logo1 from "../assets/logo/remove -bg-regenato logo.png";
+
 
 const Navbar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -32,12 +35,12 @@ const Navbar = () => {
             {menuOpen ? <MdClose size={24} /> : <RxHamburgerMenu size={24} />}
           </button>
           <div style={{ width: "12rem" }}>
-            <Link to={'/regenato-home'}>
-            <img
-              src="https://regenato.com/wp-content/uploads/2022/02/new_logo4.png"
-              alt="lakb"
-              style={{ width: "100%",cursor:'pointer' }}
-            />
+            <Link to={"/regenato-home"}>
+              <img
+                src={logo1}
+                alt="Regenato Logo"
+                style={{ width: "100%", cursor: "pointer" }}
+              />
             </Link>
           </div>
           {/* Navbar Menu */}
