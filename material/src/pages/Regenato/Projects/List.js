@@ -75,7 +75,8 @@ import {
 } from "reactstrap";
 import FeatherIcon from "feather-icons-react";
 import { ToastContainer, toast } from "react-toastify";
-import "./project.css";
+// import "./project.css";
+import "./projectForProjects.css"
 
 import { Puff } from "react-loader-spinner";
 

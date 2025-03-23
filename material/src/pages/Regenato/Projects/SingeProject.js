@@ -26,7 +26,8 @@ import BreadCrumb from "../../../Components/Common/BreadCrumb";
 import Autocomplete from "@mui/material/Autocomplete";
 import TextField from "@mui/material/TextField";
 import { Link, useParams } from "react-router-dom";
-import "./project.css";
+// import "./project.css";
+import "./projectForProjects.css"
 import { FiSettings } from "react-icons/fi";
 // import RawMaterial from "./ExpandFolders/RawMaterial";
 // import Manufacturing from "./ExpandFolders/Manufacturing";

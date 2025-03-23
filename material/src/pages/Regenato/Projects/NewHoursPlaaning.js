@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { CardBody, Col, Row } from "reactstrap";
-import "./project.css";
+// import "./project.css";
+import "./projectForProjects.css"
 
 const NewHoursPlaaning = () => {
     const { _id } = useParams();

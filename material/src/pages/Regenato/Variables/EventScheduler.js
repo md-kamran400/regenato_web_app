@@ -33,23 +33,7 @@ export const EventScheduler = () => {
   const [endDate, setEndDate] = useState("");
   const [eventToDelete, setEventToDelete] = useState(null);
 
-  // useEffect(() => {
-  //   axios
-  //     .get(`${process.env.REACT_APP_BASE_URL}/api/eventScheduler/events`)
-  //     .then((response) => {
-  //       const formattedEvents = response.data.map((event) => ({
-  //         title: event.eventName,
-  //         start: moment.utc(event.startDate).local().toDate(),
-  //         end: moment.utc(event.endDate).local().toDate(),
-  //         id: event._id,
-  //       }));
-  //       setEvents(formattedEvents);
-  //     })
-  //     .catch((err) => {
-  //       toast.error("Failed to fetch events");
-  //       console.log(err);
-  //     });
-  // }, []);
+
 
   useEffect(() => {
     axios
@@ -74,37 +58,6 @@ export const EventScheduler = () => {
       });
   }, []);
 
-  // const handleSelectSlot = ({ start, end }) => {
-  //   setSelectedSlot({ start, end });
-
-  //   // Fetch all events from the API
-  //   axios
-  //     .get(`${process.env.REACT_APP_BASE_URL}/api/eventScheduler/events`)
-  //     .then((response) => {
-  //       const formattedEvents = response.data.map((event) => ({
-  //         title: event.eventName,
-  //         start: moment.utc(event.startDate).local().toDate(),
-  //         end: moment.utc(event.endDate).local().toDate(),
-  //         id: event._id,
-  //       }));
-  //       setEvents(formattedEvents);
-  //       setModal(true);
-  //     })
-  //     .catch((err) => {
-  //       toast.error("Failed to fetch events");
-  //       console.log(err);
-  //     });
-
-  //   // Adjust start time by 1 minute
-  //   const adjustedStart = new Date(start);
-  //   adjustedStart.setMinutes(adjustedStart.getMinutes() + 5);
-  //   const adjustedEnd = new Date(end);
-  //   adjustedEnd.setMinutes(adjustedEnd.getMinutes() + 5);
-
-  //   setStartDate(moment(adjustedStart).format("YYYY-MM-DDTHH:mm"));
-  //   setEndDate(moment(adjustedEnd).format("YYYY-MM-DDTHH:mm"));
-  //   setModal(true);
-  // };
   const handleSelectSlot = ({ start, end }) => {
     setSelectedSlot({ start, end });
 
@@ -252,7 +205,7 @@ export const EventScheduler = () => {
     <React.Fragment>
       <Row>
         <Col lg={12}>
-          <Card>
+          <Card style={{marginBottom:'10rem'}}>
             <CardHeader>
               <h4 className="card-title">Event Scheduler</h4>
             </CardHeader>

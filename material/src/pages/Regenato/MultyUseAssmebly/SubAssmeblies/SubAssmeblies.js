@@ -16,7 +16,7 @@ import {
 import { Link } from "react-router-dom";
 import FeatherIcon from "feather-icons-react/build/FeatherIcon";
 import { toast } from "react-toastify";
-
+import "./subAssemblies.css"
 export const SubAssmeblies = () => {
   const [ListData, setListData] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -270,8 +270,8 @@ export const SubAssmeblies = () => {
           </div>
         </Row>
 
-        <table className="table table-striped">
-          <thead>
+        <table className="table table-striped vertical-lines horizontals-lines">
+          <thead style={{backgroundColor:'#f3f4f6'}}>
             <tr>
               <th style={{ fontWeight: "bold" }}>Sub-Assembly Name</th>
               <th style={{ fontWeight: "bold" }}>Sub-Assembly ID</th>

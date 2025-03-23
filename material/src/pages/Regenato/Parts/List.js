@@ -9,7 +9,7 @@ import { Link } from "react-router-dom";
 import { debounce } from "lodash";
 import { Spinner } from "reactstrap";
 import { RiDeleteBin6Line } from "react-icons/ri";
-import "./project.css";
+import "./projectParts.css"
 
 import {
   Card,
@@ -795,8 +795,8 @@ const List = () => {
             </div>
           </div>
         )}
-        <table className="table table-striped">
-          <thead>
+        <table className="table table-striped vertical-lines horizontals-lines" style={{border:'2px solid black'}}>
+          <thead style={{backgroundColor:'#f3f4f6'}}>
             <tr>
               <th style={{ cursor: "pointer" }}>
                 <input
@@ -823,9 +823,9 @@ const List = () => {
               <th>Actions</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody style={{border:'2px solid black'}}>
             {paginatedData.map((item, index) => (
-              <tr key={index}>
+              <tr key={index} style={{border:'2px solid black'}}>
                 <td>
                   <input
                     type="checkbox"

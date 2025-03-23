@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from "react"; //add assembly
-import "../project.css";
+// import "../project.css";
+import "../projectForProjects.css"
 import {
   Card,
   Button,

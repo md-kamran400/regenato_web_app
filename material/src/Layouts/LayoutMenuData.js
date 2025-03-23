@@ -2,12 +2,12 @@ const navdata = () => {
   const menuItems = [
     {
       subItems: [
-        {
-          id: "home",
-          label: "Home",
-          link: "/regenato-home",
-          icon: "fa fa-home", // Example FontAwesome icon class
-        },
+        // {
+        //   id: "home",
+        //   label: "Home",
+        //   link: "/regenato-home",
+        //   icon: "fa fa-home", // Example FontAwesome icon class
+        // },
         {
           id: "projects",
           label: "Production Order",

@@ -236,7 +236,7 @@ const ShipmentVariable = () => {
       {/* General Variable */}
       <Row>
         <Col lg={12}>
-          <Card>
+          <Card style={{ marginBottom: "10rem" }}>
             <CardHeader>
               <h4 className="card-title mb-0">Shipment Variables</h4>
             </CardHeader>
@@ -303,7 +303,7 @@ const ShipmentVariable = () => {
                                   data-bs-target="#showModal"
                                   onClick={() => tog_edit(item)}
                                 >
-                                  <FaEdit size={15}/>
+                                  <FaEdit size={15} />
                                 </button>
                                 <button
                                   className="btn btn-sm btn-danger remove-item-btn"
@@ -314,7 +314,7 @@ const ShipmentVariable = () => {
                                     tog_delete();
                                   }}
                                 >
-                                  <MdOutlineDelete size={17}/>
+                                  <MdOutlineDelete size={17} />
                                 </button>
                               </div>
                             </td>
@@ -323,7 +323,18 @@ const ShipmentVariable = () => {
                       ) : (
                         <tr>
                           <td colSpan="5" className="text-center">
-                            Loading...
+                            <div>
+                              <div className="loader-overlay">
+                                <div
+                                  className="spinner-border text-primary"
+                                  role="status"
+                                >
+                                  <span className="visually-hidden">
+                                    Loading...
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
                           </td>
                         </tr>
                       )}

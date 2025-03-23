@@ -1,19 +1,17 @@
-import React from 'react';
+import React from "react";
 
 //import Scss
-import './assets/scss/themes.scss';
+import "./assets/scss/themes.scss";
 
 //imoprt Route
-import Route from './Routes';
+import Route from "./Routes";
 
 // Import Firebase Configuration file
 // import { initFirebaseBackend } from "./helpers/firebase_helper";
 
-
-
-// Fake Backend 
+// Fake Backend
 // import fakeBackend from "./helpers/AuthType/fakeBackend";
-import Navbar from './Routes/Navbar';
+import Navbar from "./Routes/Navbar";
 
 // Activating fake backend
 // fakeBackend();
@@ -34,10 +32,15 @@ import Navbar from './Routes/Navbar';
 
 function App() {
   return (
-    <React.Fragment>
-      <Navbar/>
+    // <React.Fragment>
+    //   <Navbar/>
+    //   <Route />
+    // </React.Fragment>
+
+    <div style={{ backgroundColor: "white" }}>
+      <Navbar />
       <Route />
-    </React.Fragment>
+    </div>
   );
 }
 

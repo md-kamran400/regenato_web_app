@@ -199,17 +199,23 @@ const RmVariable = () => {
 
   // Render loading state or error if any
   if (loading) {
-    return <div>Loading...</div>;
+    return (
+      <div>
+        <div className="loader-overlay">
+          <div className="spinner-border text-primary" role="status">
+            <span className="visually-hidden">Loading...</span>
+          </div>
+        </div>
+      </div>
+    );
   }
-
-
 
   return (
     <React.Fragment>
       {/* General variable */}
       <Row>
         <Col lg={12}>
-          <Card>
+          <Card style={{ marginBottom: "10rem" }}>
             <CardHeader>
               <h4 className="card-title mb-0">Raw Material Variables</h4>
             </CardHeader>
@@ -281,7 +287,7 @@ const RmVariable = () => {
                                   data-bs-target="#showModal"
                                   onClick={() => tog_edit(item)}
                                 >
-                                  <FaEdit size={15}/>
+                                  <FaEdit size={15} />
                                 </button>
                               </div>
                               <div className="remove">
@@ -294,7 +300,7 @@ const RmVariable = () => {
                                     tog_delete();
                                   }}
                                 >
-                                  <MdOutlineDelete size={17}/>
+                                  <MdOutlineDelete size={17} />
                                 </button>
                               </div>
                             </div>

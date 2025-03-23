@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect, memo } from "react"; //add parts list
 import { FaEdit } from "react-icons/fa";
-import "../project.css";
+// import "../project.css";
+import "../projectForProjects.css";
 import {
   Card,
   Button,
@@ -578,17 +579,24 @@ const PartsTable = React.memo(
           lg={12}
           style={{
             boxSizing: "border-box",
-            borderTop: "20px solid rgb(69, 203, 133)",
-            borderRadius: "5px",
+            boxShadow:
+              "rgba(0, 0, 0, 0.02) 0px 1px 3px 0px, rgba(27, 31, 35, 0.15) 0px 0px 0px 1px",
+            borderRadius: "3px",
+            marginBottom: "20px",
           }}
         >
+          <div class="card ribbon-box  shadow-none mb-lg-0">
+            <div class="card-body">
+              <div class="ribbon ribbon-success ribbon-shape" >Parts</div>
+            </div>
+          </div>
           <Row>
             <Col lg={12}>
               <Card>
                 <CardBody>
                   <div
                     style={{
-                      padding: "5px 10px 0px 10px",
+                      padding: "5px 10px 5px 10px",
                       borderRadius: "3px",
                     }}
                     className="button-group flex justify-content-between align-items-center"
@@ -625,17 +633,6 @@ const PartsTable = React.memo(
                       </DropdownToggle>
 
                       <DropdownMenu className="dropdown-menu-start">
-                        {/* <DropdownItem
-                        href="#"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          toggleEditModal(true, partsList._id);
-                        }}
-                      >
-                        <i className="ri-edit-2-line align-bottom me-2 text-muted"></i>{" "}
-                        Edit
-                      </DropdownItem> */}
-
                         <DropdownItem
                           href="#"
                           onClick={() => toggleEditModal(partsList)}
@@ -644,31 +641,10 @@ const PartsTable = React.memo(
                           Edit
                         </DropdownItem>
 
-                        {/* <DropdownItem
-                          href="#"
-                          onClick={() => {
-                            setSelectedId(partsList._id);
-                            tog_delete();
-                          }}
-                        >
-                          <i className="ri-delete-bin-6-line align-bottom me-2 text-muted"></i>{" "}
-                          Delete
-                        </DropdownItem> */}
-
                         <div className="dropdown-divider"></div>
                       </DropdownMenu>
                     </UncontrolledDropdown>
                   </div>
-
-                  {/* <div className="button-group">
-                    <Button
-                      color="success"
-                      className="add-btn"
-                      onClick={toggleAddModal}
-                    >
-                      <i className="ri-add-line align-bottom me-1"></i> Add Part
-                    </Button>
-                  </div> */}
 
                   <div className="table-wrapper">
                     <table className="project-table">

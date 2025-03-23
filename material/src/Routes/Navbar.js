@@ -31,7 +31,15 @@ const Navbar = () => {
           >
             {menuOpen ? <MdClose size={24} /> : <RxHamburgerMenu size={24} />}
           </button>
-
+          <div style={{ width: "12rem" }}>
+            <Link to={'/regenato-home'}>
+            <img
+              src="https://regenato.com/wp-content/uploads/2022/02/new_logo4.png"
+              alt="lakb"
+              style={{ width: "100%",cursor:'pointer' }}
+            />
+            </Link>
+          </div>
           {/* Navbar Menu */}
           <nav className={`navbar ${menuOpen ? "show" : ""}`}>
             <ul className="nav">

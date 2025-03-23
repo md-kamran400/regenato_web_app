@@ -11,7 +11,6 @@
 
 /* Table Header Styling */
 .table-header {
-  background-color: #f5f5f5;
   color: #334155;
   text-align: left;
   font-size: 14px;
@@ -57,18 +56,19 @@
 }
 
 /* Zebra Striping for Rows */
-.table tbody tr:nth-child(odd) {
+/* .table tbody tr:nth-child(odd) {
   background-color: #f9fafb;
 }
 .table tbody tr:nth-child(even) {
   background-color: #ffffff;
-}
+} */
 
 /* Hover Effect for Rows */
 .table tbody tr:hover {
-  background-color: #e2e8f0;
-  cursor: pointer;
+  background-color: #ffffff;
+  /* background-color: red; */
 }
+
 
 /* Table Row Summary Styling */
 .table-row-summary {
@@ -610,16 +610,16 @@ h5 i.icon {
 }
 
 /* .time-input input[type="number"] {
-  width: 100px;
-  height: 50px;
-  border: 1px solid rgb(207, 206, 206);
-  border-radius: 4px;
-  font-size: 20px;
-  text-align: center;
-  line-height: 50px; 
-  outline: none;
-  
-} */
+      width: 100px;
+      height: 50px;
+      border: 1px solid rgb(207, 206, 206);
+      border-radius: 4px;
+      font-size: 20px;
+      text-align: center;
+      line-height: 50px; 
+      outline: none;
+      
+    } */
 .time-input input[type="number"] {
   width: 100px;
   height: 50px;
@@ -631,11 +631,11 @@ h5 i.icon {
   outline: none;
 }
 /* 
-.time-input input[type="number"]::placeholder {
-  color: #aaa;
-  font-size: 18px;
-  margin-right: 50px;
-} */
+    .time-input input[type="number"]::placeholder {
+      color: #aaa;
+      font-size: 18px;
+      margin-right: 50px;
+    } */
 .time-input input[type="number"]::placeholder {
   color: #aaa;
   font-size: 18px;
@@ -673,4 +673,27 @@ h5 i.icon {
 .time-labels span {
   width: 50px;
   text-align: center;
+}
+
+
+/* === */
+/* Vertical lines */
+.vertical-lines th,
+.vertical-lines td {
+  border-left: 2px solid #dee2e6;
+  border-right: 2px solid #dee2e6;
+  border-top: 2px solid #dee2e6;  /* Horizontal lines - top */
+  border-bottom: 2px solid #dee2e6; /* Horizontal lines - bottom */
+}
+
+/* Collapse borders for clean look */
+.vertical-lines {
+  border-collapse: collapse;
+  background-color: #f9f9f9; /* Table background color */
+}
+
+/* Header styling */
+.vertical-lines thead {
+  background-color: #a00e0e; /* Dark header color */
+  color: rgb(0, 0, 0); 
 }

@@ -194,7 +194,15 @@ const GeneralVariable = () => {
 
   // Render loading state or error if any
   if (loading) {
-    return <div>Loading...</div>;
+    return (
+      <div>
+        <div className="loader-overlay">
+          <div className="spinner-border text-primary" role="status">
+            <span className="visually-hidden">Loading...</span>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   // if (error) {
@@ -206,7 +214,7 @@ const GeneralVariable = () => {
       {/* Manufacturing Table */}
       <Row>
         <Col lg={12}>
-          <Card>
+          <Card style={{ marginBottom: "10rem" }}>
             <CardHeader>
               <h4 className="card-title mb-0">General Variable</h4>
             </CardHeader>

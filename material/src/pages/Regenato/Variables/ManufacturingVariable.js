@@ -598,7 +598,7 @@ const ManufacturingVariable = () => {
       {/* Manufacturing Table */}
       <Row>
         <Col lg={12}>
-          <Card>
+          <Card style={{ marginBottom: "10rem" }}>
             <CardHeader>
               <h4 className="card-title mb-0">Manufacturing Variable</h4>
             </CardHeader>
@@ -632,7 +632,16 @@ const ManufacturingVariable = () => {
               {/* Table */}
               <div className="table-responsive table-card mt-3 mb-1">
                 {loading ? (
-                  <p>Loading...</p>
+                  <div>
+                    <div className="loader-overlay">
+                      <div
+                        className="spinner-border text-primary"
+                        role="status"
+                      >
+                        <span className="visually-hidden">Loading...</span>
+                      </div>
+                    </div>
+                  </div>
                 ) : (
                   <table className="table align-middle table-nowrap">
                     <thead className="table-light">

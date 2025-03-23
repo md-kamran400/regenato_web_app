@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { CardBody, Col, Row, Card } from "reactstrap";
-import "./project.css";
+// import "./project.css";
+import "./projectForProjects.css"
 import PartListHoursPlanning from "./HoursPlanningFolder/PartListHoursPlanning";
 import SubAssemblyHoursPlanning from "./HoursPlanningFolder/SubAssemblyHoursPlanning";
 // hoursplanning

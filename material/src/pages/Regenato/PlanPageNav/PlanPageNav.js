@@ -348,7 +348,7 @@ export function PlanPageNav() {
             className="process-select"
           >
             <option value="" disabled>
-              Select Project
+              Select Production Type
             </option>
             {uniqueProjects.map((project) => (
               <option key={project} value={project}>

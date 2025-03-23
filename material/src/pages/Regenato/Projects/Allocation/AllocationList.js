@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Table, Spinner } from "reactstrap";
 import { useLocation, useParams } from "react-router-dom";
-import "../project.css";
+// import "../project.css";
+import "../projectForProjects.css"
 import BreadCrumb from "../../../../Components/Common/BreadCrumb";
 
 const AllocationList = () => {

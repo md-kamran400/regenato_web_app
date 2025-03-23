@@ -179,7 +179,7 @@ const ShiftVariable = () => {
       <ToastContainer position="top-right" autoClose={3000} />
       <Row>
         <Col lg={12}>
-          <Card>
+          <Card style={{marginBottom:'10rem'}}>
             <CardHeader>
               <h4 className="card-title mb-0">Shift Variables</h4>
             </CardHeader>

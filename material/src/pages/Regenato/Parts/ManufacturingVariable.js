@@ -14,7 +14,7 @@ import {
 import Flatpickr from "react-flatpickr";
 import Autocomplete from "@mui/material/Autocomplete";
 import TextField from "@mui/material/TextField";
-import "./project.css";
+// import "./project.css";
 import { toast } from "react-toastify";
 
 const ManufacturingVariable = ({

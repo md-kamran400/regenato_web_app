@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { CardBody, Col, Row, Card } from "reactstrap";
-import "../project.css";
+// import "../project.css";
+import "../projectForProjects.css"
 import { FiSettings } from "react-icons/fi";
 import { MdOutlineDelete } from "react-icons/md";
 import AllocationPlanningModal from "../Allocation/AllocationPlanningModal";

@@ -278,7 +278,16 @@ const OverheadsVariable = () => {
                                 </div> */}
                 <div className="table-responsive table-card mt-3 mb-1">
                   {loading ? (
-                    <p>Loading...</p>
+                    <div>
+                      <div className="loader-overlay">
+                        <div
+                          className="spinner-border text-primary"
+                          role="status"
+                        >
+                          <span className="visually-hidden">Loading...</span>
+                        </div>
+                      </div>
+                    </div>
                   ) : (
                     <table
                       className="table align-middle table-nowrap"
