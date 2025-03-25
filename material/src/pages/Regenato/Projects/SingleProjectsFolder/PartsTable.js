@@ -594,13 +594,12 @@ const PartsTable = React.memo(
             <Col lg={12}>
               <Card>
                 <CardBody>
-                  <div
+                  {/* <div
                     style={{
                       padding: "5px 10px 5px 10px",
                       borderRadius: "3px",
                     }}
                     className="button-group flex justify-content-between align-items-center"
-                    // danger primary
                   >
                     <ul
                       style={{
@@ -644,7 +643,7 @@ const PartsTable = React.memo(
                         <div className="dropdown-divider"></div>
                       </DropdownMenu>
                     </UncontrolledDropdown>
-                  </div>
+                  </div> */}
 
                   <div className="table-wrapper">
                     <table className="table table-striped vertical-lines horizontals-lines">

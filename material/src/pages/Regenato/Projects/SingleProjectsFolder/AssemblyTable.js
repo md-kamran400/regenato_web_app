@@ -778,15 +778,11 @@ const AssemblyTable = React.memo(
                       fontWeight: "600",
                     }}
                   >
-                    <li style={{ fontSize: "25px", marginBottom: "10px" }}>
+                    <li style={{ fontSize: "25px", marginBottom: "-15px" }}>
                       {assemblypartsList.AssemblyName}
                     </li>
 
-                    <li style={{ fontSize: "19px" }}>
-                      <span class="badge bg-primary-subtle text-primary">
-                        Assembly
-                      </span>
-                    </li>
+                    
                   </ul>
 
                   <UncontrolledDropdown direction="left">

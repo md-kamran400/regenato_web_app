@@ -339,25 +339,18 @@ const ManufacturingVariable = () => {
         `${process.env.REACT_APP_BASE_URL}/api/manufacturing/${selectedManufacturingId}/subcategories`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(subFormData),
         }
       );
-      if (!response.ok) {
-        throw new Error("Network response was not ok");
-      }
-      await fatchManufacturing();
-      setSubFormData({
-        subcategoryId: "",
-        name: "",
-        hourlyRate: "",
-      });
-      toast.success("Machine Added");
+      if (!response.ok) throw new Error("Failed to add machine");
+
+      await fetchManufacturing(); // Update the UI
+      toast.success("Machine Added Successfully!"); // Show success toast
       setModalAddSub(false);
+      setSubFormData({ subcategoryId: "", name: "", hourlyRate: "" });
     } catch (error) {
-      setError(error.message);
+      toast.error(error.message || "Failed to add machine");
     } finally {
       setPosting(false);
     }
@@ -373,33 +366,22 @@ const ManufacturingVariable = () => {
         `${process.env.REACT_APP_BASE_URL}/api/manufacturing/${selectedManufacturingId}/subcategories/${editingSubId}`,
         {
           method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(subFormData),
         }
       );
 
-      if (!response.ok) {
-        throw new Error("Network response was not ok");
-      }
+      if (!response.ok) throw new Error("Failed to update machine");
 
-      // Refresh the manufacturing data after successful PUT request
-      await fatchManufacturing();
+      await fetchManufacturing(); // Update the table instantly
+      toast.success("Machine updated successfully!"); // Success message
 
-      // Reset form data
-      setSubFormData({
-        subcategoryId: "",
-        name: "",
-        hourlyRate: "",
-      });
+      setIsEditModalOpen(false); // Close the edit modal
 
-      // Close the edit modal
-      setIsEditModalOpen(false);
-
-      toast.success("Machine updated successfully!");
+      // Reset form
+      setSubFormData({ subcategoryId: "", name: "", hourlyRate: "" });
     } catch (error) {
-      setError(error.message);
+      toast.error(error.message || "Failed to update machine"); // Error message
     } finally {
       setPosting(false);
     }
@@ -543,22 +525,17 @@ const ManufacturingVariable = () => {
 
       const response = await fetch(
         `${process.env.REACT_APP_BASE_URL}/api/manufacturing/${parentId}/subcategories/${_id}`,
-        {
-          method: "DELETE",
-        }
+        { method: "DELETE" }
       );
 
-      if (!response.ok) {
-        throw new Error("Failed to delete subcategory");
-      }
+      if (!response.ok) throw new Error("Failed to delete machine");
 
-      await fatchManufacturing(); // Refetch the data to update the table
-      toast.success("Machine Deleted successfully!");
-      closeSubDeleteModal();
+      await fetchManufacturing(); // Refresh the table
+      toast.success("Machine deleted successfully!"); // Show success message
+
+      closeSubDeleteModal(); // Close the delete modal
     } catch (error) {
-      console.error("Error deleting subcategory:", error);
-      toast.error("Failed to delete subcategory");
-      closeSubDeleteModal();
+      toast.error(error.message || "Failed to delete machine"); // Show error message
     }
   };
 

@@ -565,15 +565,15 @@ const OuterSubAssmebly = React.memo(
                         fontWeight: "600",
                       }}
                     >
-                      <li style={{ fontSize: "25px", marginBottom: "5px" }}>
+                      <li style={{ fontSize: "25px", marginBottom: "-15px" }}>
                         {subAssemblyItem.subAssemblyName}
                       </li>
 
-                      <li style={{ fontSize: "19px" }}>
+                      {/* <li style={{ fontSize: "19px" }}>
                         <span class="badge bg-danger-subtle text-danger">
                           Sub Assembly
                         </span>
-                      </li>
+                      </li> */}
                     </ul>
 
                     <UncontrolledDropdown direction="left">

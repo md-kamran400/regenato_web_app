@@ -97,7 +97,7 @@ const Variables = () => {
                     className={activeTab === "GeneralVariable" ? "active" : ""}
                     onClick={() => toggleTab("GeneralVariable")}
                   >
-                    General Variable
+                    General
                   </NavLink>
                 </NavItem>
                 <NavItem>
@@ -105,7 +105,7 @@ const Variables = () => {
                     className={activeTab === "RmVariable" ? "active" : ""}
                     onClick={() => toggleTab("RmVariable")}
                   >
-                    RM Variable
+                    Raw Material
                   </NavLink>
                 </NavItem>
                 <NavItem>
@@ -115,7 +115,7 @@ const Variables = () => {
                     }
                     onClick={() => toggleTab("ManufacturingVariable")}
                   >
-                    Manufacturing Variable
+                    Manufacturing 
                   </NavLink>
                 </NavItem>
                 <NavItem>
@@ -123,7 +123,7 @@ const Variables = () => {
                     className={activeTab === "ShipmentVariable" ? "active" : ""}
                     onClick={() => toggleTab("ShipmentVariable")}
                   >
-                    Shipment Variable
+                    Shipment 
                   </NavLink>
                 </NavItem>
                 <NavItem>
@@ -133,7 +133,7 @@ const Variables = () => {
                     }
                     onClick={() => toggleTab("OverheadsVariable")}
                   >
-                    Overheads Variable
+                    Overheads 
                   </NavLink>
                 </NavItem>
                 <NavItem>
@@ -143,7 +143,7 @@ const Variables = () => {
                     }
                     onClick={() => toggleTab("UsersListVariable")}
                   >
-                    Users List Variable
+                    Users List 
                   </NavLink>
                 </NavItem>
                 <NavItem>
@@ -151,7 +151,7 @@ const Variables = () => {
                     className={activeTab === "ShiftVariable" ? "active" : ""}
                     onClick={() => toggleTab("ShiftVariable")}
                   >
-                    Shift Variable
+                    Shift 
                   </NavLink>
                 </NavItem>
                 <NavItem>
