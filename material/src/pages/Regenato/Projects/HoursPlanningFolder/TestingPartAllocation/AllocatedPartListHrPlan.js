@@ -412,6 +412,7 @@ export const AllocatedPartListHrPlan = ({
                   <thead style={{ backgroundColor: "#f3f4f6" }}>
                     <tr style={{ backgroundColor: "#f3f4f6" }}>
                       <th>Planned Quantity</th>
+                      {/* <th>Status</th> */}
                       <th>Start Date</th>
                       <th>End Date</th>
                       <th>Machine ID</th>
@@ -425,6 +426,7 @@ export const AllocatedPartListHrPlan = ({
                     {section.data.map((row, rowIndex) => (
                       <tr key={rowIndex}>
                         <td>{row.plannedQty}</td>
+                        {/* <th>"Status"</th> */}
                         <td>
                           {/* {new Date(row.startDate).toLocaleDateString("en-GB", {
                             day: "2-digit",

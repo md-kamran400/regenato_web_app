@@ -381,7 +381,6 @@ export const PartListHrPlan = ({
     return Math.ceil(hours * 60);
   };
 
- 
   const calculateEndDate = (startDate, plannedMinutes, shiftMinutes = 480) => {
     if (!startDate || !plannedMinutes) return "";
 
@@ -482,7 +481,7 @@ export const PartListHrPlan = ({
     const day = String(dateObj.getDate()).padStart(2, "0");
     return `${year}-${month}-${day}`; // Format: YYYY-MM-DD
   };
- 
+
   const getNextWorkingDay = (date) => {
     let nextDay = new Date(date);
     while (isHighlightedOrDisabled(nextDay)) {
@@ -491,13 +490,16 @@ export const PartListHrPlan = ({
     return nextDay;
   };
 
- 
-  const calculateStartAndEndDates = (inputStartDate, plannedMinutes, shiftMinutes = 480) => {
+  const calculateStartAndEndDates = (
+    inputStartDate,
+    plannedMinutes,
+    shiftMinutes = 480
+  ) => {
     let parsedStartDate = new Date(inputStartDate);
     let remainingMinutes = plannedMinutes;
     let totalShiftMinutes = shiftMinutes;
     let currentDate = new Date(parsedStartDate);
-  
+
     // Skip holidays or Sundays initially
     while (
       getDay(currentDate) === 0 ||
@@ -505,10 +507,10 @@ export const PartListHrPlan = ({
     ) {
       currentDate.setDate(currentDate.getDate() + 1);
     }
-  
+
     // Keep track of start date
     const startDate = new Date(currentDate);
-  
+
     // Loop to calculate how many days needed
     while (remainingMinutes > 0) {
       // If it's a working day
@@ -518,13 +520,13 @@ export const PartListHrPlan = ({
       ) {
         remainingMinutes -= totalShiftMinutes;
       }
-  
+
       // If remaining minutes still left, go to next day
       if (remainingMinutes > 0) {
         currentDate.setDate(currentDate.getDate() + 1);
       }
     }
-  
+
     // Final end date
     const endDate = new Date(currentDate);
 
@@ -532,64 +534,54 @@ export const PartListHrPlan = ({
       startDate: formatDate(startDate),
       endDate: formatDate(endDate),
     };
-    
   };
 
-  
   const handleStartDateChange = (index, rowIndex, date) => {
     if (!date) return;
-  
+
     const nextWorkingDay = getNextWorkingDay(date);
-  
+
     if (index === 0) {
       setHasStartDate(!!nextWorkingDay);
     }
-  
+
     setRows((prevRows) => {
       const newRows = { ...prevRows };
-  
+
       // === AUTO SCHEDULE MODE ===
       if (isAutoSchedule && index === 0) {
         let currentDate = new Date(nextWorkingDay);
-  
+
         manufacturingVariables.forEach((man, processIndex) => {
           const shift = shiftOptions.length > 0 ? shiftOptions[0] : null;
-  
+
           newRows[processIndex] = newRows[processIndex].map((row) => {
             const { startDate, endDate } = calculateStartAndEndDates(
               currentDate,
               row.plannedQtyTime,
               shift?.TotalHours
             );
-  
+
             // 👉 Auto-pick Machine
             const machineList = machineOptions[man.categoryId] || [];
             const firstAvailableMachine = machineList.find((machine) =>
-              isMachineAvailable(
-                machine.subcategoryId,
-                startDate,
-                endDate
-              )
+              isMachineAvailable(machine.subcategoryId, startDate, endDate)
             );
-  
+
             const machineId = firstAvailableMachine
               ? firstAvailableMachine.subcategoryId
               : "";
-  
+
             // 👉 Auto-pick Operator
             const firstOperator = operators.find((op) =>
-              isOperatorAvailable(
-                op.name,
-                startDate,
-                endDate
-              )
+              isOperatorAvailable(op.name, startDate, endDate)
             );
-  
+
             // Prepare for next process
             currentDate = new Date(endDate);
             currentDate.setDate(currentDate.getDate() + 1);
             currentDate = getNextWorkingDay(currentDate);
-  
+
             return {
               ...row,
               startDate,
@@ -601,15 +593,15 @@ export const PartListHrPlan = ({
             };
           });
         });
-  
+
         return newRows;
-      } 
+      }
       // === MANUAL MODE ===
       else {
         const shift = shiftOptions.find(
           (option) => option.name === newRows[index][rowIndex].shift
         );
-  
+
         newRows[index] = newRows[index].map((row, idx) => {
           if (idx === rowIndex) {
             const { startDate, endDate } = calculateStartAndEndDates(
@@ -617,7 +609,7 @@ export const PartListHrPlan = ({
               row.plannedQtyTime,
               shift?.TotalHours
             );
-  
+
             return {
               ...row,
               startDate,
@@ -629,11 +621,10 @@ export const PartListHrPlan = ({
           return row;
         });
       }
-  
+
       return newRows;
     });
   };
-  
 
   const addRow = (index) => {
     if (!hasStartDate) return;
@@ -828,7 +819,7 @@ export const PartListHrPlan = ({
   };
 
   return (
-    <div style={{ width: "100%", margin: "10px 0" }}>
+    <div style={{ width: "100%", margin: "auto" }}>
       <Card>
         <CardHeader
           // onClick={toggle}
@@ -954,7 +945,7 @@ export const PartListHrPlan = ({
                         <th style={{ width: "15%" }}>Start Time</th>
                         <th style={{ width: "10%" }}>Start Date</th>
                         <th style={{ width: "8%" }}>End Date</th>
-                        
+
                         <th style={{ width: "25%" }}>Machine ID</th>
                         <th style={{ width: "50%" }}>Operator</th>
                         <th>Actions</th>
@@ -1031,57 +1022,60 @@ export const PartListHrPlan = ({
                           </td>
                           <td>{row.plannedQtyTime} m</td>
                           <td>
-                          <Autocomplete
-                            options={shiftOptions || []}
-                            value={
-                              shiftOptions.find(
-                                (option) => option.name === row.shift
-                              ) || null
-                            }
-                            onChange={(event, newValue) => {
-                              if (!newValue) return;
-                              
-                              setRows((prevRows) => ({
-                                ...prevRows,
-                                [index]: prevRows[index].map((row, rowIdx) => {
-                                  if (rowIdx === rowIndex) {
-                                    let updatedEndDate = row.endDate;
-                                    // Only recalculate if startDate exists
-                                    if (row.startDate) {
-                                      const recalculated = calculateStartAndEndDates(
-                                        row.startDate,
-                                        row.plannedQtyTime,
-                                        newValue.TotalHours
-                                      );
-                                      updatedEndDate = recalculated.endDate;
+                            <Autocomplete
+                              options={shiftOptions || []}
+                              value={
+                                shiftOptions.find(
+                                  (option) => option.name === row.shift
+                                ) || null
+                              }
+                              onChange={(event, newValue) => {
+                                if (!newValue) return;
+
+                                setRows((prevRows) => ({
+                                  ...prevRows,
+                                  [index]: prevRows[index].map(
+                                    (row, rowIdx) => {
+                                      if (rowIdx === rowIndex) {
+                                        let updatedEndDate = row.endDate;
+                                        // Only recalculate if startDate exists
+                                        if (row.startDate) {
+                                          const recalculated =
+                                            calculateStartAndEndDates(
+                                              row.startDate,
+                                              row.plannedQtyTime,
+                                              newValue.TotalHours
+                                            );
+                                          updatedEndDate = recalculated.endDate;
+                                        }
+                                        return {
+                                          ...row,
+                                          shift: newValue.name,
+                                          startTime: newValue.startTime,
+                                          shiftMinutes: newValue.TotalHours,
+                                          endDate: updatedEndDate,
+                                        };
+                                      }
+                                      return row;
                                     }
-                                    return {
-                                      ...row,
-                                      shift: newValue.name,
-                                      startTime: newValue.startTime,
-                                      shiftMinutes: newValue.TotalHours,
-                                      endDate: updatedEndDate,
-                                    };
-                                  }
-                                  return row;
-                                }),
-                              }));
-                            }}                            
-                            getOptionLabel={(option) => option.name}
-                            renderInput={(params) => (
-                              <TextField
-                                {...params}
-                                label="Shift"
-                                variant="outlined"
-                                size="small"
-                                placeholder="Select Shift"
-                              />
-                            )}
-                            disablePortal
-                            autoHighlight
-                            noOptionsText="No shifts available"
-                            disabled={!hasStartDate && index !== 0}
-                          />
+                                  ),
+                                }));
+                              }}
+                              getOptionLabel={(option) => option.name}
+                              renderInput={(params) => (
+                                <TextField
+                                  {...params}
+                                  label="Shift"
+                                  variant="outlined"
+                                  size="small"
+                                  placeholder="Select Shift"
+                                />
+                              )}
+                              disablePortal
+                              autoHighlight
+                              noOptionsText="No shifts available"
+                              disabled={!hasStartDate && index !== 0}
+                            />
                           </td>
 
                           <td>
@@ -1099,7 +1093,7 @@ export const PartListHrPlan = ({
                             />
                           </td>
 
-                          <td>
+                          <td style={{ width: "180px" }}>
                             <DatePicker
                               selected={
                                 row.startDate ? new Date(row.startDate) : null
@@ -1134,37 +1128,59 @@ export const PartListHrPlan = ({
                               renderDayContents={renderDayContents}
                               customInput={<CustomInput />}
                               dateFormat="dd-MM-yyyy"
+                              wrapperClassName="small-datepicker"
                             />
 
                             <style>{`
-                                .highlighted-date {
-                                  background-color: #f06548 !important;
-                                  color: black !important;
-                                  border-radius: 50%;
-                                }
-                                .grayed-out-date {
-                                   color: #ccc !important;
-                                  //  disabled
-                                  // display:none
-                                }
-                              `}</style>
+    .highlighted-date {
+      background-color: #f06548 !important;
+      color: black !important;
+      border-radius: 50%;
+    }
+    .grayed-out-date {
+      color: #ccc !important;
+    }
+    .small-datepicker input {
+      width: 130px !important;
+      font-size: 15px !important;
+      padding: 7px !important;
+      
+    }
+  `}</style>
                           </td>
-                          <td>
-                            <Input type="date" value={row.endDate} placeholder="DD-MM-YYYY" />
+
+                          <td style={{ width: "120px" }}>
+                            <Input
+                              type="date"
+                              value={row.endDate}
+                              placeholder="DD-MM-YYYY"
+                              readOnly
+                              className="small-input"
+                            />
+
+                            <style>{`
+                              .small-input {
+                                width: 130px !important;
+                                font-size: 14px !important;
+                                padding: 8px !important;
+                                placeholder: "DD-MM-YYYY"
+                              }
+                            `}</style>
                           </td>
-                          
+
                           <td>
                             <Autocomplete
-                              options={
-                                machineOptions[man.categoryId]?.filter(
-                                  (machine) =>
-                                    isMachineAvailable(
-                                      machine.subcategoryId,
-                                      row.startDate,
-                                      row.endDate
-                                    )
-                                ) || []
-                              }
+                              sx={{ width: 180, margin: "auto" }} // Centers the input field itself
+                              componentsProps={{
+                                paper: {
+                                  sx: {
+                                    width: 250, // Dropdown width
+                                    left: "15% !important", // Move the dropdown to the middle
+                                    transform: "translateX(-15%) !important", // Center the dropdown
+                                  },
+                                },
+                              }}
+                              options={machineOptions[man.categoryId] || []}
                               value={
                                 machineOptions[man.categoryId]?.find(
                                   (machine) =>
@@ -1188,14 +1204,20 @@ export const PartListHrPlan = ({
                                   row.startDate,
                                   row.endDate
                                 );
+
                                 return (
                                   <li
                                     {...props}
                                     style={{
                                       color: isDisabled ? "gray" : "black",
+                                      backgroundColor: isDisabled
+                                        ? "#f5f5f5"
+                                        : "white",
                                       pointerEvents: isDisabled
                                         ? "none"
                                         : "auto",
+                                      display: "flex",
+                                      justifyContent: "space-between",
                                     }}
                                   >
                                     {option.name}{" "}
@@ -1206,18 +1228,17 @@ export const PartListHrPlan = ({
                               onChange={(event, newValue) => {
                                 if (!hasStartDate) return;
 
-                                // Check if the machine is already selected in the same row
-                                const isMachineAlreadyUsedInRow = rows[
-                                  index
-                                ]?.some(
-                                  (r, idx) =>
-                                    idx !== rowIndex &&
-                                    r.machineId === newValue.subcategoryId
-                                );
-
-                                if (isMachineAlreadyUsedInRow) {
-                                  toast.warning(
-                                    "This machine is already selected in another row."
+                                // Prevent selecting occupied machines
+                                if (
+                                  newValue &&
+                                  !isMachineAvailable(
+                                    newValue.subcategoryId,
+                                    row.startDate,
+                                    row.endDate
+                                  )
+                                ) {
+                                  toast.error(
+                                    "This machine is occupied during the selected dates."
                                   );
                                   return;
                                 }
@@ -1246,13 +1267,17 @@ export const PartListHrPlan = ({
                           </td>
                           <td>
                             <Autocomplete
-                              options={operators.filter((op) =>
-                                isOperatorAvailable(
-                                  op.name,
-                                  row.startDate,
-                                  row.endDate
-                                )
-                              )}
+                              sx={{ width: 180, margin: "auto" }}
+                              componentsProps={{
+                                paper: {
+                                  sx: {
+                                    width: 250, // Dropdown width
+                                    left: "15% !important", // Move the dropdown to the middle
+                                    transform: "translateX(-15%) !important", // Center the dropdown
+                                  },
+                                },
+                              }}
+                              options={operators} // Keep all operators visible
                               value={
                                 operators.find(
                                   (op) => op._id === row.operatorId
@@ -1266,7 +1291,7 @@ export const PartListHrPlan = ({
                                     row.endDate
                                   )
                                     ? ""
-                                    : "(Occupied)"
+                                    : "(Allocated)"
                                 }`
                               }
                               renderOption={(props, option) => {
@@ -1275,35 +1300,45 @@ export const PartListHrPlan = ({
                                   row.startDate,
                                   row.endDate
                                 );
+
                                 return (
                                   <li
                                     {...props}
                                     style={{
                                       color: isDisabled ? "gray" : "black",
+                                      backgroundColor: isDisabled
+                                        ? "#f5f5f5"
+                                        : "white",
                                       pointerEvents: isDisabled
                                         ? "none"
                                         : "auto",
+                                      display: "flex",
+                                      justifyContent: "space-between",
                                     }}
                                   >
                                     {option.name}{" "}
-                                    {isDisabled ? "(Occupied)" : ""}
+                                    {isDisabled ? "(Allocated)" : ""}
                                   </li>
                                 );
                               }}
                               onChange={(event, newValue) => {
                                 if (!hasStartDate) return;
-                              
-                                // Check if operator is already selected in another row
-                                const isOperatorAlreadyUsedInRow = rows[index]?.some(
-                                  (r, idx) =>
-                                    idx !== rowIndex && r.operatorId === newValue?._id
-                                );
-                              
-                                if (isOperatorAlreadyUsedInRow) {
-                                  toast.warning("This operator is already selected in another row.");
+
+                                // Prevent selecting allocated operators
+                                if (
+                                  newValue &&
+                                  !isOperatorAvailable(
+                                    newValue.name,
+                                    row.startDate,
+                                    row.endDate
+                                  )
+                                ) {
+                                  toast.error(
+                                    "This operator is allocated during the selected dates."
+                                  );
                                   return;
                                 }
-                              
+
                                 setRows((prevRows) => {
                                   const updatedRows = [...prevRows[index]];
                                   updatedRows[rowIndex] = {
@@ -1312,7 +1347,7 @@ export const PartListHrPlan = ({
                                   };
                                   return { ...prevRows, [index]: updatedRows };
                                 });
-                              }}                              
+                              }}
                               renderInput={(params) => (
                                 <TextField
                                   {...params}

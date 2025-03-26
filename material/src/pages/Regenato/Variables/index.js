@@ -143,7 +143,7 @@ const Variables = () => {
                     }
                     onClick={() => toggleTab("UsersListVariable")}
                   >
-                    Users List 
+                  Operator
                   </NavLink>
                 </NavItem>
                 <NavItem>

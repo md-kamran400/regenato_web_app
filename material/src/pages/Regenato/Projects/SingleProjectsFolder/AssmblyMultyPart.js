@@ -93,6 +93,23 @@ const AssmblyMultyPart = React.memo(
       fetchPartsListItems();
     }, [_id, partsAssmeblyItems, assemblyId, partsListItemsUpdated]);
 
+    const getStatus = (allocations) => {
+      if (!allocations || allocations.length === 0)
+        return { text: "Not Allocated", class: "badge bg-warning text-dark" };
+      const allocation = allocations[0].allocations[0]; // Assuming single allocation per part
+      if (!allocation)
+        return { text: "Not Allocated", class: "badge bg-warning text-dark" };
+
+      const actualEndDate = new Date(allocation.actualEndDate);
+      const endDate = new Date(allocation.endDate);
+
+      if (actualEndDate.getTime() === endDate.getTime())
+        return { text: "On Track", class: "badge bg-primary text-white" };
+      if (actualEndDate > endDate)
+        return { text: "Delayed", class: "badge bg-danger text-white" };
+      return { text: "Ahead", class: "badge bg-success text-white" };
+    };
+
     useEffect(() => {
       setPartsListItemsUpdated(false);
     }, [partsListItemsUpdated]);
@@ -483,6 +500,7 @@ const AssmblyMultyPart = React.memo(
                           <th onClick={() => handleRowClickParts("name")}>
                             Name
                           </th>
+                          <th>Status</th>
                           <th>Cost Per Unit</th>
                           <th>Machining Hours</th>
                           <th>Quantity</th>
@@ -492,8 +510,10 @@ const AssmblyMultyPart = React.memo(
                         </tr>
                       </thead>
                       <tbody>
-                        {partsListItems.map((item) => (
-                          <React.Fragment key={item._id}>
+                        {partsListItems.map((item) => {
+                            const statusInfo = getStatus(item.allocations);
+                          return (
+                            <React.Fragment key={item._id}>
                             <tr
                               onClick={() =>
                                 handleRowClickParts(item._id, item.partName)
@@ -509,6 +529,11 @@ const AssmblyMultyPart = React.memo(
                                 {item.partName} ({item.Uid || ""}){" "}
                                 {item.codeName || ""}
                               </td>
+                              <td>
+                                  <span className={statusInfo.class}>
+                                    {statusInfo.text}
+                                  </span>
+                                </td>
                               <td>{parseFloat(item.costPerUnit || 0)}</td>
                               <td>{formatTime(item.timePerUnit || 0)}</td>
                               <td>{parseInt(item.quantity || 0)}</td>
@@ -567,7 +592,8 @@ const AssmblyMultyPart = React.memo(
                               </tr>
                             )}
                           </React.Fragment>
-                        ))}
+                          )
+                        })}
                       </tbody>
                     </table>
                   </div>

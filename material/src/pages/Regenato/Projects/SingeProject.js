@@ -27,7 +27,7 @@ import Autocomplete from "@mui/material/Autocomplete";
 import TextField from "@mui/material/TextField";
 import { Link, useParams } from "react-router-dom";
 // import "./project.css";
-import "./projectForProjects.css"
+import "./projectForProjects.css";
 import { FiSettings } from "react-icons/fi";
 import { MdOutlineDelete } from "react-icons/md";
 import AssemblyTable from "./SingleProjectsFolder/AssemblyTable";
@@ -87,6 +87,7 @@ const SingeProject = () => {
   const [modalAddSubAssembly, setModalAddSubAssembly] = useState(false);
   const [subAssemblyName, setSubAssemblyName] = useState("");
   const [subAssemblyNumber, setSubAssemblyNumber] = useState("");
+  const [isAddingSubAssembly, setIsAddingSubAssembly] = useState(false);
 
   // for assmbely
   const [allAssmebly, setAllAssmebly] = useState([]);
@@ -277,8 +278,58 @@ const SingeProject = () => {
     fetchProjectDetails();
   }, [_id]);
 
+  // const handleAddSubAssembly = useCallback(async () => {
+  //   if (!selectedSubAssembly) return;
+
+  //   try {
+  //     const response = await fetch(
+  //       `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${_id}/subAssemblyListFirst`,
+  //       {
+  //         method: "POST",
+  //         headers: { "Content-Type": "application/json" },
+  //         body: JSON.stringify({
+  //           subAssemblyName: selectedSubAssembly.subAssemblyName,
+  //           SubAssemblyNumber: selectedSubAssembly.SubAssemblyNumber,
+  //           costPerUnit: selectedSubAssembly.costPerUnit,
+  //           timePerUnit: selectedSubAssembly.timePerUnit,
+  //           partsListItems: selectedSubAssembly.partsListItems,
+  //         }),
+  //       }
+  //     );
+
+  //     if (!response.ok) {
+  //       throw new Error("Failed to add sub-assembly");
+  //     }
+
+  //     const newSubAssembly = await response.json();
+  //     setSubAssemblyItems((prevItems) => [...prevItems, newSubAssembly]);
+  //     setModalAddSubassembly(false);
+
+  //     await fetchProjectDetails();
+  //     setSelectedSubAssembly(null);
+  //     setSubAssemblyName("");
+  //     setSubAssemblyNumber("");
+  //     toast.success("Sub Assembly Added Successfully");
+  //   } catch (error) {
+  //     console.error("Error adding sub-assembly:", error);
+  //     toast.error("Failed to add sub-assembly. Please try again.");
+  //   }
+  // }, [
+  //   _id,
+  //   selectedSubAssembly,
+  //   setSubAssemblyItems,
+  //   setModalAddSubassembly,
+  //   setSelectedSubAssembly,
+  //   setSubAssemblyName,
+  //   setSubAssemblyNumber,
+  //   fetchProjectDetails,
+  //   toast,
+  // ]);
+
   const handleAddSubAssembly = useCallback(async () => {
     if (!selectedSubAssembly) return;
+
+    setIsAddingSubAssembly(true); // Start loading state
 
     try {
       const response = await fetch(
@@ -302,22 +353,26 @@ const SingeProject = () => {
 
       const newSubAssembly = await response.json();
       setSubAssemblyItems((prevItems) => [...prevItems, newSubAssembly]);
-      setModalAddSubassembly(false);
+
+      setModalAddSubAssembly(false); // Corrected modal state name
       setSelectedSubAssembly(null);
       setSubAssemblyName("");
       setSubAssemblyNumber("");
+
       await fetchProjectDetails();
 
       toast.success("Sub Assembly Added Successfully");
     } catch (error) {
       console.error("Error adding sub-assembly:", error);
       toast.error("Failed to add sub-assembly. Please try again.");
+    } finally {
+      setIsAddingSubAssembly(false); // Stop loading state
     }
   }, [
     _id,
     selectedSubAssembly,
     setSubAssemblyItems,
-    setModalAddSubassembly,
+    setModalAddSubAssembly, // Ensure correct modal setter
     setSelectedSubAssembly,
     setSubAssemblyName,
     setSubAssemblyNumber,
@@ -870,7 +925,7 @@ const SingeProject = () => {
     <React.Fragment>
       <div className="page-content">
         <Container fluid>
-          <div className="project-header" style={{marginTop:'-2rem'}}>
+          <div className="project-header" style={{ marginTop: "-2rem" }}>
             {/* Left Section */}
             <div className="header-section left">
               <h2 className="project-name" style={{ fontWeight: "bold" }}>
@@ -885,7 +940,7 @@ const SingeProject = () => {
               </p>
             </div>
           </div>
-          <div className="button-group" style={{ marginLeft: "7.9rem"}}>
+          <div className="button-group" style={{ marginLeft: "7.9rem" }}>
             <Button
               color="danger"
               className="add-btn"
@@ -901,6 +956,7 @@ const SingeProject = () => {
               <i className="ri-add-line align-bottom me-1"></i> Add Assembly
             </Button>
           </div>
+
           {/* showTable */}
 
           {renderPartsContent()}
@@ -1119,9 +1175,14 @@ const SingeProject = () => {
             )}
           />
         </ModalBody>
+
         <ModalFooter>
-          <Button color="primary" onClick={handleAddSubAssembly}>
-            Add
+          <Button
+            color="primary"
+            onClick={handleAddSubAssembly}
+            disabled={isAddingSubAssembly}
+          >
+            {isAddingSubAssembly ? "Adding..." : "Add"}
           </Button>
           <Button
             color="secondary"

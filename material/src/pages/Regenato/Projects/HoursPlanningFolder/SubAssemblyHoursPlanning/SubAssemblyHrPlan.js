@@ -1093,7 +1093,7 @@ export const SubAssemblyHrPlan = ({
                             />
                           </td>
 
-                          <td>
+                          <td style={{ width: "180px" }}>
                             <DatePicker
                               selected={
                                 row.startDate ? new Date(row.startDate) : null
@@ -1128,41 +1128,58 @@ export const SubAssemblyHrPlan = ({
                               renderDayContents={renderDayContents}
                               customInput={<CustomInput />}
                               dateFormat="dd-MM-yyyy"
+                              wrapperClassName="small-datepicker"
                             />
 
                             <style>{`
-                                                  .highlighted-date {
-                                                    background-color: #f06548 !important;
-                                                    color: black !important;
-                                                    border-radius: 50%;
-                                                  }
-                                                  .grayed-out-date {
-                                                     color: #ccc !important;
-                                                    //  disabled
-                                                    // display:none
-                                                  }
-                                                `}</style>
+                              .highlighted-date {
+                                background-color: #f06548 !important;
+                                color: black !important;
+                                border-radius: 50%;
+                              }
+                              .grayed-out-date {
+                                color: #ccc !important;
+                              }
+                              .small-datepicker input {
+                                width: 130px !important;
+                                font-size: 15px !important;
+                                padding: 7px !important;
+                                
+                              }
+                            `}</style>
                           </td>
-                          <td>
+                          <td style={{ width: "120px" }}>
                             <Input
                               type="date"
                               value={row.endDate}
                               placeholder="DD-MM-YYYY"
+                              readOnly
+                              className="small-input"
                             />
+
+                            <style>{`
+                                                        .small-input {
+                                                          width: 130px !important;
+                                                          font-size: 15px !important;
+                                                          padding: 8px !important;
+                                                          placeholder: "DD-MM-YYYY"
+                                                        }
+                                                      `}</style>
                           </td>
 
                           <td>
                             <Autocomplete
-                              options={
-                                machineOptions[man.categoryId]?.filter(
-                                  (machine) =>
-                                    isMachineAvailable(
-                                      machine.subcategoryId,
-                                      row.startDate,
-                                      row.endDate
-                                    )
-                                ) || []
-                              }
+                              sx={{ width: 180, margin: "auto" }} // Centers the input field itself
+                              componentsProps={{
+                                paper: {
+                                  sx: {
+                                    width: 250, // Dropdown width
+                                    left: "15% !important", // Move the dropdown to the middle
+                                    transform: "translateX(-15%) !important", // Center the dropdown
+                                  },
+                                },
+                              }}
+                              options={machineOptions[man.categoryId] || []}
                               value={
                                 machineOptions[man.categoryId]?.find(
                                   (machine) =>
@@ -1186,14 +1203,20 @@ export const SubAssemblyHrPlan = ({
                                   row.startDate,
                                   row.endDate
                                 );
+
                                 return (
                                   <li
                                     {...props}
                                     style={{
                                       color: isDisabled ? "gray" : "black",
+                                      backgroundColor: isDisabled
+                                        ? "#f5f5f5"
+                                        : "white",
                                       pointerEvents: isDisabled
                                         ? "none"
                                         : "auto",
+                                      display: "flex",
+                                      justifyContent: "space-between",
                                     }}
                                   >
                                     {option.name}{" "}
@@ -1204,18 +1227,17 @@ export const SubAssemblyHrPlan = ({
                               onChange={(event, newValue) => {
                                 if (!hasStartDate) return;
 
-                                // Check if the machine is already selected in the same row
-                                const isMachineAlreadyUsedInRow = rows[
-                                  index
-                                ]?.some(
-                                  (r, idx) =>
-                                    idx !== rowIndex &&
-                                    r.machineId === newValue.subcategoryId
-                                );
-
-                                if (isMachineAlreadyUsedInRow) {
-                                  toast.warning(
-                                    "This machine is already selected in another row."
+                                // Prevent selecting occupied machines
+                                if (
+                                  newValue &&
+                                  !isMachineAvailable(
+                                    newValue.subcategoryId,
+                                    row.startDate,
+                                    row.endDate
+                                  )
+                                ) {
+                                  toast.error(
+                                    "This machine is occupied during the selected dates."
                                   );
                                   return;
                                 }
@@ -1244,13 +1266,17 @@ export const SubAssemblyHrPlan = ({
                           </td>
                           <td>
                             <Autocomplete
-                              options={operators.filter((op) =>
-                                isOperatorAvailable(
-                                  op.name,
-                                  row.startDate,
-                                  row.endDate
-                                )
-                              )}
+                              sx={{ width: 180, margin: "auto" }}
+                              componentsProps={{
+                                paper: {
+                                  sx: {
+                                    width: 250, // Dropdown width
+                                    left: "15% !important", // Move the dropdown to the middle
+                                    transform: "translateX(-15%) !important", // Center the dropdown
+                                  },
+                                },
+                              }}
+                              options={operators} // Keep all operators visible
                               value={
                                 operators.find(
                                   (op) => op._id === row.operatorId
@@ -1264,7 +1290,7 @@ export const SubAssemblyHrPlan = ({
                                     row.endDate
                                   )
                                     ? ""
-                                    : "(Occupied)"
+                                    : "(Allocated)"
                                 }`
                               }
                               renderOption={(props, option) => {
@@ -1273,36 +1299,41 @@ export const SubAssemblyHrPlan = ({
                                   row.startDate,
                                   row.endDate
                                 );
+
                                 return (
                                   <li
                                     {...props}
                                     style={{
                                       color: isDisabled ? "gray" : "black",
+                                      backgroundColor: isDisabled
+                                        ? "#f5f5f5"
+                                        : "white",
                                       pointerEvents: isDisabled
                                         ? "none"
                                         : "auto",
+                                      display: "flex",
+                                      justifyContent: "space-between",
                                     }}
                                   >
                                     {option.name}{" "}
-                                    {isDisabled ? "(Occupied)" : ""}
+                                    {isDisabled ? "(Allocated)" : ""}
                                   </li>
                                 );
                               }}
                               onChange={(event, newValue) => {
                                 if (!hasStartDate) return;
 
-                                // Check if operator is already selected in another row
-                                const isOperatorAlreadyUsedInRow = rows[
-                                  index
-                                ]?.some(
-                                  (r, idx) =>
-                                    idx !== rowIndex &&
-                                    r.operatorId === newValue?._id
-                                );
-
-                                if (isOperatorAlreadyUsedInRow) {
-                                  toast.warning(
-                                    "This operator is already selected in another row."
+                                // Prevent selecting allocated operators
+                                if (
+                                  newValue &&
+                                  !isOperatorAvailable(
+                                    newValue.name,
+                                    row.startDate,
+                                    row.endDate
+                                  )
+                                ) {
+                                  toast.error(
+                                    "This operator is allocated during the selected dates."
                                   );
                                   return;
                                 }
