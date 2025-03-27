@@ -23,6 +23,7 @@ import {
   DropdownToggle,
   UncontrolledDropdown,
 } from "reactstrap";
+import CircularProgress from "@mui/material/CircularProgress";
 import { FiEdit } from "react-icons/fi";
 import Autocomplete from "@mui/material/Autocomplete";
 import TextField from "@mui/material/TextField";
@@ -86,6 +87,7 @@ const OuterSubAssmebly = React.memo(
     const [itemToDelete, setItemToDelete] = useState(null);
     const [itemToEdit, setItemToEdit] = useState(null);
     const [editQuantityModal, setEditQuantityModal] = useState(false);
+    const [loadingParts, setLoadingParts] = useState(false);
 
     //for setting icons
     const [modalOpenId, setModalOpenId] = useState(null);
@@ -253,14 +255,6 @@ const OuterSubAssmebly = React.memo(
     };
 
     useEffect(() => {
-      const fetchParts = async () => {
-        const response = await fetch(
-          `${process.env.REACT_APP_BASE_URL}/api/parts`
-        );
-        const data = await response.json();
-        setParts(data);
-      };
-
       const fetchManufacturingVariables = async () => {
         const response = await fetch(
           `${process.env.REACT_APP_BASE_URL}/api/manufacturing`
@@ -273,10 +267,26 @@ const OuterSubAssmebly = React.memo(
           ...data.reduce((acc, item) => ({ ...acc, [item.name]: 6 }), {}),
         }));
       };
-
-      fetchParts();
       fetchManufacturingVariables();
     }, []);
+
+    useEffect(() => {
+      fetchParts();
+    }, []);
+    const fetchParts = async () => {
+      setLoadingParts(true);
+      try {
+        const response = await fetch(
+          `${process.env.REACT_APP_BASE_URL}/api/parts`
+        );
+        const data = await response.json();
+        setParts(data);
+      } catch (error) {
+        console.error("Error fetching parts:", error);
+      } finally {
+        setLoadingParts(false);
+      }
+    };
 
     const fetchData = useCallback(async () => {
       setLoading(true);
@@ -880,17 +890,31 @@ const OuterSubAssmebly = React.memo(
             <ModalBody>
               <form onSubmit={handleSubmit}>
                 <Autocomplete
-                  options={parts}
+                  options={parts || []}
+                  loading={loadingParts}
                   getOptionLabel={(option) =>
-                    `${option.partName} - ${option.id}`
+                    option ? `${option.partName} - ${option.id}` : ""
                   }
                   onChange={handleAutocompleteChange}
+                  noOptionsText={
+                    loadingParts ? "Loading parts..." : "No parts available"
+                  }
                   renderInput={(params) => (
                     <TextField
                       {...params}
                       label="Select Part"
                       variant="outlined"
-                      // required
+                      InputProps={{
+                        ...params.InputProps,
+                        endAdornment: (
+                          <>
+                            {loadingParts ? (
+                              <CircularProgress color="inherit" size={20} />
+                            ) : null}
+                            {params.InputProps.endAdornment}
+                          </>
+                        ),
+                      }}
                     />
                   )}
                 />

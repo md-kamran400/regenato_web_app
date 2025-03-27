@@ -50,24 +50,79 @@ const MachineCapacity = () => {
 
   const fetchData = async () => {
     try {
-      // Fetch data from actual API endpoints
+      setLoading(true);
+  
+      // Check if cached data exists
+      const cachedManufacturing = sessionStorage.getItem("cachedManufacturingData");
+      const cachedAllocations = sessionStorage.getItem("cachedAllocationsData");
+  
+      if (cachedManufacturing && cachedAllocations) {
+        // Parse and set cached data
+        const manufacturingRes = JSON.parse(cachedManufacturing);
+        const allocationsRes = JSON.parse(cachedAllocations);
+  
+        let total = 0;
+        let occupied = 0;
+  
+        // Count total machines from all categories
+        manufacturingRes.forEach((category) => {
+          total += category.subCategories.length;
+        });
+  
+        // Process allocations to add project and part name to each allocation
+        const processedAllocations = allocationsRes.data.map((project) => {
+          return {
+            ...project,
+            allocations: project.allocations.map((alloc) => {
+              return {
+                ...alloc,
+                allocations: alloc.allocations.map((machineAlloc) => {
+                  return {
+                    ...machineAlloc,
+                    projectName: project.projectName,
+                    partName: alloc.partName,
+                    processName: alloc.processName,
+                  };
+                }),
+              };
+            }),
+          };
+        });
+  
+        // Count occupied machines
+        processedAllocations.forEach((project) => {
+          project.allocations.forEach((alloc) => {
+            occupied += alloc.allocations.length;
+          });
+        });
+  
+        setTotalMachines(total);
+        setOccupiedMachines(occupied);
+        setCategories(manufacturingRes);
+        setAllocations(processedAllocations);
+        setFilteredAllocations(processedAllocations);
+        setLoading(false);
+        return;
+      }
+  
+      // Fetch data from actual API endpoints if cache doesn't exist
       const [manufacturingRes, allocationsRes] = await Promise.all([
-        fetch(`${process.env.REACT_APP_BASE_URL}/api/manufacturing`).then(
-          (res) => res.json()
+        fetch(`${process.env.REACT_APP_BASE_URL}/api/manufacturing`).then((res) =>
+          res.json()
         ),
         fetch(
           `${process.env.REACT_APP_BASE_URL}/api/defpartproject/all-allocations`
         ).then((res) => res.json()),
       ]);
-
+  
       let total = 0;
       let occupied = 0;
-
+  
       // Count total machines from all categories
       manufacturingRes.forEach((category) => {
         total += category.subCategories.length;
       });
-
+  
       // Process allocations to add project and part name to each allocation
       const processedAllocations = allocationsRes.data.map((project) => {
         return {
@@ -87,14 +142,18 @@ const MachineCapacity = () => {
           }),
         };
       });
-
+  
       // Count occupied machines
       processedAllocations.forEach((project) => {
         project.allocations.forEach((alloc) => {
           occupied += alloc.allocations.length;
         });
       });
-
+  
+      // Store data in sessionStorage
+      sessionStorage.setItem("cachedManufacturingData", JSON.stringify(manufacturingRes));
+      sessionStorage.setItem("cachedAllocationsData", JSON.stringify(allocationsRes));
+  
       setTotalMachines(total);
       setOccupiedMachines(occupied);
       setCategories(manufacturingRes);
@@ -106,6 +165,12 @@ const MachineCapacity = () => {
       setLoading(false);
     }
   };
+  
+  // Call fetchData inside useEffect
+  useEffect(() => {
+    fetchData();
+  }, []);
+  
 
   const calculateCategoryStats = () => {
     const stats = {};

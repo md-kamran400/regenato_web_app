@@ -182,9 +182,42 @@ const List = () => {
     setModalDuplicate(!modal_duplicate);
   };
 
+  // const fetchData = useCallback(async () => {
+  //   setLoading(true);
+  //   setError(null);
+  //   try {
+  //     const response = await fetch(
+  //       `${process.env.REACT_APP_BASE_URL}/api/parts?filterType=${filterType}`
+  //     );
+  //     if (!response.ok) {
+  //       throw new Error("Failed to fetch parts");
+  //     }
+  //     const data = await response.json();
+  //     setListData(data);
+  //     if (initialLoad) {
+  //       setFilterType(""); // Set filter to empty string on initial load
+  //       setInitialLoad(false);
+  //     }
+  //   } catch (err) {
+  //     setError(err.message);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // }, [filterType]);
+
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
+
+    // Check if data is available in sessionStorage
+    const cachedData = sessionStorage.getItem("cachedPartsData");
+
+    if (cachedData) {
+      setListData(JSON.parse(cachedData));
+      setLoading(false);
+      return;
+    }
+
     try {
       const response = await fetch(
         `${process.env.REACT_APP_BASE_URL}/api/parts?filterType=${filterType}`
@@ -194,6 +227,10 @@ const List = () => {
       }
       const data = await response.json();
       setListData(data);
+
+      // Store data in sessionStorage
+      sessionStorage.setItem("cachedPartsData", JSON.stringify(data));
+
       if (initialLoad) {
         setFilterType(""); // Set filter to empty string on initial load
         setInitialLoad(false);
@@ -204,6 +241,10 @@ const List = () => {
       setLoading(false);
     }
   }, [filterType]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   useEffect(() => {
     if (selectedPartId) {

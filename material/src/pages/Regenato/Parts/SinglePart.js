@@ -153,7 +153,15 @@ const SinglePart = () => {
   };
 
   if (loading) {
-    return <div>Loading...</div>;
+    return (
+      <div>
+        <div className="loader-overlay">
+          <div className="spinner-border text-primary" role="status">
+            <span className="visually-hidden">Loading...</span>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (error) {
@@ -295,11 +303,11 @@ const SinglePart = () => {
     if (time === 0) {
       return "0 m";
     }
-  
+
     const totalMinutes = Math.round(time * 60); // Convert hours to minutes
     return `${totalMinutes} m`;
   };
-  
+
   // console.log(typeof costPerUnitAvg)
   return (
     <React.Fragment>

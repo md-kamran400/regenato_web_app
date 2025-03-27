@@ -623,57 +623,174 @@ export function PlanPageNav() {
                 const isSelected =
                   processAllocation.processName === selectedProcess;
 
+                // Function to get status for a process's allocations
+                const getProcessStatus = (allocations) => {
+                  if (allocations.length === 0) {
+                    return {
+                      text: "Not Allocated",
+                      className: "bg-info text-white",
+                    };
+                  }
+
+                  // Check all allocations in this process
+                  const hasUnfinished = allocations.some(
+                    (a) => !a.actualEndDate
+                  );
+                  const hasDelayed = allocations.some((a) => {
+                    if (!a.actualEndDate) return false;
+                    return new Date(a.actualEndDate) > new Date(a.endDate);
+                  });
+                  const hasAhead = allocations.some((a) => {
+                    if (!a.actualEndDate) return false;
+                    return new Date(a.actualEndDate) < new Date(a.endDate);
+                  });
+                  const allOnTrack = allocations.every((a) => {
+                    if (!a.actualEndDate) return false;
+                    return (
+                      new Date(a.actualEndDate).getTime() ===
+                      new Date(a.endDate).getTime()
+                    );
+                  });
+
+                  if (hasUnfinished) {
+                    return {
+                      text: "In Progress",
+                      className: "bg-success text-white",
+                    };
+                  }
+                  if (hasDelayed) {
+                    return {
+                      text: "Delayed",
+                      className: "bg-danger text-white",
+                    };
+                  }
+                  if (hasAhead) {
+                    return {
+                      text: "Ahead",
+                      className: "bg-warning text-white",
+                    };
+                  }
+                  if (allOnTrack) {
+                    return {
+                      text: "On Track",
+                      className: "bg-primary text-white",
+                    };
+                  }
+
+                  return {
+                    text: "Allocated",
+                    className: "bg-secondary text-white",
+                  };
+                };
+
+                const processStatus = getProcessStatus(
+                  processAllocation.allocations
+                );
+
                 return (
                   <Card
                     key={processAllocation._id}
                     className={`process-card ${isSelected ? "selected" : ""}`}
-                    onClick={() => handleProcessClick(processAllocation)} // Pass the entire process
+                    onClick={() => handleProcessClick(processAllocation)}
                   >
                     <CardBody>
-                      <h5 className="process-title">
-                        {processAllocation.processName}
-                      </h5>
-                      {processAllocation.allocations.map((allocation) => (
-                        <div
-                          key={allocation._id}
-                          className="split-box"
-                          style={{
-                            // borderLeft: `4px solid ${colors.border}`,
-                            // backgroundColor: `${colors.bg}15`,
-                            cursor: "pointer",
-                          }}
-                        >
-                          <div className="split-header">
-                            <span className="split-machine">
-                              Machine ID: {allocation.machineId}
-                            </span>
-                            <span className="split-operator">
-                              Operator: {allocation.operator}
-                            </span>
-                          </div>
-                          <div className="split-details">
-                            <div className="details-process">
-                              <div className="detail-item">
-                                <span className="detail-value">
-                                  <FaRegCalendarAlt className="calendar-icon" />
-                                  {formatDate(allocation.startDate)}
-                                </span>
-                              </div>
-                              <div className="detail-item">
-                                <span className="detail-value">
-                                  {formatDate(allocation.endDate)}
-                                </span>
-                              </div>
+                      <div className="process-header">
+                        <h5 className="process-title">
+                          {processAllocation.processName}
+                        </h5>
+                        {/* <Badge className={processStatus.className}>
+                          {processStatus.text}
+                        </Badge> */}
+                      </div>
+                      {processAllocation.allocations.map((allocation) => {
+                        // Function to get status for individual split
+                        const getSplitStatus = (allocation) => {
+                          if (!allocation.actualEndDate) {
+                            return {
+                              text: "Allocated",
+                              className: "bg-success text-white",
+                            };
+                          }
+
+                          const endDate = new Date(allocation.endDate);
+                          const actualEndDate = new Date(
+                            allocation.actualEndDate
+                          );
+
+                          if (endDate.getTime() === actualEndDate.getTime()) {
+                            return {
+                              text: "On Track",
+                              className: "bg-primary text-white",
+                            };
+                          } else if (actualEndDate > endDate) {
+                            return {
+                              text: "Delayed",
+                              className: "bg-danger text-white",
+                            };
+                          } else {
+                            return {
+                              text: "Ahead",
+                              className: "bg-warning text-white",
+                            };
+                          }
+                        };
+
+                        const splitStatus = getSplitStatus(allocation);
+
+                        return (
+                          <div
+                            key={allocation._id}
+                            className="split-box"
+                            style={{
+                              cursor: "pointer",
+                            }}
+                          >
+                            <div>
+                              <Badge
+                                className={splitStatus.className}
+                                style={{
+                                  height: "1rem",
+                                  padding: "0.1rem 0.rem",
+                                  fontSize: "0.65rem",
+                                  marginLeft: "14rem",
+                                  marginBottom: "5px",
+                                }}
+                                // style={{}}
+                              >
+                                {splitStatus.text}
+                              </Badge>
                             </div>
-                            <div className="detail-item">
-                              {/* <span className="detail-label">Planned Qty:</span> */}
-                              <span className="detail-value">
-                                {allocation.plannedQuantity}
+                            <div className="split-header">
+                              <span className="split-machine">
+                                Machine ID: {allocation.machineId}
+                              </span>
+                              <span className="split-operator">
+                                Operator: {allocation.operator}
                               </span>
                             </div>
+                            <div className="split-details">
+                              <div className="details-process">
+                                <div className="detail-item">
+                                  <span className="detail-value">
+                                    <FaRegCalendarAlt className="calendar-icon" />
+                                    {formatDate(allocation.startDate)}
+                                  </span>
+                                </div>
+                                <div className="detail-item">
+                                  <span className="detail-value">
+                                    {formatDate(allocation.endDate)}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="detail-item">
+                                <span className="detail-value">
+                                  {allocation.plannedQuantity}
+                                </span>
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </CardBody>
                   </Card>
                 );

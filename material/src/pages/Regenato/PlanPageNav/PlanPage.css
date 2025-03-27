@@ -502,3 +502,34 @@
   background-color: #a00e0e; /* Dark header color */
   color: rgb(0, 0, 0); 
 }
+
+
+/* ============================= */
+.status-badge {
+  padding: 5px 10px;
+  border-radius: 5px;
+  font-size: 12px;
+  font-weight: bold;
+  display: inline-block;
+  margin-top: 5px;
+}
+
+.status-in-progress {
+  background-color: #ffcc00;
+  color: #000;
+}
+
+.status-completed {
+  background-color: #28a745;
+  color: #fff;
+}
+
+.status-pending {
+  background-color: #007bff;
+  color: #fff;
+}
+
+.status-unknown {
+  background-color: #6c757d;
+  color: #fff;
+}

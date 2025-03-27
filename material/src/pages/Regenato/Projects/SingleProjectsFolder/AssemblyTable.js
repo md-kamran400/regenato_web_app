@@ -40,7 +40,7 @@ import { ToastContainer, toast } from "react-toastify"; // Add this import
 import { FaEdit } from "react-icons/fa";
 import Assmebly_subAssembly from "./Assmebly_subAssembly";
 import { AssemblyPartListHoursPlan } from "../HoursPlanningFolder/AssemblyHoursPlanning/Assembly_PartLisHrPlan/AssemblyPartListHoursPlan";
-
+import CircularProgress from "@mui/material/CircularProgress";
 const AssemblyTable = React.memo(
   ({
     assemblypartsList,
@@ -96,7 +96,7 @@ const AssemblyTable = React.memo(
 
     const [modalAddSubassembly, setModalAddSubassembly] = useState(false);
     const [modalAddPartAssmebly, setModalAddPartAssmebly] = useState(false);
-
+    const [loadingParts, setLoadingParts] = useState(false);
     // duplicate creationf for assmebly
     const [existingSubAssemblyLists, setExistingSubAssemblyLists] = useState(
       []
@@ -299,14 +299,6 @@ const AssemblyTable = React.memo(
     };
 
     useEffect(() => {
-      const fetchParts = async () => {
-        const response = await fetch(
-          `${process.env.REACT_APP_BASE_URL}/api/parts`
-        );
-        const data = await response.json();
-        setParts(data);
-      };
-
       const fetchManufacturingVariables = async () => {
         const response = await fetch(
           `${process.env.REACT_APP_BASE_URL}/api/manufacturing`
@@ -319,10 +311,27 @@ const AssemblyTable = React.memo(
           ...data.reduce((acc, item) => ({ ...acc, [item.name]: 6 }), {}),
         }));
       };
-
-      fetchParts();
       fetchManufacturingVariables();
     }, []);
+
+    useEffect(() => {
+      fetchParts();
+    }, []);
+
+    const fetchParts = async () => {
+      setLoadingParts(true);
+      try {
+        const response = await fetch(
+          `${process.env.REACT_APP_BASE_URL}/api/parts`
+        );
+        const data = await response.json();
+        setParts(data);
+      } catch (error) {
+        console.error("Error fetching parts:", error);
+      } finally {
+        setLoadingParts(false);
+      }
+    };
 
     // for parts
     const fetchData = useCallback(async () => {
@@ -1129,15 +1138,31 @@ const AssemblyTable = React.memo(
           <ModalBody>
             <form onSubmit={handleSubmit}>
               <Autocomplete
-                options={parts}
-                getOptionLabel={(option) => `${option.partName} - ${option.id}`}
+                options={parts || []}
+                loading={loadingParts}
+                getOptionLabel={(option) =>
+                  option ? `${option.partName} - ${option.id}` : ""
+                }
                 onChange={handleAutocompleteChange}
+                noOptionsText={
+                  loadingParts ? "Loading parts..." : "No parts available"
+                }
                 renderInput={(params) => (
                   <TextField
                     {...params}
                     label="Select Part"
                     variant="outlined"
-                    // required
+                    InputProps={{
+                      ...params.InputProps,
+                      endAdornment: (
+                        <>
+                          {loadingParts ? (
+                            <CircularProgress color="inherit" size={20} />
+                          ) : null}
+                          {params.InputProps.endAdornment}
+                        </>
+                      ),
+                    }}
                   />
                 )}
               />
