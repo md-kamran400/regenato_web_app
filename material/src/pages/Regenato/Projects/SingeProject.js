@@ -96,6 +96,9 @@ const SingeProject = () => {
   const [AssemblyName, setAssmeblyName] = useState("");
   const [AssemblyNumber, setAssmeblyNumber] = useState("");
 
+  const [statusFilter, setStatusFilter] = useState("");
+  const [isFilterLoading, setIsFilterLoading] = useState(false);
+
   useEffect(() => {
     const fetchAllSubAssemblies = async () => {
       try {
@@ -255,11 +258,19 @@ const SingeProject = () => {
     0
   );
 
-  const fetchProjectDetails = async () => {
+  // Modify fetchProjectDetails to include status filter
+  const fetchProjectDetails = useCallback(async () => {
+    setIsFilterLoading(true);
     try {
-      const response = await fetch(
-        `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${_id}`
-      );
+      let url = `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${_id}`;
+      if (statusFilter) {
+        url += `?status=${encodeURIComponent(statusFilter)}`;
+      }
+
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
       const data = await response.json();
       setProjectName(data.projectName || "");
       setprojectType(data.projectType || "");
@@ -267,64 +278,101 @@ const SingeProject = () => {
       setassemblyLists(data.assemblyList || []);
       setSubAssemblyItems(data.subAssemblyListFirst || []);
     } catch (error) {
+      console.error("Error fetching project details:", error);
       setError(error.message);
+      toast.error("Failed to fetch project data");
     } finally {
+      setIsFilterLoading(false);
       setLoading(false);
     }
-  };
+  }, [_id, statusFilter]);
 
-  // Ensure fetchProjectDetails is called in useEffect and handlers
+  // Add useEffect to trigger fetch when statusFilter changes
   useEffect(() => {
     fetchProjectDetails();
-  }, [_id]);
+  }, [statusFilter]); // Ensure the function runs when statusFilter updates
 
-  // const handleAddSubAssembly = useCallback(async () => {
-  //   if (!selectedSubAssembly) return;
+  // Add status filter dropdown component with loading state
+  // In SingeProject.js, update the status filter component
+  const renderStatusFilter = () => {
+    return (
+      <div className="status-filter">
+        <div style={{ position: "relative" }}>
+          <Input
+            type="select"
+            id="statusFilter"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            style={{ width: "200px" }}
+            disabled={isFilterLoading}
+          >
+            <option value="">filter By Statuses</option>
+            <option value="Not Allocated">Not Allocated</option>
+            <option value="Allocated">Allocated</option>
+            <option value="On Track">On Track</option>
+            <option value="Delayed">Delayed</option>
+            <option value="Ahead">Ahead</option>
+          </Input>
+          {isFilterLoading && (
+            <div
+              style={{
+                position: "absolute",
+                right: "10px",
+                top: "50%",
+                transform: "translateY(-50%)",
+              }}
+            >
+              <div className="spinner-border spinner-border-sm" role="status">
+                <span className="visually-hidden">Loading...</span>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
 
-  //   try {
-  //     const response = await fetch(
-  //       `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${_id}/subAssemblyListFirst`,
-  //       {
-  //         method: "POST",
-  //         headers: { "Content-Type": "application/json" },
-  //         body: JSON.stringify({
-  //           subAssemblyName: selectedSubAssembly.subAssemblyName,
-  //           SubAssemblyNumber: selectedSubAssembly.SubAssemblyNumber,
-  //           costPerUnit: selectedSubAssembly.costPerUnit,
-  //           timePerUnit: selectedSubAssembly.timePerUnit,
-  //           partsListItems: selectedSubAssembly.partsListItems,
-  //         }),
-  //       }
-  //     );
+  // Update the getStatus function to match your example
+  const getStatus = (allocations) => {
+    if (!allocations || allocations.length === 0)
+      return {
+        text: "Not Allocated",
+        class: "badge bg-info text-white",
+      };
 
-  //     if (!response.ok) {
-  //       throw new Error("Failed to add sub-assembly");
-  //     }
+    const allocation = allocations[0]?.allocations?.[0];
+    if (!allocation)
+      return {
+        text: "Not Allocated",
+        class: "badge bg-info text-white",
+      };
 
-  //     const newSubAssembly = await response.json();
-  //     setSubAssemblyItems((prevItems) => [...prevItems, newSubAssembly]);
-  //     setModalAddSubassembly(false);
+    const actualEndDate = new Date(allocation.actualEndDate);
+    const endDate = new Date(allocation.endDate);
 
-  //     await fetchProjectDetails();
-  //     setSelectedSubAssembly(null);
-  //     setSubAssemblyName("");
-  //     setSubAssemblyNumber("");
-  //     toast.success("Sub Assembly Added Successfully");
-  //   } catch (error) {
-  //     console.error("Error adding sub-assembly:", error);
-  //     toast.error("Failed to add sub-assembly. Please try again.");
-  //   }
-  // }, [
-  //   _id,
-  //   selectedSubAssembly,
-  //   setSubAssemblyItems,
-  //   setModalAddSubassembly,
-  //   setSelectedSubAssembly,
-  //   setSubAssemblyName,
-  //   setSubAssemblyNumber,
-  //   fetchProjectDetails,
-  //   toast,
-  // ]);
+    if (actualEndDate.getTime() === endDate.getTime())
+      return {
+        text: "On Track",
+        class: "badge bg-primary text-white",
+      };
+
+    if (actualEndDate > endDate)
+      return {
+        text: "Delayed",
+        class: "badge bg-danger text-white",
+      };
+
+    if (actualEndDate < endDate)
+      return {
+        text: "Ahead",
+        class: "badge bg-warning text-white",
+      };
+
+    return {
+      text: "Allocated",
+      class: "badge bg-success text-white",
+    };
+  };
 
   const handleAddSubAssembly = useCallback(async () => {
     if (!selectedSubAssembly) return;
@@ -380,18 +428,6 @@ const SingeProject = () => {
     toast,
   ]);
 
-  const handleNameChange = (event, newValue) => {
-    setSelectedSubAssembly(newValue);
-    setSubAssemblyName(newValue ? newValue.subAssemblyName : "");
-    setSubAssemblyNumber(newValue ? newValue.SubAssemblyNumber : "");
-  };
-
-  const handleNumberChange = (event, newValue) => {
-    setSelectedSubAssembly(newValue);
-    setSubAssemblyName(newValue ? newValue.subAssemblyName : "");
-    setSubAssemblyNumber(newValue ? newValue.SubAssemblyNumber : "");
-  };
-
   const handleAddAssembly = useCallback(async () => {
     if (!selectedAssmebly) return;
 
@@ -441,18 +477,6 @@ const SingeProject = () => {
     toast,
   ]);
 
-  const handleNameChangeassmebly = (event, newValue) => {
-    setSelectedAssmebly(newValue);
-    setAssmeblyName(newValue ? newValue.AssemblyName : "");
-    setAssmeblyNumber(newValue ? newValue.AssemblyNumber : "");
-  };
-
-  const handleNumberassmebly = (event, newValue) => {
-    setSelectedAssmebly(newValue);
-    setAssmeblyName(newValue ? newValue.AssemblyName : "");
-    setAssmeblyNumber(newValue ? newValue.AssemblyNumber : "");
-  };
-
   // ====================== ends
   const handlePartsListUpdate = useCallback((updatedSubAssembly) => {
     setPartsLists((prevItems) =>
@@ -500,68 +524,171 @@ const SingeProject = () => {
     [_id, handlePartsListUpdate]
   );
 
+  // Modify the renderPartsContent function to filter parts based on status
+  // const renderPartsContent = useCallback(() => {
+  //   const defaultPartsLists =
+  //     partsLists.length > 0
+  //       ? partsLists.map((partsList) => ({
+  //           ...partsList,
+  //           partsListItems: statusFilter
+  //             ? partsList.partsListItems.filter(
+  //                 (item) => getStatus(item.allocations) === statusFilter
+  //               )
+  //             : partsList.partsListItems,
+  //         }))
+  //       : [
+  //           {
+  //             _id: "default",
+  //             partsListName: `${projectName}-Parts`,
+  //             items: [],
+  //           },
+  //         ];
+
+  //   return (
+  //     <div className="parts-lists">
+  //       {defaultPartsLists.map((partsList, index) => (
+  //         <div key={index} className="parts-list border-top-green">
+  //           <PartsTable
+  //             partsList={partsList}
+  //             partsListID={partsList._id}
+  //             updatePartsLists={handlePartsListUpdate}
+  //             onAddPart={(newPart) => handleAddPart(newPart, partsList)}
+  //             onUpdatePrts={fetchProjectDetails}
+  //             getStatus={getStatus}
+  //           />
+  //         </div>
+  //       ))}
+  //     </div>
+  //   );
+  // }, [
+  //   partsLists,
+  //   projectName,
+  //   handlePartsListUpdate,
+  //   handleAddPart,
+  //   statusFilter,
+  // ]);
+
   const renderPartsContent = useCallback(() => {
-    const defaultPartsLists =
-      partsLists.length > 0
-        ? partsLists
-        : [
-            {
-              _id: "default",
-              partsListName: `${projectName}-Parts`,
-              items: [],
-            },
-          ];
+    // Ensure filtering applies dynamically
+    const filteredPartsLists = partsLists.map((partsList) => {
+      const filteredItems = statusFilter
+        ? partsList.partsListItems.filter(
+            (item) => getStatus(item.allocations).text === statusFilter
+          )
+        : partsList.partsListItems;
+
+      return {
+        ...partsList,
+        partsListItems: filteredItems, // Ensure filtered items are applied
+      };
+    });
 
     return (
       <div className="parts-lists">
-        {defaultPartsLists.map((partsList, index) => (
-          <div key={index} className="parts-list border-top-green">
-            <PartsTable
-              partsList={partsList}
-              partsListID={partsList._id}
-              updatePartsLists={handlePartsListUpdate} // Use handlePartsListUpdate
-              onAddPart={(newPart) => handleAddPart(newPart, partsList)}
-              onUpdatePrts={fetchProjectDetails}
-            />
-          </div>
-        ))}
+        {filteredPartsLists.some((list) => list.partsListItems.length > 0) ? (
+          filteredPartsLists.map((partsList, index) =>
+            partsList.partsListItems.length > 0 ? (
+              <div key={index} className="parts-list border-top-green">
+                <PartsTable
+                  partsList={partsList}
+                  partsListID={partsList._id}
+                  updatePartsLists={handlePartsListUpdate}
+                  onAddPart={(newPart) => handleAddPart(newPart, partsList)}
+                  onUpdatePrts={fetchProjectDetails}
+                  getStatus={getStatus}
+                />
+              </div>
+            ) : null
+          )
+        ) : (
+          <p>No parts available for the selected status.</p>
+        )}
       </div>
     );
-  }, [partsLists, projectName, handlePartsListUpdate, handleAddPart]);
+  }, [
+    partsLists,
+    statusFilter,
+    handlePartsListUpdate,
+    handleAddPart,
+    getStatus,
+    fetchProjectDetails,
+  ]);
 
   // ================== for sub assmeblyfetching and updating
 
-  const handleOuterSubAssmeblyUpdate = (updatedSubAssembly) => {
-    setSubAssemblyItems((prevItems) =>
-      prevItems.map((item) =>
-        item._id === updatedSubAssembly._id ? updatedSubAssembly : item
-      )
-    );
-  };
+  // const renderSubASsmeblyContent = useCallback(() => {
+  //   const filteredSubAssemblyItems = statusFilter
+  //     ? subAssemblyItems
+  //         .map((subAssembly) => ({
+  //           ...subAssembly,
+  //           partsListItems: subAssembly.partsListItems.filter(
+  //             (item) => getStatus(item.allocations) === statusFilter
+  //           ),
+  //         }))
+  //         .filter((subAssembly) => subAssembly.partsListItems.length > 0)
+  //     : subAssemblyItems;
 
-  const handleAddOutSubAssmebly = useCallback((newPart) => {
-    setSubAssemblyItems((prevLists) => [...prevLists, newPart]);
-  }, []);
+  //   return (
+  //     <div className="parts-lists">
+  //       {filteredSubAssemblyItems.map((subAssemblyItem, index) => (
+  //         <div key={index} className="parts-list">
+  //           <OuterSubAssmebly
+  //             subAssemblyItem={subAssemblyItem}
+  //             updatesubAssemblyItems={updatesubAssemblyItems}
+  //             setSubAssemblyItems={setSubAssemblyItems}
+  //             subAssemblyId={subAssemblyItem._id}
+  //             projectId={_id}
+  //             onAddPart={handleAddPart}
+  //             onUpdatePrts={fetchProjectDetails}
+  //             getStatus={getStatus}
+  //           />
+  //         </div>
+  //       ))}
+  //     </div>
+  //   );
+  // }, [
+  //   subAssemblyItems,
+  //   statusFilter,
+  //   updatesubAssemblyItems,
+  //   handleAddPart,
+  //   _id,
+  // ]);
 
   const renderSubASsmeblyContent = useCallback(() => {
+    const filteredSubAssemblyItems = statusFilter
+      ? subAssemblyItems
+          .map((subAssembly) => ({
+            ...subAssembly,
+            partsListItems: subAssembly.partsListItems.filter(
+              (item) => getStatus(item.allocations).text === statusFilter
+            ),
+          }))
+          .filter((subAssembly) => subAssembly.partsListItems.length > 0)
+      : subAssemblyItems;
+
     return (
       <div className="parts-lists">
-        {subAssemblyItems.map((subAssemblyItem, index) => (
-          <div key={index} className="parts-list">
-            <OuterSubAssmebly
-              subAssemblyItem={subAssemblyItem}
-              updatesubAssemblyItems={updatesubAssemblyItems}
-              setSubAssemblyItems={setSubAssemblyItems}
-              subAssemblyId={subAssemblyItem._id}
-              projectId={_id}
-              onAddPart={handleAddPart}
-              onUpdatePrts={fetchProjectDetails}
-            />
-          </div>
-        ))}
+        {filteredSubAssemblyItems.length > 0 ? (
+          filteredSubAssemblyItems.map((subAssemblyItem, index) => (
+            <div key={index} className="parts-list">
+              <OuterSubAssmebly
+                subAssemblyItem={subAssemblyItem}
+                updatesubAssemblyItems={updatesubAssemblyItems}
+                setSubAssemblyItems={setSubAssemblyItems}
+                subAssemblyId={subAssemblyItem._id}
+                projectId={_id}
+                onAddPart={handleAddPart}
+                onUpdatePrts={fetchProjectDetails}
+                getStatus={getStatus}
+              />
+            </div>
+          ))
+        ) : (
+          <p>No sub-assemblies available for this status.</p>
+        )}
       </div>
     );
-  }, [subAssemblyItems, handleOuterSubAssmeblyUpdate, handleAddOutSubAssmebly]);
+  }, [subAssemblyItems, statusFilter]);
 
   // =================== ends here
 
@@ -575,28 +702,110 @@ const SingeProject = () => {
     );
   }, []);
 
-  const renderAssemblyContent = useCallback(() => {
-    return (
-      <div className="assembly-lists">
-        {assemblyLists.map((assemblyList, index) => (
-          <div key={index} className="assembly-list border-top-green">
-            <AssemblyTable
-              // assemblyList={assemblyList}
-              projectId={_id}
-              assemblypartsList={assemblyList}
-              assemblypartsListId={assemblyList._id}
-              setassemblyLists={setassemblyLists}
-              updateAssemblyLists={handleUpdateAssemblyLists}
-              onAddAssembly={handleAddAssembly}
-              onUpdatePrts={fetchProjectDetails}
-            />
-          </div>
-        ))}
-      </div>
-    );
-  }, [assemblyLists, handleUpdateAssemblyLists, handleAddAssembly]);
+  // const renderAssemblyContent = useCallback(() => {
+  //   const filteredAssemblyLists = statusFilter
+  //     ? assemblyLists
+  //         .map((assembly) => ({
+  //           ...assembly,
+  //           partsListItems: assembly.partsListItems.filter(
+  //             (item) => getStatus(item.allocations) === statusFilter
+  //           ),
+  //           subAssemblies: assembly.subAssemblies
+  //             ? assembly.subAssemblies
+  //                 .map((sub) => ({
+  //                   ...sub,
+  //                   partsListItems: sub.partsListItems.filter(
+  //                     (item) => getStatus(item.allocations) === statusFilter
+  //                   ),
+  //                 }))
+  //                 .filter((sub) => sub.partsListItems.length > 0)
+  //             : [],
+  //         }))
+  //         .filter(
+  //           (assembly) =>
+  //             assembly.partsListItems.length > 0 ||
+  //             (assembly.subAssemblies && assembly.subAssemblies.length > 0)
+  //         )
+  //     : assemblyLists;
+
+  //   return (
+  //     <div className="assembly-lists">
+  //       {filteredAssemblyLists.map((assemblyList, index) => (
+  //         <div key={index} className="assembly-list border-top-green">
+  //           <AssemblyTable
+  //             projectId={_id}
+  //             assemblypartsList={assemblyList}
+  //             assemblypartsListId={assemblyList._id}
+  //             setassemblyLists={setassemblyLists}
+  //             updateAssemblyLists={handleUpdateAssemblyLists}
+  //             onAddAssembly={handleAddAssembly}
+  //             onUpdatePrts={fetchProjectDetails}
+  //             getStatus={getStatus}
+  //           />
+  //         </div>
+  //       ))}
+  //     </div>
+  //   );
+  // }, [
+  //   assemblyLists,
+  //   statusFilter,
+  //   handleUpdateAssemblyLists,
+  //   handleAddAssembly,
+  //   _id,
+  // ]);
 
   //================= for add assmebly code end here
+
+  const renderAssemblyContent = useCallback(() => {
+    const filteredAssemblyLists = statusFilter
+      ? assemblyLists
+          .map((assembly) => ({
+            ...assembly,
+            partsListItems: assembly.partsListItems.filter(
+              (item) => getStatus(item.allocations).text === statusFilter
+            ),
+            subAssemblies: assembly.subAssemblies
+              ? assembly.subAssemblies
+                  .map((sub) => ({
+                    ...sub,
+                    partsListItems: sub.partsListItems.filter(
+                      (item) =>
+                        getStatus(item.allocations).text === statusFilter
+                    ),
+                  }))
+                  .filter((sub) => sub.partsListItems.length > 0)
+              : [],
+          }))
+          .filter(
+            (assembly) =>
+              assembly.partsListItems.length > 0 ||
+              (assembly.subAssemblies && assembly.subAssemblies.length > 0)
+          )
+      : assemblyLists;
+
+    return (
+      <div className="assembly-lists">
+        {filteredAssemblyLists.length > 0 ? (
+          filteredAssemblyLists.map((assemblyList, index) => (
+            <div key={index} className="assembly-list border-top-green">
+              <AssemblyTable
+                projectId={_id}
+                assemblypartsList={assemblyList}
+                assemblypartsListId={assemblyList._id}
+                setassemblyLists={setassemblyLists}
+                updateAssemblyLists={handleUpdateAssemblyLists}
+                onAddAssembly={handleAddAssembly}
+                onUpdatePrts={fetchProjectDetails}
+                getStatus={getStatus}
+              />
+            </div>
+          ))
+        ) : (
+          <p>No assemblies available for this status.</p>
+        )}
+      </div>
+    );
+  }, [assemblyLists, statusFilter]);
 
   const handleAddNewPartsList = useCallback(
     async (newPartsList) => {
@@ -940,25 +1149,29 @@ const SingeProject = () => {
               </p>
             </div>
           </div>
-          <div className="button-group" style={{ marginLeft: "7.9rem" }}>
-            <Button
-              color="danger"
-              className="add-btn"
-              onClick={() => setModalAddSubAssembly(true)}
-            >
-              <i className="ri-add-line align-bottom me-1"></i> Add Sub Assembly
-            </Button>
-            <Button
-              color="primary"
-              className="add-btn"
-              onClick={toggleAddModalAssembly}
-            >
-              <i className="ri-add-line align-bottom me-1"></i> Add Assembly
-            </Button>
+
+          <div className="d-flex">
+            <div className="button-group " style={{ marginLeft: "7.9rem" }}>
+              <Button
+                color="danger"
+                className="add-btn"
+                onClick={() => setModalAddSubAssembly(true)}
+              >
+                <i className="ri-add-line align-bottom me-1"></i> Add Sub
+                Assembly
+              </Button>
+              <Button
+                color="primary"
+                className="add-btn"
+                onClick={toggleAddModalAssembly}
+              >
+                <i className="ri-add-line align-bottom me-1"></i> Add Assembly
+              </Button>
+            </div>
+
+            {/* showTable */}
+            <div>{renderStatusFilter()}</div>
           </div>
-
-          {/* showTable */}
-
           {renderPartsContent()}
 
           {renderSubASsmeblyContent()}
@@ -1036,65 +1249,6 @@ const SingeProject = () => {
           </form>
         </ModalBody>
       </Modal>
-
-      {/* modle for assembly */}
-      {/* Modal for assembly */}
-      {/* <Modal isOpen={modalAddassembly} toggle={toggleAddModalAssembly}>
-        <ModalHeader toggle={toggleAddModalAssembly}>
-          Add Assembly List
-        </ModalHeader>
-        <ModalBody>
-          <Autocomplete
-            options={allAssmebly}
-            getOptionLabel={(option) => option.AssemblyName || ""}
-            onChange={handleNameChangeassmebly}
-            value={
-              allAssmebly.find(
-                (item) => item.AssemblyName === AssemblyName
-              ) || null
-            }
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                label="Select Sub Assembly"
-                variant="outlined"
-                required
-              />
-            )}
-          />
-
-          <Autocomplete
-            className="mt-3"
-            options={allAssmebly}
-            getOptionLabel={(option) => option.AssemblyNumber || ""}
-            onChange={handleNumberassmebly}
-            value={
-              allAssmebly.find(
-                (item) => item.AssemblyNumber === AssemblyNumber
-              ) || null
-            }
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                label="Select Sub Assembly Id"
-                variant="outlined"
-                required
-              />
-            )}
-          />
-        </ModalBody>
-        <ModalFooter>
-          <Button color="primary" onClick={handleAddAssembly}>
-            Add
-          </Button>
-          <Button
-            color="secondary"
-            onClick={toggleAddModalAssembly}
-          >
-            Cancel
-          </Button>
-        </ModalFooter>
-      </Modal> */}
 
       <Modal isOpen={modalAddassembly} toggle={toggleAddModalAssembly}>
         <ModalHeader toggle={toggleAddModalAssembly}>

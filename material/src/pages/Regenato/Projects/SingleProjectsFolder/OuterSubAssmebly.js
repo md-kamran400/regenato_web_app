@@ -45,6 +45,7 @@ const OuterSubAssmebly = React.memo(
     onUpdatePrts,
     subAssemblyId,
     setSubAssemblyItems,
+    getStatus,
   }) => {
     const { _id } = useParams();
     const [modalAdd, setModalAdd] = useState(false);
@@ -204,13 +205,14 @@ const OuterSubAssmebly = React.memo(
       const fetchPartsListItems = async () => {
         try {
           const response = await fetch(
-            `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/subAssemblyListFirst/${subAssemblyItem._id}/items`
+            `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${_id}/subAssemblyListFirst/${subAssemblyItem._id}/items`
           );
           if (!response.ok) {
             throw new Error("Network response was not ok");
           }
           const data = await response.json();
           setPartsListsItems(data);
+          console.log(data);
         } catch (error) {
           console.error("Error fetching parts list items:", error);
         }
@@ -219,27 +221,27 @@ const OuterSubAssmebly = React.memo(
       fetchPartsListItems();
     }, [_id, subAssemblyItem, partsListItemsUpdated]);
 
-    const getStatus = (allocations) => {
-      if (!allocations || allocations.length === 0)
-        return {
-          text: "Not Allocated",
-          class: "badge bg-info text-white",
-        };
-      const allocation = allocations[0].allocations[0];
-      if (!allocation)
-        return { text: "Not Allocated", class:  "badge bg-info text-white", };
+    // const getStatus = (allocations) => {
+    //   if (!allocations || allocations.length === 0)
+    //     return {
+    //       text: "Not Allocated",
+    //       class: "badge bg-info text-white",
+    //     };
+    //   const allocation = allocations[0].allocations[0];
+    //   if (!allocation)
+    //     return { text: "Not Allocated", class:  "badge bg-info text-white", };
 
-      const actualEndDate = new Date(allocation.actualEndDate);
-      const endDate = new Date(allocation.endDate);
+    //   const actualEndDate = new Date(allocation.actualEndDate);
+    //   const endDate = new Date(allocation.endDate);
 
-      if (actualEndDate.getTime() === endDate.getTime())
-        return { text: "On Track", class: "badge bg-primary text-white" };
-      if (actualEndDate > endDate)
-        return { text: "Delayed", class: "badge bg-danger text-white" };
-      if (actualEndDate < endDate)
-        return { text: "Ahead", class: "badge bg-warning text-white" };
-      return { text: "Allocated", class: "badge bg-success text-white" };
-    };
+    //   if (actualEndDate.getTime() === endDate.getTime())
+    //     return { text: "On Track", class: "badge bg-primary text-white" };
+    //   if (actualEndDate > endDate)
+    //     return { text: "Delayed", class: "badge bg-danger text-white" };
+    //   if (actualEndDate < endDate)
+    //     return { text: "Ahead", class: "badge bg-warning text-white" };
+    //   return { text: "Allocated", class: "badge bg-success text-white" };
+    // };
 
     // Add this useEffect to reset the partsListItemsUpdated state
     useEffect(() => {
@@ -662,8 +664,7 @@ const OuterSubAssmebly = React.memo(
                       </thead>
                       <tbody>
                         {subAssemblyItem.partsListItems?.map((item) => {
-                          const statusInfo = getStatus(item.allocations);
-
+                          const status = getStatus(item.allocations);
                           return (
                             <React.Fragment key={item._id}>
                               <tr
@@ -685,8 +686,12 @@ const OuterSubAssmebly = React.memo(
                                   {item.codeName || ""}
                                 </td>
                                 <td>
-                                  <span className={statusInfo.class}>
-                                    {statusInfo.text}
+                                  <span
+                                    className={
+                                      getStatus(item.allocations).class
+                                    }
+                                  >
+                                    {getStatus(item.allocations).text}
                                   </span>
                                 </td>
                                 <td>
