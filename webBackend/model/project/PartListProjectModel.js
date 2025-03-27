@@ -1,98 +1,4 @@
 const mongoose = require("mongoose");
-
-// const AllocationPlanningSchema = new mongoose.Schema(
-//   {
-//     partName: {
-//       type: String,
-//       required: true,
-//     },
-//     processName: {
-//       type: String,
-//       required: true,
-//     },
-//     allocations: [
-//       {
-//         splitNumber: {
-//           type: String,
-//         },
-//         AllocationPartType: {
-//           type: String,
-//         },
-//         plannedQuantity: {
-//           type: Number,
-//           required: true,
-//           min: 0,
-//         },
-//         startDate: {
-//           type: Date,
-//           required: true,
-//         },
-//         startTime: {
-//           type: String,
-//           required: true,
-//         },
-//         endDate: {
-//           type: Date,
-//           required: true,
-//         },
-//         machineId: {
-//           type: String,
-//           required: true,
-//         },
-//         shift: {
-//           type: String,
-//           required: true,
-//         },
-//         shiftTotalTime: {
-//           type: Number,
-//         },
-//         dailyPlannedQty: {
-//           type: Number,
-//         },
-//         plannedTime: {
-//           type: Number,
-//           required: true,
-//         },
-//         operator: {
-//           type: String,
-//           required: true,
-//         },
-//         perMachinetotalTime: {
-//           type: Number,
-//         },
-//         actualEndDate: { type: Date },
-//         dailyTracking: [
-//           {
-//             date: {
-//               type: Date,
-//               required: true,
-//             },
-//             planned: {
-//               type: Number,
-//               required: true,
-//               min: 0,
-//             },
-//             produced: {
-//               type: Number,
-//               required: true,
-//               min: 0,
-//             },
-//             operator: {
-//               type: String,
-//             },
-//             dailyStatus: {
-//               type: String,
-//             },
-//           },
-//         ],
-//       },
-//     ],
-//   },
-//   {
-//     timestamps: true,
-//   }
-// );
-
 const AllocationPlanningSchema = new mongoose.Schema(
   {
     partName: {
@@ -195,6 +101,7 @@ const partSchema = new mongoose.Schema({
   costPerUnit: Number,
   timePerUnit: Number,
   quantity: Number,
+  allocationStatus: String,
   rmVariables: [
     {
       name: String,

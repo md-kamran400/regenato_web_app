@@ -28,9 +28,114 @@ const imageUploadDir = path.join(__dirname, "../../Images");
 if (!fs.existsSync(imageUploadDir)) {
   fs.mkdirSync(imageUploadDir, { recursive: true });
 }
+// PartRoutes.get("/", async (req, res) => {
+//   try {
+//     // Parse and validate parameters
+//     const page = Math.max(1, parseInt(req.query.page) || 1);
+//     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 25));
+//     const filterType = req.query.filterType;
+//     const lastId = req.query.lastId;
+    
+//     // Build base query
+//     const query = filterType ? { partType: filterType } : {};
+    
+//     // For keyset pagination
+//     if (lastId) {
+//       query._id = { $gt: lastId };
+//     }
+    
+//     // Common find options
+//     const findOptions = {
+//       select: '-__v -someLargeField', // Exclude unnecessary fields
+//       lean: true,
+//       sort: { _id: 1 },
+//       limit: limit
+//     };
+    
+//     // Only apply skip for traditional pagination if not using keyset
+//     if (!lastId && page > 1) {
+//       findOptions.skip = (page - 1) * limit;
+//     }
+    
+//     // Execute queries in parallel
+//     const [totalParts, parts] = await Promise.all([
+//       // Only count if not using keyset pagination
+//       lastId ? Promise.resolve(null) : PartsModel.countDocuments(query).exec(),
+//       PartsModel.find(query, null, findOptions).exec()
+//     ]);
+    
+//     // Prepare response
+//     const response = {
+//       success: true,
+//       data: parts
+//     };
+    
+//     // For traditional pagination
+//     if (!lastId) {
+//       response.totalParts = totalParts;
+//       response.totalPages = Math.ceil(totalParts / limit);
+//       response.currentPage = page;
+//       response.pageSize = limit;
+//     } 
+//     // For keyset pagination
+//     else {
+//       const lastPart = parts[parts.length - 1];
+//       response.nextCursor = lastPart ? lastPart._id : null;
+//       response.hasMore = parts.length === limit;
+//     }
+    
+//     res.status(200).json(response);
+//   } catch (error) {
+//     console.error("Error in parts route:", error);
+//     res.status(500).json({
+//       success: false,
+//       message: "Server error while fetching parts",
+//       error: error.message,
+//     });
+//   }
+// });
 
 // parts variable's backend
+// PartRoutes.get("/", async (req, res) => {
+//   try {
+//     // Parse and validate parameters
+//     const page = parseInt(req.query.page) || 1;
+//     const limit = parseInt(req.query.limit) || 25;
+    
+//     // Ensure page is at least 1 and limit is between 1-100
+//     const validatedPage = Math.max(1, page);
+//     const validatedLimit = Math.min(100, Math.max(1, limit));
 
+//     // Calculate skip value
+//     const skip = (validatedPage - 1) * validatedLimit;
+
+//     // Get total count and paginated data
+//     const [totalParts, parts] = await Promise.all([
+//       PartsModel.countDocuments({}),
+//       PartsModel.find({})
+//         .skip(skip)
+//         .limit(validatedLimit)
+//         .lean()
+//         .exec()
+//     ]);
+
+//     res.status(200).json({
+//       success: true,
+//       totalParts,
+//       totalPages: Math.ceil(totalParts / validatedLimit),
+//       currentPage: validatedPage,
+//       pageSize: validatedLimit,
+//       data: parts,
+//     });
+//   } catch (error) {
+//     console.error("Error in parts route:", error);
+//     res.status(500).json({
+//       success: false,
+//       message: "Server error while fetching parts",
+//       error: error.message,
+//     });
+//   }
+// });
 PartRoutes.post("/", async (req, res) => {
   try {
     const {
@@ -174,6 +279,9 @@ PartRoutes.get("/", async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
+
+
+
 
 PartRoutes.get("/:_id", async (req, res) => {
   try {
