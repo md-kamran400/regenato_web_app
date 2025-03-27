@@ -56,6 +56,41 @@ const transformManufacturingData = (manufacturingData) => {
   return processes;
 };
 
+// const transformAllocationsData = (allocationsData, processes) => {
+//   const events = {};
+//   allocationsData.forEach((project) => {
+//     project.allocations.forEach((allocation) => {
+//       allocation.allocations.forEach((alloc) => {
+//         const processCode = alloc.machineId.split("-")[0];
+//         if (!events[processCode]) {
+//           events[processCode] = [];
+//         }
+//         events[processCode].push({
+//           id: `${processCode}-${alloc.machineId}-${alloc.startDate}`,
+//           resourceId: alloc.machineId,
+//           start: alloc.startDate,
+//           end: alloc.endDate,
+//           title: `${alloc.machineId} | ${allocation.partName} | ${alloc.orderNumber} | ${alloc.operator}`,
+//           backgroundColor: processColors[processCode]?.bg || "#000000",
+//           borderColor: processColors[processCode]?.border || "#000000",
+//           textColor: "#ffffff",
+//           extendedProps: {
+//             projectName: project.projectName,
+//             part: allocation.partName,
+//             po: alloc.orderNumber,
+//             machine: alloc.machineId,
+//             operator: alloc.operator,
+//             quantity: alloc.plannedQuantity,
+//             shift: alloc.shift,
+//             plannedTime: alloc.plannedTime,
+//           },
+//         });
+//       });
+//     });
+//   });
+//   return events;
+// };
+
 const transformAllocationsData = (allocationsData, processes) => {
   const events = {};
   allocationsData.forEach((project) => {
@@ -65,11 +100,31 @@ const transformAllocationsData = (allocationsData, processes) => {
         if (!events[processCode]) {
           events[processCode] = [];
         }
+
+        let startDate = new Date(alloc.startDate);
+        let endDate = new Date(alloc.endDate);
+
+        // For year view, we need to adjust the display dates
+        const yearViewStart = new Date(startDate);
+        const yearViewEnd = new Date(endDate);
+        
+        // If the event starts after the 1st of the month, adjust the display start to the actual day
+        if (startDate.getDate() > 1) {
+          yearViewStart.setDate(startDate.getDate());
+        }
+        
+        // If the event ends before the last day of the month, adjust the display end
+        if (endDate.getDate() < new Date(endDate.getFullYear(), endDate.getMonth() + 1, 0).getDate()) {
+          yearViewEnd.setDate(endDate.getDate());
+        }
+
         events[processCode].push({
           id: `${processCode}-${alloc.machineId}-${alloc.startDate}`,
           resourceId: alloc.machineId,
-          start: alloc.startDate,
-          end: alloc.endDate,
+          start: startDate.toISOString(),
+          end: endDate.toISOString(),
+          displayStart: yearViewStart.toISOString(),  // For year view display
+          displayEnd: yearViewEnd.toISOString(),      // For year view display
           title: `${alloc.machineId} | ${allocation.partName} | ${alloc.orderNumber} | ${alloc.operator}`,
           backgroundColor: processColors[processCode]?.bg || "#000000",
           borderColor: processColors[processCode]?.border || "#000000",
@@ -162,6 +217,7 @@ const TimePage = () => {
       </div>
     );
   }
+  
 
   return (
     <div className="timeline-container">
@@ -225,12 +281,29 @@ const TimePage = () => {
                 slotDuration: { days: 1 },
                 slotLabelFormat: [{ day: "numeric" }],
               },
+              // resourceTimelineYear: {
+              //   duration: { years: 1 },
+              //   buttonText: "1Y",
+              //   slotDuration: { months: 1 },
+              //   slotLabelFormat: [{ month: "short" }],
+              // },
               resourceTimelineYear: {
                 duration: { years: 1 },
                 buttonText: "1Y",
                 slotDuration: { months: 1 },
                 slotLabelFormat: [{ month: "short" }],
-              },
+                eventDataTransform: function(eventData) {
+                  // For year view, use displayStart and displayEnd if they exist
+                  if (eventData.displayStart && eventData.displayEnd) {
+                    return {
+                      ...eventData,
+                      start: eventData.displayStart,
+                      end: eventData.displayEnd
+                    };
+                  }
+                  return eventData;
+                }
+              }
             }}
             eventContent={(arg) => {
               const props = arg.event.extendedProps;

@@ -114,6 +114,28 @@ export function PlanPageNav() {
     }
   };
 
+  const getStatusBadge = (allocations) => {
+    if (allocations.length === 0) {
+      return <Badge className="bg-info text-white">Not Allocated</Badge>;
+    }
+
+    const allocation = allocations[0]; // Assuming we check the first allocation for status
+    if (!allocation.actualEndDate) {
+      return <Badge className="bg-success text-white">Allocated</Badge>;
+    }
+
+    const endDate = new Date(allocation.endDate);
+    const actualEndDate = new Date(allocation.actualEndDate);
+
+    if (endDate.getTime() === actualEndDate.getTime()) {
+      return <Badge className="bg-primary text-white">On Track</Badge>;
+    } else if (actualEndDate > endDate) {
+      return <Badge className="bg-danger text-white">Delayed</Badge>;
+    } else {
+      return <Badge className="bg-warning text-white">Ahead</Badge>;
+    }
+  };
+
   const transformData = (projectName, partName, data) => {
     // Find the selected project
     const selectedProjectData = data.find(
@@ -476,10 +498,30 @@ export function PlanPageNav() {
                   <Col>
                     <div className="order-header">
                       <h5 className="order-title">{selectedPart}</h5>
-                      <Badge className="order-badge">
-                        {filteredAllocations[0]?.allocations[0]
-                          ?.AllocationPartType || "N/A"}
-                      </Badge>
+
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "8px",
+                        }}
+                      >
+                        <Badge className="order-badge common-badge">
+                          {filteredAllocations[0]?.allocations[0]
+                            ?.AllocationPartType || "N/A"}
+                        </Badge>
+                        <Badge
+                          style={{
+                            fontSize: "13px",
+                            background: "transparent",
+                            boxShadow: "none",
+                            border: "none",
+                            padding: 0,
+                          }}
+                        >
+                          {getStatusBadge(filteredAllocations[0].allocations)}
+                        </Badge>
+                      </div>
                     </div>
                     <div className="order-info">
                       <div>
