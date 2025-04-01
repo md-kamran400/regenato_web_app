@@ -88,7 +88,6 @@ const navdata = () => {
               link: "/regenato-planPage",
               icon: "fa fa-list",
             },
-            
           ],
         },
         {
@@ -98,20 +97,20 @@ const navdata = () => {
           label: "Capacity",
           link: "/regenato-machine-capacity",
           icon: "fa fa-chart-bar",
-          // children: [
-          //   {
-          //     id: "machineCapecity",
-          //     label: "Machine Capacity",
-          //     link: "/regenato-machine-capacity",
-          //     icon: "fa fa-list",
-          //   },
-            // {
-            //   id: "Operator Capecity",
-            //   label: "Operator Capacity",
-            //   link: "/regenato-operator-capacity",
-            //   icon: "fa fa-list",
-            // },
-          // ],
+          children: [
+            {
+              id: "machineCapecity",
+              label: "Machine Capacity",
+              link: "/regenato-machine-capacity",
+              icon: "fa fa-list",
+            },
+            {
+              id: "Operator Capecity",
+              label: "Operator Capacity",
+              link: "/regenato-operator-capacity",
+              icon: "fa fa-list",
+            },
+          ],
         },
       ],
     },
