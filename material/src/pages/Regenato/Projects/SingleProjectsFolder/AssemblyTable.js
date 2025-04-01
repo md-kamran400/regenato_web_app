@@ -49,7 +49,7 @@ const AssemblyTable = React.memo(
     projectId,
     assemblypartsListId,
     setassemblyLists,
-    getStatus,
+    // getStatus,
   }) => {
     const { _id } = useParams();
     const [modalAdd, setModalAdd] = useState(false);
@@ -228,27 +228,27 @@ const AssemblyTable = React.memo(
     }, [_id]);
     // }, [_id, existingAssemblyMultyPartsLists]);
 
-    // const getStatus = (allocations) => {
-    //   if (!allocations || allocations.length === 0)
-    //     return {
-    //       text: "Not Allocated",
-    //       class: "badge bg-info text-white",
-    //     };
-    //   const allocation = allocations[0].allocations[0];
-    //   if (!allocation)
-    //     return { text: "Not Allocated", class: "badge bg-info text-white" };
+    const getStatus = (allocations) => {
+      if (!allocations || allocations.length === 0)
+        return {
+          text: "Not Allocated",
+          class: "badge bg-info text-white",
+        };
+      const allocation = allocations[0].allocations[0];
+      if (!allocation)
+        return { text: "Not Allocated", class: "badge bg-info text-white" };
 
-    //   const actualEndDate = new Date(allocation.actualEndDate);
-    //   const endDate = new Date(allocation.endDate);
+      const actualEndDate = new Date(allocation.actualEndDate);
+      const endDate = new Date(allocation.endDate);
 
-    //   if (actualEndDate.getTime() === endDate.getTime())
-    //     return { text: "On Track", class: "badge bg-primary text-white" };
-    //   if (actualEndDate > endDate)
-    //     return { text: "Delayed", class: "badge bg-danger text-white" };
-    //   if (actualEndDate < endDate)
-    //     return { text: "Ahead", class: "badge bg-warning text-white" };
-    //   return { text: "Allocated", class: "badge bg-success text-white" };
-    // };
+      if (actualEndDate.getTime() === endDate.getTime())
+        return { text: "On Track", class: "badge bg-primary text-white" };
+      if (actualEndDate > endDate)
+        return { text: "Delayed", class: "badge bg-danger text-white" };
+      if (actualEndDate < endDate)
+        return { text: "Ahead", class: "badge bg-warning text-white" };
+      return { text: "Allocated", class: "badge bg-success text-white" };
+    };
 
     // Add this useEffect to fetch the lists when the component mounts
     useEffect(() => {

@@ -369,8 +369,16 @@ export const AllocatedSubAssemblyPlan = ({
   };
 
   const closeDailyTaskModal = () => {
-    setDailyTracking([]); // Clear added rows
     setDailyTaskModal(false);
+    setDailyTracking([
+      {
+        date: "",
+        planned: selectedSection?.data[0]?.dailyPlannedQty || 0,
+        produced: 0,
+        dailyStatus: "On Track",
+        operator: selectedSection?.data[0]?.operator || "",
+      },
+    ]);
   };
 
   return (
@@ -560,9 +568,7 @@ export const AllocatedSubAssemblyPlan = ({
                 ) : (
                   existingDailyTracking.map((task, index) => (
                     <tr key={index}>
-                      <td>
-                       {moment(task.date).format("DD MMM YYYY")}
-                      </td>
+                      <td>{moment(task.date).format("DD MMM YYYY")}</td>
                       <td>{task.planned}</td>
                       <td>{task.produced}</td>
                       <td>

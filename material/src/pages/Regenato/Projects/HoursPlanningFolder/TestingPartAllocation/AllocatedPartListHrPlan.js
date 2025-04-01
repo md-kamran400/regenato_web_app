@@ -368,9 +368,22 @@ export const AllocatedPartListHrPlan = ({
     }
   };
 
+  // const closeDailyTaskModal = () => {
+  //   setDailyTracking([]); // Clear added rows
+  //   setDailyTaskModal(false);
+  // };
+
   const closeDailyTaskModal = () => {
-    setDailyTracking([]); // Clear added rows
     setDailyTaskModal(false);
+    setDailyTracking([
+      {
+        date: "",
+        planned: selectedSection?.data[0]?.dailyPlannedQty || 0,
+        produced: 0,
+        dailyStatus: "On Track",
+        operator: selectedSection?.data[0]?.operator || "",
+      },
+    ]);
   };
 
   return (

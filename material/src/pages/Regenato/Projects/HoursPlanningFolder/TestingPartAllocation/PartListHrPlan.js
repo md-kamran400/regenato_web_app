@@ -1149,7 +1149,7 @@ export const PartListHrPlan = ({
   `}</style>
                           </td>
 
-                          <td style={{ width: "120px" }}>
+                          {/* <td style={{ width: "120px" }}>
                             <Input
                               type="date"
                               value={row.endDate}
@@ -1166,6 +1166,51 @@ export const PartListHrPlan = ({
                                 placeholder: "DD-MM-YYYY"
                               }
                             `}</style>
+                          </td> */}
+
+                          <td style={{ width: "180px" }}>
+                            <DatePicker
+                              selected={
+                                row.endDate ? new Date(row.endDate) : null
+                              }
+                              onChange={() => {}} // Empty function to prevent changes
+                              dayClassName={(date) =>
+                                isMachineAvailable(
+                                  row.machineId,
+                                  row.startDate,
+                                  date
+                                )
+                                  ? ""
+                                  : "highlighted-date"
+                              }
+                              renderDayContents={renderDayContents}
+                              customInput={<CustomInput />}
+                              dateFormat="dd-MM-yyyy"
+                              wrapperClassName="small-datepicker"
+                              disabled
+                              readOnly
+                            />
+
+                            <style>{`
+    .highlighted-date {
+      background-color: #f06548 !important;
+      color: black !important;
+      border-radius: 50%;
+    }
+    .grayed-out-date {
+      color: #ccc !important;
+    }
+    .small-datepicker input {
+      width: 130px !important;
+      font-size: 15px !important;
+      padding: 7px !important;
+      // background-color: #e9ecef; /* Light gray background to indicate disabled state */
+      cursor: not-allowed;
+    }
+    .react-datepicker-wrapper {
+      opacity: 1; /* Ensure it doesn't look faded */
+    }
+  `}</style>
                           </td>
 
                           <td>

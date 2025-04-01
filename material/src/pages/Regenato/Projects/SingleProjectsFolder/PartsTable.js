@@ -48,7 +48,7 @@ const PartsTable = React.memo(
     updatePartsLists,
     onAddPart,
     onUpdatePrts,
-    getStatus,
+    // getStatus,
   }) => {
     const { _id, listId } = useParams();
     const rm = "partsList";
@@ -125,27 +125,27 @@ const PartsTable = React.memo(
       setPartsListItemsUpdated(false);
     }, [partsListItemsUpdated]);
 
-    // const getStatus = (allocations) => {
-    //   if (!allocations || allocations.length === 0)
-    //     return {
-    //       text: "Not Allocated",
-    //       class: "badge bg-info text-white",
-    //     };
-    //   const allocation = allocations[0].allocations[0];
-    //   if (!allocation)
-    //     return { text: "Not Allocated", class:  "badge bg-info text-white", };
+    const getStatus = (allocations) => {
+      if (!allocations || allocations.length === 0)
+        return {
+          text: "Not Allocated",
+          class: "badge bg-info text-white",
+        };
+      const allocation = allocations[0].allocations[0];
+      if (!allocation)
+        return { text: "Not Allocated", class:  "badge bg-info text-white", };
 
-    //   const actualEndDate = new Date(allocation.actualEndDate);
-    //   const endDate = new Date(allocation.endDate);
+      const actualEndDate = new Date(allocation.actualEndDate);
+      const endDate = new Date(allocation.endDate);
 
-    //   if (actualEndDate.getTime() === endDate.getTime())
-    //     return { text: "On Track", class: "badge bg-primary text-white" };
-    //   if (actualEndDate > endDate)
-    //     return { text: "Delayed", class: "badge bg-danger text-white" };
-    //   if (actualEndDate < endDate)
-    //     return { text: "Ahead", class: "badge bg-warning text-white" };
-    //   return { text: "Allocated", class: "badge bg-success text-white" };
-    // };
+      if (actualEndDate.getTime() === endDate.getTime())
+        return { text: "On Track", class: "badge bg-primary text-white" };
+      if (actualEndDate > endDate)
+        return { text: "Delayed", class: "badge bg-danger text-white" };
+      if (actualEndDate < endDate)
+        return { text: "Ahead", class: "badge bg-warning text-white" };
+      return { text: "Allocated", class: "badge bg-success text-white" };
+    };
 
     useEffect(() => {
       const fetchManufacturingVariables = async () => {
@@ -1066,25 +1066,33 @@ const PartsTable = React.memo(
                 </div>
 
                 <div className="form-group">
-                  <Label for="quantity" className="form-label">
-                    Quantity
-                  </Label>
-                  <Input
-                    className="form-control"
-                    type="number"
-                    id="quantity"
-                    value={quantity.toString()}
-                    onChange={(e) => {
-                      const inputValue = e.target.value;
-                      if (inputValue === "" || /^\d+$/.test(inputValue)) {
-                        setQuantity(
-                          inputValue === "" ? 0 : parseInt(inputValue)
-                        );
-                      }
-                    }}
-                    required
-                  />
-                </div>
+  <Label for="quantity" className="form-label">
+    Quantity
+  </Label>
+  <Input
+    className="form-control"
+    type="number"
+    id="quantity"
+    value={quantity.toString()}
+    onChange={(e) => {
+      const inputValue = e.target.value;
+      if (inputValue === "" || /^\d+$/.test(inputValue)) {
+        const numericValue = inputValue === "" ? 0 : parseInt(inputValue);
+        if (numericValue > 99999) {
+          toast.warning("Maximum quantity is 99999");
+          setQuantity(99999);
+        } else {
+          setQuantity(numericValue);
+        }
+      }
+    }}
+    max="99999"
+    required
+  />
+  {quantity > 99999 && (
+    <small className="text-danger">Maximum quantity is 99999</small>
+  )}
+</div>
                 <div style={{ display: "none" }}>
                   <UncontrolledAccordion defaultOpen="1">
                     {/* Raw Materials Accordion */}
