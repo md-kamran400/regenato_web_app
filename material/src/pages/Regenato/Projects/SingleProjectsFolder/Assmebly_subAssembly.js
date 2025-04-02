@@ -60,6 +60,7 @@ const Assmebly_subAssembly = ({
   const [listData, setListData] = useState([]);
   const [posting, setPosting] = useState(false);
   // Assuming parts array is populated
+  const [statusFilter, setStatusFilter] = useState("all");
   const [quantity, setQuantity] = useState(0);
   const [parts, setParts] = useState([]);
   const [selectedPartData, setSelectedPartData] = useState(parts[0]);
@@ -291,7 +292,7 @@ const Assmebly_subAssembly = ({
       };
     const allocation = allocations[0].allocations[0];
     if (!allocation)
-      return { text: "Not Allocated", class:  "badge bg-info text-white", };
+      return { text: "Not Allocated", class: "badge bg-info text-white" };
 
     const actualEndDate = new Date(allocation.actualEndDate);
     const endDate = new Date(allocation.endDate);
@@ -485,6 +486,29 @@ const Assmebly_subAssembly = ({
                     </Button>
                   </div>
 
+                  <div
+                    className="mb-3"
+                    style={{ display: "flex", justifyContent: "flex-end" }}
+                  >
+                    <Label for="statusFilter" className="me-2 mt-2">
+                      Filter by Status:
+                    </Label>
+                    <Input
+                      type="select"
+                      id="statusFilter"
+                      value={statusFilter}
+                      onChange={(e) => setStatusFilter(e.target.value)}
+                      style={{ width: "200px" }}
+                    >
+                      <option value="all">All Statuses</option>
+                      <option value="Not Allocated">Not Allocated</option>
+                      <option value="On Track">On Track</option>
+                      <option value="Delayed">Delayed</option>
+                      <option value="Ahead">Ahead</option>
+                      <option value="Allocated">Allocated</option>
+                    </Input>
+                  </div>
+
                   <div className="table-wrapper">
                     <table className="table table-striped vertical-lines horizontals-lines">
                       <thead style={{ backgroundColor: "#f3f4f6" }}>
@@ -517,226 +541,242 @@ const Assmebly_subAssembly = ({
                           </tr>
                         ) : (
                           subAssembly.partsListItems &&
-                          subAssembly.partsListItems.map((item) => {
-                            const statusInfo = getStatus(item.allocations);
-                            return (
-                              <React.Fragment key={item._id}>
-                                <tr
-                                  onClick={() =>
-                                    handleRowClickParts(item._id, item.partName)
-                                  }
-                                  className={
-                                    expandedRowId === item._id ? "expanded" : ""
-                                  }
-                                >
-                                  <td
-                                    style={{
-                                      cursor: "pointer",
-                                      color: "#64B5F6",
-                                    }}
-                                    className="parent_partName"
+                          subAssembly.partsListItems
+                            .filter((item) => {
+                              if (statusFilter === "all") return true;
+                              const statusInfo = getStatus(item.allocations);
+                              return statusInfo.text === statusFilter;
+                            })
+                            .map((item) => {
+                              const statusInfo = getStatus(item.allocations);
+                              return (
+                                <React.Fragment key={item._id}>
+                                  <tr
+                                    onClick={() =>
+                                      handleRowClickParts(
+                                        item._id,
+                                        item.partName
+                                      )
+                                    }
+                                    className={
+                                      expandedRowId === item._id
+                                        ? "expanded"
+                                        : ""
+                                    }
                                   >
-                                    {item.partName} ({item.Uid || ""}){" "}
-                                    {item.codeName || ""}
-                                  </td>
-                                  <td>
-                                    <span
-                                      className={
-                                        getStatus(item.allocations).class
-                                      }
-                                    >
-                                      {getStatus(item.allocations).text}
-                                    </span>
-                                  </td>
-                                  <td>{Math.round(item.costPerUnit || 0)}</td>
-                                  <td>{formatTime(item.timePerUnit || 0)}</td>
-                                  <td>
-                                    <div
+                                    <td
                                       style={{
-                                        display: "flex",
-                                        justifyContent: "space-between",
-                                        width: "60%",
+                                        cursor: "pointer",
+                                        color: "#64B5F6",
                                       }}
+                                      className="parent_partName"
                                     >
-                                      {parseInt(item.quantity || 0)}
-                                      <button
-                                        className="btn btn-sm btn-success edit-item-btn"
-                                        onClick={() => handleEditQuantity(item)}
+                                      {item.partName} ({item.Uid || ""}){" "}
+                                      {item.codeName || ""}
+                                    </td>
+                                    <td>
+                                      <span
+                                        className={
+                                          getStatus(item.allocations).class
+                                        }
                                       >
-                                        <FaEdit />
-                                      </button>
-                                    </div>
-                                  </td>
-                                  {/* <td>
+                                        {getStatus(item.allocations).text}
+                                      </span>
+                                    </td>
+                                    <td>{Math.round(item.costPerUnit || 0)}</td>
+                                    <td>{formatTime(item.timePerUnit || 0)}</td>
+                                    <td>
+                                      <div
+                                        style={{
+                                          display: "flex",
+                                          justifyContent: "space-between",
+                                          width: "60%",
+                                        }}
+                                      >
+                                        {parseInt(item.quantity || 0)}
+                                        <button
+                                          className="btn btn-sm btn-success edit-item-btn"
+                                          onClick={() =>
+                                            handleEditQuantity(item)
+                                          }
+                                        >
+                                          <FaEdit />
+                                        </button>
+                                      </div>
+                                    </td>
+                                    {/* <td>
                                   {parseFloat(item.costPerUnit || 0) *
                                     parseInt(item.quantity || 0)}
                                 </td> */}
-                                  <td>
-                                    {Math.round(
-                                      parseFloat(item.costPerUnit || 0) *
-                                        parseInt(item.quantity || 0)
-                                    )}
-                                  </td>
-                                  <td>
-                                    {formatTime(
-                                      parseFloat(item.timePerUnit || 0) *
-                                        parseInt(item.quantity || 0)
-                                    )}
-                                  </td>
+                                    <td>
+                                      {Math.round(
+                                        parseFloat(item.costPerUnit || 0) *
+                                          parseInt(item.quantity || 0)
+                                      )}
+                                    </td>
+                                    <td>
+                                      {formatTime(
+                                        parseFloat(item.timePerUnit || 0) *
+                                          parseInt(item.quantity || 0)
+                                      )}
+                                    </td>
 
-                                  <td className="action-cell">
-                                    <div className="action-buttons">
-                                      <span
-                                        style={{
-                                          color: "blue",
-                                          cursor: "pointer",
-                                          marginRight: "2px",
-                                        }}
-                                      >
-                                        <FiSettings
-                                          size={20}
-                                          onClick={() => toggleModal(item)}
-                                          className={`settings-icon ${
-                                            modalOpenId === item._id
-                                              ? "rotate"
-                                              : ""
-                                          }`}
-                                        />
-                                      </span>
-                                      <span
-                                        style={{
-                                          color: "red",
-                                          cursor: "pointer",
-                                        }}
-                                      >
-                                        <MdOutlineDelete
-                                          size={25}
-                                          onClick={() => {
-                                            setDeleteModal(true);
-                                            setItemToDelete(item);
+                                    <td className="action-cell">
+                                      <div className="action-buttons">
+                                        <span
+                                          style={{
+                                            color: "blue",
+                                            cursor: "pointer",
+                                            marginRight: "2px",
                                           }}
-                                        />
-                                      </span>
-                                    </div>
-                                  </td>
-                                </tr>
-
-                                {expandedRowId === item._id && (
-                                  <tr>
-                                    <td colSpan="8">
-                                      <Assembly_SubAssemblyHoursPlanning
-                                        partName={item.partName}
-                                        manufacturingVariables={
-                                          item.manufacturingVariables || []
-                                        }
-                                        quantity={item.quantity}
-                                        porjectID={_id}
-                                        AssemblyListId={assemblyId}
-                                        subAssembliesId={subAssembly._id}
-                                        partListItemId={item._id}
-                                      />
+                                        >
+                                          <FiSettings
+                                            size={20}
+                                            onClick={() => toggleModal(item)}
+                                            className={`settings-icon ${
+                                              modalOpenId === item._id
+                                                ? "rotate"
+                                                : ""
+                                            }`}
+                                          />
+                                        </span>
+                                        <span
+                                          style={{
+                                            color: "red",
+                                            cursor: "pointer",
+                                          }}
+                                        >
+                                          <MdOutlineDelete
+                                            size={25}
+                                            onClick={() => {
+                                              setDeleteModal(true);
+                                              setItemToDelete(item);
+                                            }}
+                                          />
+                                        </span>
+                                      </div>
                                     </td>
                                   </tr>
-                                )}
 
-                                {modalOpenId === item._id && (
-                                  <Modal
-                                    isOpen={true}
-                                    toggle={() => setModalOpenId(null)}
-                                    style={{ maxWidth: "80%" }}
-                                  >
-                                    <ModalHeader
-                                      toggle={() => setModalOpenId(null)}
-                                    >
-                                      <h5
-                                        className="mb-3 d-flex align-items-center"
-                                        style={{
-                                          fontWeight: "bold",
-                                          color: "#333",
-                                        }}
-                                      >
-                                        <FiSettings
-                                          style={{
-                                            fontSize: "1.2rem",
-                                            marginRight: "10px",
-                                            color: "#2563eb",
-                                            fontWeight: "bold",
-                                          }}
+                                  {expandedRowId === item._id && (
+                                    <tr>
+                                      <td colSpan="8">
+                                        <Assembly_SubAssemblyHoursPlanning
+                                          partName={item.partName}
+                                          manufacturingVariables={
+                                            item.manufacturingVariables || []
+                                          }
+                                          quantity={item.quantity}
+                                          porjectID={_id}
+                                          AssemblyListId={assemblyId}
+                                          subAssembliesId={subAssembly._id}
+                                          partListItemId={item._id}
                                         />
-                                        {item.partName}
-                                      </h5>
-                                    </ModalHeader>
-                                    <ModalBody>
-                                      <div>
-                                        <div>
-                                          <RawMaterial
-                                            partName={item.partName}
-                                            rmVariables={item.rmVariables || []}
-                                            // projectId={_id}
-                                            subAssembly={subAssembly}
-                                            projectId={projectId}
-                                            partId={item._id} //shai h
-                                            assemblyId={assemblyId}
-                                            subAssemblyId={subAssembly._id}
-                                            source="subAssemblyListFirst"
-                                            onUpdatePrts={onupdateAssmebly}
-                                            quantity={item.quantity}
+                                      </td>
+                                    </tr>
+                                  )}
+
+                                  {modalOpenId === item._id && (
+                                    <Modal
+                                      isOpen={true}
+                                      toggle={() => setModalOpenId(null)}
+                                      style={{ maxWidth: "80%" }}
+                                    >
+                                      <ModalHeader
+                                        toggle={() => setModalOpenId(null)}
+                                      >
+                                        <h5
+                                          className="mb-3 d-flex align-items-center"
+                                          style={{
+                                            fontWeight: "bold",
+                                            color: "#333",
+                                          }}
+                                        >
+                                          <FiSettings
+                                            style={{
+                                              fontSize: "1.2rem",
+                                              marginRight: "10px",
+                                              color: "#2563eb",
+                                              fontWeight: "bold",
+                                            }}
                                           />
-                                        </div>
+                                          {item.partName}
+                                        </h5>
+                                      </ModalHeader>
+                                      <ModalBody>
                                         <div>
-                                          <Manufacturing
-                                            partName={item.partName}
-                                            manufacturingVariables={
-                                              item.manufacturingVariables || []
-                                            }
-                                            subAssembly={subAssembly}
-                                            projectId={projectId}
-                                            partId={item._id} //shai h
-                                            assemblyId={assemblyId}
-                                            subAssemblyId={subAssembly._id}
-                                            quantity={item.quantity}
-                                            source="subAssemblyListFirst"
-                                            onUpdatePrts={onupdateAssmebly}
-                                          />
+                                          <div>
+                                            <RawMaterial
+                                              partName={item.partName}
+                                              rmVariables={
+                                                item.rmVariables || []
+                                              }
+                                              // projectId={_id}
+                                              subAssembly={subAssembly}
+                                              projectId={projectId}
+                                              partId={item._id} //shai h
+                                              assemblyId={assemblyId}
+                                              subAssemblyId={subAssembly._id}
+                                              source="subAssemblyListFirst"
+                                              onUpdatePrts={onupdateAssmebly}
+                                              quantity={item.quantity}
+                                            />
+                                          </div>
+                                          <div>
+                                            <Manufacturing
+                                              partName={item.partName}
+                                              manufacturingVariables={
+                                                item.manufacturingVariables ||
+                                                []
+                                              }
+                                              subAssembly={subAssembly}
+                                              projectId={projectId}
+                                              partId={item._id} //shai h
+                                              assemblyId={assemblyId}
+                                              subAssemblyId={subAssembly._id}
+                                              quantity={item.quantity}
+                                              source="subAssemblyListFirst"
+                                              onUpdatePrts={onupdateAssmebly}
+                                            />
+                                          </div>
+                                          <div>
+                                            {" "}
+                                            <Shipment
+                                              partName={item.partName}
+                                              shipmentVariables={
+                                                item.shipmentVariables || []
+                                              }
+                                              quantity={item.quantity}
+                                              projectId={projectId}
+                                              partId={item._id} //shai h
+                                              assemblyId={assemblyId}
+                                              subAssemblyId={subAssembly._id}
+                                              source="subAssemblyListFirst"
+                                              onUpdatePrts={onupdateAssmebly}
+                                            />
+                                          </div>
+                                          <div>
+                                            <Overheads
+                                              partName={item.partName}
+                                              quantity={item.quantity}
+                                              projectId={projectId}
+                                              partId={item._id} //shai h
+                                              assemblyId={assemblyId}
+                                              subAssemblyId={subAssembly._id}
+                                              overheadsAndProfits={
+                                                item.overheadsAndProfits
+                                              }
+                                              source="subAssemblyListFirst"
+                                              onUpdatePrts={onupdateAssmebly}
+                                            />
+                                          </div>
                                         </div>
-                                        <div>
-                                          {" "}
-                                          <Shipment
-                                            partName={item.partName}
-                                            shipmentVariables={
-                                              item.shipmentVariables || []
-                                            }
-                                            quantity={item.quantity}
-                                            projectId={projectId}
-                                            partId={item._id} //shai h
-                                            assemblyId={assemblyId}
-                                            subAssemblyId={subAssembly._id}
-                                            source="subAssemblyListFirst"
-                                            onUpdatePrts={onupdateAssmebly}
-                                          />
-                                        </div>
-                                        <div>
-                                          <Overheads
-                                            partName={item.partName}
-                                            quantity={item.quantity}
-                                            projectId={projectId}
-                                            partId={item._id} //shai h
-                                            assemblyId={assemblyId}
-                                            subAssemblyId={subAssembly._id}
-                                            overheadsAndProfits={
-                                              item.overheadsAndProfits
-                                            }
-                                            source="subAssemblyListFirst"
-                                            onUpdatePrts={onupdateAssmebly}
-                                          />
-                                        </div>
-                                      </div>
-                                    </ModalBody>
-                                  </Modal>
-                                )}
-                              </React.Fragment>
-                            );
-                          })
+                                      </ModalBody>
+                                    </Modal>
+                                  )}
+                                </React.Fragment>
+                              );
+                            })
                         )}
                       </tbody>
                     </table>

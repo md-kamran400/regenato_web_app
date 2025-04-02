@@ -463,20 +463,33 @@ export function PlanPage() {
           const processColor = getProcessColor(props.processName);
 
           const tooltipContent = `
-      Process: ${props.processName}
-      Machine: ${props.machineId}
-      Operator: ${props.operator}
-      Quantity: ${props.plannedQuantity}
-      Shift: ${props.shift}
-      Start: ${event.start?.toLocaleDateString()}
-      End: ${event.end?.toLocaleDateString()}
-    `;
-          info.el.setAttribute("title", tooltipContent);
+            Process: ${props.processName}
+            Machine: ${props.machineId}
+            Operator: ${props.operator}
+            Quantity: ${props.plannedQuantity}
+            Shift: ${props.shift}
+            Start: ${event.start?.toLocaleDateString()}
+            End: ${event.end?.toLocaleDateString()}
+          `;
+
+          // Ensure the event is visually disabled but still allows hover
           info.el.style.backgroundColor = processColor;
           info.el.style.borderColor = processColor;
-          info.el.style.pointerEvents = "none"; // Disable events
-          info.el.style.cursor = "not-allowed"; // Cursor visual
-          info.el.style.opacity = "0.6";
+          info.el.style.cursor = "not-allowed"; // Prevent clicking
+          info.el.style.opacity = "0.6"; // Optional dim effect
+          info.el.style.pointerEvents = "auto"; // Allow hover effects
+
+          // Use a better tooltip approach (e.g., Tippy.js)
+          if (window.tippy) {
+            window.tippy(info.el, {
+              content: tooltipContent,
+              allowHTML: false,
+              placement: "top",
+              theme: "light-border",
+            });
+          } else {
+            info.el.setAttribute("title", tooltipContent);
+          }
         }}
       />
 
@@ -676,15 +689,15 @@ export function PlanPage() {
                               cursor: "pointer",
                             }}
                           >
-                            <div >
+                            <div>
                               <Badge
                                 className={splitStatus.className}
                                 style={{
                                   height: "1rem",
                                   padding: "0.1rem 0.rem",
                                   fontSize: "0.65rem",
-                                  marginLeft:'14rem',
-                                  marginBottom:'5px'
+                                  marginLeft: "14rem",
+                                  marginBottom: "5px",
                                 }}
                                 // style={{}}
                               >
@@ -833,26 +846,13 @@ export function PlanPage() {
                       const props = event.extendedProps;
 
                       let tooltipContent = `
-        Process: ${props.processName}
-        Machine: ${props.machineId}
-        Operator: ${props.operator}
-        Planned Quantity: ${props.plannedQuantity}
-        Start: ${event.start?.toLocaleDateString()}
-        End: ${event.end?.toLocaleDateString()}
-      `;
-
-                      // Add daily tracking details if available
-                      if (props.dailyTracking.length > 0) {
-                        tooltipContent += "\nDaily Tracking:\n";
-                        props.dailyTracking.forEach((tracking) => {
-                          tooltipContent += `- ${new Date(
-                            tracking.date
-                          ).toLocaleDateString()}: 
-            Planned: ${tracking.planned}, 
-            Produced: ${tracking.produced}, 
-            Status: ${tracking.dailyStatus}\n`;
-                        });
-                      }
+                              Process: ${props.processName}
+                              Machine: ${props.machineId}
+                              Operator: ${props.operator}
+                              Planned Quantity: ${props.plannedQuantity}
+                              Start: ${event.start?.toLocaleDateString()}
+                              End: ${event.end?.toLocaleDateString()}
+                            `;
 
                       // Set tooltip on hover
                       info.el.setAttribute("title", tooltipContent);

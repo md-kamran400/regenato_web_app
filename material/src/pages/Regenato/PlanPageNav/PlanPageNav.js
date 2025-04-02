@@ -470,12 +470,25 @@ export function PlanPageNav() {
             Start: ${event.start?.toLocaleDateString()}
             End: ${event.end?.toLocaleDateString()}
           `;
-          info.el.setAttribute("title", tooltipContent);
+
+          // Ensure the event is visually disabled but still allows hover
           info.el.style.backgroundColor = processColor;
           info.el.style.borderColor = processColor;
-          info.el.style.pointerEvents = "none"; // Disable events
-          info.el.style.cursor = "not-allowed"; // Cursor visual
-          info.el.style.opacity = "0.6";
+          info.el.style.cursor = "not-allowed"; // Prevent clicking
+          info.el.style.opacity = "0.6"; // Optional dim effect
+          info.el.style.pointerEvents = "auto"; // Allow hover effects
+
+          // Use a better tooltip approach (e.g., Tippy.js)
+          if (window.tippy) {
+            window.tippy(info.el, {
+              content: tooltipContent,
+              allowHTML: false,
+              placement: "top",
+              theme: "light-border",
+            });
+          } else {
+            info.el.setAttribute("title", tooltipContent);
+          }
         }}
       />
 
@@ -901,27 +914,14 @@ export function PlanPageNav() {
                       const event = info.event;
                       const props = event.extendedProps;
 
-                      let tooltipContent = `
-        Process: ${props.processName}
-        Machine: ${props.machineId}
-        Operator: ${props.operator}
-        Planned Quantity: ${props.plannedQuantity}
-        Start: ${event.start?.toLocaleDateString()}
-        End: ${event.end?.toLocaleDateString()}
-      `;
-
-                      // Add daily tracking details if available
-                      if (props.dailyTracking.length > 0) {
-                        tooltipContent += "\nDaily Tracking:\n";
-                        props.dailyTracking.forEach((tracking) => {
-                          tooltipContent += `- ${new Date(
-                            tracking.date
-                          ).toLocaleDateString()}: 
-            Planned: ${tracking.planned}, 
-            Produced: ${tracking.produced}, 
-            Status: ${tracking.dailyStatus}\n`;
-                        });
-                      }
+                                            let tooltipContent = `
+                              Process: ${props.processName}
+                              Machine: ${props.machineId}
+                              Operator: ${props.operator}
+                              Planned Quantity: ${props.plannedQuantity}
+                              Start: ${event.start?.toLocaleDateString()}
+                              End: ${event.end?.toLocaleDateString()}
+                            `;
 
                       // Set tooltip on hover
                       info.el.setAttribute("title", tooltipContent);

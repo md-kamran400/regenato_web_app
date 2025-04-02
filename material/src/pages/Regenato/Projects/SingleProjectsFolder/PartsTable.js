@@ -95,6 +95,7 @@ const PartsTable = React.memo(
     };
     const [modalOpenId, setModalOpenId] = useState(null);
     const [loadingParts, setLoadingParts] = useState(false);
+    const [statusFilter, setStatusFilter] = useState("all");
     // console.log(partsList._id);
     // console.log(updatePartsLists)
 
@@ -133,7 +134,7 @@ const PartsTable = React.memo(
         };
       const allocation = allocations[0].allocations[0];
       if (!allocation)
-        return { text: "Not Allocated", class:  "badge bg-info text-white", };
+        return { text: "Not Allocated", class: "badge bg-info text-white" };
 
       const actualEndDate = new Date(allocation.actualEndDate);
       const endDate = new Date(allocation.endDate);
@@ -644,61 +645,34 @@ const PartsTable = React.memo(
               <div class="ribbon ribbon-success ribbon-shape">Parts</div>
             </div>
           </div>
+          {/* Add the filter select box here */}
+          <div
+            className="mb-3"
+            style={{ display: "flex", justifyContent: "flex-end" ,marginRight:'5px'}}
+          >
+            <Label for="statusFilter" className="me-2 mt-2">
+              Filter by Status:
+            </Label>
+            <Input
+              type="select"
+              id="statusFilter"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              style={{ width: "200px" }}
+            >
+              <option value="all">All Statuses</option>
+              <option value="Not Allocated">Not Allocated</option>
+              <option value="On Track">On Track</option>
+              <option value="Delayed">Delayed</option>
+              <option value="Ahead">Ahead</option>
+              <option value="Allocated">Allocated</option>
+            </Input>
+          </div>
+
           <Row>
             <Col lg={12}>
               <Card>
                 <CardBody>
-                  {/* <div
-                    style={{
-                      padding: "5px 10px 5px 10px",
-                      borderRadius: "3px",
-                    }}
-                    className="button-group flex justify-content-between align-items-center"
-                  >
-                    <ul
-                      style={{
-                        listStyleType: "none",
-                        padding: 0,
-                        fontWeight: "600",
-                      }}
-                    >
-                      <li style={{ fontSize: "25px", marginBottom: "5px" }}>
-                        {partsList.partsListName}
-                      </li>
-
-                      <li style={{ fontSize: "19px" }}>
-                        <span class="badge bg-success-subtle text-success">
-                          Parts
-                        </span>
-                      </li>
-                    </ul>
-
-                    <UncontrolledDropdown direction="left">
-                      <DropdownToggle
-                        tag="button"
-                        className="btn btn-link text-muted p-1 mt-n2 py-0 text-decoration-none fs-15 shadow-none"
-                      >
-                        <FeatherIcon
-                          style={{ fontWeight: "600" }}
-                          icon="more-horizontal"
-                          className="icon-sm"
-                        />
-                      </DropdownToggle>
-
-                      <DropdownMenu className="dropdown-menu-start">
-                        <DropdownItem
-                          href="#"
-                          onClick={() => toggleEditModal(partsList)}
-                        >
-                          <i className="ri-edit-2-line align-bottom me-2 text-muted"></i>{" "}
-                          Edit
-                        </DropdownItem>
-
-                        <div className="dropdown-divider"></div>
-                      </DropdownMenu>
-                    </UncontrolledDropdown>
-                  </div> */}
-
                   <div className="table-wrapper">
                     <table className="table table-striped vertical-lines horizontals-lines">
                       <thead style={{ backgroundColor: "#f3f4f6" }}>
@@ -716,105 +690,118 @@ const PartsTable = React.memo(
                         </tr>
                       </thead>
                       <tbody>
-                        {partsListItems?.map((item) => {
-                          const status = getStatus(item.allocations);
-                          return (
-                            <React.Fragment key={item._id}>
-                              <tr>
-                                <td
-                                  onClick={() =>
-                                    handleRowClickParts(item._id, item.partName)
-                                  }
-                                  className={
-                                    expandedRowId === item._id ? "expanded" : ""
-                                  }
-                                  style={{
-                                    cursor: "pointer",
-                                    color: "#64B5F6",
-                                  }}
-                                >
-                                  {item.partName} ({item.Uid || ""})
-                                  {item.codeName || ""}
-                                </td>
-                                {/* <td>{getStatus(item.allocations)}</td> */}
-                                <td>
-                                  <span
-                                    className={
-                                      getStatus(item.allocations).class
+                        {partsListItems
+                          ?.filter((item) => {
+                            if (statusFilter === "all") return true;
+                            const status = getStatus(item.allocations);
+                            return status.text === statusFilter;
+                          })
+                          .map((item) => {
+                            const status = getStatus(item.allocations);
+                            return (
+                              <React.Fragment key={item._id}>
+                                <tr>
+                                  <td
+                                    onClick={() =>
+                                      handleRowClickParts(
+                                        item._id,
+                                        item.partName
+                                      )
                                     }
-                                  >
-                                    {getStatus(item.allocations).text}
-                                  </span>
-                                </td>
-                                <td>{Math.round(item.costPerUnit || 0)}</td>
-                                <td>{formatTime(item.timePerUnit || 0)}</td>
-                                <td>
-                                  <div
+                                    className={
+                                      expandedRowId === item._id
+                                        ? "expanded"
+                                        : ""
+                                    }
                                     style={{
-                                      display: "flex",
-                                      justifyContent: "space-between",
-                                      width: "80%",
+                                      cursor: "pointer",
+                                      color: "#64B5F6",
                                     }}
                                   >
-                                    {parseInt(item.quantity || 0)}
-                                    <button
-                                      className="btn btn-sm btn-success edit-item-btn "
-                                      onClick={() => handleEditQuantity(item)}
-                                    >
-                                      <FaEdit />
-                                    </button>
-                                  </div>
-                                </td>
-
-                                <td>
-                                  {Math.ceil(
-                                    parseFloat(item.costPerUnit || 0) *
-                                      parseInt(item.quantity || 0)
-                                  )}
-                                </td>
-                                <td>
-                                  {formatTime(
-                                    parseFloat(item.timePerUnit || 0) *
-                                      parseInt(item.quantity || 0)
-                                  )}
-                                </td>
-                                <td className="action-cell">
-                                  <div className="action-buttons">
+                                    {item.partName} ({item.Uid || ""})
+                                    {item.codeName || ""}
+                                  </td>
+                                  {/* <td>{getStatus(item.allocations)}</td> */}
+                                  <td>
                                     <span
+                                      className={
+                                        getStatus(item.allocations).class
+                                      }
+                                    >
+                                      {getStatus(item.allocations).text}
+                                    </span>
+                                  </td>
+                                  <td>{Math.round(item.costPerUnit || 0)}</td>
+                                  <td>{formatTime(item.timePerUnit || 0)}</td>
+                                  <td>
+                                    <div
                                       style={{
-                                        color: "blue",
-                                        cursor: "pointer",
-                                        marginRight: "2px",
+                                        display: "flex",
+                                        justifyContent: "space-between",
+                                        width: "80%",
                                       }}
                                     >
-                                      <FiSettings
-                                        size={20}
-                                        onClick={() => toggleModal(item)}
-                                        className={`settings-icon ${
-                                          modalOpenId === item._id
-                                            ? "rotate"
-                                            : ""
-                                        }`}
-                                      />
-                                    </span>
-                                    <span
-                                      style={{
-                                        color: "red",
-                                        cursor: "pointer",
-                                        marginLeft: "3px",
-                                      }}
-                                    >
-                                      <MdOutlineDelete
-                                        size={25}
-                                        onClick={() => toggleDeleteModal(item)}
-                                      />
-                                    </span>
-                                  </div>
-                                </td>
-                              </tr>
+                                      {parseInt(item.quantity || 0)}
+                                      <button
+                                        className="btn btn-sm btn-success edit-item-btn "
+                                        onClick={() => handleEditQuantity(item)}
+                                      >
+                                        <FaEdit />
+                                      </button>
+                                    </div>
+                                  </td>
 
-                              {/* Expanding HoursPlanningCard in a full-width row */}
-                              {/* {expandedRowId === item._id && (
+                                  <td>
+                                    {Math.ceil(
+                                      parseFloat(item.costPerUnit || 0) *
+                                        parseInt(item.quantity || 0)
+                                    )}
+                                  </td>
+                                  <td>
+                                    {formatTime(
+                                      parseFloat(item.timePerUnit || 0) *
+                                        parseInt(item.quantity || 0)
+                                    )}
+                                  </td>
+                                  <td className="action-cell">
+                                    <div className="action-buttons">
+                                      <span
+                                        style={{
+                                          color: "blue",
+                                          cursor: "pointer",
+                                          marginRight: "2px",
+                                        }}
+                                      >
+                                        <FiSettings
+                                          size={20}
+                                          onClick={() => toggleModal(item)}
+                                          className={`settings-icon ${
+                                            modalOpenId === item._id
+                                              ? "rotate"
+                                              : ""
+                                          }`}
+                                        />
+                                      </span>
+                                      <span
+                                        style={{
+                                          color: "red",
+                                          cursor: "pointer",
+                                          marginLeft: "3px",
+                                        }}
+                                      >
+                                        <MdOutlineDelete
+                                          size={25}
+                                          onClick={() =>
+                                            toggleDeleteModal(item)
+                                          }
+                                        />
+                                      </span>
+                                    </div>
+                                  </td>
+                                </tr>
+
+                                {/* Expanding HoursPlanningCard in a full-width row */}
+                                {/* {expandedRowId === item._id && (
                               <tr>
                                 <td colSpan="7">
                                   <HoursPlanningCard
@@ -829,119 +816,119 @@ const PartsTable = React.memo(
                               </tr>
                             )} */}
 
-                              {expandedRowId === item._id && (
-                                <tr>
-                                  <td colSpan="8">
-                                    <PartListHrPlan
-                                      partName={item.partName}
-                                      manufacturingVariables={
-                                        item.manufacturingVariables || []
-                                      }
-                                      quantity={item.quantity}
-                                      porjectID={_id}
-                                      partID={partsListID}
-                                      partListItemId={item._id}
-                                    />
-                                  </td>
-                                </tr>
-                              )}
-
-                              {modalOpenId === item._id && (
-                                <Modal
-                                  isOpen={true}
-                                  toggle={() => setModalOpenId(null)}
-                                  style={{ maxWidth: "80%" }}
-                                >
-                                  <ModalHeader
-                                    toggle={() => setModalOpenId(null)}
-                                  >
-                                    <h5
-                                      className="mb-3 d-flex align-items-center"
-                                      style={{
-                                        fontWeight: "bold",
-                                        color: "#333",
-                                      }}
-                                    >
-                                      <FiSettings
-                                        style={{
-                                          fontSize: "1.2rem",
-                                          marginRight: "10px",
-                                          color: "#2563eb",
-                                          fontWeight: "bold",
-                                        }}
+                                {expandedRowId === item._id && (
+                                  <tr>
+                                    <td colSpan="8">
+                                      <PartListHrPlan
+                                        partName={item.partName}
+                                        manufacturingVariables={
+                                          item.manufacturingVariables || []
+                                        }
+                                        quantity={item.quantity}
+                                        porjectID={_id}
+                                        partID={partsListID}
+                                        partListItemId={item._id}
                                       />
-                                      {item.partName}
-                                    </h5>
-                                  </ModalHeader>
-                                  <ModalBody>
-                                    <div>
-                                      <div style={{ marginBottom: "20px" }}>
-                                        <RawMaterial
-                                          partName={item.partName}
-                                          rmVariables={item.rmVariables}
-                                          projectId={_id}
-                                          partId={partsList._id}
-                                          itemId={item._id}
-                                          source="partList"
-                                          rawMatarialsUpdate={onUpdatePrts}
-                                          quantity={item.quantity}
-                                        />
-                                      </div>
+                                    </td>
+                                  </tr>
+                                )}
 
-                                      <div style={{ marginBottom: "20px" }}>
-                                        <Manufacturing
-                                          partName={item.partName}
-                                          manufacturingVariables={
-                                            item.manufacturingVariables || []
-                                          }
-                                          projectId={_id}
-                                          partId={partsList._id}
-                                          itemId={item._id}
-                                          onUpdateVariable={
-                                            updateManufacturingVariable
-                                          }
-                                          source="partList"
-                                          manufatcuringUpdate={onUpdatePrts}
-                                          quantity={item.quantity}
+                                {modalOpenId === item._id && (
+                                  <Modal
+                                    isOpen={true}
+                                    toggle={() => setModalOpenId(null)}
+                                    style={{ maxWidth: "80%" }}
+                                  >
+                                    <ModalHeader
+                                      toggle={() => setModalOpenId(null)}
+                                    >
+                                      <h5
+                                        className="mb-3 d-flex align-items-center"
+                                        style={{
+                                          fontWeight: "bold",
+                                          color: "#333",
+                                        }}
+                                      >
+                                        <FiSettings
+                                          style={{
+                                            fontSize: "1.2rem",
+                                            marginRight: "10px",
+                                            color: "#2563eb",
+                                            fontWeight: "bold",
+                                          }}
                                         />
-                                      </div>
-
-                                      <div style={{ marginBottom: "20px" }}>
-                                        <Shipment
-                                          partName={item.partName}
-                                          projectId={_id}
-                                          partId={partsList._id}
-                                          itemId={item._id}
-                                          source="partList"
-                                          shipmentUpdate={onUpdatePrts}
-                                          shipmentVariables={
-                                            item.shipmentVariables || []
-                                          }
-                                          quantity={item.quantity}
-                                        />
-                                      </div>
-
+                                        {item.partName}
+                                      </h5>
+                                    </ModalHeader>
+                                    <ModalBody>
                                       <div>
-                                        <Overheads
-                                          partName={item.partName}
-                                          overheadsAndProfits={
-                                            item.overheadsAndProfits || []
-                                          }
-                                          projectId={_id}
-                                          partId={partsList._id}
-                                          itemId={item._id}
-                                          source="partList"
-                                          overHeadsUpdate={onUpdatePrts}
-                                          quantity={item.quantity}
-                                        />
+                                        <div style={{ marginBottom: "20px" }}>
+                                          <RawMaterial
+                                            partName={item.partName}
+                                            rmVariables={item.rmVariables}
+                                            projectId={_id}
+                                            partId={partsList._id}
+                                            itemId={item._id}
+                                            source="partList"
+                                            rawMatarialsUpdate={onUpdatePrts}
+                                            quantity={item.quantity}
+                                          />
+                                        </div>
+
+                                        <div style={{ marginBottom: "20px" }}>
+                                          <Manufacturing
+                                            partName={item.partName}
+                                            manufacturingVariables={
+                                              item.manufacturingVariables || []
+                                            }
+                                            projectId={_id}
+                                            partId={partsList._id}
+                                            itemId={item._id}
+                                            onUpdateVariable={
+                                              updateManufacturingVariable
+                                            }
+                                            source="partList"
+                                            manufatcuringUpdate={onUpdatePrts}
+                                            quantity={item.quantity}
+                                          />
+                                        </div>
+
+                                        <div style={{ marginBottom: "20px" }}>
+                                          <Shipment
+                                            partName={item.partName}
+                                            projectId={_id}
+                                            partId={partsList._id}
+                                            itemId={item._id}
+                                            source="partList"
+                                            shipmentUpdate={onUpdatePrts}
+                                            shipmentVariables={
+                                              item.shipmentVariables || []
+                                            }
+                                            quantity={item.quantity}
+                                          />
+                                        </div>
+
+                                        <div>
+                                          <Overheads
+                                            partName={item.partName}
+                                            overheadsAndProfits={
+                                              item.overheadsAndProfits || []
+                                            }
+                                            projectId={_id}
+                                            partId={partsList._id}
+                                            itemId={item._id}
+                                            source="partList"
+                                            overHeadsUpdate={onUpdatePrts}
+                                            quantity={item.quantity}
+                                          />
+                                        </div>
                                       </div>
-                                    </div>
-                                  </ModalBody>
-                                </Modal>
-                              )}
-                            </React.Fragment>
-                          );
-                        })}
+                                    </ModalBody>
+                                  </Modal>
+                                )}
+                              </React.Fragment>
+                            );
+                          })}
                       </tbody>
                     </table>
                   </div>
@@ -969,35 +956,35 @@ const PartsTable = React.memo(
                     />
                   )}
                 /> */}
-<Autocomplete
-  options={parts || []}
-  loading={loadingParts}
-  getOptionLabel={(option) => 
-    option ? `${option.partName} - ${option.id}` : ''
-  }
-  onChange={handleAutocompleteChange}
-  noOptionsText={
-    loadingParts ? 'Loading parts...' : 'No parts available'
-  }
-  renderInput={(params) => (
-    <TextField
-      {...params}
-      label="Select Part"
-      variant="outlined"
-      InputProps={{
-        ...params.InputProps,
-        endAdornment: (
-          <>
-            {loadingParts ? (
-              <CircularProgress color="inherit" size={20} />
-            ) : null}
-            {params.InputProps.endAdornment}
-          </>
-        ),
-      }}
-    />
-  )}
-/>
+                <Autocomplete
+                  options={parts || []}
+                  loading={loadingParts}
+                  getOptionLabel={(option) =>
+                    option ? `${option.partName} - ${option.id}` : ""
+                  }
+                  onChange={handleAutocompleteChange}
+                  noOptionsText={
+                    loadingParts ? "Loading parts..." : "No parts available"
+                  }
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Select Part"
+                      variant="outlined"
+                      InputProps={{
+                        ...params.InputProps,
+                        endAdornment: (
+                          <>
+                            {loadingParts ? (
+                              <CircularProgress color="inherit" size={20} />
+                            ) : null}
+                            {params.InputProps.endAdornment}
+                          </>
+                        ),
+                      }}
+                    />
+                  )}
+                />
                 <div className="form-group" style={{ display: "none" }}>
                   <Label for="partId" className="form-label">
                     Part ID
@@ -1066,33 +1053,36 @@ const PartsTable = React.memo(
                 </div>
 
                 <div className="form-group">
-  <Label for="quantity" className="form-label">
-    Quantity
-  </Label>
-  <Input
-    className="form-control"
-    type="number"
-    id="quantity"
-    value={quantity.toString()}
-    onChange={(e) => {
-      const inputValue = e.target.value;
-      if (inputValue === "" || /^\d+$/.test(inputValue)) {
-        const numericValue = inputValue === "" ? 0 : parseInt(inputValue);
-        if (numericValue > 99999) {
-          toast.warning("Maximum quantity is 99999");
-          setQuantity(99999);
-        } else {
-          setQuantity(numericValue);
-        }
-      }
-    }}
-    max="99999"
-    required
-  />
-  {quantity > 99999 && (
-    <small className="text-danger">Maximum quantity is 99999</small>
-  )}
-</div>
+                  <Label for="quantity" className="form-label">
+                    Quantity
+                  </Label>
+                  <Input
+                    className="form-control"
+                    type="number"
+                    id="quantity"
+                    value={quantity.toString()}
+                    onChange={(e) => {
+                      const inputValue = e.target.value;
+                      if (inputValue === "" || /^\d+$/.test(inputValue)) {
+                        const numericValue =
+                          inputValue === "" ? 0 : parseInt(inputValue);
+                        if (numericValue > 99999) {
+                          toast.warning("Maximum quantity is 99999");
+                          setQuantity(99999);
+                        } else {
+                          setQuantity(numericValue);
+                        }
+                      }
+                    }}
+                    max="99999"
+                    required
+                  />
+                  {quantity > 99999 && (
+                    <small className="text-danger">
+                      Maximum quantity is 99999
+                    </small>
+                  )}
+                </div>
                 <div style={{ display: "none" }}>
                   <UncontrolledAccordion defaultOpen="1">
                     {/* Raw Materials Accordion */}

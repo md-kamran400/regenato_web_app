@@ -157,7 +157,10 @@ export const PartListHrPlan = ({
   };
 
   const isOperatorAvailable = (operatorName, startDate, endDate) => {
-    if (!operatorAllocations[operatorName]) return true; // If no allocations, operator is available
+    // If no dates selected, consider available
+    if (!startDate || !endDate) return true;
+
+    if (!operatorAllocations[operatorName]) return true;
 
     const parsedStart = new Date(startDate);
     const parsedEnd = new Date(endDate);
@@ -169,6 +172,36 @@ export const PartListHrPlan = ({
         (parsedStart <= alloc.startDate && parsedEnd >= alloc.endDate)
     );
   };
+
+  const isOperatorOnLeave = (operator, startDate, endDate) => {
+    if (!operator.leavePeriod || operator.leavePeriod.length === 0) return null;
+
+    const parsedStart = startDate ? new Date(startDate) : null;
+    const parsedEnd = endDate ? new Date(endDate) : null;
+
+    if (!parsedStart || !parsedEnd) return null;
+
+    for (const leave of operator.leavePeriod) {
+      const leaveStart = new Date(leave.startDate);
+      const leaveEnd = new Date(leave.endDate);
+
+      // Check if allocation dates overlap with leave period
+      if (
+        (parsedStart >= leaveStart && parsedStart <= leaveEnd) ||
+        (parsedEnd >= leaveStart && parsedEnd <= leaveEnd) ||
+        (parsedStart <= leaveStart && parsedEnd >= leaveEnd)
+      ) {
+        // Calculate leave duration in days
+        const leaveDuration =
+          Math.ceil((leaveEnd - leaveStart) / (1000 * 60 * 60 * 24)) + 1;
+        return leaveDuration;
+      }
+    }
+
+    return null;
+  };
+
+  console.log(operators);
 
   // Function to check if the date is an event date or a Sunday
   const isHighlightedOrDisabled = (date) => {
@@ -291,11 +324,10 @@ export const PartListHrPlan = ({
           // ✅ Ensure operators are only set when data is available
           if (Array.isArray(data) && data.length > 0) {
             // ✅ Exclude leave users when setting operators
-            const activeOperators = data.filter(
-              (user) => !user.leavePeriod || user.leavePeriod.length === 0
-            );
-
-            setOperators(activeOperators);
+            // const activeOperators = data.filter(
+            //   (user) => !user.leavePeriod || user.leavePeriod.length === 0
+            // );
+            setOperators(data);
           } else {
             console.warn("No operators found in API response.");
             setOperators([]); // Set empty array to avoid undefined issues
@@ -1215,37 +1247,49 @@ export const PartListHrPlan = ({
 
                           <td>
                             <Autocomplete
-                              sx={{ width: 180, margin: "auto" }} // Centers the input field itself
+                              sx={{ width: 180, margin: "auto" }}
                               componentsProps={{
                                 paper: {
                                   sx: {
-                                    width: 250, // Dropdown width
-                                    left: "15% !important", // Move the dropdown to the middle
-                                    transform: "translateX(-15%) !important", // Center the dropdown
+                                    width: 250,
+                                    left: "15% !important",
+                                    transform: "translateX(-15%) !important",
                                   },
                                 },
                               }}
-                              options={machineOptions[man.categoryId] || []}
+                              options={operators}
                               value={
-                                machineOptions[man.categoryId]?.find(
-                                  (machine) =>
-                                    machine.subcategoryId === row.machineId
+                                operators.find(
+                                  (op) => op._id === row.operatorId
                                 ) || null
                               }
-                              getOptionLabel={(option) =>
-                                `${option.name} ${
-                                  isMachineAvailable(
-                                    option.subcategoryId,
-                                    row.startDate,
-                                    row.endDate
-                                  )
-                                    ? ""
-                                    : "(Occupied)"
-                                }`
-                              }
+                              getOptionLabel={(option) => {
+                                const leaveDays = isOperatorOnLeave(
+                                  option,
+                                  row.startDate,
+                                  row.endDate
+                                );
+                                const isAllocated = !isOperatorAvailable(
+                                  option.name,
+                                  row.startDate,
+                                  row.endDate
+                                );
+
+                                let status = "";
+                                if (leaveDays)
+                                  status = ` (On Leave ${leaveDays}D)`;
+                                else if (isAllocated) status = " (Allocated)";
+
+                                return `${option.name}${status}`;
+                              }}
                               renderOption={(props, option) => {
-                                const isDisabled = !isMachineAvailable(
-                                  option.subcategoryId,
+                                const leaveDays = isOperatorOnLeave(
+                                  option,
+                                  row.startDate,
+                                  row.endDate
+                                );
+                                const isAllocated = !isOperatorAvailable(
+                                  option.name,
                                   row.startDate,
                                   row.endDate
                                 );
@@ -1254,36 +1298,41 @@ export const PartListHrPlan = ({
                                   <li
                                     {...props}
                                     style={{
-                                      color: isDisabled ? "gray" : "black",
-                                      backgroundColor: isDisabled
+                                      color: isAllocated ? "gray" : "black",
+                                      backgroundColor: isAllocated
                                         ? "#f5f5f5"
                                         : "white",
-                                      pointerEvents: isDisabled
+                                      pointerEvents: isAllocated
                                         ? "none"
                                         : "auto",
                                       display: "flex",
                                       justifyContent: "space-between",
                                     }}
                                   >
-                                    {option.name}{" "}
-                                    {isDisabled ? "(Occupied)" : ""}
+                                    {option.name}
+                                    {leaveDays
+                                      ? ` (On Leave ${leaveDays}D)`
+                                      : ""}
+                                    {isAllocated && !leaveDays
+                                      ? " (Allocated)"
+                                      : ""}
                                   </li>
                                 );
                               }}
                               onChange={(event, newValue) => {
                                 if (!hasStartDate) return;
 
-                                // Prevent selecting occupied machines
+                                // Only prevent selection if operator is already allocated
                                 if (
                                   newValue &&
-                                  !isMachineAvailable(
-                                    newValue.subcategoryId,
+                                  !isOperatorAvailable(
+                                    newValue.name,
                                     row.startDate,
                                     row.endDate
                                   )
                                 ) {
                                   toast.error(
-                                    "This machine is occupied during the selected dates."
+                                    "This operator is allocated during the selected dates."
                                   );
                                   return;
                                 }
@@ -1292,9 +1341,7 @@ export const PartListHrPlan = ({
                                   const updatedRows = [...prevRows[index]];
                                   updatedRows[rowIndex] = {
                                     ...updatedRows[rowIndex],
-                                    machineId: newValue
-                                      ? newValue.subcategoryId
-                                      : "",
+                                    operatorId: newValue ? newValue._id : "",
                                   };
                                   return { ...prevRows, [index]: updatedRows };
                                 });
@@ -1302,7 +1349,7 @@ export const PartListHrPlan = ({
                               renderInput={(params) => (
                                 <TextField
                                   {...params}
-                                  label="Machine"
+                                  label="Operator"
                                   variant="outlined"
                                   size="small"
                                 />
@@ -1316,35 +1363,51 @@ export const PartListHrPlan = ({
                               componentsProps={{
                                 paper: {
                                   sx: {
-                                    width: 250, // Dropdown width
-                                    left: "15% !important", // Move the dropdown to the middle
-                                    transform: "translateX(-15%) !important", // Center the dropdown
+                                    width: 250,
+                                    left: "15% !important",
+                                    transform: "translateX(-15%) !important",
                                   },
                                 },
                               }}
-                              options={operators} // Keep all operators visible
+                              options={operators}
                               value={
                                 operators.find(
                                   (op) => op._id === row.operatorId
                                 ) || null
                               }
-                              getOptionLabel={(option) =>
-                                `${option.name} ${
-                                  isOperatorAvailable(
-                                    option.name,
-                                    row.startDate,
-                                    row.endDate
-                                  )
-                                    ? ""
-                                    : "(Allocated)"
-                                }`
-                              }
-                              renderOption={(props, option) => {
-                                const isDisabled = !isOperatorAvailable(
+                              getOptionLabel={(option) => {
+                                // Check if operator is on leave for the selected dates
+                                const leaveDays = isOperatorOnLeave(
+                                  option,
+                                  row.startDate,
+                                  row.endDate
+                                );
+                                const isAllocated = !isOperatorAvailable(
                                   option.name,
                                   row.startDate,
                                   row.endDate
                                 );
+
+                                let status = "";
+                                if (leaveDays)
+                                  status = ` (On Leave ${leaveDays}d)`;
+                                else if (isAllocated) status = " (Allocated)";
+
+                                return `${option.name}${status}`;
+                              }}
+                              renderOption={(props, option) => {
+                                const leaveDays = isOperatorOnLeave(
+                                  option,
+                                  row.startDate,
+                                  row.endDate
+                                );
+                                const isAllocated = !isOperatorAvailable(
+                                  option.name,
+                                  row.startDate,
+                                  row.endDate
+                                );
+
+                                const isDisabled = isAllocated;
 
                                 return (
                                   <li
@@ -1361,15 +1424,35 @@ export const PartListHrPlan = ({
                                       justifyContent: "space-between",
                                     }}
                                   >
-                                    {option.name}{" "}
-                                    {isDisabled ? "(Allocated)" : ""}
+                                    {option.name}
+                                    {leaveDays
+                                      ? ` (On Leave ${leaveDays}d)`
+                                      : ""}
+                                    {isAllocated && !leaveDays
+                                      ? " (Allocated)"
+                                      : ""}
                                   </li>
                                 );
                               }}
                               onChange={(event, newValue) => {
                                 if (!hasStartDate) return;
 
-                                // Prevent selecting allocated operators
+                                // Check if operator is on leave
+                                const leaveDays = newValue
+                                  ? isOperatorOnLeave(
+                                      newValue,
+                                      row.startDate,
+                                      row.endDate
+                                    )
+                                  : null;
+                                if (leaveDays) {
+                                  toast.error(
+                                    `This operator is on leave for ${leaveDays} days during the selected period.`
+                                  );
+                                  return;
+                                }
+
+                                // Check if operator is already allocated
                                 if (
                                   newValue &&
                                   !isOperatorAvailable(

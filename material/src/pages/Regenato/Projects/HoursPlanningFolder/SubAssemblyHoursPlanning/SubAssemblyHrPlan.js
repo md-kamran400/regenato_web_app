@@ -1010,6 +1010,15 @@ export const SubAssemblyHrPlan = ({
                                 type="number"
                                 placeholder="Enter QTY"
                                 value={row.plannedQuantity}
+                                onWheel={(e) => e.target.blur()}
+                                onKeyDown={(e) => {
+                                  if (
+                                    e.key === "ArrowUp" ||
+                                    e.key === "ArrowDown"
+                                  ) {
+                                    e.preventDefault(); 
+                                  }
+                                }}
                                 onChange={(e) =>
                                   handleQuantityChange(
                                     index,
