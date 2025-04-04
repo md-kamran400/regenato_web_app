@@ -93,7 +93,6 @@ const MachineDowntimeHistory = ({ isOpen, toggle, machine, parentId }) => {
                 <th>End Date</th>
                 <th>Reason</th>
                 <th>Status</th>
-                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -109,7 +108,7 @@ const MachineDowntimeHistory = ({ isOpen, toggle, machine, parentId }) => {
                   </td>
                   <td>{downtime.reason}</td>
                   <td>{getStatusBadge(downtime)}</td>
-                  <td>
+                  {/* <td>
                     {!downtime.endTime &&
                       new Date(downtime.startTime) <= new Date() && (
                         <Button
@@ -120,7 +119,7 @@ const MachineDowntimeHistory = ({ isOpen, toggle, machine, parentId }) => {
                           End Downtime
                         </Button>
                       )}
-                  </td>
+                  </td> */}
                 </tr>
               ))}
             </tbody>
