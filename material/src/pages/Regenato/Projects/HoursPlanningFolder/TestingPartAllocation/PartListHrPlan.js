@@ -143,7 +143,10 @@ export const PartListHrPlan = ({
   }, []);
 
   const isMachineAvailable = (machineId, startDate, endDate) => {
-    if (!allocatedMachines[machineId]) return true; // If no allocations, machine is available
+    if (!machineId || !startDate || !endDate) return true;
+
+    // Check if machine is allocated to other tasks
+    if (!allocatedMachines[machineId]) return true;
 
     const parsedStart = new Date(startDate);
     const parsedEnd = new Date(endDate);
@@ -154,6 +157,113 @@ export const PartListHrPlan = ({
         (parsedEnd >= alloc.startDate && parsedEnd <= alloc.endDate) ||
         (parsedStart <= alloc.startDate && parsedEnd >= alloc.endDate)
     );
+  };
+
+  const isMachineOnDowntimeDuringPeriod = (machine, startDate, endDate) => {
+    if (!startDate || !endDate || !machine.downtimeHistory?.length) {
+      return { isDowntime: false, downtimeMinutes: 0 };
+    }
+
+    const selectedStart = new Date(startDate);
+    const selectedEnd = new Date(endDate);
+
+    // Find active downtime periods that overlap with selected date range
+    const activeDowntimes = machine.downtimeHistory.filter((downtime) => {
+      const downtimeStart = new Date(downtime.startTime);
+      const downtimeEnd = new Date(downtime.endTime);
+
+      return (
+        downtimeStart <= selectedEnd &&
+        downtimeEnd >= selectedStart &&
+        !downtime.isCompleted
+      );
+    });
+
+    if (activeDowntimes.length === 0) {
+      return { isDowntime: false, downtimeMinutes: 0 };
+    }
+
+    // Calculate total overlapping downtime in minutes
+    let totalDowntimeMinutes = 0;
+
+    activeDowntimes.forEach((downtime) => {
+      const downtimeStart = new Date(downtime.startTime);
+      const downtimeEnd = new Date(downtime.endTime);
+
+      // Get the overlapping period
+      const overlapStart =
+        downtimeStart < selectedStart ? selectedStart : downtimeStart;
+      const overlapEnd = downtimeEnd > selectedEnd ? selectedEnd : downtimeEnd;
+
+      // Calculate minutes in the overlapping period
+      const minutes = Math.ceil((overlapEnd - overlapStart) / (1000 * 60));
+      totalDowntimeMinutes += minutes;
+    });
+
+    return {
+      isDowntime: true,
+      downtimeMinutes: totalDowntimeMinutes,
+    };
+  };
+
+  const calculateEndDateWithDowntime = (
+    startDate,
+    plannedMinutes,
+    shiftMinutes = 480,
+    machine
+  ) => {
+    if (!startDate || !plannedMinutes) return "";
+
+    let parsedDate = new Date(startDate);
+    if (isNaN(parsedDate.getTime())) return "";
+
+    let remainingMinutes = plannedMinutes;
+    let currentDate = new Date(parsedDate);
+    let daysAdded = 0;
+
+    while (remainingMinutes > 0) {
+      // Skip non-working days (Sundays and holidays)
+      while (
+        getDay(currentDate) === 0 ||
+        eventDates.some((d) => isSameDay(d, currentDate))
+      ) {
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+
+      // Check if machine has downtime on this day
+      const downtimeOnDay = machine?.downtimeHistory?.find((downtime) => {
+        const downtimeStart = new Date(downtime.startTime);
+        const downtimeEnd = new Date(downtime.endTime);
+        return (
+          !downtime.isCompleted &&
+          isSameDay(downtimeStart, currentDate) &&
+          downtimeEnd > downtimeStart
+        );
+      });
+
+      if (downtimeOnDay) {
+        // Calculate downtime duration in minutes
+        const downtimeStart = new Date(downtimeOnDay.startTime);
+        const downtimeEnd = new Date(downtimeOnDay.endTime);
+        const downtimeMinutes = Math.ceil(
+          (downtimeEnd - downtimeStart) / (1000 * 60)
+        );
+
+        // Add downtime minutes to remaining work
+        remainingMinutes += downtimeMinutes;
+      }
+
+      // Subtract a day's worth of work
+      const minutesToDeduct = Math.min(remainingMinutes, shiftMinutes);
+      remainingMinutes -= minutesToDeduct;
+
+      // Move to next day if there's still work remaining
+      if (remainingMinutes > 0) {
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+    }
+
+    return currentDate.toISOString().split("T")[0];
   };
 
   const isOperatorAvailable = (operatorName, startDate, endDate) => {
@@ -174,31 +284,24 @@ export const PartListHrPlan = ({
   };
 
   const isOperatorOnLeave = (operator, startDate, endDate) => {
-    if (!operator.leavePeriod || operator.leavePeriod.length === 0) return null;
+    if (!operator.leavePeriod || operator.leavePeriod.length === 0)
+      return false;
 
     const parsedStart = startDate ? new Date(startDate) : null;
     const parsedEnd = endDate ? new Date(endDate) : null;
 
-    if (!parsedStart || !parsedEnd) return null;
+    if (!parsedStart || !parsedEnd) return false;
 
-    for (const leave of operator.leavePeriod) {
+    return operator.leavePeriod.some((leave) => {
       const leaveStart = new Date(leave.startDate);
       const leaveEnd = new Date(leave.endDate);
 
-      // Check if allocation dates overlap with leave period
-      if (
+      return (
         (parsedStart >= leaveStart && parsedStart <= leaveEnd) ||
         (parsedEnd >= leaveStart && parsedEnd <= leaveEnd) ||
         (parsedStart <= leaveStart && parsedEnd >= leaveEnd)
-      ) {
-        // Calculate leave duration in days
-        const leaveDuration =
-          Math.ceil((leaveEnd - leaveStart) / (1000 * 60 * 60 * 24)) + 1;
-        return leaveDuration;
-      }
-    }
-
-    return null;
+      );
+    });
   };
 
   console.log(operators);
@@ -244,6 +347,28 @@ export const PartListHrPlan = ({
     return <div className={className}>{day}</div>;
   };
 
+  // useEffect(() => {
+  //   const initialRows = manufacturingVariables.reduce((acc, man, index) => {
+  //     acc[index] = [
+  //       {
+  //         plannedQuantity: isAutoSchedule ? quantity : "",
+  //         plannedQtyTime: isAutoSchedule
+  //           ? calculatePlannedMinutes(quantity * man.hours)
+  //           : "",
+  //         startDate: "",
+  //         startTime: "",
+  //         endDate: "",
+  //         machineId: "",
+  //         shift: "",
+  //         processName: man.name,
+  //       },
+  //     ];
+  //     return acc;
+  //   }, {});
+
+  //   setRows(initialRows);
+  // }, [manufacturingVariables, quantity, isAutoSchedule]);
+
   useEffect(() => {
     const initialRows = manufacturingVariables.reduce((acc, man, index) => {
       acc[index] = [
@@ -255,6 +380,7 @@ export const PartListHrPlan = ({
           startDate: "",
           startTime: "",
           endDate: "",
+          endTime: "", // Added endTime
           machineId: "",
           shift: "",
           processName: man.name,
@@ -262,7 +388,6 @@ export const PartListHrPlan = ({
       ];
       return acc;
     }, {});
-
     setRows(initialRows);
   }, [manufacturingVariables, quantity, isAutoSchedule]);
 
@@ -374,8 +499,16 @@ export const PartListHrPlan = ({
             `${process.env.REACT_APP_BASE_URL}/api/manufacturing/category/${man.categoryId}`
           );
 
-          // Use only available machines from the backend response
-          machineData[man.categoryId] = response.data.subCategories;
+          // Add status information to each machine
+          machineData[man.categoryId] = response.data.subCategories.map(
+            (machine) => ({
+              ...machine,
+              isAvailable:
+                machine.status === "available" &&
+                (!machine.unavailableUntil ||
+                  new Date(machine.unavailableUntil) <= new Date()),
+            })
+          );
         } catch (error) {
           console.error("Error fetching available machines:", error);
         }
@@ -579,34 +712,41 @@ export const PartListHrPlan = ({
 
     setRows((prevRows) => {
       const newRows = { ...prevRows };
+      const currentRow = newRows[index][rowIndex];
+      const machine = machineOptions[
+        manufacturingVariables[index].categoryId
+      ]?.find((m) => m.subcategoryId === currentRow.machineId);
 
-      // === AUTO SCHEDULE MODE ===
       if (isAutoSchedule && index === 0) {
         let currentDate = new Date(nextWorkingDay);
 
         manufacturingVariables.forEach((man, processIndex) => {
           const shift = shiftOptions.length > 0 ? shiftOptions[0] : null;
+          const machineList = machineOptions[man.categoryId] || [];
 
           newRows[processIndex] = newRows[processIndex].map((row) => {
-            const { startDate, endDate } = calculateStartAndEndDates(
+            const firstAvailableMachine = machineList.find((machine) =>
+              isMachineAvailable(
+                machine.subcategoryId,
+                currentDate,
+                row.endDate
+              )
+            );
+
+            const machineId = firstAvailableMachine?.subcategoryId || "";
+            const selectedMachine = machineList.find(
+              (m) => m.subcategoryId === machineId
+            );
+
+            const endDate = calculateEndDateWithDowntime(
               currentDate,
               row.plannedQtyTime,
-              shift?.TotalHours
+              shift?.TotalHours,
+              selectedMachine
             );
 
-            // 👉 Auto-pick Machine
-            const machineList = machineOptions[man.categoryId] || [];
-            const firstAvailableMachine = machineList.find((machine) =>
-              isMachineAvailable(machine.subcategoryId, startDate, endDate)
-            );
-
-            const machineId = firstAvailableMachine
-              ? firstAvailableMachine.subcategoryId
-              : "";
-
-            // 👉 Auto-pick Operator
             const firstOperator = operators.find((op) =>
-              isOperatorAvailable(op.name, startDate, endDate)
+              isOperatorAvailable(op.name, currentDate, endDate)
             );
 
             // Prepare for next process
@@ -616,38 +756,37 @@ export const PartListHrPlan = ({
 
             return {
               ...row,
-              startDate,
+              startDate: currentDate.toISOString().split("T")[0],
               endDate,
               shift: shift?.name || "",
               startTime: shift?.startTime || "",
-              machineId: machineId,
+              machineId,
               operatorId: firstOperator ? firstOperator._id : "",
             };
           });
         });
-
-        return newRows;
-      }
-      // === MANUAL MODE ===
-      else {
+      } else {
         const shift = shiftOptions.find(
-          (option) => option.name === newRows[index][rowIndex].shift
+          (option) => option.name === currentRow.shift
         );
 
         newRows[index] = newRows[index].map((row, idx) => {
           if (idx === rowIndex) {
-            const { startDate, endDate } = calculateStartAndEndDates(
+            const machine = machineOptions[
+              manufacturingVariables[index].categoryId
+            ]?.find((m) => m.subcategoryId === row.machineId);
+
+            const endDate = calculateEndDateWithDowntime(
               nextWorkingDay,
               row.plannedQtyTime,
-              shift?.TotalHours
+              shift?.TotalHours,
+              machine
             );
 
             return {
               ...row,
-              startDate,
+              startDate: nextWorkingDay.toISOString().split("T")[0],
               endDate,
-              // MachineId and OperatorId remain as they are (empty)
-              // So user picks manually
             };
           }
           return row;
@@ -738,27 +877,122 @@ export const PartListHrPlan = ({
     });
   };
 
+  // const handleSubmit = async () => {
+  //   console.log("Submitting allocations...");
+  //   console.log("Rows before processing:", JSON.stringify(rows, null, 2));
+
+  //   try {
+  //     if (Object.keys(rows).length === 0) {
+  //       alert("No allocations to submit.");
+  //       return;
+  //     }
+
+  //     // Step 1: Group allocations by partName and processName
+  //     const groupedAllocations = {};
+
+  //     Object.keys(rows).forEach((index) => {
+  //       // Reset order number counter for each process
+  //       let orderCounter = 1;
+
+  //       rows[index].forEach((row, rowIndex) => {
+  //         console.log(`Processing row ${rowIndex} in process ${index}:`, row);
+
+  //         // Check if all required fields are present
+  //         if (
+  //           row.plannedQuantity &&
+  //           row.startDate &&
+  //           row.endDate &&
+  //           row.machineId &&
+  //           row.shift &&
+  //           row.operatorId
+  //         ) {
+  //           const key = `${partName}-${row.processName}`;
+
+  //           if (!groupedAllocations[key]) {
+  //             groupedAllocations[key] = {
+  //               partName: partName,
+  //               processName: row.processName,
+  //               allocations: [],
+  //             };
+  //           }
+
+  //           // Generate order number with padding
+  //           const splitNumber = orderCounter.toString().padStart(3, "0");
+  //           orderCounter++; // Increment counter for next row in this process
+  //           // Find the selected shift to get the TotalHours
+  //           const selectedShift = shiftOptions.find(
+  //             (shift) => shift.name === row.shift
+  //           );
+
+  //           // Get the manufacturing variable for this process
+  //           const man = manufacturingVariables[index];
+
+  //           groupedAllocations[key].allocations.push({
+  //             splitNumber, // Add the generated order number
+  //             AllocationPartType: "Part",
+  //             plannedQuantity: row.plannedQuantity,
+  //             startDate: new Date(row.startDate).toISOString(),
+  //             startTime: row.startTime || "08:00 AM",
+  //             endDate: new Date(row.endDate).toISOString(),
+  //             machineId: row.machineId,
+  //             shift: row.shift,
+  //             plannedTime: row.plannedQtyTime,
+  //             operator:
+  //               operators.find((op) => op._id === row.operatorId)?.name ||
+  //               "Unknown",
+  //             shiftTotalTime: selectedShift ? selectedShift.TotalHours : 0, // Add shiftTotalTime
+  //             perMachinetotalTime: Math.ceil(man.hours * 60), // Add perMachinetotalTime dynamically
+  //           });
+  //         } else {
+  //           console.warn(
+  //             `Skipping row ${rowIndex} in process ${index} due to missing or invalid fields:`,
+  //             row
+  //           );
+  //         }
+  //       });
+  //     });
+
+  //     // Convert groupedAllocations object to an array
+  //     const finalAllocations = Object.values(groupedAllocations);
+
+  //     console.log(
+  //       "Final Nested Allocations:",
+  //       JSON.stringify(finalAllocations, null, 2)
+  //     );
+
+  //     if (finalAllocations.length === 0) {
+  //       toast.error(
+  //         "No valid allocations to submit. Please check your inputs."
+  //       );
+  //       return;
+  //     }
+
+  //     // Send the grouped allocations to the backend
+  //     const response = await axios.post(
+  //       `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/allocation`,
+  //       { allocations: finalAllocations }
+  //     );
+
+  //     if (response.status === 201) {
+  //       toast.success("Allocations successfully added!");
+  //       setIsDataAllocated(true); // Update state to reflect that data is allocated
+  //     } else {
+  //       toast.error("Failed to add allocations.");
+  //     }
+  //   } catch (error) {
+  //     console.error("Error submitting allocations:", error);
+  //     toast.error("An error occurred while submitting allocations.");
+  //   }
+  // };
+
   const handleSubmit = async () => {
-    console.log("Submitting allocations...");
-    console.log("Rows before processing:", JSON.stringify(rows, null, 2));
-
     try {
-      if (Object.keys(rows).length === 0) {
-        alert("No allocations to submit.");
-        return;
-      }
-
-      // Step 1: Group allocations by partName and processName
       const groupedAllocations = {};
 
       Object.keys(rows).forEach((index) => {
-        // Reset order number counter for each process
         let orderCounter = 1;
 
-        rows[index].forEach((row, rowIndex) => {
-          console.log(`Processing row ${rowIndex} in process ${index}:`, row);
-
-          // Check if all required fields are present
+        rows[index].forEach((row) => {
           if (
             row.plannedQuantity &&
             row.startDate &&
@@ -777,68 +1011,36 @@ export const PartListHrPlan = ({
               };
             }
 
-            // Generate order number with padding
             const splitNumber = orderCounter.toString().padStart(3, "0");
-            orderCounter++; // Increment counter for next row in this process
-            // Find the selected shift to get the TotalHours
-            const selectedShift = shiftOptions.find(
-              (shift) => shift.name === row.shift
-            );
-
-            // Get the manufacturing variable for this process
-            const man = manufacturingVariables[index];
+            orderCounter++;
 
             groupedAllocations[key].allocations.push({
-              splitNumber, // Add the generated order number
+              splitNumber,
               AllocationPartType: "Part",
               plannedQuantity: row.plannedQuantity,
               startDate: new Date(row.startDate).toISOString(),
-              startTime: row.startTime || "08:00 AM",
+              startTime: row.startTime || "08:00",
               endDate: new Date(row.endDate).toISOString(),
+              endTime: row.endTime || "17:00", // Include endTime
               machineId: row.machineId,
               shift: row.shift,
               plannedTime: row.plannedQtyTime,
               operator:
                 operators.find((op) => op._id === row.operatorId)?.name ||
                 "Unknown",
-              shiftTotalTime: selectedShift ? selectedShift.TotalHours : 0, // Add shiftTotalTime
-              perMachinetotalTime: Math.ceil(man.hours * 60), // Add perMachinetotalTime dynamically
             });
-          } else {
-            console.warn(
-              `Skipping row ${rowIndex} in process ${index} due to missing or invalid fields:`,
-              row
-            );
           }
         });
       });
 
-      // Convert groupedAllocations object to an array
-      const finalAllocations = Object.values(groupedAllocations);
-
-      console.log(
-        "Final Nested Allocations:",
-        JSON.stringify(finalAllocations, null, 2)
-      );
-
-      if (finalAllocations.length === 0) {
-        toast.error(
-          "No valid allocations to submit. Please check your inputs."
-        );
-        return;
-      }
-
-      // Send the grouped allocations to the backend
       const response = await axios.post(
         `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/allocation`,
-        { allocations: finalAllocations }
+        { allocations: Object.values(groupedAllocations) }
       );
 
       if (response.status === 201) {
         toast.success("Allocations successfully added!");
-        setIsDataAllocated(true); // Update state to reflect that data is allocated
-      } else {
-        toast.error("Failed to add allocations.");
+        setIsDataAllocated(true);
       }
     } catch (error) {
       console.error("Error submitting allocations:", error);
@@ -1251,105 +1453,119 @@ export const PartListHrPlan = ({
                               componentsProps={{
                                 paper: {
                                   sx: {
-                                    width: 250,
+                                    width: 350,
                                     left: "15% !important",
                                     transform: "translateX(-15%) !important",
                                   },
                                 },
                               }}
-                              options={operators}
+                              options={machineOptions[man.categoryId] || []}
                               value={
-                                operators.find(
-                                  (op) => op._id === row.operatorId
+                                machineOptions[man.categoryId]?.find(
+                                  (machine) =>
+                                    machine.subcategoryId === row.machineId
                                 ) || null
                               }
                               getOptionLabel={(option) => {
-                                const leaveDays = isOperatorOnLeave(
-                                  option,
+                                const isAllocated = !isMachineAvailable(
+                                  option.subcategoryId,
                                   row.startDate,
                                   row.endDate
                                 );
-                                const isAllocated = !isOperatorAvailable(
-                                  option.name,
-                                  row.startDate,
-                                  row.endDate
-                                );
+                                const downtimeInfo =
+                                  isMachineOnDowntimeDuringPeriod(
+                                    option,
+                                    row.startDate,
+                                    row.endDate
+                                  );
 
                                 let status = "";
-                                if (leaveDays)
-                                  status = ` (On Leave ${leaveDays}D)`;
-                                else if (isAllocated) status = " (Allocated)";
+                                if (isAllocated) status = "(Occupied)";
+                                else if (downtimeInfo.isDowntime) {
+                                  status = `(Downtime ${downtimeInfo.downtimeMinutes}min)`;
+                                }
 
-                                return `${option.name}${status}`;
+                                return `${option.name} ${status}`;
                               }}
                               renderOption={(props, option) => {
-                                const leaveDays = isOperatorOnLeave(
-                                  option,
+                                const isAllocated = !isMachineAvailable(
+                                  option.subcategoryId,
                                   row.startDate,
                                   row.endDate
                                 );
-                                const isAllocated = !isOperatorAvailable(
-                                  option.name,
-                                  row.startDate,
-                                  row.endDate
-                                );
+                                const downtimeInfo =
+                                  isMachineOnDowntimeDuringPeriod(
+                                    option,
+                                    row.startDate,
+                                    row.endDate
+                                  );
+
+                                const isDisabled = isAllocated;
 
                                 return (
                                   <li
                                     {...props}
                                     style={{
-                                      color: isAllocated ? "gray" : "black",
-                                      backgroundColor: isAllocated
+                                      color: isDisabled ? "gray" : "black",
+                                      backgroundColor: isDisabled
                                         ? "#f5f5f5"
                                         : "white",
-                                      pointerEvents: isAllocated
+                                      pointerEvents: isDisabled
                                         ? "none"
                                         : "auto",
                                       display: "flex",
                                       justifyContent: "space-between",
                                     }}
                                   >
-                                    {option.name}
-                                    {leaveDays
-                                      ? ` (On Leave ${leaveDays}D)`
-                                      : ""}
-                                    {isAllocated && !leaveDays
-                                      ? " (Allocated)"
-                                      : ""}
+                                    <div>
+                                      {option.name}
+                                      {isAllocated ? " - Occupied" : ""}
+                                      {downtimeInfo.isDowntime
+                                        ? ` - Downtime ${downtimeInfo.downtimeMinutes}min`
+                                        : ""}
+                                    </div>
                                   </li>
                                 );
                               }}
                               onChange={(event, newValue) => {
                                 if (!hasStartDate) return;
 
-                                // Only prevent selection if operator is already allocated
-                                if (
-                                  newValue &&
-                                  !isOperatorAvailable(
-                                    newValue.name,
-                                    row.startDate,
-                                    row.endDate
-                                  )
-                                ) {
-                                  toast.error(
-                                    "This operator is allocated during the selected dates."
-                                  );
-                                  return;
-                                }
-
                                 setRows((prevRows) => {
                                   const updatedRows = [...prevRows[index]];
                                   updatedRows[rowIndex] = {
                                     ...updatedRows[rowIndex],
-                                    operatorId: newValue ? newValue._id : "",
+                                    machineId: newValue
+                                      ? newValue.subcategoryId
+                                      : "",
                                   };
+
+                                  // Recalculate end date if machine is changed
+                                  if (
+                                    newValue &&
+                                    updatedRows[rowIndex].startDate
+                                  ) {
+                                    const shift = shiftOptions.find(
+                                      (option) =>
+                                        option.name ===
+                                        updatedRows[rowIndex].shift
+                                    );
+
+                                    updatedRows[rowIndex].endDate =
+                                      calculateEndDateWithDowntime(
+                                        updatedRows[rowIndex].startDate,
+                                        updatedRows[rowIndex].plannedQtyTime,
+                                        shift?.TotalHours,
+                                        newValue
+                                      );
+                                  }
+
                                   return { ...prevRows, [index]: updatedRows };
                                 });
                               }}
                               renderInput={(params) => (
                                 <TextField
                                   {...params}
-                                  label="Operator"
+                                  label="Machine"
                                   variant="outlined"
                                   size="small"
                                 />
@@ -1376,8 +1592,7 @@ export const PartListHrPlan = ({
                                 ) || null
                               }
                               getOptionLabel={(option) => {
-                                // Check if operator is on leave for the selected dates
-                                const leaveDays = isOperatorOnLeave(
+                                const isOnLeave = isOperatorOnLeave(
                                   option,
                                   row.startDate,
                                   row.endDate
@@ -1389,14 +1604,29 @@ export const PartListHrPlan = ({
                                 );
 
                                 let status = "";
-                                if (leaveDays)
-                                  status = ` (On Leave ${leaveDays}d)`;
-                                else if (isAllocated) status = " (Allocated)";
+                                if (isOnLeave) {
+                                  // Calculate leave duration in days
+                                  const leaveDuration = option.leavePeriod?.[0]
+                                    ? Math.ceil(
+                                        new Date(
+                                          option.leavePeriod[0].endDate
+                                        ) -
+                                          new Date(
+                                            option.leavePeriod[0].startDate
+                                          )
+                                      ) /
+                                        (1000 * 60 * 60 * 24) +
+                                      1
+                                    : 0;
+                                  status = ` (On Leave ${leaveDuration}d)`;
+                                } else if (isAllocated) {
+                                  status = " (Allocated)";
+                                }
 
                                 return `${option.name}${status}`;
                               }}
                               renderOption={(props, option) => {
-                                const leaveDays = isOperatorOnLeave(
+                                const isOnLeave = isOperatorOnLeave(
                                   option,
                                   row.startDate,
                                   row.endDate
@@ -1407,7 +1637,17 @@ export const PartListHrPlan = ({
                                   row.endDate
                                 );
 
-                                const isDisabled = isAllocated;
+                                const isDisabled = isAllocated && !isOnLeave;
+                                const leaveDuration = option.leavePeriod?.[0]
+                                  ? Math.ceil(
+                                      new Date(option.leavePeriod[0].endDate) -
+                                        new Date(
+                                          option.leavePeriod[0].startDate
+                                        )
+                                    ) /
+                                      (1000 * 60 * 60 * 24) +
+                                    1
+                                  : 0;
 
                                 return (
                                   <li
@@ -1424,39 +1664,31 @@ export const PartListHrPlan = ({
                                       justifyContent: "space-between",
                                     }}
                                   >
-                                    {option.name}
-                                    {leaveDays
-                                      ? ` (On Leave ${leaveDays}d)`
-                                      : ""}
-                                    {isAllocated && !leaveDays
-                                      ? " (Allocated)"
-                                      : ""}
+                                    <div>
+                                      {option.name}
+                                      <span style={{ color: "red" }}>
+                                        {isOnLeave &&
+                                          ` - On Leave ${leaveDuration}d`}
+                                        {isAllocated &&
+                                          !isOnLeave &&
+                                          " (Allocated)"}
+                                      </span>
+                                    </div>
                                   </li>
                                 );
                               }}
                               onChange={(event, newValue) => {
                                 if (!hasStartDate) return;
 
-                                // Check if operator is on leave
-                                const leaveDays = newValue
-                                  ? isOperatorOnLeave(
-                                      newValue,
-                                      row.startDate,
-                                      row.endDate
-                                    )
-                                  : null;
-                                if (leaveDays) {
-                                  toast.error(
-                                    `This operator is on leave for ${leaveDays} days during the selected period.`
-                                  );
-                                  return;
-                                }
-
-                                // Check if operator is already allocated
                                 if (
                                   newValue &&
                                   !isOperatorAvailable(
                                     newValue.name,
+                                    row.startDate,
+                                    row.endDate
+                                  ) &&
+                                  !isOperatorOnLeave(
+                                    newValue,
                                     row.startDate,
                                     row.endDate
                                   )
