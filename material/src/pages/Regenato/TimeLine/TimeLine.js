@@ -30,66 +30,7 @@ const TimeLine = () => {
   useEffect(() => {
     let isMounted = true;
 
-    // const fetchAllocationData = async () => {
-    //   try {
-    //     const response = await fetch(
-    //       `${process.env.REACT_APP_BASE_URL}/api/defpartproject/all-allocations`
-    //     );
-    //     const data = await response.json();
-
-    //     if (data.data) {
-    //       let allocationEvents = [];
-    //       let sundayEvents = new Set(); // Use a set to avoid duplicate Sundays
-
-    //       data.data.forEach((project) => {
-    //         project.allocations.forEach((part) => {
-    //           part.allocations.forEach((allocation) => {
-    //             const startDate = new Date(allocation.startDate);
-    //             const endDate = new Date(allocation.endDate);
-
-    //             // Create allocation event
-    //             allocationEvents.push({
-    //               title: `${part.partName} - ${allocation.operator} (${part.processName})`,
-    //               start: startDate,
-    //               end: endDate,
-    //               extendedProps: {
-    //                 ...allocation,
-    //                 processName: part.processName,
-    //                 partName: part.partName,
-    //               },
-    //               className: allocation.cssClass || "",
-    //             });
-
-    //             // Add Sundays in between as red-colored events
-    //             let tempDate = new Date(startDate);
-    //             while (tempDate <= endDate) {
-    //               if (tempDate.getDay() === 0) {
-    //                 let sundayKey = tempDate.toISOString().split("T")[0]; // Unique key for each Sunday
-    //                 if (!sundayEvents.has(sundayKey)) {
-    //                   sundayEvents.add(sundayKey);
-    //                   allocationEvents.push({
-    //                     title: "Sunday",
-    //                     start: new Date(tempDate),
-    //                     end: new Date(tempDate),
-    //                     allDay: true,
-    //                     className: "sunday-event",
-    //                     display: "background", // Ensures Sunday event is above allocation
-    //                   });
-    //                 }
-    //               }
-    //               tempDate.setDate(tempDate.getDate() + 1);
-    //             }
-    //           });
-    //         });
-    //       });
-
-    //       setEvents(allocationEvents); // Avoid merging with previous events to prevent duplication
-    //     }
-    //   } catch (error) {
-    //     console.error("Error fetching allocation data:", error);
-    //   }
-    // };
-
+   
     const fetchAllocationData = async () => {
       try {
         const response = await fetch(
@@ -182,29 +123,6 @@ const TimeLine = () => {
     };
   }, []);
 
-  // const formatEvents = (projects) => {
-  //   const formattedEvents = [];
-
-  //   projects.forEach((project) => {
-  //     project.allocations.forEach((part) => {
-  //       part.allocations.forEach((allocation) => {
-  //         formattedEvents.push({
-  //           title: `${part.partName} - ${allocation.operator} (${part.processName})`,
-  //           start: new Date(allocation.startDate),
-  //           end: new Date(allocation.endDate),
-  //           extendedProps: {
-  //             ...allocation,
-  //             processName: part.processName,
-  //             partName: part.partName,
-  //           },
-  //           className: allocation.cssClass || "",
-  //         });
-  //       });
-  //     });
-  //   });
-
-  //   setEvents(formattedEvents);
-  // };
 
   const getCurrentDateEvents = (events) => {
     const today = new Date();

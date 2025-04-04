@@ -16,7 +16,7 @@ import {
 } from "reactstrap";
 import { toast } from "react-toastify";
 import DatePicker from "react-datepicker";
-import "./AllocatedPartListHrPlan.css";
+import "../TestingPartAllocation/AllocatedPartListHrPlan.css";
 import moment from "moment";
 export const AllocatedPartListHrPlan = ({
   porjectID,
@@ -368,11 +368,6 @@ export const AllocatedPartListHrPlan = ({
     }
   };
 
-  // const closeDailyTaskModal = () => {
-  //   setDailyTracking([]); // Clear added rows
-  //   setDailyTaskModal(false);
-  // };
-
   const closeDailyTaskModal = () => {
     setDailyTaskModal(false);
     setDailyTracking([
@@ -423,9 +418,8 @@ export const AllocatedPartListHrPlan = ({
               <div className="table-responsive">
                 <table className="table table-striped vertical-lines horizontals-lines">
                   <thead style={{ backgroundColor: "#f3f4f6" }}>
-                    <tr style={{ backgroundColor: "#f3f4f6" }}>
+                    <tr>
                       <th>Planned Quantity</th>
-                      {/* <th>Status</th> */}
                       <th>Start Date</th>
                       <th>End Date</th>
                       <th>Machine ID</th>
@@ -439,24 +433,8 @@ export const AllocatedPartListHrPlan = ({
                     {section.data.map((row, rowIndex) => (
                       <tr key={rowIndex}>
                         <td>{row.plannedQty}</td>
-                        {/* <th>"Status"</th> */}
-                        <td>
-                          {/* {new Date(row.startDate).toLocaleDateString("en-GB", {
-                            day: "2-digit",
-                            month: "short",
-                            year: "numeric",
-                          })} */}
-                          {moment(row.startDate).format("DD MMM YYYY")}
-                        </td>
-                        <td>
-                          {/* {new Date(row.endDate).toLocaleDateString("en-GB", {
-                            day: "2-digit",
-                            month: "short",
-                            year: "numeric",
-                          })} */}
-                          {moment(row.endDate).format("DD MMM YYYY")}{" "}
-                          {/* Updated */}
-                        </td>
+                        <td>{moment(row.startDate).format("DD MMM YYYY")}</td>
+                        <td>{moment(row.endDate).format("DD MMM YYYY")} </td>
 
                         <td>{row.machineId}</td>
                         <td>{row.shift}</td>
@@ -525,13 +503,6 @@ export const AllocatedPartListHrPlan = ({
                 <Col>
                   <span style={{ fontWeight: "bold" }}>Start Date: </span>
                   <span>
-                    {/* {new Date(
-                      selectedSection.data[0].startDate
-                    ).toLocaleDateString("en-GB", {
-                      day: "2-digit",
-                      month: "short",
-                      year: "numeric",
-                    })} */}
                     {moment(selectedSection.data[0].startDate).format(
                       "DD MMM YYYY"
                     )}
@@ -540,40 +511,35 @@ export const AllocatedPartListHrPlan = ({
                 <Col>
                   <span style={{ fontWeight: "bold" }}>Plan End Date: </span>
                   <span>
-                    {/* {new Date(
-                      selectedSection.data[0].endDate
-                    ).toLocaleDateString("en-GB", {
-                      day: "2-digit",
-                      month: "short",
-                      year: "numeric",
-                    })} */}
                     {moment(selectedSection.data[0].endDate).format(
                       "DD MMM YYYY"
                     )}
                   </span>
                 </Col>
+
                 <Col>
                   <span style={{ fontWeight: "bold" }}>Actual End Date: </span>
-                  <span style={{ fontWeight: "bold", color: "red" }}>
-                    {/* {actulEndDateData.actualEndDate
-                      ? new Date(
-                          actulEndDateData.actualEndDate
-                        ).toLocaleDateString("en-GB", {
-                          day: "2-digit",
-                          month: "short",
-                          year: "numeric",
-                        })
-                      : new Date(
-                          selectedSection.data[0].endDate
-                        ).toLocaleDateString("en-GB", {
-                          day: "2-digit",
-                          month: "short",
-                          year: "numeric",
-                        })} */}
+                  <span
+                    style={{
+                      fontWeight: "bold",
+                      color: (() => {
+                        const actualEndDate = actulEndDateData.actualEndDate
+                          ? moment(actulEndDateData.actualEndDate)
+                          : null;
+                        const endDate = moment(selectedSection.data[0].endDate);
+
+                        if (!actualEndDate) return "black"; // Default case
+                        if (actualEndDate.isSame(endDate, "day"))
+                          return "black"; // Dates are equal
+                        if (actualEndDate.isAfter(endDate, "day")) return "red"; // Delayed
+                        return "green"; // Completed early
+                      })(),
+                    }}
+                  >
                     {actulEndDateData.actualEndDate
                       ? moment(actulEndDateData.actualEndDate).format(
                           "DD MMM YYYY"
-                        ) // Updated
+                        )
                       : moment(selectedSection.data[0].endDate).format(
                           "DD MMM YYYY"
                         )}
@@ -619,14 +585,7 @@ export const AllocatedPartListHrPlan = ({
                 ) : (
                   existingDailyTracking.map((task, index) => (
                     <tr key={index}>
-                      <td>
-                        {/* {new Date(task.date).toLocaleDateString("en-GB", {
-                          day: "2-digit",
-                          month: "short",
-                          year: "numeric",
-                        })} */}
-                        {moment(task.date).format("DD MMM YYYY")}
-                      </td>
+                      <td>{moment(task.date).format("DD MMM YYYY")}</td>
                       <td>{task.planned}</td>
                       <td>{task.produced}</td>
                       <td>
@@ -646,7 +605,7 @@ export const AllocatedPartListHrPlan = ({
                           </span>
                         ) : task.dailyStatus === "Ahead" ? (
                           <span
-                            className="badge bg-warning-subtle text-warning"
+                            className="badge bg-success-subtle text-success"
                             style={{ fontSize: "13px" }}
                           >
                             Ahead
@@ -703,9 +662,9 @@ export const AllocatedPartListHrPlan = ({
         <ModalBody>
           <form>
             {/* Date Input */}
-            <div className="form-group" style={{ width: "100%" }}>
+            <div className="form-group">
               <label>Date</label>
-              <div style={{ width: "100%" }}>
+              <div>
                 <DatePicker
                   selected={
                     dailyTracking[0].date
@@ -821,7 +780,7 @@ export const AllocatedPartListHrPlan = ({
                       if (Number(produced) === Number(planned)) {
                         return <span className="text-primary">On Track</span>;
                       } else if (produced > planned) {
-                        return <span className="text-warning">Ahead</span>;
+                        return <span className="text-success">Ahead</span>;
                       } else if (produced < planned) {
                         return <span className="text-danger">Delayed</span>;
                       }

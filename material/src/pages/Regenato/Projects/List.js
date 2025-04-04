@@ -9,6 +9,7 @@ import FormControl from "@mui/material/FormControl";
 import ListItemText from "@mui/material/ListItemText";
 // import Select from "@mui/material/Select";
 // import Checkbox from "@mui/material/Checkbox";
+
 import Select from "react-select";
 // third party impprts
 
@@ -72,19 +73,19 @@ import {
   Pagination,
   PaginationItem,
   PaginationLink,
-  Badge
+  Badge,
 } from "reactstrap";
 import FeatherIcon from "feather-icons-react";
 import { ToastContainer, toast } from "react-toastify";
 // import "./project.css";
-import "./projectForProjects.css"
+import "./projectForProjects.css";
 
 import { Puff } from "react-loader-spinner";
 
 // component import
 import DeleteModal from "../../../Components/Common/DeleteModal";
 import PaginatedList from "../Pagination/PaginatedList";
-import { FaSort } from "react-icons/fa";
+import { FaEdit, FaSort } from "react-icons/fa";
 
 const List = () => {
   // const [filt, setFilteredData] = useState([]);
@@ -130,6 +131,16 @@ const List = () => {
   const [manufacturingData, setManufacturingData] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedItems, setSelectedItems] = useState([]);
+
+  const [modal_duplicate, setModalDuplicate] = useState(false);
+  const [itemToDuplicate, setItemToDuplicate] = useState(null);
+  
+  // Replace the existing handleDuplicateProject function with these:
+  const handleDuplicateClick = (item) => {
+    setItemToDuplicate(item);
+    setModalDuplicate(true);
+  };
+
   const fetchManufacturingData = useCallback(async () => {
     setLoading(true);
     try {
@@ -149,29 +160,60 @@ const List = () => {
     fetchManufacturingData();
   }, [fetchManufacturingData]);
 
-  const handleDuplicateProject = async (item) => {
-    try {
-      const response = await fetch(
-        `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${item._id}/duplicate`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
-      if (!response.ok) {
-        throw new Error("Failed to duplicate project");
-      }
-      const duplicatedProject = await response.json();
-      setprojectListsData((prevData) => [...prevData, duplicatedProject]);
-      toast.success("Project duplicated successfully!");
-    } catch (error) {
-      toast.error(`Error duplicating project: ${error.message}`);
-    }
-  };
+  // const handleDuplicateProject = async (item) => {
+  //   if (!itemToDuplicate) return;
+  //   try {
+  //     const response = await fetch(
+  //       `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${item._id}/duplicate`,
+  //       {
+  //         method: "POST",
+  //         headers: {
+  //           "Content-Type": "application/json",
+  //         },
+  //       }
+  //     );
+  //     if (!response.ok) {
+  //       throw new Error("Failed to duplicate project");
+  //     }
+  //     const duplicatedProject = await response.json();
+  //     setprojectListsData((prevData) => [...prevData, duplicatedProject]);
+  //     toast.success("Project duplicated successfully!");
+  //   } catch (error) {
+  //     toast.error(`Error duplicating project: ${error.message}`);
+  //   } finally {
+  //     setModalDuplicate(false);
+  //     setItemToDuplicate(null);
+  //   }
+  // };
 
   //filter
+  
+  const handleDuplicateConfirm = async () => {
+  if (!itemToDuplicate) return;
+  
+  try {
+    const response = await fetch(
+      `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${itemToDuplicate._id}/duplicate`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    if (!response.ok) {
+      throw new Error("Failed to duplicate project");
+    }
+    const duplicatedProject = await response.json();
+    setprojectListsData((prevData) => [...prevData, duplicatedProject]);
+    toast.success("Project duplicated successfully!");
+  } catch (error) {
+    toast.error(`Error duplicating project: ${error.message}`);
+  } finally {
+    setModalDuplicate(false);
+    setItemToDuplicate(null);
+  }
+};
   const handleFilterChange = (e) => {
     setFilterType(e.target.value);
   };
@@ -183,8 +225,6 @@ const List = () => {
   const toggleModal = () => {
     setModalList(!modal_list);
   };
-
-
 
   // function to toggle edit the modal
   const toggleEditModal = (item = null) => {
@@ -536,7 +576,7 @@ const List = () => {
   const getStatus = (project) => {
     let status = "On Track";
     let statusColor = "primary";
- 
+
     const checkAllocations = (list) => {
       list.forEach((partsList) => {
         partsList.partsListItems.forEach((item) => {
@@ -545,7 +585,7 @@ const List = () => {
               if (allocation.actualEndDate && allocation.endDate) {
                 const actualEnd = new Date(allocation.actualEndDate);
                 const plannedEnd = new Date(allocation.endDate);
- 
+
                 if (actualEnd > plannedEnd) {
                   status = "Delayed";
                   statusColor = "danger";
@@ -559,11 +599,11 @@ const List = () => {
         });
       });
     };
- 
+
     checkAllocations(project.partsLists);
     checkAllocations(project.subAssemblyListFirst);
     checkAllocations(project.assemblyList);
- 
+
     return <Badge color={statusColor}>{status}</Badge>;
   };
 
@@ -664,10 +704,10 @@ const List = () => {
             </div>
           </div>
         )}
-        <div className="table-container">
+        <div>
           <div className="table-responsive">
             <table className="table table-striped vertical-lines horizontals-lines">
-              <thead style={{backgroundColor:'#f3f4f6'}}>
+              <thead style={{ backgroundColor: "#f3f4f6" }}>
                 <tr>
                   <th
                     className="sticky-col"
@@ -752,7 +792,8 @@ const List = () => {
                           </DropdownItem>
                           <DropdownItem
                             href="#"
-                            onClick={() => handleDuplicateProject(item)}
+                            // onClick={() => handleDuplicateProject(item)}
+                            onClick={() => handleDuplicateClick(item)}
                           >
                             <i className="ri-file-copy-line align-bottom me-2 text-muted"></i>{" "}
                             Duplicate
@@ -761,7 +802,7 @@ const List = () => {
                             href="#"
                             onClick={() => toggle_editName(item)}
                           >
-                            <i className="ri-file-copy-line align-bottom me-2 text-muted"></i>{" "}
+                            <i className="ri-file-edit-line align-bottom me-2 text-muted"></i>
                             Edit
                           </DropdownItem>
                         </DropdownMenu>
@@ -820,7 +861,7 @@ const List = () => {
           <ModalBody>
             <div className="mb-3">
               <label htmlFor="parts-field" className="form-label">
-              Production Order Name
+                Production Order Name
               </label>
               <input
                 type="text"
@@ -975,7 +1016,9 @@ const List = () => {
 
       {/* edit modal */}
       <Modal isOpen={modal_NaemEdit} toggle={toggle_editName}>
-        <ModalHeader toggle={toggle_editName}>Edit Production Order Name</ModalHeader>
+        <ModalHeader toggle={toggle_editName}>
+          Edit Production Order Name
+        </ModalHeader>
         <ModalBody>
           <Input
             type="text"
@@ -989,6 +1032,37 @@ const List = () => {
             Save Changes
           </Button>
           <Button color="secondary" onClick={toggle_editName}>
+            Cancel
+          </Button>
+        </ModalFooter>
+      </Modal>
+
+      {/* Duplicate Confirmation Modal */}
+      <Modal isOpen={modal_duplicate} toggle={() => setModalDuplicate(false)} centered>
+        <ModalHeader toggle={() => setModalDuplicate(false)}>
+          Confirm Duplicate
+        </ModalHeader>
+        <ModalBody>
+          <div className="mt-2 text-center">
+            <lord-icon
+              src="https://cdn.lordicon.com/wloilxuq.json"
+              trigger="loop"
+              colors="primary:#405189,secondary:#0ab39c"
+              style={{ width: "100px", height: "100px" }}
+            ></lord-icon>
+            <div className="mt-4 pt-2 fs-15 mx-4 mx-sm-5">
+              <h4>Duplicate Project</h4>
+              <p className="text-muted mx-4 mb-0">
+                Are you sure you want to duplicate "{itemToDuplicate?.projectName}"?
+              </p>
+            </div>
+          </div>
+        </ModalBody>
+        <ModalFooter>
+          <Button color="primary" onClick={handleDuplicateConfirm}>
+            Yes, Duplicate
+          </Button>
+          <Button color="secondary" onClick={() => setModalDuplicate(false)}>
             Cancel
           </Button>
         </ModalFooter>

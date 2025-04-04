@@ -205,42 +205,46 @@ const List = () => {
   //   }
   // }, [filterType]);
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const fetchData = useCallback(
+    async (forceRefresh = false) => {
+      setLoading(true);
+      setError(null);
 
-    // Check if data is available in sessionStorage
-    const cachedData = sessionStorage.getItem("cachedPartsData");
+      // Check if data is available in sessionStorage and not forcing refresh
+      const cachedData =
+        !forceRefresh && sessionStorage.getItem("cachedPartsData");
 
-    if (cachedData) {
-      setListData(JSON.parse(cachedData));
-      setLoading(false);
-      return;
-    }
-
-    try {
-      const response = await fetch(
-        `${process.env.REACT_APP_BASE_URL}/api/parts?filterType=${filterType}`
-      );
-      if (!response.ok) {
-        throw new Error("Failed to fetch parts");
+      if (cachedData) {
+        setListData(JSON.parse(cachedData));
+        setLoading(false);
+        return;
       }
-      const data = await response.json();
-      setListData(data);
 
-      // Store data in sessionStorage
-      sessionStorage.setItem("cachedPartsData", JSON.stringify(data));
+      try {
+        const response = await fetch(
+          `${process.env.REACT_APP_BASE_URL}/api/parts?filterType=${filterType}`
+        );
+        if (!response.ok) {
+          throw new Error("Failed to fetch parts");
+        }
+        const data = await response.json();
+        setListData(data);
 
-      if (initialLoad) {
-        setFilterType(""); // Set filter to empty string on initial load
-        setInitialLoad(false);
+        // Store data in sessionStorage
+        sessionStorage.setItem("cachedPartsData", JSON.stringify(data));
+
+        if (initialLoad) {
+          setFilterType(""); // Set filter to empty string on initial load
+          setInitialLoad(false);
+        }
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, [filterType]);
+    },
+    [filterType]
+  );
 
   useEffect(() => {
     fetchData();
@@ -504,6 +508,30 @@ const List = () => {
     }
   };
 
+  // const handleDelete = async (_id) => {
+  //   setPosting(true);
+  //   setError(null);
+  //   try {
+  //     const response = await fetch(
+  //       `${process.env.REACT_APP_BASE_URL}/api/parts/${_id}`,
+  //       {
+  //         method: "DELETE",
+  //       }
+  //     );
+  //     if (!response.ok) {
+  //       throw new Error("Network response was not ok");
+  //     }
+  //     await fetchData(); // Refetch the data to update the table
+  //     toast.success("Records Deleted Successfully");
+  //     tog_delete(); // Close the modal
+  //   } catch (error) {
+  //     setError(error.message);
+  //   } finally {
+  //     setPosting(false);
+  //   }
+  // };
+
+  // Modify your handleDelete function to clear cache
   const handleDelete = async (_id) => {
     setPosting(true);
     setError(null);
@@ -517,7 +545,9 @@ const List = () => {
       if (!response.ok) {
         throw new Error("Network response was not ok");
       }
-      await fetchData(); // Refetch the data to update the table
+      // Clear the cache and force a fresh fetch
+      sessionStorage.removeItem("cachedPartsData");
+      await fetchData(true); // Force refresh
       toast.success("Records Deleted Successfully");
       tog_delete(); // Close the modal
     } catch (error) {
@@ -618,6 +648,54 @@ const List = () => {
   // const handleUpload = async () => {
   // // do the excel post here as well
   // };
+  // const handleUpload = async () => {
+  //   if (uploadedFile) {
+  //     setIsUploading(true);
+  //     try {
+  //       const formData = new FormData();
+  //       formData.append("file", uploadedFile);
+
+  //       const response = await fetch(
+  //         `${process.env.REACT_APP_BASE_URL}/api/parts/uploadexcel`,
+  //         {
+  //           method: "POST",
+  //           body: formData,
+  //         }
+  //       );
+
+  //       if (!response.ok) {
+  //         throw new Error("Network response was not ok");
+  //       }
+
+  //       const data = await response.json();
+
+  //       // Handle warning or success
+  //       if (data.duplicateCount > 0) {
+  //         setWarningData(data.duplicateIds.join(", "));
+  //         setmissingCategoryData(data.missingCategoryIds.join(", "));
+  //         setWarningModal(true);
+  //       } else {
+  //         toast.success("File uploaded successfully!");
+  //       }
+
+  //       // Fetch updated data
+  //       await fetchData();
+
+  //       setUploadedFile(null); // Reset the uploaded file after successful upload
+  //       toggleModalUpload(); // Close the upload modal automatically
+  //       toast.success("File uploaded successfully!");
+  //     } catch (error) {
+  //       console.error("Error uploading file:", error);
+  //       toast.error("Failed to upload file. Please try again.");
+  //     } finally {
+  //       setIsUploading(false);
+  //     }
+  //   } else {
+  //     toast.error("Please select a file to upload");
+  //   }
+  // };
+
+  // Modify handleUpload to clear cache after successful upload
   const handleUpload = async () => {
     if (uploadedFile) {
       setIsUploading(true);
@@ -648,12 +726,12 @@ const List = () => {
           toast.success("File uploaded successfully!");
         }
 
-        // Fetch updated data
-        await fetchData();
+        // Clear cache and fetch updated data
+        sessionStorage.removeItem("cachedPartsData");
+        await fetchData(true);
 
         setUploadedFile(null); // Reset the uploaded file after successful upload
         toggleModalUpload(); // Close the upload modal automatically
-        toast.success("File uploaded successfully!");
       } catch (error) {
         console.error("Error uploading file:", error);
         toast.error("Failed to upload file. Please try again.");
@@ -722,32 +800,66 @@ const List = () => {
   };
 
   // Handles delete functionality
+  // const handleDeleteSelect = async () => {
+  //   if (selectAll) {
+  //     // Delete all parts
+  //     const response = await fetch(
+  //       `${process.env.REACT_APP_BASE_URL}/api/parts`,
+  //       {
+  //         method: "DELETE",
+  //       }
+  //     );
+  //     if (!response.ok) throw new Error("Failed to delete all parts");
+  //     toast.success("All parts deleted successfully");
+  //   } else {
+  //     // Delete selected parts
+  //     const deletePromises = selectedRows.map((_id) =>
+  //       fetch(`${process.env.REACT_APP_BASE_URL}/api/parts/${_id}`, {
+  //         method: "DELETE",
+  //       })
+  //     );
+  //     await Promise.all(deletePromises);
+  //     toast.success("Selected parts deleted successfully");
+  //   }
+  //   // Refresh data
+  //   fetchData();
+  //   setSelectedRows([]);
+  //   setSelectAll(false);
+  //   setShowDeleteModal(false);
+  // };
+
+  // Modify handleDeleteSelect (bulk delete) to clear cache
   const handleDeleteSelect = async () => {
-    if (selectAll) {
-      // Delete all parts
-      const response = await fetch(
-        `${process.env.REACT_APP_BASE_URL}/api/parts`,
-        {
-          method: "DELETE",
-        }
-      );
-      if (!response.ok) throw new Error("Failed to delete all parts");
-      toast.success("All parts deleted successfully");
-    } else {
-      // Delete selected parts
-      const deletePromises = selectedRows.map((_id) =>
-        fetch(`${process.env.REACT_APP_BASE_URL}/api/parts/${_id}`, {
-          method: "DELETE",
-        })
-      );
-      await Promise.all(deletePromises);
-      toast.success("Selected parts deleted successfully");
+    try {
+      if (selectAll) {
+        // Delete all parts
+        const response = await fetch(
+          `${process.env.REACT_APP_BASE_URL}/api/parts`,
+          {
+            method: "DELETE",
+          }
+        );
+        if (!response.ok) throw new Error("Failed to delete all parts");
+        toast.success("All parts deleted successfully");
+      } else {
+        // Delete selected parts
+        const deletePromises = selectedRows.map((_id) =>
+          fetch(`${process.env.REACT_APP_BASE_URL}/api/parts/${_id}`, {
+            method: "DELETE",
+          })
+        );
+        await Promise.all(deletePromises);
+        toast.success("Selected parts deleted successfully");
+      }
+      // Clear cache and refresh data
+      sessionStorage.removeItem("cachedPartsData");
+      await fetchData(true); // Force refresh
+      setSelectedRows([]);
+      setSelectAll(false);
+      setShowDeleteModal(false);
+    } catch (error) {
+      toast.error(error.message);
     }
-    // Refresh data
-    fetchData();
-    setSelectedRows([]);
-    setSelectAll(false);
-    setShowDeleteModal(false);
   };
 
   console.log("Filter applied: ", filterType, filteredData);

@@ -16,7 +16,8 @@ import {
 import { Link } from "react-router-dom";
 import FeatherIcon from "feather-icons-react/build/FeatherIcon";
 import { toast } from "react-toastify";
-import "./Assemblies.css"
+import "./Assemblies.css";
+import PaginatedList from "../../Pagination/PaginatedList";
 
 export const Assmeblies = () => {
   const [ListData, setListData] = useState([]);
@@ -30,6 +31,10 @@ export const Assmeblies = () => {
   const [itemToDelete, setItemToDelete] = useState(null);
   const [duplicateModalOpen, setDuplicateModalOpen] = useState(false);
   const [itemToDuplicate, setItemToDuplicate] = useState(null);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 25;
+  const [totalPage, setTotalPages] = useState(1);
 
   const toggleDeleteModal = (item) => {
     setDeleteModal(!deleteModal);
@@ -153,6 +158,16 @@ export const Assmeblies = () => {
     }
   };
 
+  
+  const totalPages = Math.ceil(ListData.length / itemsPerPage);
+  const paginatedData = ListData.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
+
   const handleSearch = () => {
     if (searchTerm) {
       const filteredData = ListData.filter((item) =>
@@ -219,13 +234,13 @@ export const Assmeblies = () => {
     if (time === 0) {
       return "0 m";
     }
-  
+
     const totalMinutes = Math.round(time * 60); // Convert hours to minutes
     return `${totalMinutes} m`;
   };
   return (
     <React.Fragment>
-      <div className="">
+      <div>
         <Row className="g-4 mb-3">
           <div className="col-sm-auto">
             <div>
@@ -237,12 +252,11 @@ export const Assmeblies = () => {
               >
                 <i className="ri-add-line align-bottom me-1"></i> Add Assembly
               </Button>
-              
             </div>
           </div>
           <div className="col-sm-7 ms-auto">
             <div className="d-flex justify-content-sm-end gap-2">
-              <div className="d-flex search-box ms-2 col-sm-7">
+              <div className="d-flex search-box ms-2 col-sm-4">
                 <Input
                   type="text"
                   placeholder="Search..."
@@ -259,7 +273,7 @@ export const Assmeblies = () => {
         </Row>
 
         <table className="table table-striped vertical-lines horizontals-lines">
-          <thead style={{backgroundColor:'#f3f4f6'}}>
+          <thead style={{ backgroundColor: "#f3f4f6" }}>
             <tr>
               <th style={{ fontWeight: "bold" }}>Assembly Name</th>
               <th style={{ fontWeight: "bold" }}>Assembly ID</th>
@@ -269,7 +283,7 @@ export const Assmeblies = () => {
             </tr>
           </thead>
           <tbody>
-            {ListData.map((assembly, index) => (
+            {paginatedData?.map((assembly, index) => (
               <tr key={index}>
                 <td>
                   <Link
@@ -293,9 +307,7 @@ export const Assmeblies = () => {
                       <FeatherIcon icon="more-horizontal" className="icon-sm" />
                     </DropdownToggle>
                     <DropdownMenu className="dropdown-menu-end">
-                      <DropdownItem
-                        onClick={() => toggleDeleteModal(assembly)}
-                      >
+                      <DropdownItem onClick={() => toggleDeleteModal(assembly)}>
                         <i className="ri-delete-bin-fill align-bottom me-2 text-muted"></i>{" "}
                         Remove
                       </DropdownItem>
@@ -306,9 +318,7 @@ export const Assmeblies = () => {
                         <i className="ri-file-copy-line align-bottom me-2 text-muted"></i>{" "}
                         Duplicate
                       </DropdownItem>
-                      <DropdownItem
-                        onClick={() => handleEditClick(assembly)}
-                      >
+                      <DropdownItem onClick={() => handleEditClick(assembly)}>
                         <i className="ri-pencil-fill align-bottom me-2 text-muted"></i>{" "}
                         Edit
                       </DropdownItem>
@@ -319,6 +329,12 @@ export const Assmeblies = () => {
             ))}
           </tbody>
         </table>
+
+        <PaginatedList
+          totalPages={totalPages}
+          currentPage={currentPage}
+          onPageChange={handlePageChange}
+        />
       </div>
 
       {/* Add Modal */}

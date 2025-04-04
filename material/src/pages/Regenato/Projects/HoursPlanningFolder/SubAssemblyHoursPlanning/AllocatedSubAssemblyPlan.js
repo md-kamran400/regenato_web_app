@@ -516,13 +516,30 @@ export const AllocatedSubAssemblyPlan = ({
                     )}
                   </span>
                 </Col>
+
                 <Col>
                   <span style={{ fontWeight: "bold" }}>Actual End Date: </span>
-                  <span style={{ fontWeight: "bold", color: "red" }}>
+                  <span
+                    style={{
+                      fontWeight: "bold",
+                      color: (() => {
+                        const actualEndDate = actulEndDateData.actualEndDate
+                          ? moment(actulEndDateData.actualEndDate)
+                          : null;
+                        const endDate = moment(selectedSection.data[0].endDate);
+
+                        if (!actualEndDate) return "black"; // Default case
+                        if (actualEndDate.isSame(endDate, "day"))
+                          return "black"; // Dates are equal
+                        if (actualEndDate.isAfter(endDate, "day")) return "red"; // Delayed
+                        return "green"; // Completed early
+                      })(),
+                    }}
+                  >
                     {actulEndDateData.actualEndDate
                       ? moment(actulEndDateData.actualEndDate).format(
                           "DD MMM YYYY"
-                        ) // Updated
+                        )
                       : moment(selectedSection.data[0].endDate).format(
                           "DD MMM YYYY"
                         )}
@@ -588,7 +605,7 @@ export const AllocatedSubAssemblyPlan = ({
                           </span>
                         ) : task.dailyStatus === "Ahead" ? (
                           <span
-                            className="badge bg-warning-subtle text-warning"
+                            className="badge bg-success-subtle text-success"
                             style={{ fontSize: "13px" }}
                           >
                             Ahead
@@ -763,7 +780,7 @@ export const AllocatedSubAssemblyPlan = ({
                       if (Number(produced) === Number(planned)) {
                         return <span className="text-primary">On Track</span>;
                       } else if (produced > planned) {
-                        return <span className="text-warning">Ahead</span>;
+                        return <span className="text-success">Ahead</span>;
                       } else if (produced < planned) {
                         return <span className="text-danger">Delayed</span>;
                       }

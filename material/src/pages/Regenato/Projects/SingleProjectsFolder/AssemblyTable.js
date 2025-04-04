@@ -246,8 +246,8 @@ const AssemblyTable = React.memo(
       if (actualEndDate > endDate)
         return { text: "Delayed", class: "badge bg-danger text-white" };
       if (actualEndDate < endDate)
-        return { text: "Ahead", class: "badge bg-warning text-white" };
-      return { text: "Allocated", class: "badge bg-success text-white" };
+        return { text: "Ahead", class: "badge bg-success text-white" };
+      return { text: "Allocated", class: "badge bg-dark text-white" };
     };
 
     // Add this useEffect to fetch the lists when the component mounts

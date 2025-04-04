@@ -112,7 +112,7 @@ const PartsTable = React.memo(
           }
           const data = await response.json();
           setPartsListsItems(data.data);
-          // console.log("items data of parts lists", data);
+          console.log("items data of parts lists", data);
         } catch (error) {
           console.error("Error fetching parts list items:", error);
           // You might want to handle the error, e.g., show an error message to the user
@@ -144,8 +144,8 @@ const PartsTable = React.memo(
       if (actualEndDate > endDate)
         return { text: "Delayed", class: "badge bg-danger text-white" };
       if (actualEndDate < endDate)
-        return { text: "Ahead", class: "badge bg-warning text-white" };
-      return { text: "Allocated", class: "badge bg-success text-white" };
+        return { text: "Ahead", class: "badge bg-success-subtle text-success" };
+      return { text: "Allocated", class: "badge bg-dark text-white" };
     };
 
     useEffect(() => {
@@ -648,7 +648,11 @@ const PartsTable = React.memo(
           {/* Add the filter select box here */}
           <div
             className="mb-3"
-            style={{ display: "flex", justifyContent: "flex-end" ,marginRight:'5px'}}
+            style={{
+              display: "flex",
+              justifyContent: "flex-end",
+              marginRight: "5px",
+            }}
           >
             <Label for="statusFilter" className="me-2 mt-2">
               Filter by Status:
@@ -721,16 +725,13 @@ const PartsTable = React.memo(
                                     {item.partName} ({item.Uid || ""})
                                     {item.codeName || ""}
                                   </td>
-                                  {/* <td>{getStatus(item.allocations)}</td> */}
+
                                   <td>
-                                    <span
-                                      className={
-                                        getStatus(item.allocations).class
-                                      }
-                                    >
-                                      {getStatus(item.allocations).text}
+                                    <span className={status.class}>
+                                      {status.text}
                                     </span>
                                   </td>
+
                                   <td>{Math.round(item.costPerUnit || 0)}</td>
                                   <td>{formatTime(item.timePerUnit || 0)}</td>
                                   <td>
@@ -750,7 +751,6 @@ const PartsTable = React.memo(
                                       </button>
                                     </div>
                                   </td>
-
                                   <td>
                                     {Math.ceil(
                                       parseFloat(item.costPerUnit || 0) *
@@ -828,6 +828,7 @@ const PartsTable = React.memo(
                                         porjectID={_id}
                                         partID={partsListID}
                                         partListItemId={item._id}
+                                        PartsTableFetch={PartsTableFetch}
                                       />
                                     </td>
                                   </tr>

@@ -14,10 +14,13 @@ import {
   DropdownItem,
 } from "reactstrap";
 import { Link } from "react-router-dom";
+import PaginatedList from "../../Pagination/PaginatedList";
 import FeatherIcon from "feather-icons-react/build/FeatherIcon";
 import { toast } from "react-toastify";
 import "./subAssemblies.css"
 export const SubAssmeblies = () => {
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 25;
   const [ListData, setListData] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -29,6 +32,7 @@ export const SubAssmeblies = () => {
   const [itemToDelete, setItemToDelete] = useState(null);
   const [duplicateModalOpen, setDuplicateModalOpen] = useState(false);
   const [itemToDuplicate, setItemToDuplicate] = useState(null);
+  const [totalPage, setTotalPages] = useState(1);
 
   const toggleDeleteModal = (item) => {
     setDeleteModal(!deleteModal);
@@ -39,6 +43,7 @@ export const SubAssmeblies = () => {
     setDuplicateModalOpen(!duplicateModalOpen);
     setItemToDuplicate(item);
   };
+  
 
   const fetchSubAssemblies = async () => {
     try {
@@ -164,6 +169,15 @@ export const SubAssmeblies = () => {
     }
   };
 
+  const totalPages = Math.ceil(ListData.length / itemsPerPage);
+  const paginatedData = ListData.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
+
   const handleSearch = () => {
     if (searchTerm) {
       const filteredData = ListData.filter((item) =>
@@ -254,7 +268,7 @@ export const SubAssmeblies = () => {
           </div>
           <div className="col-sm-7 ms-auto">
             <div className="d-flex justify-content-sm-end gap-2">
-              <div className="d-flex search-box ms-2 col-sm-7">
+              <div className="d-flex search-box ms-2 col-sm-4">
                 <Input
                   type="text"
                   placeholder="Search..."
@@ -281,7 +295,7 @@ export const SubAssmeblies = () => {
             </tr>
           </thead>
           <tbody>
-            {ListData.map((subAssembly, index) => (
+            {paginatedData?.map((subAssembly, index) => (
               <tr key={index}>
                 <td>
                   <Link
@@ -331,6 +345,12 @@ export const SubAssmeblies = () => {
             ))}
           </tbody>
         </table>
+
+        <PaginatedList
+          totalPages={totalPages}
+          currentPage={currentPage}
+          onPageChange={handlePageChange}
+        />
       </div>
 
       {/* Add Modal */}

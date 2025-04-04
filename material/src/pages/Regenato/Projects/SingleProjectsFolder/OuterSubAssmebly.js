@@ -47,6 +47,7 @@ const OuterSubAssmebly = React.memo(
     subAssemblyId,
     setSubAssemblyItems,
   }) => {
+    // console.log(subAssemblyItem.partsListItems[0].allocations)
     const { _id } = useParams();
     const [modalAdd, setModalAdd] = useState(false);
     const [modal_delete, setModalDelete] = useState(false);
@@ -87,7 +88,7 @@ const OuterSubAssmebly = React.memo(
     const [itemToEdit, setItemToEdit] = useState(null);
     const [editQuantityModal, setEditQuantityModal] = useState(false);
     const [loadingParts, setLoadingParts] = useState(false);
-    const [statusFilter, setStatusFilter] = useState('all');
+    const [statusFilter, setStatusFilter] = useState("all");
     //for setting icons
     const [modalOpenId, setModalOpenId] = useState(null);
 
@@ -202,49 +203,88 @@ const OuterSubAssmebly = React.memo(
     // duplicate creation useState
 
     // fetching
-    useEffect(() => {
-      const fetchPartsListItems = async () => {
-        try {
-          const response = await fetch(
-            `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${_id}/subAssemblyListFirst/${subAssemblyItem._id}/items`
-          );
-          if (!response.ok) {
-            throw new Error("Network response was not ok");
-          }
-          const data = await response.json();
-          setPartsListsItems(data);
-          console.log(data);
-        } catch (error) {
-          console.error("Error fetching parts list items:", error);
-        }
-      };
 
+    const fetchPartsListItems = async () => {
+      try {
+        const response = await fetch(
+          `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${_id}/subAssemblyListFirst/${subAssemblyItem._id}/items`
+        );
+        if (!response.ok) {
+          throw new Error("Network response was not ok");
+        }
+        const data = await response.json();
+        setPartsListsItems(data);
+        console.log(data);
+      } catch (error) {
+        console.error("Error fetching parts list items:", error);
+      }
+    };
+    useEffect(() => {
       fetchPartsListItems();
     }, [_id, subAssemblyItem, partsListItemsUpdated]);
 
+    // const getStatus = (allocations) => {
+    //   if (!allocations || allocations.length === 0)
+    //     return {
+    //       text: "Not Allocated",
+    //       class: "badge bg-info text-white",
+    //     };
+    //   const allocation = allocations[0].allocations[0];
+    //   if (!allocation)
+    //     return { text: "Not Allocated", class: "badge bg-info text-white" };
+
+    //   const actualEndDate = new Date(allocation.actualEndDate);
+    //   const endDate = new Date(allocation.endDate);
+
+    //   if (actualEndDate.getTime() === endDate.getTime())
+    //     return { text: "On Track", class: "badge bg-primary text-white" };
+    //   if (actualEndDate > endDate)
+    //     return { text: "Delayed", class: "badge bg-danger text-white" };
+    //   if (actualEndDate < endDate)
+    //     return { text: "Ahead", class: "badge bg-success text-white" };
+    //   return { text: "Allocated", class: "badge bg-dark text-white" };
+    // };
+
+    // Add this useEffect to reset the partsListItemsUpdated state
+
+    useEffect(() => {
+     
+    }, [subAssemblyItem.partsListItems]);
+
     const getStatus = (allocations) => {
-      if (!allocations || allocations.length === 0)
+      if (
+        !allocations ||
+        allocations.length === 0 ||
+        !allocations[0]?.allocations
+      ) {
         return {
           text: "Not Allocated",
           class: "badge bg-info text-white",
         };
+      }
+
       const allocation = allocations[0].allocations[0];
-      if (!allocation)
-        return { text: "Not Allocated", class: "badge bg-info text-white" };
+      if (!allocation || !allocation.actualEndDate || !allocation.endDate) {
+        return {
+          text: "Allocated",
+          class: "badge bg-dark text-white",
+        };
+      }
 
       const actualEndDate = new Date(allocation.actualEndDate);
       const endDate = new Date(allocation.endDate);
 
-      if (actualEndDate.getTime() === endDate.getTime())
+      if (actualEndDate.getTime() === endDate.getTime()) {
         return { text: "On Track", class: "badge bg-primary text-white" };
-      if (actualEndDate > endDate)
+      }
+      if (actualEndDate > endDate) {
         return { text: "Delayed", class: "badge bg-danger text-white" };
-      if (actualEndDate < endDate)
-        return { text: "Ahead", class: "badge bg-warning text-white" };
-      return { text: "Allocated", class: "badge bg-success text-white" };
+      }
+      if (actualEndDate < endDate) {
+        return { text: "Ahead", class: "badge bg-success text-white" };
+      }
+      return { text: "Allocated", class: "badge bg-dark text-white" };
     };
-
-    // Add this useEffect to reset the partsListItemsUpdated state
 
     useEffect(() => {
       setPartsListItemsUpdated(false);

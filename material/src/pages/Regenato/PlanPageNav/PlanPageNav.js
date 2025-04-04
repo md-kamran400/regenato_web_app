@@ -11,11 +11,13 @@ import { Card, CardBody, Badge, Row, Col, Table, CardTitle } from "reactstrap";
 import "./PlanPage.css";
 
 const generateRandomColor = () => {
-  const letters = "0123456789ABCDEF";
+  const letters = "89ABCDEF"; // Exclude low brightness values (0-7)
   let color = "#";
+
   for (let i = 0; i < 6; i++) {
-    color += letters[Math.floor(Math.random() * 16)];
+    color += letters[Math.floor(Math.random() * letters.length)];
   }
+
   return color;
 };
 
@@ -121,18 +123,18 @@ export function PlanPageNav() {
 
     const allocation = allocations[0]; // Assuming we check the first allocation for status
     if (!allocation.actualEndDate) {
-      return <Badge className="bg-success text-white">Allocated</Badge>;
+      return <Badge className="bg-dark text-white">Allocated</Badge>;
     }
 
     const endDate = new Date(allocation.endDate);
     const actualEndDate = new Date(allocation.actualEndDate);
 
     if (endDate.getTime() === actualEndDate.getTime()) {
-      return <Badge className="bg-primary text-white">On Track</Badge>;
+      return <Badge className="bg-primary text-white pill">On Track</Badge>;
     } else if (actualEndDate > endDate) {
-      return <Badge className="bg-danger text-white">Delayed</Badge>;
+      return <Badge className="bg-danger text-white pill">Delayed</Badge>;
     } else {
-      return <Badge className="bg-warning text-white">Ahead</Badge>;
+      return <Badge className="bg-success text-white pill">Ahead</Badge>;
     }
   };
 
@@ -403,8 +405,13 @@ export function PlanPageNav() {
         plugins={[resourceTimelinePlugin, adaptivePlugin]}
         initialView="resourceTimelineMonth"
         schedulerLicenseKey="CC-Attribution-NonCommercial-NoDerivatives"
+        buttonText={{
+          prev: "<", // Single left arrow
+          next: ">", // Single right arrow
+          today: "Today",
+        }}
         headerToolbar={{
-          left: "prev,next today",
+          left: "prev today next",
           center: "title",
           right:
             "resourceTimelineDay,resourceTimelineWeek,resourceTimelineMonth,resourceTimelineYear",
@@ -448,7 +455,13 @@ export function PlanPageNav() {
                 opacity: 0.6, // Optional dim effect
               }}
             >
-              <div className="font-medium">
+              <div
+                style={{
+                  color: "black", // Change text color to black
+                  fontWeight: "bold", // Make text bold
+                  fontSize: "16px",
+                }}
+              >
                 {arg.event.extendedProps.processName} -{" "}
                 {arg.event.extendedProps.machineId} -{" "}
                 {arg.event.extendedProps.operator}
@@ -525,7 +538,7 @@ export function PlanPageNav() {
                         </Badge>
                         <Badge
                           style={{
-                            fontSize: "13px",
+                            fontSize: "15px",
                             background: "transparent",
                             boxShadow: "none",
                             border: "none",
@@ -680,7 +693,7 @@ export function PlanPageNav() {
                   if (hasAhead) {
                     return {
                       text: "Ahead",
-                      className: "bg-warning text-white",
+                      className: "bg-success text-white",
                     };
                   }
                   if (allOnTrack) {
@@ -692,7 +705,7 @@ export function PlanPageNav() {
 
                   return {
                     text: "Allocated",
-                    className: "bg-secondary text-white",
+                    className: "bg-dark text-white",
                   };
                 };
 
@@ -721,7 +734,7 @@ export function PlanPageNav() {
                           if (!allocation.actualEndDate) {
                             return {
                               text: "Allocated",
-                              className: "bg-success text-white",
+                              className: "bg-dark text-white",
                             };
                           }
 
@@ -743,7 +756,7 @@ export function PlanPageNav() {
                           } else {
                             return {
                               text: "Ahead",
-                              className: "bg-warning text-white",
+                              className: "bg-success text-white",
                             };
                           }
                         };
@@ -863,8 +876,13 @@ export function PlanPageNav() {
                   <FullCalendar
                     plugins={[dayGridPlugin]}
                     initialView="dayGridMonth"
+                    buttonText={{
+                      prev: "<", // Single left arrow
+                      next: ">", // Single right arrow
+                      today: "Today",
+                    }}
                     headerToolbar={{
-                      left: "prev,next today",
+                      left: "prev today next",
                       center: "title",
                       right: "dayGridDay,dayGridWeek,dayGridMonth",
                     }}
@@ -895,6 +913,7 @@ export function PlanPageNav() {
                         borderColor: statusColor,
                         extendedProps: {
                           processName: selectedSplit.processName,
+                          machineId: allocation.machineId,
                           splitNumber: allocation.splitNumber,
                           operator: allocation.operator,
                           plannedQuantity: allocation.plannedQuantity,
@@ -914,7 +933,7 @@ export function PlanPageNav() {
                       const event = info.event;
                       const props = event.extendedProps;
 
-                                            let tooltipContent = `
+                      let tooltipContent = `
                               Process: ${props.processName}
                               Machine: ${props.machineId}
                               Operator: ${props.operator}

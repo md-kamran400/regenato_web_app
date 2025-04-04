@@ -615,13 +615,27 @@ h5 i.icon {
   overflow-x: auto;
 }
 
-.sticky-col {
+/* .sticky-col {
   position: sticky;
   left: 0;
   background-color: rgb(132, 131, 131);
   z-index: 1;
   min-width: 180px;
+} */
+
+.sticky-col {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background-color: white;
+  min-width: 200px;
 }
+/* .sticky-col:last-child {
+  position: sticky;
+  right: 0;
+  left: auto;
+  z-index: 2;
+} */
 
 .sticky-col:nth-child(2) {
   left: 300px; /* Adjust this value based on the width of the first column */

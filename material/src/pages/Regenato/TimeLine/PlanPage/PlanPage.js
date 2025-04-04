@@ -9,12 +9,22 @@ import { Calendar, Clock } from "lucide-react";
 import { Card, CardBody, Badge, Row, Col, Table, CardTitle } from "reactstrap";
 import "./PlanPage.css";
 
+// const generateRandomColor = () => {
+//   const letters = "01289ABCDEF";
+//   let color = "#";
+//   for (let i = 0; i < 6; i++) {
+//     color += letters[Math.floor(Math.random() * 16)];
+//   }
+//   return color;
+// };
 const generateRandomColor = () => {
-  const letters = "0123456789ABCDEF";
+  const letters = "89ABCDEF"; // Exclude low brightness values (0-7)
   let color = "#";
+  
   for (let i = 0; i < 6; i++) {
-    color += letters[Math.floor(Math.random() * 16)];
+    color += letters[Math.floor(Math.random() * letters.length)];
   }
+
   return color;
 };
 
@@ -121,7 +131,7 @@ export function PlanPage() {
 
     const allocation = allocations[0]; // Assuming we check the first allocation for status
     if (!allocation.actualEndDate) {
-      return <Badge className="bg-success text-white">Allocated</Badge>;
+      return <Badge className="bg-dark text-white">Allocated</Badge>;
     }
 
     const endDate = new Date(allocation.endDate);
@@ -132,7 +142,7 @@ export function PlanPage() {
     } else if (actualEndDate > endDate) {
       return <Badge className="bg-danger text-white">Delayed</Badge>;
     } else {
-      return <Badge className="bg-warning text-white">Ahead</Badge>;
+      return <Badge className="bg-success text-white">Ahead</Badge>;
     }
   };
 
@@ -357,7 +367,7 @@ export function PlanPage() {
   };
 
   return (
-    <div className="p-4">
+    <div className="p-4" >
       <div className="process-header">
         <div className="flex items-center gap-4">
           <h2 className="text-2xl font-bold">Production Planning</h2>
@@ -401,11 +411,17 @@ export function PlanPage() {
       {/* FullCalendar with Year View */}
 
       <FullCalendar
+    
         plugins={[resourceTimelinePlugin, adaptivePlugin]}
         initialView="resourceTimelineMonth"
         schedulerLicenseKey="CC-Attribution-NonCommercial-NoDerivatives"
+        buttonText={{
+          prev: "<", // Single left arrow
+          next: ">", // Single right arrow
+          today: "Today",
+        }}
         headerToolbar={{
-          left: "prev,next today",
+          left: "prev today next",
           center: "title",
           right:
             "resourceTimelineDay,resourceTimelineWeek,resourceTimelineMonth,resourceTimelineYear",
@@ -435,13 +451,12 @@ export function PlanPage() {
           e.jsEvent.preventDefault();
           e.jsEvent.stopPropagation();
         }}
+        
         eventContent={(arg) => {
-          const processColor = getProcessColor(
-            arg.event.extendedProps.processName
-          );
+          const processColor = getProcessColor(arg.event.extendedProps.processName);
           return (
             <div
-              className="p-1 text-sm text-white"
+              className="p-1 text-sm"
               style={{
                 backgroundColor: processColor,
                 pointerEvents: "none",
@@ -449,7 +464,13 @@ export function PlanPage() {
                 opacity: 0.6, // Optional dim effect
               }}
             >
-              <div className="font-medium">
+              <div
+                style={{
+                  color: "black", // Change text color to black
+                  fontWeight: "bold", // Make text bold
+                  fontSize:'16px',
+                }}
+              >
                 {arg.event.extendedProps.processName} -{" "}
                 {arg.event.extendedProps.machineId} -{" "}
                 {arg.event.extendedProps.operator}
@@ -457,6 +478,7 @@ export function PlanPage() {
             </div>
           );
         }}
+        
         eventDidMount={(info) => {
           const event = info.event;
           const props = event.extendedProps;
@@ -478,6 +500,7 @@ export function PlanPage() {
           info.el.style.cursor = "not-allowed"; // Prevent clicking
           info.el.style.opacity = "0.6"; // Optional dim effect
           info.el.style.pointerEvents = "auto"; // Allow hover effects
+          
 
           // Use a better tooltip approach (e.g., Tippy.js)
           if (window.tippy) {
@@ -525,7 +548,7 @@ export function PlanPage() {
                         </Badge>
                         <Badge
                           style={{
-                            fontSize: "13px",
+                            fontSize: "15px",
                             background: "transparent",
                             boxShadow: "none",
                             border: "none",
@@ -652,7 +675,7 @@ export function PlanPage() {
                           if (!allocation.actualEndDate) {
                             return {
                               text: "Allocated",
-                              className: "bg-success text-white",
+                              className: "bg-dark text-white",
                             };
                           }
 
@@ -674,7 +697,7 @@ export function PlanPage() {
                           } else {
                             return {
                               text: "Ahead",
-                              className: "bg-warning text-white",
+                              className: "bg-success text-white",
                             };
                           }
                         };
@@ -794,8 +817,13 @@ export function PlanPage() {
                   <FullCalendar
                     plugins={[dayGridPlugin]}
                     initialView="dayGridMonth"
+                    buttonText={{
+                      prev: "<", // Single left arrow
+                      next: ">", // Single right arrow
+                      today: "Today",
+                    }}
                     headerToolbar={{
-                      left: "prev,next today",
+                      left: "prev today next",
                       center: "title",
                       right: "dayGridDay,dayGridWeek,dayGridMonth",
                     }}
@@ -826,6 +854,7 @@ export function PlanPage() {
                         borderColor: statusColor,
                         extendedProps: {
                           processName: selectedSplit.processName,
+                          machineId: allocation.machineId,  
                           splitNumber: allocation.splitNumber,
                           operator: allocation.operator,
                           plannedQuantity: allocation.plannedQuantity,

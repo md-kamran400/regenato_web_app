@@ -243,8 +243,13 @@ const TimePage = () => {
             plugins={[resourceTimelinePlugin, adaptivePlugin]}
             initialView="resourceTimelineMonth"
             schedulerLicenseKey="CC-Attribution-NonCommercial-NoDerivatives"
+            buttonText={{
+              prev: "<", // Single left arrow
+              next: ">", // Single right arrow
+              today: "Today",
+            }}
             headerToolbar={{
-              left: "prev,next today",
+              left: "prev today next",
               center: "title",
               right:
                 "resourceTimelineDay,resourceTimelineWeek,resourceTimelineMonth,resourceTimelineYear",

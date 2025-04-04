@@ -3,7 +3,7 @@ import Calendar from "@fullcalendar/react";
 import resourceTimelinePlugin from "@fullcalendar/resource-timeline";
 import adaptivePlugin from "@fullcalendar/adaptive";
 import "./OperatorTime.css";
-
+import { FaAngleRight } from "react-icons/fa6";
 const processColors = {
   C1: { bg: "#3B82F6", border: "#2563EB" },
   C2: { bg: "#10B981", border: "#059669" },
@@ -218,12 +218,19 @@ const OperatorTime = () => {
           plugins={[resourceTimelinePlugin, adaptivePlugin]}
           initialView="resourceTimelineMonth"
           schedulerLicenseKey="CC-Attribution-NonCommercial-NoDerivatives"
+          themeSystem="standard" // Ensure standard theme for correct icon rendering
+          buttonText={{
+            prev: "<", // Single left arrow
+            next: ">", // Single right arrow
+            today: "Today",
+          }}
           headerToolbar={{
-            left: "prev,next today",
+            left: "prev today next",
             center: "title",
             right:
               "resourceTimelineDay,resourceTimelineWeek,resourceTimelineMonth,resourceTimelineYear",
           }}
+          
           resources={resources}
           events={events}
           resourceAreaWidth="150px"
