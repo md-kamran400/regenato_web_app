@@ -729,7 +729,7 @@ const List = () => {
                   <th className="child_parts">Total Cost (INR)</th>
                   <th className="child_parts">Total Hour</th>
                   <th className="child_parts">Status</th>
-                  {manufacturingData.map((item) => (
+                  {manufacturingData?.map((item) => (
                     <th key={item._id} className="child_parts">
                       {item.name}
                     </th>

@@ -125,6 +125,7 @@ export const AllocatedSubAssemblyPlan = ({
           const formattedSections = response.data.data.map((item) => ({
             allocationId: item._id,
             title: item.processName,
+            categoryId: item.categoryId,
             data: item.allocations.map((allocation) => {
               // Calculate daily planned quantity
               const shiftTotalTime = allocation.shiftTotalTime; // Total working time per day in minutes
@@ -172,6 +173,8 @@ export const AllocatedSubAssemblyPlan = ({
 
     fetchAllocations();
   }, [porjectID, subAssemblyListFirstId, partListItemId]);
+
+  console.log(sections)
 
   const handleCancelAllocation = async () => {
     try {
@@ -411,7 +414,7 @@ export const AllocatedSubAssemblyPlan = ({
                       color: "#495057",
                     }}
                   >
-                    {section.title}
+                    {section.title}{section.categoryId}
                   </h4>
                 </Col>
               </Row>

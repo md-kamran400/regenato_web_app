@@ -40,6 +40,7 @@ const manufacturingSchema = mongoose.Schema({
         enum: ["available", "occupied", "downtime"],
         default: "available",
       },
+      unavailableUntil: { type: Date, default: null },
       allocations: [
         {
           startDate: { type: Date, required: true },
@@ -53,19 +54,31 @@ const manufacturingSchema = mongoose.Schema({
   ],
 });
 
-// Middleware to auto-reset availability when fetching data
-manufacturingSchema.pre("find", async function (next) {
-  await this.model.updateMany(
-    { "subCategories.unavailableUntil": { $lt: new Date() } }, // If downtime has expired
-    {
-      $set: {
-        "subCategories.$.isAvailable": true,
-        "subCategories.$.unavailableUntil": null,
-        "subCategories.$.status": "available",
-        "subCategories.$.statusEndDate": null,
-      },
+// Add middleware to auto-update status
+manufacturingSchema.pre('save', function(next) {
+  const now = new Date();
+  
+  this.subCategories.forEach(subCategory => {
+    // Check for active downtime
+    const activeDowntime = subCategory.downtimeHistory?.find(downtime => 
+      new Date(downtime.startTime) <= now && 
+      (!downtime.endTime || new Date(downtime.endTime) > now)
+    );
+
+    if (activeDowntime) {
+      subCategory.status = 'downtime';
+      subCategory.isAvailable = false;
+      subCategory.unavailableUntil = new Date(activeDowntime.endTime);
+    } else if (subCategory.status === 'downtime') {
+      // Downtime has ended
+      subCategory.status = 'available';
+      subCategory.isAvailable = true;
+      subCategory.unavailableUntil = null;
     }
-  );
+
+    // Check allocations (this will be updated by the API endpoint)
+  });
+
   next();
 });
 

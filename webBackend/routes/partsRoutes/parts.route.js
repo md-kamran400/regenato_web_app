@@ -35,15 +35,15 @@ if (!fs.existsSync(imageUploadDir)) {
 //     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 25));
 //     const filterType = req.query.filterType;
 //     const lastId = req.query.lastId;
-    
+
 //     // Build base query
 //     const query = filterType ? { partType: filterType } : {};
-    
+
 //     // For keyset pagination
 //     if (lastId) {
 //       query._id = { $gt: lastId };
 //     }
-    
+
 //     // Common find options
 //     const findOptions = {
 //       select: '-__v -someLargeField', // Exclude unnecessary fields
@@ -51,39 +51,39 @@ if (!fs.existsSync(imageUploadDir)) {
 //       sort: { _id: 1 },
 //       limit: limit
 //     };
-    
+
 //     // Only apply skip for traditional pagination if not using keyset
 //     if (!lastId && page > 1) {
 //       findOptions.skip = (page - 1) * limit;
 //     }
-    
+
 //     // Execute queries in parallel
 //     const [totalParts, parts] = await Promise.all([
 //       // Only count if not using keyset pagination
 //       lastId ? Promise.resolve(null) : PartsModel.countDocuments(query).exec(),
 //       PartsModel.find(query, null, findOptions).exec()
 //     ]);
-    
+
 //     // Prepare response
 //     const response = {
 //       success: true,
 //       data: parts
 //     };
-    
+
 //     // For traditional pagination
 //     if (!lastId) {
 //       response.totalParts = totalParts;
 //       response.totalPages = Math.ceil(totalParts / limit);
 //       response.currentPage = page;
 //       response.pageSize = limit;
-//     } 
+//     }
 //     // For keyset pagination
 //     else {
 //       const lastPart = parts[parts.length - 1];
 //       response.nextCursor = lastPart ? lastPart._id : null;
 //       response.hasMore = parts.length === limit;
 //     }
-    
+
 //     res.status(200).json(response);
 //   } catch (error) {
 //     console.error("Error in parts route:", error);
@@ -101,7 +101,7 @@ if (!fs.existsSync(imageUploadDir)) {
 //     // Parse and validate parameters
 //     const page = parseInt(req.query.page) || 1;
 //     const limit = parseInt(req.query.limit) || 25;
-    
+
 //     // Ensure page is at least 1 and limit is between 1-100
 //     const validatedPage = Math.max(1, page);
 //     const validatedLimit = Math.min(100, Math.max(1, limit));
@@ -279,9 +279,6 @@ PartRoutes.get("/", async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
-
-
-
 
 PartRoutes.get("/:_id", async (req, res) => {
   try {
@@ -565,18 +562,83 @@ PartRoutes.delete("/:_id/rmVariables/:variableId", async (req, res) => {
 // end rm variable backend from here
 
 // start Manufacturing variable backend from here
-PartRoutes.get("/:_id/manufacturingVariables", async (req, res) => {
+PartRoutes.get("/:partId/manufacturingVariables", async (req, res) => {
   try {
-    const part = await PartsModel.findById(
-      req.params._id,
-      "manufacturingVariables"
-    );
+    const part = await PartsModel.findById(req.params.partId)
+      .select("manufacturingVariables")
+      .lean();
+
     if (!part) {
       return res.status(404).json({ message: "Part not found" });
     }
-    res.status(200).json(part.manufacturingVariables);
+
+    // Sort by categoryId first, then by index
+    const sortedVariables = part.manufacturingVariables.sort((a, b) => {
+      // Extract numeric parts from categoryId (e.g., "C1" -> 1, "C10" -> 10)
+      const numA = parseInt(a.categoryId.replace(/\D/g, '')) || 0;
+      const numB = parseInt(b.categoryId.replace(/\D/g, '')) || 0;
+      
+      // First sort by numeric part of categoryId
+      if (numA !== numB) {
+        return numA - numB;
+      }
+      
+      // If categoryIds are equal, sort by index
+      return (a.index || 0) - (b.index || 0);
+    });
+
+    res.status(200).json(sortedVariables);
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+});
+
+
+// Update your route to handle the reorder endpoint properly
+PartRoutes.put("/:partId/manufacturingVariables/reorder", async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { partId } = req.params;  // Changed from _id to partId for clarity
+    const { startIndex, endIndex } = req.body;
+
+    // Validate partId is a valid ObjectId
+    if (!mongoose.Types.ObjectId.isValid(partId)) {
+      await session.abortTransaction();
+      return res.status(400).json({ message: "Invalid part ID" });
+    }
+
+    const part = await PartsModel.findById(partId).session(session);
+    if (!part) {
+      await session.abortTransaction();
+      return res.status(404).json({ message: "Part not found" });
+    }
+
+    // Create a new array with the reordered items
+    const variables = [...part.manufacturingVariables];
+    const [movedItem] = variables.splice(startIndex, 1);
+    variables.splice(endIndex, 0, movedItem);
+
+    // Update indexes
+    variables.forEach((item, index) => {
+      item.index = index;
+    });
+
+    part.manufacturingVariables = variables;
+    await part.save({ session });
+    await session.commitTransaction();
+
+    res.status(200).json({ message: "Reordered successfully" });
+  } catch (error) {
+    await session.abortTransaction();
+    console.error("Reorder error:", error);
+    res.status(500).json({ 
+      message: "Failed to reorder",
+      error: error.message 
+    });
+  } finally {
+    session.endSession();
   }
 });
 
@@ -1703,7 +1765,9 @@ PartRoutes.post("/uploadexcel", upload.single("file"), async (req, res) => {
       const stage = row["Stage"];
 
       if (!partNo || !partDescription || isNaN(timeInMinutes) || !stage) {
-        console.warn(`Skipping row with missing fields: ${JSON.stringify(row)}`);
+        console.warn(
+          `Skipping row with missing fields: ${JSON.stringify(row)}`
+        );
         continue;
       }
 

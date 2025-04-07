@@ -398,50 +398,113 @@ manufacturRouter.put(
 
 manufacturRouter.get("/category/:categoryId", async (req, res) => {
   try {
-    let { categoryId } = req.params;
+    const { categoryId } = req.params;
     const now = new Date();
 
     if (!categoryId || typeof categoryId !== "string") {
       return res.status(400).json({ msg: "Invalid categoryId format." });
     }
 
+    // 1. Get manufacturing data
     const manufacturingEntry = await ManufacturingModel.findOne({ categoryId });
-
     if (!manufacturingEntry) {
       return res.status(404).json({ msg: "Manufacturing entry not found" });
     }
 
+    // 2. Get all allocations data
+    let allocationData = [];
+    try {
+      const response = await axios.get(
+        `${process.env.BASE_URL}/api/defpartproject/all-allocations`
+      );
+      allocationData = response.data?.data || [];
+    } catch (error) {
+      console.error("Error fetching allocations:", error.message);
+    }
+
+    // 3. Create a map of current allocations by machineId
+    const currentAllocations = new Map();
+    allocationData.forEach(project => {
+      project.allocations?.forEach(process => {
+        process.allocations?.forEach(alloc => {
+          if (alloc.machineId) {
+            const allocStart = new Date(alloc.startDate);
+            const allocEnd = new Date(alloc.endDate);
+            
+            if (!currentAllocations.has(alloc.machineId)) {
+              currentAllocations.set(alloc.machineId, []);
+            }
+            
+            currentAllocations.get(alloc.machineId).push({
+              startDate: allocStart,
+              endDate: allocEnd,
+              projectName: project.projectName,
+              partName: alloc.partName || process.partName
+            });
+          }
+        });
+      });
+    });
+
     let updated = false;
 
-    // First check and update downtime status
-    manufacturingEntry.subCategories.forEach((machine) => {
-      // Only check active downtime records
-      const activeDowntime = machine.downtimeHistory?.find(
-        (downtime) =>
-          downtime.shift && // Ensure shift exists
-          !downtime.isCompleted && // Check if not completed
-          new Date(downtime.startTime) <= now &&
-          (!downtime.endTime || new Date(downtime.endTime) > now)
-      );
+    // 4. Process each machine
+    manufacturingEntry.subCategories.forEach(machine => {
+      const machineId = machine.subcategoryId;
+      const hasActiveDowntime = machine.downtimeHistory?.some(downtime => {
+        const dtStart = new Date(downtime.startTime);
+        const dtEnd = downtime.endTime ? new Date(downtime.endTime) : null;
+        return !downtime.isCompleted && dtStart <= now && (!dtEnd || dtEnd > now);
+      });
 
-      if (activeDowntime) {
-        // Machine is in downtime
+      if (hasActiveDowntime) {
+        // Machine is in downtime - highest priority
         if (machine.status !== "downtime") {
           machine.status = "downtime";
           machine.isAvailable = false;
-          machine.unavailableUntil = new Date(activeDowntime.endTime);
+          machine.unavailableUntil = machine.downtimeHistory.find(d => 
+            new Date(d.startTime) <= now && (!d.endTime || new Date(d.endTime) > now)
+          ).endTime;
           updated = true;
         }
-      } else if (machine.status === "downtime") {
-        // Downtime has ended
-        machine.status = "available";
-        machine.isAvailable = true;
-        machine.unavailableUntil = null;
-        updated = true;
+        // Keep existing allocations but mark as unavailable
+        machine.allocations = machine.allocations || [];
+      } else {
+        // Check for active allocations
+        const activeAllocations = (currentAllocations.get(machineId) || [])
+          .filter(alloc => now >= alloc.startDate && now <= alloc.endDate);
 
-        // Mark any incomplete downtime records as completed
+        if (activeAllocations.length > 0) {
+          // Machine is occupied
+          if (machine.status !== "occupied" || 
+              JSON.stringify(machine.allocations) !== JSON.stringify(activeAllocations)) {
+            machine.status = "occupied";
+            machine.isAvailable = false;
+            machine.unavailableUntil = null;
+            machine.allocations = activeAllocations.map(alloc => ({
+              startDate: alloc.startDate.toISOString(),
+              endDate: alloc.endDate.toISOString(),
+              projectName: alloc.projectName,
+              partName: alloc.partName
+            }));
+            updated = true;
+          }
+        } else {
+          // Machine is available
+          if (machine.status !== "available" || machine.allocations?.length > 0) {
+            machine.status = "available";
+            machine.isAvailable = true;
+            machine.unavailableUntil = null;
+            machine.allocations = [];
+            updated = true;
+          }
+        }
+      }
+
+      // Update downtime history completion status
+      if (machine.downtimeHistory?.length > 0) {
         machine.downtimeHistory = machine.downtimeHistory.map(downtime => {
-          if (!downtime.isCompleted && (!downtime.endTime || new Date(downtime.endTime) <= now)) {
+          if (!downtime.isCompleted && downtime.endTime && new Date(downtime.endTime) <= now) {
             return { ...downtime, isCompleted: true };
           }
           return downtime;
@@ -453,74 +516,16 @@ manufacturRouter.get("/category/:categoryId", async (req, res) => {
       await manufacturingEntry.save();
     }
 
-    // Rest of your existing allocation checking logic remains the same...
-    const allocationResponse = await axios.get(
-      `${process.env.BASE_URL}/api/defpartproject/all-allocations`
-    );
-
-    if (!allocationResponse.data || !allocationResponse.data.data) {
-      return res.status(500).json({ msg: "Failed to retrieve allocation data" });
-    }
-
-    const allocationData = allocationResponse.data;
-    const currentDate = new Date();
-
-    const allocatedMachinesByProcess = new Map();
-
-    allocationData.data.forEach((project) => {
-      project.allocations.forEach((process) => {
-        process.allocations.forEach((alloc) => {
-          if (alloc.machineId) {
-            const startDate = new Date(alloc.startDate);
-            const endDate = new Date(alloc.endDate);
-            if (currentDate >= startDate && currentDate <= endDate) {
-              if (!allocatedMachinesByProcess.has(process.processName)) {
-                allocatedMachinesByProcess.set(process.processName, new Set());
-              }
-              allocatedMachinesByProcess.get(process.processName).add(alloc.machineId);
-            }
-          }
-        });
-      });
-    });
-
-    // Update machine status only if not in downtime
-    manufacturingEntry.subCategories = manufacturingEntry.subCategories.map(
-      (machine) => {
-        // Skip if machine is in downtime
-        if (machine.status === "downtime") {
-          return machine.toObject();
-        }
-
-        if (
-          allocatedMachinesByProcess.has(categoryId) &&
-          allocatedMachinesByProcess.get(categoryId).has(machine.subcategoryId)
-        ) {
-          return {
-            ...machine.toObject(),
-            isAvailable: false,
-            status: "occupied",
-            statusEndDate: now,
-          };
-        }
-        return {
-          ...machine.toObject(),
-          isAvailable: true,
-          status: "available",
-          statusEndDate: null,
-        };
-      }
-    );
-
-    await manufacturingEntry.save();
-
     res.status(200).json({
       msg: "Updated subcategories retrieved",
       subCategories: manufacturingEntry.subCategories,
     });
   } catch (error) {
-    console.error("Error fetching data:", error.message);
-    res.status(500).json({ error: "Internal Server Error", details: error.message });
+    console.error("Error in /category/:categoryId:", error);
+    res.status(500).json({ 
+      error: "Internal Server Error",
+      details: error.message 
+    });
   }
 });
 

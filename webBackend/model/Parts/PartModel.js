@@ -37,6 +37,7 @@ const partSchema = new mongoose.Schema({
       hours: Number,
       hourlyRate: Number,
       totalRate: Number,
+      index: { type: Number, required: true, default: 0 }, // Add this line
     },
   ],
   shipmentVariables: [
@@ -59,6 +60,16 @@ const partSchema = new mongoose.Schema({
   //for time traking
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
+});
+
+
+partSchema.pre('save', function(next) {
+  if (this.manufacturingVariables && this.manufacturingVariables.length > 0) {
+    this.manufacturingVariables.forEach((item, index) => {
+      item.index = index;
+    });
+  }
+  next();
 });
 
 const PartsModel = mongoose.model("Part", partSchema);
