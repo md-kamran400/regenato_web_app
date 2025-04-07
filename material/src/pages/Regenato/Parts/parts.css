@@ -37,3 +37,39 @@
 .upload-icon:hover + .image-style-parts {
   filter: none;
 }
+
+/* Add to your CSS file */
+/* Drag and drop styles */
+.drag-handle {
+  cursor: move;
+  cursor: -webkit-grab;
+  cursor: grab;
+}
+
+.drag-handle:active {
+  cursor: -webkit-grabbing;
+  cursor: grabbing;
+}
+
+/* Style for the item being dragged */
+/* Drag and drop styles */
+tr[draggable="true"] {
+  cursor: move;
+  cursor: grab;
+}
+
+tr[draggable="true"]:active {
+  cursor: grabbing;
+}
+
+/* Style for the item being dragged */
+.dragging-row {
+  opacity: 0.5;
+  background-color: #f8f9fa;
+}
+
+/* Drop preview style */
+.drop-preview {
+  background-color: rgba(0, 0, 0, 0.05);
+  border-top: 2px dashed #dee2e6;
+}

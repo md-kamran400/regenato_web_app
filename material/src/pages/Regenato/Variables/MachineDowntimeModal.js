@@ -14,8 +14,8 @@ import {
 } from "reactstrap";
 import { toast } from "react-toastify";
 import axios from "axios";
-import Flatpickr from "react-flatpickr";
-import "flatpickr/dist/themes/material_green.css";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 
 const MachineDowntimeModal = ({
   isOpen,
@@ -26,12 +26,14 @@ const MachineDowntimeModal = ({
 }) => {
   const [formData, setFormData] = useState({
     startDate: new Date(),
-    startTime: "09:00",
+    startHours: "09",
+    startMinutes: "00",
     endDate: new Date(),
-    endTime: "17:00",
+    endHours: "17",
+    endMinutes: "00",
     shift: "",
     reason: "",
-    downtimeType: "operator", // Added downtime type field
+    downtimeType: "operator",
   });
   const [shifts, setShifts] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -45,11 +47,17 @@ const MachineDowntimeModal = ({
         );
         setShifts(response.data);
         if (response.data.length > 0) {
+          const [startHours, startMinutes] =
+            response.data[0].StartTime.split(":");
+          const [endHours, endMinutes] = response.data[0].EndTime.split(":");
+
           setFormData((prev) => ({
             ...prev,
             shift: response.data[0]._id,
-            startTime: response.data[0].StartTime,
-            endTime: response.data[0].EndTime,
+            startHours,
+            startMinutes,
+            endHours,
+            endMinutes,
           }));
         }
       } catch (error) {
@@ -66,9 +74,11 @@ const MachineDowntimeModal = ({
       const now = new Date();
       setFormData({
         startDate: now,
-        startTime: "09:00",
+        startHours: "09",
+        startMinutes: "00",
         endDate: now,
-        endTime: "17:00",
+        endHours: "17",
+        endMinutes: "00",
         shift: "",
         reason: "",
         downtimeType: "operator",
@@ -84,21 +94,46 @@ const MachineDowntimeModal = ({
     if (name === "shift") {
       const selectedShift = shifts.find((s) => s._id === value);
       if (selectedShift) {
+        const [startHours, startMinutes] = selectedShift.StartTime.split(":");
+        const [endHours, endMinutes] = selectedShift.EndTime.split(":");
+
         setFormData((prev) => ({
           ...prev,
-          startTime: selectedShift.StartTime,
-          endTime: selectedShift.EndTime,
+          startHours,
+          startMinutes,
+          endHours,
+          endMinutes,
         }));
       }
     }
   };
 
-  const handleDateChange = (dates, field) => {
-    setFormData((prev) => ({ ...prev, [field]: dates[0] }));
+  const handleDateChange = (date, field) => {
+    setFormData((prev) => ({ ...prev, [field]: date }));
   };
 
-  const validateTimeFormat = (time) => {
-    return /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(time);
+  const generateTimeOptions = (type) => {
+    const options = [];
+    if (type === "hours") {
+      for (let i = 0; i < 24; i++) {
+        const value = i.toString().padStart(2, "0");
+        options.push(
+          <option key={`hour-${value}`} value={value}>
+            {value}
+          </option>
+        );
+      }
+    } else {
+      for (let i = 0; i < 60; i += 5) {
+        const value = i.toString().padStart(2, "0");
+        options.push(
+          <option key={`min-${value}`} value={value}>
+            {value}
+          </option>
+        );
+      }
+    }
+    return options;
   };
 
   const handleSubmit = async (e) => {
@@ -109,8 +144,10 @@ const MachineDowntimeModal = ({
     const {
       startDate,
       endDate,
-      startTime,
-      endTime,
+      startHours,
+      startMinutes,
+      endHours,
+      endMinutes,
       shift,
       reason,
       downtimeType,
@@ -118,12 +155,6 @@ const MachineDowntimeModal = ({
 
     if (!startDate || !endDate) {
       toast.error("Please select both start and end dates");
-      setIsSubmitting(false);
-      return;
-    }
-
-    if (!validateTimeFormat(startTime) || !validateTimeFormat(endTime)) {
-      toast.error("Please enter valid times in HH:MM format");
       setIsSubmitting(false);
       return;
     }
@@ -141,15 +172,18 @@ const MachineDowntimeModal = ({
     }
 
     try {
-      // Parse start datetime
-      const [startHours, startMinutes] = startTime.split(":").map(Number);
+      // Create start datetime
       const startDateTime = new Date(startDate);
-      startDateTime.setHours(startHours, startMinutes, 0, 0);
+      startDateTime.setHours(
+        parseInt(startHours),
+        parseInt(startMinutes),
+        0,
+        0
+      );
 
-      // Parse end datetime
-      const [endHours, endMinutes] = endTime.split(":").map(Number);
+      // Create end datetime
       const endDateTime = new Date(endDate);
-      endDateTime.setHours(endHours, endMinutes, 0, 0);
+      endDateTime.setHours(parseInt(endHours), parseInt(endMinutes), 0, 0);
 
       // Validate end datetime is after start datetime
       if (endDateTime <= startDateTime) {
@@ -163,7 +197,7 @@ const MachineDowntimeModal = ({
         startTime: startDateTime.toISOString(),
         endTime: endDateTime.toISOString(),
         reason: reason,
-        shift: selectedShift?._id || shift, // Make sure we're sending the shift ID
+        shift: selectedShift?._id || shift,
         downtimeType: downtimeType,
         status: "downtime",
         isAvailable: false,
@@ -200,32 +234,42 @@ const MachineDowntimeModal = ({
             <Col md={6}>
               <FormGroup>
                 <Label for="startDate">Start Date</Label>
-                <Flatpickr
+                <DatePicker
                   id="startDate"
+                  selected={formData.startDate}
+                  onChange={(date) => handleDateChange(date, "startDate")}
+                  minDate={new Date()}
+                  dateFormat="dd/MM/yyyy"
                   className="form-control"
-                  value={formData.startDate}
-                  onChange={(dates) => handleDateChange(dates, "startDate")}
-                  options={{
-                    dateFormat: "Y-m-d",
-                    minDate: "today",
-                  }}
                   required
                 />
               </FormGroup>
             </Col>
             <Col md={6}>
               <FormGroup>
-                <Label for="startTime">Start Time (HH:MM)</Label>
-                <Input
-                  type="text"
-                  name="startTime"
-                  id="startTime"
-                  value={formData.startTime}
-                  onChange={handleChange}
-                  placeholder="09:00"
-                  pattern="^([01]?[0-9]|2[0-3]):[0-5][0-9]$"
-                  required
-                />
+                <Label>Start Time</Label>
+                <div className="d-flex">
+                  <Input
+                    type="select"
+                    name="startHours"
+                    value={formData.startHours}
+                    onChange={handleChange}
+                    className="me-2"
+                    required
+                  >
+                    {generateTimeOptions("hours")}
+                  </Input>
+                  <span className="align-self-center me-2">:</span>
+                  <Input
+                    type="select"
+                    name="startMinutes"
+                    value={formData.startMinutes}
+                    onChange={handleChange}
+                    required
+                  >
+                    {generateTimeOptions("minutes")}
+                  </Input>
+                </div>
               </FormGroup>
             </Col>
           </Row>
@@ -234,32 +278,42 @@ const MachineDowntimeModal = ({
             <Col md={6}>
               <FormGroup>
                 <Label for="endDate">End Date</Label>
-                <Flatpickr
+                <DatePicker
                   id="endDate"
+                  selected={formData.endDate}
+                  onChange={(date) => handleDateChange(date, "endDate")}
+                  minDate={formData.startDate}
+                  dateFormat="dd/MM/yyyy"
                   className="form-control"
-                  value={formData.endDate}
-                  onChange={(dates) => handleDateChange(dates, "endDate")}
-                  options={{
-                    dateFormat: "Y-m-d",
-                    minDate: formData.startDate || "today",
-                  }}
                   required
                 />
               </FormGroup>
             </Col>
             <Col md={6}>
               <FormGroup>
-                <Label for="endTime">End Time (HH:MM)</Label>
-                <Input
-                  type="text"
-                  name="endTime"
-                  id="endTime"
-                  value={formData.endTime}
-                  onChange={handleChange}
-                  placeholder="17:00"
-                  pattern="^([01]?[0-9]|2[0-3]):[0-5][0-9]$"
-                  required
-                />
+                <Label>End Time</Label>
+                <div className="d-flex">
+                  <Input
+                    type="select"
+                    name="endHours"
+                    value={formData.endHours}
+                    onChange={handleChange}
+                    className="me-2"
+                    required
+                  >
+                    {generateTimeOptions("hours")}
+                  </Input>
+                  <span className="align-self-center me-2">:</span>
+                  <Input
+                    type="select"
+                    name="endMinutes"
+                    value={formData.endMinutes}
+                    onChange={handleChange}
+                    required
+                  >
+                    {generateTimeOptions("minutes")}
+                  </Input>
+                </div>
               </FormGroup>
             </Col>
           </Row>

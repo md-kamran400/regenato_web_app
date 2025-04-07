@@ -210,6 +210,26 @@ const ManufacturingVariable = ({
   }, [partDetails, fetchManufacturingData]);
 
   useEffect(() => {
+    if (partDetails && partDetails._id) {
+      fetchManufacturingData();
+    }
+  }, [partDetails, fetchManufacturingData]);
+
+  // If you want to ensure the data is sorted even after local updates:
+  useEffect(() => {
+    const sortedData = [...manufacturingData].sort((a, b) => {
+      const numA = parseInt(a.categoryId.replace(/\D/g, "")) || 0;
+      const numB = parseInt(b.categoryId.replace(/\D/g, "")) || 0;
+      return numA - numB;
+    });
+
+    // Only update if the order actually changed
+    if (JSON.stringify(sortedData) !== JSON.stringify(manufacturingData)) {
+      setManufacturingData(sortedData);
+    }
+  }, [manufacturingData]);
+
+  useEffect(() => {
     const total = manufacturingData.reduce(
       (sum, item) => sum + Number(item.totalRate || 0),
       0
@@ -616,7 +636,7 @@ const ManufacturingVariable = ({
     if (time === 0) {
       return "0 m";
     }
-  
+
     const totalMinutes = Math.round(time * 60); // Convert hours to minutes
     return `${totalMinutes} m`;
   };
@@ -1026,7 +1046,7 @@ const ManufacturingVariable = ({
                 type="number"
                 className="form-control"
                 name="hours"
-                value={formData.hours}
+                value={Math.round(formData.hours)}
                 readOnly
                 required
               />
@@ -1039,7 +1059,7 @@ const ManufacturingVariable = ({
                 type="number"
                 className="form-control"
                 name="hourlyRate"
-                value={formData.hourlyRate || ""}
+                value={Math.round(formData.hourlyRate || "")}
                 onChange={handleChange}
                 required
               />

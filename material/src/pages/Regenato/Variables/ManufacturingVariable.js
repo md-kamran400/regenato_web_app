@@ -171,96 +171,34 @@ const ManufacturingVariable = () => {
     setLoading(true);
     setError(null);
     try {
+      // Fetch manufacturing data for each category
       const manufacturingResponse = await fetch(
         `${process.env.REACT_APP_BASE_URL}/api/manufacturing`
       );
-      if (!manufacturingResponse.ok)
+      if (!manufacturingResponse.ok) {
         throw new Error("Failed to fetch manufacturing data");
+      }
 
       const manufacturingData = await manufacturingResponse.json();
-      const now = new Date();
 
-      // First update all machines with active downtime
-      const updatedManufacturingData = manufacturingData.map((process) => {
-        const updatedSubCategories = process.subCategories.map((machine) => {
-          // Check for active downtime (current time is between start and end time)
-          const activeDowntime = machine.downtimeHistory?.find(
-            (downtime) =>
-              new Date(downtime.startTime) <= now &&
-              (!downtime.endTime || new Date(downtime.endTime) > now)
+      // For each manufacturing entry, fetch the latest status
+      const updatedData = await Promise.all(
+        manufacturingData.map(async (item) => {
+          const statusResponse = await fetch(
+            `${process.env.REACT_APP_BASE_URL}/api/manufacturing/category/${item.categoryId}`
           );
-
-          if (activeDowntime) {
-            return {
-              ...machine,
-              status: "downtime",
-              isAvailable: false,
-              unavailableUntil: new Date(activeDowntime.endTime),
-            };
+          if (!statusResponse.ok) {
+            return item; // Return original if status check fails
           }
-          return machine;
-        });
-        return {
-          ...process,
-          subCategories: updatedSubCategories,
-        };
-      });
-
-      // Rest of your existing allocation checking logic...
-      const allocationsResponse = await fetch(
-        `${process.env.REACT_APP_BASE_URL}/api/defpartproject/all-allocations`
-      );
-      if (!allocationsResponse.ok)
-        throw new Error("Failed to fetch allocations data");
-
-      const allocationsData = await allocationsResponse.json();
-      const allocationMap = new Map();
-
-      allocationsData.data.forEach((project) => {
-        project.allocations.forEach((process) => {
-          process.allocations.forEach((alloc) => {
-            if (!allocationMap.has(alloc.machineId)) {
-              allocationMap.set(alloc.machineId, []);
-            }
-            allocationMap.get(alloc.machineId).push({
-              startDate: alloc.startDate,
-              endDate: alloc.endDate,
-            });
-          });
-        });
-      });
-
-      const finalManufacturingData = updatedManufacturingData.map((process) => {
-        const updatedSubCategories = process.subCategories.map((machine) => {
-          // Skip if machine is in downtime
-          if (machine.status === "downtime") {
-            return machine;
-          }
-
-          // Check if machine is allocated/occupied
-          const isOccupied =
-            allocationMap.has(machine.subcategoryId) &&
-            allocationMap.get(machine.subcategoryId).some((alloc) => {
-              const allocStart = new Date(alloc.startDate);
-              const allocEnd = new Date(alloc.endDate);
-              return now >= allocStart && now <= allocEnd;
-            });
-
+          const statusData = await statusResponse.json();
           return {
-            ...machine,
-            status: isOccupied ? "occupied" : "available",
-            isAvailable: !isOccupied,
-            allocations: allocationMap.get(machine.subcategoryId) || [],
+            ...item,
+            subCategories: statusData.subCategories || item.subCategories,
           };
-        });
+        })
+      );
 
-        return {
-          ...process,
-          subCategories: updatedSubCategories,
-        };
-      });
-
-      setManufacturingData(finalManufacturingData);
+      setManufacturingData(updatedData);
     } catch (error) {
       setError(error.message);
     } finally {
@@ -786,6 +724,7 @@ const ManufacturingVariable = () => {
                                             <td>{subCategory.subcategoryId}</td>
                                             <td>{subCategory.name} </td>
                                             <td>{subCategory.hourlyRate}</td>
+
                                             <td>
                                               {subCategory.status ===
                                               "occupied" ? (
@@ -796,6 +735,22 @@ const ManufacturingVariable = () => {
                                                   }}
                                                 >
                                                   Occupied
+                                                  {subCategory.allocations
+                                                    ?.length > 0 && (
+                                                    <small
+                                                      style={{
+                                                        display: "block",
+                                                        fontWeight: "normal",
+                                                      }}
+                                                    >
+                                                      Until:{" "}
+                                                      {formatDate(
+                                                        subCategory
+                                                          .allocations[0]
+                                                          .endDate
+                                                      )}
+                                                    </small>
+                                                  )}
                                                 </span>
                                               ) : subCategory.status ===
                                                 "downtime" ? (
