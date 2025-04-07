@@ -500,7 +500,7 @@ const Assmebly_subAssembly = ({
                       onChange={(e) => setStatusFilter(e.target.value)}
                       style={{ width: "200px" }}
                     >
-                      <option value="all">All Statuses</option>
+                      <option value="all">All Status</option>
                       <option value="Not Allocated">Not Allocated</option>
                       <option value="On Track">On Track</option>
                       <option value="Delayed">Delayed</option>
@@ -587,10 +587,10 @@ const Assmebly_subAssembly = ({
                                     <td>{formatTime(item.timePerUnit || 0)}</td>
                                     <td>
                                       <div
-                                        style={{
+                                         style={{
                                           display: "flex",
                                           justifyContent: "space-between",
-                                          width: "60%",
+                                          width: "80%",
                                         }}
                                       >
                                         {parseInt(item.quantity || 0)}

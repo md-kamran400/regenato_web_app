@@ -112,7 +112,7 @@ const PartsTable = React.memo(
           }
           const data = await response.json();
           setPartsListsItems(data.data);
-          console.log("items data of parts lists", data);
+          // console.log("items data of parts lists", data);
         } catch (error) {
           console.error("Error fetching parts list items:", error);
           // You might want to handle the error, e.g., show an error message to the user
@@ -565,30 +565,6 @@ const PartsTable = React.memo(
       }
     };
 
-    // console.log(_id);
-
-    // console.log(partsListItems);
-
-    // const formatTime = (time) => {
-    //   if (time === 0) {
-    //     return 0;
-    //   }
-
-    //   let result = "";
-
-    //   const hours = Math.floor(time);
-    //   const minutes = Math.round((time - hours) * 60);
-
-    //   if (hours > 0) {
-    //     result += `${hours}h `;
-    //   }
-
-    //   if (minutes > 0 || (hours === 0 && minutes !== 0)) {
-    //     result += `${minutes}m`;
-    //   }
-
-    //   return result.trim();
-    // };
     const formatTime = (time) => {
       if (time === 0) {
         return "0 m";
@@ -598,7 +574,7 @@ const PartsTable = React.memo(
       return `${totalMinutes} m`;
     };
 
-    console.log(partsListItems);
+
 
     return (
       <>
@@ -648,11 +624,7 @@ const PartsTable = React.memo(
           {/* Add the filter select box here */}
           <div
             className="mb-3"
-            style={{
-              display: "flex",
-              justifyContent: "flex-end",
-              marginRight: "5px",
-            }}
+            style={{ display: "flex", justifyContent: "flex-end" ,marginRight:'5px'}}
           >
             <Label for="statusFilter" className="me-2 mt-2">
               Filter by Status:
@@ -664,7 +636,7 @@ const PartsTable = React.memo(
               onChange={(e) => setStatusFilter(e.target.value)}
               style={{ width: "200px" }}
             >
-              <option value="all">All Statuses</option>
+              <option value="all">All Status</option>
               <option value="Not Allocated">Not Allocated</option>
               <option value="On Track">On Track</option>
               <option value="Delayed">Delayed</option>
@@ -725,13 +697,16 @@ const PartsTable = React.memo(
                                     {item.partName} ({item.Uid || ""})
                                     {item.codeName || ""}
                                   </td>
-
+                                  {/* <td>{getStatus(item.allocations)}</td> */}
                                   <td>
-                                    <span className={status.class}>
-                                      {status.text}
+                                    <span
+                                      className={
+                                        getStatus(item.allocations).class
+                                      }
+                                    >
+                                      {getStatus(item.allocations).text}
                                     </span>
                                   </td>
-
                                   <td>{Math.round(item.costPerUnit || 0)}</td>
                                   <td>{formatTime(item.timePerUnit || 0)}</td>
                                   <td>
@@ -751,6 +726,7 @@ const PartsTable = React.memo(
                                       </button>
                                     </div>
                                   </td>
+
                                   <td>
                                     {Math.ceil(
                                       parseFloat(item.costPerUnit || 0) *
@@ -828,7 +804,6 @@ const PartsTable = React.memo(
                                         porjectID={_id}
                                         partID={partsListID}
                                         partListItemId={item._id}
-                                        PartsTableFetch={PartsTableFetch}
                                       />
                                     </td>
                                   </tr>

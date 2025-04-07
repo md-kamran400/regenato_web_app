@@ -140,6 +140,7 @@ export const Assembly_SubAssemblyHoursPlanning = ({
         console.error("Error fetching allocations:", error);
       }
     };
+
     fetchAllocations();
   }, []);
 
@@ -157,6 +158,106 @@ export const Assembly_SubAssemblyHoursPlanning = ({
     );
   };
 
+  const isMachineOnDowntimeDuringPeriod = (machine, startDate, endDate) => {
+    if (!machine?.downtimeHistory?.length || !startDate || !endDate) {
+      return { isDowntime: false, downtimeMinutes: 0 };
+    }
+
+    const now = new Date();
+    const periodStart = new Date(startDate);
+    const periodEnd = new Date(endDate);
+
+    // Find active downtimes that overlap with the selected period
+    const activeDowntimes = machine.downtimeHistory.filter((downtime) => {
+      if (downtime.isCompleted) return false;
+
+      const dtStart = new Date(downtime.startTime);
+      const dtEnd = new Date(downtime.endTime);
+
+      return dtStart < periodEnd && dtEnd > periodStart && dtEnd > now;
+    });
+
+    if (activeDowntimes.length === 0) {
+      return { isDowntime: false, downtimeMinutes: 0 };
+    }
+
+    // Calculate total downtime minutes within the selected period
+    let totalMinutes = 0;
+    activeDowntimes.forEach((downtime) => {
+      const dtStart = new Date(
+        Math.max(new Date(downtime.startTime), periodStart)
+      );
+      const dtEnd = new Date(Math.min(new Date(downtime.endTime), periodEnd));
+      totalMinutes += Math.ceil((dtEnd - dtStart) / (1000 * 60));
+    });
+
+    return {
+      isDowntime: true,
+      downtimeMinutes: totalMinutes,
+      downtimeReason: activeDowntimes[0]?.reason || "Maintenance",
+    };
+  };
+
+  const calculateEndDateWithDowntime = (
+    startDate,
+    plannedMinutes,
+    shiftMinutes = 480,
+    machine
+  ) => {
+    if (!startDate || !plannedMinutes) return "";
+
+    let parsedDate = new Date(startDate);
+    if (isNaN(parsedDate.getTime())) return "";
+
+    let remainingMinutes = plannedMinutes;
+    let currentDate = new Date(parsedDate);
+    let daysAdded = 0;
+
+    while (remainingMinutes > 0) {
+      // Skip non-working days (Sundays and holidays)
+      while (
+        getDay(currentDate) === 0 ||
+        eventDates.some((d) => isSameDay(d, currentDate))
+      ) {
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+
+      // Check if machine has downtime on this day
+      const downtimeOnDay = machine?.downtimeHistory?.find((downtime) => {
+        const downtimeStart = new Date(downtime.startTime);
+        const downtimeEnd = new Date(downtime.endTime);
+        return (
+          !downtime.isCompleted &&
+          isSameDay(downtimeStart, currentDate) &&
+          downtimeEnd > downtimeStart
+        );
+      });
+
+      if (downtimeOnDay) {
+        // Calculate downtime duration in minutes
+        const downtimeStart = new Date(downtimeOnDay.startTime);
+        const downtimeEnd = new Date(downtimeOnDay.endTime);
+        const downtimeMinutes = Math.ceil(
+          (downtimeEnd - downtimeStart) / (1000 * 60)
+        );
+
+        // Add downtime minutes to remaining work
+        remainingMinutes += downtimeMinutes;
+      }
+
+      // Subtract a day's worth of work
+      const minutesToDeduct = Math.min(remainingMinutes, shiftMinutes);
+      remainingMinutes -= minutesToDeduct;
+
+      // Move to next day if there's still work remaining
+      if (remainingMinutes > 0) {
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+    }
+
+    return currentDate.toISOString().split("T")[0];
+  };
+
   const isOperatorAvailable = (operatorName, startDate, endDate) => {
     if (!operatorAllocations[operatorName]) return true; // If no allocations, operator is available
 
@@ -169,6 +270,27 @@ export const Assembly_SubAssemblyHoursPlanning = ({
         (parsedEnd >= alloc.startDate && parsedEnd <= alloc.endDate) ||
         (parsedStart <= alloc.startDate && parsedEnd >= alloc.endDate)
     );
+  };
+
+  const isOperatorOnLeave = (operator, startDate, endDate) => {
+    if (!operator.leavePeriod || operator.leavePeriod.length === 0)
+      return false;
+
+    const parsedStart = startDate ? new Date(startDate) : null;
+    const parsedEnd = endDate ? new Date(endDate) : null;
+
+    if (!parsedStart || !parsedEnd) return false;
+
+    return operator.leavePeriod.some((leave) => {
+      const leaveStart = new Date(leave.startDate);
+      const leaveEnd = new Date(leave.endDate);
+
+      return (
+        (parsedStart >= leaveStart && parsedStart <= leaveEnd) ||
+        (parsedEnd >= leaveStart && parsedEnd <= leaveEnd) ||
+        (parsedStart <= leaveStart && parsedEnd >= leaveEnd)
+      );
+    });
   };
 
   // Function to check if the date is an event date or a Sunday
@@ -287,21 +409,7 @@ export const Assembly_SubAssemblyHoursPlanning = ({
           `${process.env.REACT_APP_BASE_URL}/api/userVariable`
         );
         const data = await response.json();
-
-        if (response.ok) {
-          // ✅ Ensure operators are only set when data is available
-          if (Array.isArray(data) && data.length > 0) {
-            // ✅ Exclude leave users when setting operators
-            const activeOperators = data.filter(
-              (user) => !user.leavePeriod || user.leavePeriod.length === 0
-            );
-
-            setOperators(activeOperators);
-          } else {
-            console.warn("No operators found in API response.");
-            setOperators([]); // Set empty array to avoid undefined issues
-          }
-        }
+        setOperators(data);
       } catch (err) {
         console.error("Error fetching operators", err);
       }
@@ -353,8 +461,6 @@ export const Assembly_SubAssemblyHoursPlanning = ({
     };
     fetchMachines();
   }, [manufacturingVariables]);
-
-  console.log("Machine Options:", machineOptions);
 
   useEffect(() => {
     // Only initialize rows with empty data
@@ -721,7 +827,7 @@ export const Assembly_SubAssemblyHoursPlanning = ({
       const groupedAllocations = {};
 
       Object.keys(rows).forEach((index) => {
-        // Reset order number counter for each process
+        const man = manufacturingVariables[index]; // Get the manufacturing variable for this process
         let orderCounter = 1;
 
         rows[index].forEach((row, rowIndex) => {
@@ -736,29 +842,26 @@ export const Assembly_SubAssemblyHoursPlanning = ({
             row.shift &&
             row.operatorId
           ) {
-            const key = `${partName}-${row.processName}`;
+            const key = `${partName}-${man.categoryId}-${man.name}`; // Include both categoryId and name in key
 
             if (!groupedAllocations[key]) {
               groupedAllocations[key] = {
                 partName: partName,
-                processName: row.processName,
+                processName: `${man.categoryId} - ${man.name}`, // Combine categoryId and name
+                processId: man.categoryId, // Add processId here
                 allocations: [],
               };
             }
 
             // Generate order number with padding
             const splitNumber = orderCounter.toString().padStart(3, "0");
-            orderCounter++; // Increment counter for next row in this process
-            // Find the selected shift to get the TotalHours
+            orderCounter++;
             const selectedShift = shiftOptions.find(
               (shift) => shift.name === row.shift
             );
 
-            // Get the manufacturing variable for this process
-            const man = manufacturingVariables[index];
-
             groupedAllocations[key].allocations.push({
-              splitNumber, // Add the generated order number
+              splitNumber,
               AllocationPartType: "Part",
               plannedQuantity: row.plannedQuantity,
               startDate: new Date(row.startDate).toISOString(),
@@ -770,8 +873,9 @@ export const Assembly_SubAssemblyHoursPlanning = ({
               operator:
                 operators.find((op) => op._id === row.operatorId)?.name ||
                 "Unknown",
-              shiftTotalTime: selectedShift ? selectedShift.TotalHours : 0, // Add shiftTotalTime
-              perMachinetotalTime: Math.ceil(man.hours * 60), // Add perMachinetotalTime dynamically
+              shiftTotalTime: selectedShift ? selectedShift.TotalHours : 0,
+              perMachinetotalTime: Math.ceil(man.hours * 60),
+              processId: man.categoryId, // Add processId to each allocation as well
             });
           } else {
             console.warn(
@@ -805,7 +909,7 @@ export const Assembly_SubAssemblyHoursPlanning = ({
 
       if (response.status === 201) {
         toast.success("Allocations successfully added!");
-        setIsDataAllocated(true); // Update state to reflect that data is allocated
+        setIsDataAllocated(true);
       } else {
         toast.error("Failed to add allocations.");
       }
@@ -817,6 +921,27 @@ export const Assembly_SubAssemblyHoursPlanning = ({
 
   const handleDeleteSuccess = () => {
     setIsDataAllocated(false);
+  };
+
+  // Add this function in your component
+  const calculateEndTime = (startTime, plannedMinutes) => {
+    if (!startTime || !plannedMinutes) return "";
+
+    // Parse the start time (format: "HH:MM")
+    const [hours, minutes] = startTime.split(":").map(Number);
+
+    // Create a date object (we just need it for calculations)
+    const date = new Date();
+    date.setHours(hours, minutes, 0, 0);
+
+    // Add the planned minutes
+    date.setMinutes(date.getMinutes() + plannedMinutes);
+
+    // Format back to HH:MM
+    const endHours = String(date.getHours()).padStart(2, "0");
+    const endMinutes = String(date.getMinutes()).padStart(2, "0");
+
+    return `${endHours}:${endMinutes}`;
   };
 
   return (
@@ -857,12 +982,7 @@ export const Assembly_SubAssemblyHoursPlanning = ({
             >
               Planned
             </Button>
-            {/* <Button
-              color={activeTab === "actual" ? "primary" : "secondary"}
-              onClick={() => setActiveTab("actual")}
-            >
-              Actual
-            </Button> */}
+
             <Button
               color={activeTab === "actual" ? "primary" : "secondary"}
               onClick={() => setActiveTab("actual")}
@@ -937,19 +1057,18 @@ export const Assembly_SubAssemblyHoursPlanning = ({
                       Add Row
                     </Button>
                   </CardHeader>
-                  <Table bordered responsive>
+                  <Table bordered>
                     <thead>
                       <tr>
-                        {/* <th style={{ width: "15%" }}>Part Type</th> */}
-                        <th>Planned Quantity</th>
-                        <th>Planned Qty Time</th>
+                        <th>Planned QTY</th>
+                        <th>Planned Time</th>
                         <th style={{ width: "20%" }}>Shift</th>
-                        <th style={{ width: "15%" }}>Start Time</th>
+                        <th style={{ width: "10%" }}>Start Time</th>
                         <th style={{ width: "10%" }}>Start Date</th>
+                        <th>End Time</th>
                         <th style={{ width: "8%" }}>End Date</th>
-
                         <th style={{ width: "25%" }}>Machine ID</th>
-                        <th style={{ width: "50%" }}>Operator</th>
+                        <th style={{ width: "25%" }}>Operator</th>
                         <th>Actions</th>
                       </tr>
                     </thead>
@@ -1018,7 +1137,7 @@ export const Assembly_SubAssemblyHoursPlanning = ({
                                     e.key === "ArrowUp" ||
                                     e.key === "ArrowDown"
                                   ) {
-                                    e.preventDefault(); 
+                                    e.preventDefault();
                                   }
                                 }}
                                 onChange={(e) =>
@@ -1143,21 +1262,35 @@ export const Assembly_SubAssemblyHoursPlanning = ({
                             />
 
                             <style>{`
-                                                        .highlighted-date {
-                                                          background-color: #f06548 !important;
-                                                          color: black !important;
-                                                          border-radius: 50%;
-                                                        }
-                                                        .grayed-out-date {
-                                                          color: #ccc !important;
-                                                        }
-                                                        .small-datepicker input {
-                                                          width: 130px !important;
-                                                          font-size: 15px !important;
-                                                          padding: 7px !important;
-                                                          
-                                                        }
-                                                      `}</style>
+                              .highlighted-date {
+                                background-color: #f06548 !important;
+                                color: black !important;
+                                border-radius: 50%;
+                              }
+                              .grayed-out-date {
+                                color: #ccc !important;
+                              }
+                              .small-datepicker input {
+                                width: 130px !important;
+                                font-size: 15px !important;
+                                padding: 7px !important;
+
+                              }
+                            `}</style>
+                          </td>
+                          <td>
+                            <Input
+                              type="time"
+                              value={calculateEndTime(
+                                row.startTime,
+                                row.plannedQtyTime
+                              )}
+                              readOnly
+                              style={{
+                                cursor: "not-allowed",
+                                backgroundColor: "#f8f9fa",
+                              }}
+                            />
                           </td>
                           <td style={{ width: "180px" }}>
                             <DatePicker
@@ -1183,36 +1316,36 @@ export const Assembly_SubAssemblyHoursPlanning = ({
                             />
 
                             <style>{`
-    .highlighted-date {
-      background-color: #f06548 !important;
-      color: black !important;
-      border-radius: 50%;
-    }
-    .grayed-out-date {
-      color: #ccc !important;
-    }
-    .small-datepicker input {
-      width: 130px !important;
-      font-size: 15px !important;
-      padding: 7px !important;
-      background-color: #e9ecef; /* Light gray background to indicate disabled state */
-      cursor: not-allowed;
-    }
-    .react-datepicker-wrapper {
-      opacity: 1; /* Ensure it doesn't look faded */
-    }
-  `}</style>
+                              .highlighted-date {
+                                background-color: #f06548 !important;
+                                color: black !important;
+                                border-radius: 50%;
+                              }
+                              .grayed-out-date {
+                                color: #ccc !important;
+                              }
+                              .small-datepicker input {
+                                width: 130px !important;
+                                font-size: 15px !important;
+                                padding: 7px !important;
+                               
+                                cursor: not-allowed;
+                              }
+                              .react-datepicker-wrapper {
+                                opacity: 1; /* Ensure it doesn't look faded */
+                              }
+                                  `}</style>
                           </td>
 
                           <td>
                             <Autocomplete
-                              sx={{ width: 180, margin: "auto" }} // Centers the input field itself
+                              sx={{ width: 180, margin: "auto" }}
                               componentsProps={{
                                 paper: {
                                   sx: {
-                                    width: 250, // Dropdown width
-                                    left: "15% !important", // Move the dropdown to the middle
-                                    transform: "translateX(-15%) !important", // Center the dropdown
+                                    width: 350,
+                                    left: "15% !important",
+                                    transform: "translateX(-15%) !important",
                                   },
                                 },
                               }}
@@ -1223,61 +1356,80 @@ export const Assembly_SubAssemblyHoursPlanning = ({
                                     machine.subcategoryId === row.machineId
                                 ) || null
                               }
-                              getOptionLabel={(option) =>
-                                `${option.name} ${
-                                  isMachineAvailable(
-                                    option.subcategoryId,
+                              getOptionLabel={(option) => {
+                                const downtimeInfo =
+                                  isMachineOnDowntimeDuringPeriod(
+                                    option,
                                     row.startDate,
                                     row.endDate
-                                  )
-                                    ? ""
-                                    : "(Occupied)"
-                                }`
-                              }
+                                  );
+
+                                // Always show downtime status in the label
+                                return downtimeInfo.isDowntime
+                                  ? `${option.name} (Downtime: ${downtimeInfo.downtimeMinutes}min)`
+                                  : `${option.name} (Available)`;
+                              }}
                               renderOption={(props, option) => {
-                                const isDisabled = !isMachineAvailable(
-                                  option.subcategoryId,
-                                  row.startDate,
-                                  row.endDate
-                                );
+                                const downtimeInfo =
+                                  isMachineOnDowntimeDuringPeriod(
+                                    option,
+                                    row.startDate,
+                                    row.endDate
+                                  );
 
                                 return (
                                   <li
                                     {...props}
                                     style={{
-                                      color: isDisabled ? "gray" : "black",
-                                      backgroundColor: isDisabled
-                                        ? "#f5f5f5"
-                                        : "white",
-                                      pointerEvents: isDisabled
-                                        ? "none"
-                                        : "auto",
+                                      color: downtimeInfo.isDowntime
+                                        ? "orange"
+                                        : "black",
+                                      backgroundColor: "white",
                                       display: "flex",
                                       justifyContent: "space-between",
                                     }}
                                   >
-                                    {option.name}{" "}
-                                    {isDisabled ? "(Occupied)" : ""}
+                                    <div>
+                                      <span style={{ fontWeight: "bold" }}>
+                                        {option.name}
+                                      </span>
+                                      {downtimeInfo.isDowntime ? (
+                                        <span
+                                          style={{
+                                            color: "orange",
+                                            marginLeft: "8px",
+                                          }}
+                                        >
+                                          Downtime:{" "}
+                                          {downtimeInfo.downtimeMinutes}min
+                                        </span>
+                                      ) : (
+                                        <span
+                                          style={{
+                                            color: "green",
+                                            marginLeft: "8px",
+                                          }}
+                                        >
+                                          Available
+                                        </span>
+                                      )}
+                                    </div>
+                                    {downtimeInfo.downtimeReason && (
+                                      <div
+                                        style={{
+                                          fontSize: "0.8em",
+                                          color: "#666",
+                                        }}
+                                      >
+                                        {downtimeInfo.downtimeReason}
+                                      </div>
+                                    )}
                                   </li>
                                 );
                               }}
+                              // Modify the onChange handler to account for downtime
                               onChange={(event, newValue) => {
                                 if (!hasStartDate) return;
-
-                                // Prevent selecting occupied machines
-                                if (
-                                  newValue &&
-                                  !isMachineAvailable(
-                                    newValue.subcategoryId,
-                                    row.startDate,
-                                    row.endDate
-                                  )
-                                ) {
-                                  toast.error(
-                                    "This machine is occupied during the selected dates."
-                                  );
-                                  return;
-                                }
 
                                 setRows((prevRows) => {
                                   const updatedRows = [...prevRows[index]];
@@ -1287,7 +1439,31 @@ export const Assembly_SubAssemblyHoursPlanning = ({
                                       ? newValue.subcategoryId
                                       : "",
                                   };
-                                  return { ...prevRows, [index]: updatedRows };
+
+                                  if (
+                                    newValue &&
+                                    updatedRows[rowIndex].startDate
+                                  ) {
+                                    const shift = shiftOptions.find(
+                                      (option) =>
+                                        option.name ===
+                                        updatedRows[rowIndex].shift
+                                    );
+
+                                    // Always calculate end date with downtime (even if no current downtime)
+                                    updatedRows[rowIndex].endDate =
+                                      calculateEndDateWithDowntime(
+                                        updatedRows[rowIndex].startDate,
+                                        updatedRows[rowIndex].plannedQtyTime,
+                                        shift?.TotalHours,
+                                        newValue
+                                      );
+                                  }
+
+                                  return {
+                                    ...prevRows,
+                                    [index]: updatedRows,
+                                  };
                                 });
                               }}
                               renderInput={(params) => (
@@ -1296,46 +1472,109 @@ export const Assembly_SubAssemblyHoursPlanning = ({
                                   label="Machine"
                                   variant="outlined"
                                   size="small"
+                                  InputProps={{
+                                    ...params.InputProps,
+                                    startAdornment: (
+                                      <>
+                                        {machineOptions[man.categoryId]?.find(
+                                          (m) =>
+                                            m.subcategoryId === row.machineId
+                                        )?.status === "downtime" && (
+                                          <span
+                                            style={{
+                                              color: "orange",
+                                              marginRight: "8px",
+                                            }}
+                                          >
+                                            ⚠️
+                                          </span>
+                                        )}
+                                        {params.InputProps.startAdornment}
+                                      </>
+                                    ),
+                                  }}
                                 />
                               )}
-                              disableClearable={false}
+                              noOptionsText="No machines available"
+                              disabled={!hasStartDate}
                             />
                           </td>
+
                           <td>
                             <Autocomplete
                               sx={{ width: 180, margin: "auto" }}
                               componentsProps={{
                                 paper: {
                                   sx: {
-                                    width: 250, // Dropdown width
-                                    left: "15% !important", // Move the dropdown to the middle
-                                    transform: "translateX(-15%) !important", // Center the dropdown
+                                    width: 250,
+                                    left: "15% !important",
+                                    transform: "translateX(-15%) !important",
                                   },
                                 },
                               }}
-                              options={operators} // Keep all operators visible
+                              options={operators}
                               value={
                                 operators.find(
                                   (op) => op._id === row.operatorId
                                 ) || null
                               }
-                              getOptionLabel={(option) =>
-                                `${option.name} ${
-                                  isOperatorAvailable(
-                                    option.name,
-                                    row.startDate,
-                                    row.endDate
-                                  )
-                                    ? ""
-                                    : "(Allocated)"
-                                }`
-                              }
-                              renderOption={(props, option) => {
-                                const isDisabled = !isOperatorAvailable(
+                              getOptionLabel={(option) => {
+                                const isOnLeave = isOperatorOnLeave(
+                                  option,
+                                  row.startDate,
+                                  row.endDate
+                                );
+                                const isAllocated = !isOperatorAvailable(
                                   option.name,
                                   row.startDate,
                                   row.endDate
                                 );
+
+                                let status = "";
+                                if (isOnLeave) {
+                                  // Calculate leave duration in days
+                                  const leaveDuration = option.leavePeriod?.[0]
+                                    ? Math.ceil(
+                                        new Date(
+                                          option.leavePeriod[0].endDate
+                                        ) -
+                                          new Date(
+                                            option.leavePeriod[0].startDate
+                                          )
+                                      ) /
+                                        (1000 * 60 * 60 * 24) +
+                                      1
+                                    : 0;
+                                  status = ` (On Leave ${leaveDuration}d)`;
+                                } else if (isAllocated) {
+                                  status = " (Allocated)";
+                                }
+
+                                return `${option.name}${status}`;
+                              }}
+                              renderOption={(props, option) => {
+                                const isOnLeave = isOperatorOnLeave(
+                                  option,
+                                  row.startDate,
+                                  row.endDate
+                                );
+                                const isAllocated = !isOperatorAvailable(
+                                  option.name,
+                                  row.startDate,
+                                  row.endDate
+                                );
+
+                                const isDisabled = isAllocated && !isOnLeave;
+                                const leaveDuration = option.leavePeriod?.[0]
+                                  ? Math.ceil(
+                                      new Date(option.leavePeriod[0].endDate) -
+                                        new Date(
+                                          option.leavePeriod[0].startDate
+                                        )
+                                    ) /
+                                      (1000 * 60 * 60 * 24) +
+                                    1
+                                  : 0;
 
                                 return (
                                   <li
@@ -1352,19 +1591,31 @@ export const Assembly_SubAssemblyHoursPlanning = ({
                                       justifyContent: "space-between",
                                     }}
                                   >
-                                    {option.name}{" "}
-                                    {isDisabled ? "(Allocated)" : ""}
+                                    <div>
+                                      {option.name}
+                                      <span style={{ color: "red" }}>
+                                        {isOnLeave &&
+                                          ` - On Leave ${leaveDuration}d`}
+                                        {isAllocated &&
+                                          !isOnLeave &&
+                                          " (Allocated)"}
+                                      </span>
+                                    </div>
                                   </li>
                                 );
                               }}
                               onChange={(event, newValue) => {
                                 if (!hasStartDate) return;
 
-                                // Prevent selecting allocated operators
                                 if (
                                   newValue &&
                                   !isOperatorAvailable(
                                     newValue.name,
+                                    row.startDate,
+                                    row.endDate
+                                  ) &&
+                                  !isOperatorOnLeave(
+                                    newValue,
                                     row.startDate,
                                     row.endDate
                                   )

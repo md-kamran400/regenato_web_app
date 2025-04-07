@@ -711,7 +711,7 @@ const OuterSubAssmebly = React.memo(
                       onChange={(e) => setStatusFilter(e.target.value)}
                       style={{ width: "200px" }}
                     >
-                      <option value="all">All Statuses</option>
+                      <option value="all">All Status</option>
                       <option value="Not Allocated">Not Allocated</option>
                       <option value="On Track">On Track</option>
                       <option value="Delayed">Delayed</option>
