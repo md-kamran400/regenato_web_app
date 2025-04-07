@@ -9,6 +9,10 @@ const AllocationPlanningSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    processId: {  
+      type: String,
+      required: true,
+    },
     allocations: [
       {
         splitNumber: {
