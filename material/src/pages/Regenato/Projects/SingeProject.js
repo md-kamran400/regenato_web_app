@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
+// import Autocomplete from '@mui/material/Autocomplete';
+// import TextField from '@mui/material/TextField';
 import {
   Card,
   Button,
@@ -215,8 +217,6 @@ const SingeProject = () => {
         );
         const data = await response.json();
         setExistingPartsLists(data);
-        console.log("partdata",data);
-        
       } catch (error) {
         console.error("Error fetching existing parts lists:", error);
       }
@@ -224,20 +224,13 @@ const SingeProject = () => {
     fetchExistingPartsLists();
   }, [_id]);
 
-  // const updatesubAssemblyItems = (updatedSubAssembly) => {
-  //   setSubAssemblyItems((prevItems) =>
-  //     prevItems.map((item) =>
-  //       item._id === updatedSubAssembly._id ? updatedSubAssembly : item
-  //     )
-  //   );
-  // };
-
   const updatesubAssemblyItems = (updatedSubAssembly) => {
-    setSubAssemblyItems(prevItems => 
-      prevItems.map(item => 
+    setSubAssemblyItems((prevItems) =>
+      prevItems.map((item) =>
         item._id === updatedSubAssembly._id ? updatedSubAssembly : item
       )
-  )};
+    );
+  };
 
   useEffect(() => {
     localStorage.setItem(
@@ -880,7 +873,7 @@ const SingeProject = () => {
     <React.Fragment>
       <div className="page-content">
         <Container fluid>
-          <div className="project-header" style={{ marginTop: "-2rem" }}>
+          <div className="project-header">
             {/* Left Section */}
             <div className="header-section left">
               <h2 className="project-name" style={{ fontWeight: "bold" }}>
@@ -895,7 +888,7 @@ const SingeProject = () => {
               </p>
             </div>
           </div>
-          <div className="button-group" style={{ marginLeft: "7.9rem" }}>
+          <div className="button-group" style={{ marginLeft: "7.9rem"}}>
             <Button
               color="danger"
               className="add-btn"

@@ -270,28 +270,62 @@ const List = () => {
     setModal_NaemEdit(!modal_NaemEdit);
   };
 
-  const fetchData = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const response = await fetch(
-        `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects?filterType=${filterType}`
-      );
-      if (!response.ok) {
-        throw new Error("Failed to fetch projects");
-      }
-      const data = await response.json();
-      setprojectListsData(data);
-      if (initialLoad) {
-        setFilterType(""); // Set filter to empty string on initial load
-        setInitialLoad(false);
-      }
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setIsLoading(false);
+  // const fetchData = useCallback(async () => {
+  //   setIsLoading(true);
+  //   setError(null);
+  //   try {
+  //     const response = await fetch(
+  //       `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects?filterType=${filterType}`
+  //     );
+  //     if (!response.ok) {
+  //       throw new Error("Failed to fetch projects");
+  //     }
+  //     const data = await response.json();
+  //     setprojectListsData(data);
+  //     if (initialLoad) {
+  //       setFilterType(""); // Set filter to empty string on initial load
+  //       setInitialLoad(false);
+  //     }
+  //   } catch (err) {
+  //     setError(err.message);
+  //   } finally {
+  //     setIsLoading(false);
+  //   }
+  // }, [filterType]);
+
+
+  // In List.js, modify the fetchData function to ensure it's always fresh
+const fetchData = useCallback(async () => {
+  setIsLoading(true);
+  setError(null);
+  try {
+    const response = await fetch(
+      `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects?filterType=${filterType}`
+    );
+    if (!response.ok) {
+      throw new Error("Failed to fetch projects");
     }
-  }, [filterType]);
+    const data = await response.json();
+    // Ensure calculations are done for each project
+    const projectsWithCalculations = await Promise.all(
+      data.map(async (project) => {
+        const projectResponse = await fetch(
+          `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${project._id}`
+        );
+        return projectResponse.json();
+      })
+    );
+    setprojectListsData(projectsWithCalculations);
+    if (initialLoad) {
+      setFilterType(""); // Set filter to empty string on initial load
+      setInitialLoad(false);
+    }
+  } catch (err) {
+    setError(err.message);
+  } finally {
+    setIsLoading(false);
+  }
+}, [filterType]);
 
   useEffect(() => {
     fetchData();

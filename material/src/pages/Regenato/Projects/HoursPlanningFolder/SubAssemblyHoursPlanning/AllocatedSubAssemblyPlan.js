@@ -477,7 +477,8 @@ export const AllocatedSubAssemblyPlan = ({
         style={{ maxWidth: "80vw" }}
       >
         <ModalHeader toggle={() => setDailyTaskModal(false)}>
-          Update Daily Tracking - {selectedSection?.title}
+          {/* Update Daily Tracking - {selectedSection?.title} */}
+          Update Daily Tracking  --  {selectedSection?.title} - (Machine ID: {selectedSection?.data[0]?.machineId || 'N/A'})
         </ModalHeader>
 
         <ModalBody>
