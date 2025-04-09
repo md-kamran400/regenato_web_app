@@ -54,23 +54,39 @@ partproject.get("/projects", async (req, res) => {
 
       project.partsLists.forEach((partsList) => {
         partsList.partsListItems.forEach((item) => {
-          const itemTotalCost = item.costPerUnit * item.quantity;
-          const itemTotalHours = item.timePerUnit * item.quantity;
+          const costPerUnit = Number(item.costPerUnit);
+          const timePerUnit = Number(item.timePerUnit);
+          const quantity = Number(item.quantity);
 
-          totalProjectCost += itemTotalCost;
-          totalProjectHours += itemTotalHours;
+          // Ensure all values are valid numbers
+          if (!isNaN(costPerUnit) && !isNaN(timePerUnit) && !isNaN(quantity)) {
+            const itemTotalCost = costPerUnit * quantity;
+            const itemTotalHours = timePerUnit * quantity;
 
-          item.manufacturingVariables.forEach((machine) => {
-            const machineName = machine.name;
-            const totalHours = machine.hours * item.quantity;
-            machineHours[machineName] =
-              (machineHours[machineName] || 0) + totalHours;
-          });
+            totalProjectCost += itemTotalCost;
+            totalProjectHours += itemTotalHours;
+
+            if (Array.isArray(item.manufacturingVariables)) {
+              item.manufacturingVariables.forEach((machine) => {
+                const machineName = machine.name;
+                const machineHoursVal = Number(machine.hours);
+
+                if (!isNaN(machineHoursVal)) {
+                  const totalHours = machineHoursVal * quantity;
+                  machineHours[machineName] =
+                    (machineHours[machineName] || 0) + totalHours;
+                }
+              });
+            }
+          } else {
+           //
+          }
         });
       });
 
-      project.costPerUnit = totalProjectCost;
-      project.timePerUnit = totalProjectHours;
+      // Save calculated values, ensuring they're valid numbers
+      project.costPerUnit = isNaN(totalProjectCost) ? 0 : totalProjectCost;
+      project.timePerUnit = isNaN(totalProjectHours) ? 0 : totalProjectHours;
       project.machineHours = machineHours;
 
       await project.save(); // Save updated project
@@ -83,6 +99,8 @@ partproject.get("/projects", async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+
 
 
 
@@ -312,86 +330,137 @@ const getStatus = (allocations) => {
 };
 
 //post the partlist item like base,ram
-partproject.post(
-  "/projects/:projectId/partsLists/:listId/items",
-  async (req, res) => {
-    try {
-      const { projectId, listId } = req.params;
+// partproject.post(
+//   "/projects/:projectId/partsLists/:listId/items",
+//   async (req, res) => {
+//     try {
+//       const { projectId, listId } = req.params;
 
-      // Validate project ID
-      if (!mongoose.Types.ObjectId.isValid(projectId)) {
-        return res
-          .status(400)
-          .json({ status: "error", message: "Invalid project ID format" });
-      }
+//       // Validate project ID
+//       if (!mongoose.Types.ObjectId.isValid(projectId)) {
+//         return res
+//           .status(400)
+//           .json({ status: "error", message: "Invalid project ID format" });
+//       }
 
-      // Find the project by ID
-      const project = await PartListProjectModel.findById(projectId);
-      if (!project) {
-        return res
-          .status(404)
-          .json({ status: "error", message: "Project not found" });
-      }
+//       // Find the project by ID
+//       const project = await PartListProjectModel.findById(projectId);
+//       if (!project) {
+//         return res
+//           .status(404)
+//           .json({ status: "error", message: "Project not found" });
+//       }
 
-      // Find the parts list by ID
-      const partsList = project.partsLists.id(listId);
-      if (!partsList) {
-        return res
-          .status(404)
-          .json({ status: "error", message: "Parts list not found" });
-      }
+//       // Find the parts list by ID
+//       const partsList = project.partsLists.id(listId);
+//       if (!partsList) {
+//         return res
+//           .status(404)
+//           .json({ status: "error", message: "Parts list not found" });
+//       }
 
-      // Validate request body
-      const {
-        partId,
-        partName,
-        costPerUnit,
-        timePerUnit,
-        quantity,
-        rmVariables,
-        manufacturingVariables,
-        shipmentVariables,
-        overheadsAndProfits,
-        codeName,
-      } = req.body;
+//       // Validate request body
+//       const {
+//         partId,
+//         partName,
+//         costPerUnit,
+//         timePerUnit,
+//         quantity,
+//         rmVariables,
+//         manufacturingVariables,
+//         shipmentVariables,
+//         overheadsAndProfits,
+//         codeName,
+//       } = req.body;
 
-      // if (!partId || !partName || !costPerUnit || !timePerUnit || !quantity) {
-      //   return res.status(400).json({
-      //     status: "error",
-      //     message:
-      //       "Missing required fields: partId, partName, costPerUnit, timePerUnit, or quantity",
-      //   });
-      // }
+//       // if (!partId || !partName || !costPerUnit || !timePerUnit || !quantity) {
+//       //   return res.status(400).json({
+//       //     status: "error",
+//       //     message:
+//       //       "Missing required fields: partId, partName, costPerUnit, timePerUnit, or quantity",
+//       //   });
+//       // }
 
-      // Add the new part to the parts list
-      const newPart = {
-        Uid: partId,
-        partName,
-        codeName: codeName || "", // Default to empty string if not provided
-        costPerUnit,
-        timePerUnit,
-        quantity,
-        rmVariables: rmVariables || [],
-        manufacturingVariables: manufacturingVariables || [],
-        shipmentVariables: shipmentVariables || [],
-        overheadsAndProfits: overheadsAndProfits || [],
-      };
+//       // Add the new part to the parts list
+//       const newPart = {
+//         Uid: partId,
+//         partName,
+//         codeName: codeName || "", // Default to empty string if not provided
+//         costPerUnit,
+//         timePerUnit,
+//         quantity,
+//         rmVariables: rmVariables || [],
+//         manufacturingVariables: manufacturingVariables || [],
+//         shipmentVariables: shipmentVariables || [],
+//         overheadsAndProfits: overheadsAndProfits || [],
+//       };
 
-      partsList.partsListItems.push(newPart);
+//       partsList.partsListItems.push(newPart);
 
-      // Save the updated project
-      const updatedProject = await project.save();
+//       // Save the updated project
+//       const updatedProject = await project.save();
 
-      res.status(200).json({
-        status: "success",
-        message: "Part added successfully",
-        data: updatedProject,
-      });
-    } catch (error) {
-      res.status(500).json({ status: "error", message: error.message });
+//       res.status(200).json({
+//         status: "success",
+//         message: "Part added successfully",
+//         data: updatedProject,
+//       });
+//     } catch (error) {
+//       res.status(500).json({ status: "error", message: error.message });
+//     }
+//   }
+// );
+partproject.post("/projects/:projectId/partsLists/:listId/items", async (req, res) => {
+  try {
+    const { projectId, listId } = req.params;
+    const itemsToAdd = req.body;
+
+    if (!Array.isArray(itemsToAdd) || itemsToAdd.length === 0) {
+      return res.status(400).json({ status: "error", message: "No parts provided" });
     }
+
+    const project = await PartListProjectModel.findById(projectId);
+    if (!project) {
+      return res.status(404).json({ status: "error", message: "Project not found" });
+    }
+
+    const partsList = project.partsLists.id(listId);
+    if (!partsList) {
+      return res.status(404).json({ status: "error", message: "Parts list not found" });
+    }
+
+    // Push each part item to partsListItems
+    itemsToAdd.forEach((item) => {
+      partsList.partsListItems.push({
+        partId: item.partId,
+        partName: item.partName,
+        codeName: item.codeName || "",
+        costPerUnit: Number(item.costPerUnit || 0),
+        timePerUnit: Number(item.timePerUnit || 0),
+        quantity: Number(item.quantity || 0),
+        rmVariables: item.rmVariables || [],
+        manufacturingVariables: item.manufacturingVariables || [],
+        shipmentVariables: item.shipmentVariables || [],
+        overheadsAndProfits: item.overheadsAndProfits || [],
+      });
+    });
+
+    await project.save();
+
+    res.status(201).json({
+      status: "success",
+      message: "Parts added successfully",
+      data: {
+        partsListItems: partsList.partsListItems,
+      },
+    });
+  } catch (error) {
+    console.error("POST /partsLists/items error:", error.message);
+    res.status(500).json({ status: "error", message: error.message });
   }
-);
+});
+
+
 
 //put request for quentitiy
 // Route to update part quantity
@@ -447,47 +516,6 @@ partproject.put(
 );
 
 //get the partlist item like base,ram
-// partproject.get(
-//   "/projects/:projectId/partsLists/:listId/items",
-//   async (req, res) => {
-//     try {
-//       const { projectId, listId } = req.params;
-
-//       // Validate project ID
-//       if (!mongoose.Types.ObjectId.isValid(projectId)) {
-//         return res
-//           .status(400)
-//           .json({ status: "error", message: "Invalid project ID format" });
-//       }
-
-//       // Find the project by ID
-//       const project = await PartListProjectModel.findById(projectId);
-//       if (!project) {
-//         return res
-//           .status(404)
-//           .json({ status: "error", message: "Project not found" });
-//       }
-
-//       // Find the parts list by ID
-//       const partsList = project.partsLists.id(listId);
-//       if (!partsList) {
-//         return res
-//           .status(404)
-//           .json({ status: "error", message: "Parts list not found" });
-//       }
-
-//       // Send the parts list items
-//       res.status(200).json({
-//         status: "success",
-//         message: "Parts list items retrieved successfully",
-//         data: partsList.partsListItems,
-//       });
-//     } catch (error) {
-//       res.status(500).json({ status: "error", message: error.message });
-//     }
-//   }
-// );
-
 partproject.get(
   "/projects/:projectId/partsLists/:listId/items",
   async (req, res) => {
@@ -517,53 +545,20 @@ partproject.get(
           .json({ status: "error", message: "Parts list not found" });
       }
 
-      // Function to determine status
-      const getStatus = (allocations) => {
-        if (!allocations || allocations.length === 0)
-          return {
-            text: "Not Allocated",
-            class: "badge bg-info text-white",
-          };
-        const allocation = allocations[0].allocations[0];
-        if (!allocation)
-          return { text: "Not Allocated", class: "badge bg-info text-white" };
-
-        const actualEndDate = new Date(allocation.actualEndDate);
-        const endDate = new Date(allocation.endDate);
-
-        if (!allocation.actualEndDate)
-          return { text: "Allocated", class: "badge bg-dark text-white" };
-        if (actualEndDate.getTime() === endDate.getTime())
-          return { text: "On Track", class: "badge bg-primary text-white" };
-        if (actualEndDate > endDate)
-          return { text: "Delayed", class: "badge bg-danger text-white" };
-        if (actualEndDate < endDate)
-          return {
-            text: "Ahead",
-            class: "badge bg-success-subtle text-success",
-          };
-        return { text: "Allocated", class: "badge bg-dark text-white" };
-      };
-
-      // Add status to each part
-      const partsListItemsWithStatus = partsList.partsListItems.map((part) => {
-        return {
-          ...part.toObject(),
-          status: getStatus(part.allocations),
-        };
-      });
-
-      // Send the parts list items with status
+      // Send the parts list items
       res.status(200).json({
         status: "success",
         message: "Parts list items retrieved successfully",
-        data: partsListItemsWithStatus,
+        data: partsList.partsListItems,
       });
     } catch (error) {
       res.status(500).json({ status: "error", message: error.message });
     }
   }
 );
+
+
+
 
 // Route to update partsListName
 partproject.put("/projects/:projectId/partsLists/:listId", async (req, res) => {
