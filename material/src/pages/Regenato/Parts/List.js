@@ -286,10 +286,10 @@ const List = () => {
   };
 
   // Use this function when a part is clicked
-  const handlePartClick = (id) => {
-    setSelectedPartId(id);
-    localStorage.setItem("selectedPartId", id);
-  };
+  // const handlePartClick = (id) => {
+  //   setSelectedPartId(id);
+  //   localStorage.setItem("selectedPartId", id);
+  // };
 
   const handleSortByDate = () => {
     let sorted;
@@ -557,11 +557,30 @@ const List = () => {
     }
   };
 
-  const clearSelection = () => {
+  useEffect(() => {
+    return () => {
+      // Clear the selection when component unmounts
+      localStorage.removeItem("selectedPartId");
+      setSelectedPartId(null);
+    };
+  }, []);
+  
+  // Modify the clearSelection function to be more thorough
+  const clearSelection = useCallback(() => {
     setSelectedPartId(null);
     localStorage.removeItem("selectedPartId");
     fetchData(); // Re-fetch the entire list
-  };
+  }, [fetchData]);
+  
+  // Modify the handlePartClick to include a way to clear selection
+  const handlePartClick = useCallback((id) => {
+    if (id === selectedPartId) {
+      clearSelection();
+    } else {
+      setSelectedPartId(id);
+      localStorage.setItem("selectedPartId", id);
+    }
+  }, [selectedPartId, clearSelection]);
 
   // const formatTime = (time) => {
   //   if (time === 0) {

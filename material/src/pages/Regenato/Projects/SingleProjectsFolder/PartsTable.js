@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect, memo } from "react"; //add parts list
 import { FaEdit } from "react-icons/fa";
 // import "../project.css";
+import Checkbox from "@mui/material/Checkbox";
 import "../projectForProjects.css";
 import {
   Card,
@@ -50,6 +51,8 @@ const PartsTable = React.memo(
     onUpdatePrts,
     // getStatus,
   }) => {
+    const [selectedParts, setSelectedParts] = useState([]);
+    const [selectedPartIds, setSelectedPartIds] = useState(new Set());
     const { _id, listId } = useParams();
     const rm = "partsList";
     const [modalAdd, setModalAdd] = useState(false);
@@ -147,6 +150,12 @@ const PartsTable = React.memo(
         return { text: "Ahead", class: "badge bg-success-subtle text-success" };
       return { text: "Allocated", class: "badge bg-dark text-white" };
     };
+
+    const handlePartsChange = useCallback((event, newValue) => {
+      setSelectedParts(newValue);
+      setSelectedPartIds(new Set(newValue.map(part => part.id)));
+    }, []);
+    
 
     useEffect(() => {
       const fetchManufacturingVariables = async () => {
@@ -334,64 +343,126 @@ const PartsTable = React.memo(
       PartsTableFetch();
     }, [PartsTableFetch]);
 
+    // const handleSubmit = async (event) => {
+    //   event.preventDefault();
+    //   setIsLoading(true);
+
+    //   const payload = {
+    //     partId: selectedPartData.id,
+    //     partName: selectedPartData.partName,
+    //     codeName: codeName,
+    //     costPerUnit: Number(costPerUnit),
+    //     timePerUnit: Number(timePerUnit),
+    //     quantity: Number(quantity),
+    //     rmVariables: detailedPartData.rmVariables || [],
+    //     manufacturingVariables: detailedPartData.manufacturingVariables || [],
+    //     shipmentVariables: detailedPartData.shipmentVariables || [],
+    //     overheadsAndProfits: detailedPartData.overheadsAndProfits || [],
+    //   };
+
+    //   try {
+    //     const response = await fetch(
+    //       // `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/partsLists/${partsList._id}/items`,
+    //       `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${_id}/partsLists/${partsList._id}/items`,
+
+    //       // /projects/:_id/partsLists/:listId/items
+    //       {
+    //         method: "POST",
+    //         headers: { "Content-Type": "application/json" },
+    //         body: JSON.stringify(payload),
+    //       }
+    //     );
+
+    //     if (!response.ok) {
+    //       throw new Error("Failed to add part");
+    //     }
+
+    //     const newPart = await response.json();
+
+    //     // Update local state with new part
+    //     setPartsListsItems((prevItems) => [...prevItems, newPart]);
+
+    //     onUpdatePrts(newPart);
+
+    //     setModalAdd(false);
+    //     setIsLoading(false);
+    //     toast.success("New Records Added successfully");
+    //     // Reset form
+    //     setSelectedPartData(null);
+    //     setCostPerUnit("");
+    //     setTimePerUnit("");
+    //     setQuantity(0);
+    //     setDetailedPartData({});
+
+    //     // Update the partsListItemsUpdated state
+    //     setPartsListItemsUpdated(true);
+    //   } catch (error) {
+    //     console.error("Error:", error);
+    //     setError("Failed to add part. Please try again.");
+    //     toast.error("Failed to add Records. Please try again.");
+    //   } finally {
+    //     setIsLoading(false);
+    //   }
+    // };
+
     const handleSubmit = async (event) => {
       event.preventDefault();
       setIsLoading(true);
-
-      const payload = {
-        partId: selectedPartData.id,
-        partName: selectedPartData.partName,
-        codeName: codeName,
-        costPerUnit: Number(costPerUnit),
-        timePerUnit: Number(timePerUnit),
-        quantity: Number(quantity),
-        rmVariables: detailedPartData.rmVariables || [],
-        manufacturingVariables: detailedPartData.manufacturingVariables || [],
-        shipmentVariables: detailedPartData.shipmentVariables || [],
-        overheadsAndProfits: detailedPartData.overheadsAndProfits || [],
-      };
-
+    
+      if (selectedParts.length === 0) {
+        toast.error("Please select at least one part");
+        setIsLoading(false);
+        return;
+      }
+    
       try {
+        const payload = selectedParts.map(part => ({
+          partId: part.id,
+          partName: part.partName,
+          codeName: part.codeName || "",
+          costPerUnit: Number(part.costPerUnit || 0),
+          timePerUnit: Number(part.timePerUnit || 0),
+          quantity: Number(quantity),
+          rmVariables: part.rmVariables || [],
+          manufacturingVariables: part.manufacturingVariables || [],
+          shipmentVariables: part.shipmentVariables || [],
+          overheadsAndProfits: part.overheadsAndProfits || [],
+        }));
+    
         const response = await fetch(
-          // `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/partsLists/${partsList._id}/items`,
           `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${_id}/partsLists/${partsList._id}/items`,
-
-          // /projects/:_id/partsLists/:listId/items
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload),
           }
         );
-
+    
         if (!response.ok) {
-          throw new Error("Failed to add part");
+          throw new Error("Failed to add parts");
         }
-
-        const newPart = await response.json();
-
-        // Update local state with new part
-        setPartsListsItems((prevItems) => [...prevItems, newPart]);
-
-        onUpdatePrts(newPart);
-
+    
+        const data = await response.json();
+        
+        // Update local state with new parts
+        setPartsListsItems((prevItems) => [...prevItems, ...data.data.partsListItems]);
+        onUpdatePrts(data);
+        
         setModalAdd(false);
         setIsLoading(false);
-        toast.success("New Records Added successfully");
+        toast.success(`${selectedParts.length} new records added successfully`);
+        
         // Reset form
-        setSelectedPartData(null);
-        setCostPerUnit("");
-        setTimePerUnit("");
+        setSelectedParts([]);
+        setSelectedPartIds(new Set());
         setQuantity(0);
-        setDetailedPartData({});
-
+        
         // Update the partsListItemsUpdated state
         setPartsListItemsUpdated(true);
       } catch (error) {
         console.error("Error:", error);
-        setError("Failed to add part. Please try again.");
-        toast.error("Failed to add Records. Please try again.");
-      } finally {
+        setError("Failed to add parts. Please try again.");
+        toast.error("Failed to add records. Please try again.");
         setIsLoading(false);
       }
     };
@@ -574,8 +645,6 @@ const PartsTable = React.memo(
       return `${totalMinutes} m`;
     };
 
-
-
     return (
       <>
         {isLoading && (
@@ -624,7 +693,11 @@ const PartsTable = React.memo(
           {/* Add the filter select box here */}
           <div
             className="mb-3"
-            style={{ display: "flex", justifyContent: "flex-end" ,marginRight:'5px'}}
+            style={{
+              display: "flex",
+              justifyContent: "flex-end",
+              marginRight: "5px",
+            }}
           >
             <Label for="statusFilter" className="me-2 mt-2">
               Filter by Status:
@@ -913,11 +986,14 @@ const PartsTable = React.memo(
             </Col>
           </Row>
 
-          <Modal isOpen={modalAdd} toggle={toggleAddModal}>
+          <Modal
+            isOpen={modalAdd}
+            toggle={toggleAddModal}
+          >
             <ModalHeader toggle={toggleAddModal}>Add Part</ModalHeader>
             <ModalBody>
               <form onSubmit={handleSubmit}>
-                <Autocomplete
+                {/* <Autocomplete
                   options={parts || []}
                   loading={loadingParts}
                   getOptionLabel={(option) =>
@@ -945,9 +1021,115 @@ const PartsTable = React.memo(
                       }}
                     />
                   )}
+                /> */}
+                <Autocomplete
+                  multiple
+                  options={parts || []}
+                  loading={loadingParts}
+                  getOptionLabel={(option) => option ? `${option.partName} - ${option.id}` : ""}
+                  onChange={handlePartsChange}
+                  // onChange={(event, newValue) => {
+                  //   setSelectedParts(newValue);
+                  //   setSelectedPartIds(new Set(newValue.map(part => part.id)));
+                  // }}
+                  noOptionsText={loadingParts ? "Loading parts..." : "No parts available"}
+                  renderOption={(props, option, { selected }) => (
+                    <li {...props}>
+                      <Checkbox
+                        style={{ marginRight: 8 }}
+                        checked={selectedPartIds.has(option.id)}
+                      />
+                      {`${option.partName} - ${option.id}`}
+                    </li>
+                  )}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Select Parts"
+                      variant="outlined"
+                      InputProps={{
+                        ...params.InputProps,
+                        endAdornment: (
+                          <>
+                            {loadingParts ? (
+                              <CircularProgress color="inherit" size={20} />
+                            ) : null}
+                            {params.InputProps.endAdornment}
+                          </>
+                        ),
+                      }}
+                    />
+                  )}
                 />
+                                
+                <div className="form-group" style={{ display: "none" }}>
+                  <Label for="partId" className="form-label">
+                    Part ID
+                  </Label>
+                  <Input
+                    className="form-control"
+                    type="text"
+                    id="partId"
+                    value={partId}
+                    onChange={(e) => setPartId(e.target.value)}
+                    // required
+                  />
+                </div>
+                <div className="form-group" style={{ display: "none" }}>
+                  <Label for="codeName" className="form-label">
+                    Code Name
+                  </Label>
+                  <Input
+                    className="form-control"
+                    type="text"
+                    id="codeName"
+                    value={codeName}
+                    onChange={(e) => setCodeName(e.target.value)}
+                    // required
+                  />
+                </div>
+                <div className="form-group" style={{ display: "none" }}>
+                  <Label for="costPerUnit" className="form-label">
+                    Cost Per Unit
+                  </Label>
+                  <Input
+                    className="form-control"
+                    type="number"
+                    step="any"
+                    id="costPerUnit"
+                    value={Math.round(costPerUnit)}
+                    onChange={(e) => setCostPerUnit(e.target.value)}
+                    // required
+                    onWheel={(e) => e.target.blur()}
+                    onKeyDown={(e) => {
+                      if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+                        e.preventDefault();
+                      }
+                    }}
+                  />
+                </div>
+                <div className="form-group" style={{ display: "none" }}>
+                  <Label for="timePerUnit" className="form-label">
+                    Time Per Unit
+                  </Label>
+                  <Input
+                    className="form-control"
+                    type="number"
+                    step="any"
+                    id="timePerUnit"
+                    value={Math.round(timePerUnit)}
+                    onChange={(e) => setTimePerUnit(e.target.value)}
+                    // required
+                    onWheel={(e) => e.target.blur()}
+                    onKeyDown={(e) => {
+                      if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+                        e.preventDefault();
+                      }
+                    }}
+                  />
+                </div>
 
-                <div className="form-group">
+                {/* <div className="form-group">
                   <Label for="quantity" className="form-label">
                     Quantity
                   </Label>
@@ -977,7 +1159,39 @@ const PartsTable = React.memo(
                       Maximum quantity is 99999
                     </small>
                   )}
-                </div>
+                </div> */}
+
+<div className="form-group">
+  <Label for="quantity" className="form-label">
+    Quantity (for all selected parts)
+  </Label>
+  <Input
+    className="form-control"
+    type="number"
+    id="quantity"
+    value={quantity.toString()}
+    onChange={(e) => {
+      const inputValue = e.target.value;
+      if (inputValue === "" || /^\d+$/.test(inputValue)) {
+        const numericValue = inputValue === "" ? 0 : parseInt(inputValue);
+        if (numericValue > 99999) {
+          toast.warning("Maximum quantity is 99999");
+          setQuantity(99999);
+        } else {
+          setQuantity(numericValue);
+        }
+      }
+    }}
+    max="99999"
+    required
+  />
+  {quantity > 99999 && (
+    <small className="text-danger">
+      Maximum quantity is 99999
+    </small>
+  )}
+</div>
+
                 <div style={{ display: "none" }}>
                   <UncontrolledAccordion defaultOpen="1">
                     {/* Raw Materials Accordion */}
@@ -1212,14 +1426,24 @@ const PartsTable = React.memo(
                   </UncontrolledAccordion>
                 </div>
 
-                <Button
+                {/* <Button
                   style={{ marginLeft: "22rem" }}
                   type="submit"
                   color="primary"
                   disabled={!selectedPartData || !quantity}
                 >
                   Add
-                </Button>
+                </Button> */}
+                <Button
+  style={{ marginLeft: "22rem" }}
+  type="submit"
+  color="primary"
+  disabled={selectedParts.length === 0 || !quantity}
+>
+  {selectedParts.length > 0 
+    ? `Add ${selectedParts.length} Part(s)` 
+    : "Add"}
+</Button>
               </form>
             </ModalBody>
           </Modal>
