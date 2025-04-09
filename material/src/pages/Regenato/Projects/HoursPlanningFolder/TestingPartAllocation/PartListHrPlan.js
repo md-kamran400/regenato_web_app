@@ -48,7 +48,7 @@ export const PartListHrPlan = ({
   };
   const [remainingQuantity, setRemainingQuantity] = useState(quantity);
   const [remainingQuantities, setRemainingQuantities] = useState({});
-  const [isAutoSchedule, setIsAutoSchedule] = useState(false);
+  const [isAutoSchedule, setIsAutoSchedule] = useState(true);
   const [selectedDate, setSelectedDate] = useState(null);
   const [eventDates, setEventDates] = useState([]);
   const [isDataAllocated, setIsDataAllocated] = useState(false);

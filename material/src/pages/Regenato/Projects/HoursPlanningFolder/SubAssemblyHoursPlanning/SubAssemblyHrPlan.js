@@ -48,10 +48,10 @@ export const SubAssemblyHrPlan = ({
   };
   const [remainingQuantity, setRemainingQuantity] = useState(quantity);
   const [remainingQuantities, setRemainingQuantities] = useState({});
-  const [isAutoSchedule, setIsAutoSchedule] = useState(false);
+  const [isAutoSchedule, setIsAutoSchedule] = useState(true);
   const [selectedDate, setSelectedDate] = useState(null);
   const [eventDates, setEventDates] = useState([]);
-  const [isDataAllocated, setIsDataAllocated] = useState(true);
+  const [isDataAllocated, setIsDataAllocated] = useState(false);
   const [allocatedMachines, setAllocatedMachines] = useState({});
   const [operatorAllocations, setOperatorAllocations] = useState({});
 
@@ -220,96 +220,6 @@ export const SubAssemblyHrPlan = ({
     };
   };
 
-  // const calculateEndDateWithDowntime = (
-  //   startDate,
-  //   plannedMinutes,
-  //   shiftMinutes = 480,
-  //   machine
-  // ) => {
-  //   if (!startDate || !plannedMinutes) return "";
-
-  //   let parsedDate = new Date(startDate);
-  //   if (isNaN(parsedDate.getTime())) return "";
-
-  //   let remainingMinutes = plannedMinutes;
-  //   let currentDate = new Date(parsedDate);
-  //   let totalDowntimeAdded = 0;
-
-  //   // First, find all downtime periods that overlap with our scheduling window
-  //   const relevantDowntimes =
-  //     machine?.downtimeHistory?.filter((downtime) => {
-  //       if (downtime.isCompleted) return false;
-
-  //       const downtimeStart = new Date(downtime.startTime);
-  //       const downtimeEnd = new Date(downtime.endTime);
-
-  //       // Check if downtime overlaps with our scheduling period
-  //       return (
-  //         (downtimeStart <= currentDate && downtimeEnd >= currentDate) || // Downtime encompasses current date
-  //         downtimeStart >= currentDate // Downtime starts in the future
-  //       );
-  //     }) || [];
-
-  //   // Sort downtimes by start time
-  //   relevantDowntimes.sort(
-  //     (a, b) => new Date(a.startTime) - new Date(b.startTime)
-  //   );
-
-  //   while (remainingMinutes > 0) {
-  //     // Skip non-working days (Sundays and holidays)
-  //     while (
-  //       getDay(currentDate) === 0 ||
-  //       eventDates.some((d) => isSameDay(d, currentDate))
-  //     ) {
-  //       currentDate.setDate(currentDate.getDate() + 1);
-  //     }
-
-  //     // Check for downtime on this day
-  //     const todaysDowntime = relevantDowntimes.find((downtime) => {
-  //       const downtimeStart = new Date(downtime.startTime);
-  //       return isSameDay(downtimeStart, currentDate);
-  //     });
-
-  //     if (todaysDowntime) {
-  //       // Calculate downtime duration in minutes
-  //       const downtimeStart = new Date(todaysDowntime.startTime);
-  //       const downtimeEnd = new Date(todaysDowntime.endTime);
-  //       const downtimeMinutes = Math.ceil(
-  //         (downtimeEnd - downtimeStart) / (1000 * 60)
-  //       );
-
-  //       // Add downtime to the total work needed
-  //       remainingMinutes += downtimeMinutes;
-  //       totalDowntimeAdded += downtimeMinutes;
-  //     }
-
-  //     // Subtract a day's worth of work
-  //     const minutesToDeduct = Math.min(remainingMinutes, shiftMinutes);
-  //     remainingMinutes -= minutesToDeduct;
-
-  //     // Move to next day if there's still work remaining
-  //     if (remainingMinutes > 0) {
-  //       currentDate.setDate(currentDate.getDate() + 1);
-  //     }
-  //   }
-
-  //   // Update the row with total downtime added
-  //   setRows((prevRows) => {
-  //     const updatedRows = { ...prevRows };
-  //     if (updatedRows[index]?.[rowIndex]) {
-  //       updatedRows[index][rowIndex] = {
-  //         ...updatedRows[index][rowIndex],
-  //         totalDowntimeAdded,
-  //       };
-  //     }
-  //     return updatedRows;
-  //   });
-
-  //   return currentDate.toISOString().split("T")[0];
-  // };
-
-  // Helper functions for machine status
-
   const getMachineStatus = (machine, startDate, endDate, allocatedMachines) => {
     const downtimeInfo = isMachineOnDowntimeDuringPeriod(
       machine,
@@ -450,28 +360,6 @@ export const SubAssemblyHrPlan = ({
 
     return <div className={className}>{day}</div>;
   };
-
-  // useEffect(() => {
-  //   const initialRows = manufacturingVariables.reduce((acc, man, index) => {
-  //     acc[index] = [
-  //       {
-  //         plannedQuantity: isAutoSchedule ? quantity : "",
-  //         plannedQtyTime: isAutoSchedule
-  //           ? calculatePlannedMinutes(quantity * man.hours)
-  //           : "",
-  //         startDate: "",
-  //         startTime: "",
-  //         endDate: "",
-  //         machineId: "",
-  //         shift: "",
-  //         processName: man.name,
-  //       },
-  //     ];
-  //     return acc;
-  //   }, {});
-
-  //   setRows(initialRows);
-  // }, [manufacturingVariables, quantity, isAutoSchedule]);
 
   useEffect(() => {
     const initialRows = manufacturingVariables.reduce((acc, man, index) => {
@@ -622,29 +510,30 @@ export const SubAssemblyHrPlan = ({
     fetchMachines();
   }, [manufacturingVariables]);
 
-  console.log("Machine Options:", machineOptions);
+  // console.log("Machine Options:", machineOptions);
 
+  // And ensure your initial rows useEffect accounts for this:
   useEffect(() => {
-    // Only initialize rows with empty data
     const initialRows = manufacturingVariables.reduce((acc, man, index) => {
       acc[index] = [
         {
-          // partType: "Make",
-          plannedQuantity: quantity,
+          plannedQuantity: isAutoSchedule ? quantity : "",
+          plannedQtyTime: isAutoSchedule
+            ? calculatePlannedMinutes(quantity * man.hours)
+            : "",
           startDate: "",
           startTime: "",
           endDate: "",
+          endTime: "",
           machineId: "",
           shift: "",
-          plannedQtyTime: calculatePlannedMinutes(man.hours * quantity),
           processName: man.name,
         },
       ];
       return acc;
     }, {});
-
     setRows(initialRows);
-  }, [manufacturingVariables, quantity]);
+  }, [manufacturingVariables, quantity, isAutoSchedule]);
 
   const calculatePlannedMinutes = (hours) => {
     return Math.ceil(hours * 60);
@@ -751,18 +640,10 @@ export const SubAssemblyHrPlan = ({
     return `${year}-${month}-${day}`; // Format: YYYY-MM-DD
   };
 
-  // const getNextWorkingDay = (date) => {
-  //   let nextDay = new Date(date);
-  //   while (isHighlightedOrDisabled(nextDay)) {
-  //     nextDay.setDate(nextDay.getDate() + 1);
-  //   }
-  //   return nextDay;
-  // };
-
   const calculateStartAndEndDates = (
     inputStartDate,
     plannedMinutes,
-    shiftMinutes = 1440
+    shiftMinutes = 480
   ) => {
     let parsedStartDate = new Date(inputStartDate);
     let remainingMinutes = plannedMinutes;
