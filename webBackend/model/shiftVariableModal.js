@@ -6,6 +6,8 @@ const shiftSchema = mongoose.Schema(
     name: String,
     StartTime: String,
     EndTime: String,
+    LaunchStartTime: String,
+    LaunchEndTime: String,
     TotalHours: String,
   },
   { timestamps: true }

@@ -472,11 +472,58 @@ PartsExcelRoutes.get("/:_id/manufacturingVariables", async (req, res) => {
   }
 });
 
+// Add the reorder route BEFORE the variableId route
+PartsExcelRoutes.put("/:partId/manufacturing-reorder", async (req, res) => {
+  try {
+    const { partId } = req.params;
+    const { variableId, direction } = req.body;
+
+    const part = await PartsModel.findById(partId);
+    if (!part) {
+      return res.status(404).json({ message: "Part not found" });
+    }
+
+    const currentIndex = part.manufacturingVariables.findIndex(v => v._id.toString() === variableId);
+    if (currentIndex === -1) {
+      return res.status(404).json({ message: "Variable not found" });
+    }
+
+    let newIndex;
+    if (direction === 'up' && currentIndex > 0) {
+      newIndex = currentIndex - 1;
+    } else if (direction === 'down' && currentIndex < part.manufacturingVariables.length - 1) {
+      newIndex = currentIndex + 1;
+    } else {
+      return res.status(400).json({ message: "Invalid move operation" });
+    }
+
+    const variableToMove = part.manufacturingVariables[currentIndex];
+    part.manufacturingVariables.splice(currentIndex, 1);
+    part.manufacturingVariables.splice(newIndex, 0, variableToMove);
+
+    // Update indexes
+    part.manufacturingVariables.forEach((item, index) => {
+      item.index = index;
+    });
+
+    await part.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Variables reordered successfully",
+      manufacturingVariables: part.manufacturingVariables
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 PartsExcelRoutes.post("/:_id/manufacturingVariables", async (req, res) => {
   try {
     const newManufacturingVariable = {
       categoryId: req.body.categoryId,
-      name: req.body.name,
+      name: req.body.name, 
+      SubMachineName: req.body.SubMachineName, //SubMachineName
       times: req.body.times,
       hours: req.body.hours,
       hourlyRate: req.body.hourlyRate,

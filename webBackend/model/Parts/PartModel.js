@@ -33,6 +33,7 @@ const partSchema = new mongoose.Schema({
     {
       categoryId: String,
       name: String,
+      SubMachineName: String,
       times: String,
       hours: Number,
       hourlyRate: Number,
