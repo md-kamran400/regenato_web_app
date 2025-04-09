@@ -45,6 +45,8 @@ const ManufacturingVariable = ({
   const [editId, setEditId] = useState(null);
   const [unit, setUnit] = useState("minutes");
 
+  const [subMachineOptions, setSubMachineOptions] = useState([]);
+
   // Form state
   // const [formData, setFormData] = useState({
   //   categoryId: "",
@@ -255,21 +257,36 @@ const ManufacturingVariable = ({
 
   const totalRate = formData.hourlyRate * formData.hours;
 
+  // Add this state variable
+
+  // Modify handleAutocompleteChange to populate sub-machine options
   const handleAutocompleteChange = (event, newValue) => {
     setSelectedManufacuturingVariable(newValue);
     if (newValue) {
-      setFormData((prevFormData) => {
-        const updatedFormData = {
-          ...prevFormData,
-          categoryId: newValue.categoryId,
-          name: newValue.name,
-          hourlyRate: newValue.hourlyrate,
-          // Calculate totalRate based on hours and selected hourlyRate
-          totalRate:
-            (newValue.hourlyrate || 0) * (parseFloat(prevFormData.hours) || 0),
-        };
-        return updatedFormData;
-      });
+      setSubMachineOptions(newValue.subCategories || []); // Populate sub-machine options
+      setFormData((prevFormData) => ({
+        ...prevFormData,
+        categoryId: newValue.categoryId,
+        name: newValue.name,
+        hourlyRate: newValue.hourlyrate, // Main category's hourlyrate (if applicable)
+        SubMachineName: "", // Reset when main category changes
+        totalRate:
+          (newValue.hourlyrate || 0) * (parseFloat(prevFormData.hours) || 0),
+      }));
+    } else {
+      setSubMachineOptions([]);
+    }
+  };
+
+  // Add handler for sub-machine selection
+  const handleSubMachineChange = (event, newValue) => {
+    if (newValue) {
+      setFormData((prev) => ({
+        ...prev,
+        SubMachineName: newValue.name,
+        hourlyRate: newValue.hourlyRate, // Sub-machine's hourlyRate
+        totalRate: (newValue.hourlyRate || 0) * (parseFloat(prev.hours) || 0),
+      }));
     }
   };
 
@@ -516,7 +533,7 @@ const ManufacturingVariable = ({
           totalRate: 0,
         });
         toast.success("Records Added Successfully");
-        setModalstatic_add(false); // Close the static add modal
+        setModalList(false); // Close the static add modal
       } else {
         throw new Error("Network response was not ok");
       }
@@ -828,6 +845,30 @@ const ManufacturingVariable = ({
               />
             </div>
 
+            {/* Sub Machine Selection */}
+            {subMachineOptions.length > 0 && (
+              <div className="mb-3">
+                <label htmlFor="subMachine" className="form-label">
+                  Sub Machine
+                </label>
+                <Autocomplete
+                  options={subMachineOptions}
+                  getOptionLabel={(option) =>
+                    `${option.subcategoryId} - ${option.name}`
+                  }
+                  onChange={handleSubMachineChange}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Select Sub Machine"
+                      variant="outlined"
+                      required={subMachineOptions.length > 0}
+                    />
+                  )}
+                />
+              </div>
+            )}
+
             <div className="mb-3">
               <label htmlFor="time-select">Time</label>
               <div className="input-group">
@@ -857,7 +898,7 @@ const ManufacturingVariable = ({
               </div>
             </div>
 
-            <div className="mb-3">
+            <div className="mb-3" style={{ display: "none" }}>
               <label htmlFor="hours" className="form-label">
                 Hours
               </label>

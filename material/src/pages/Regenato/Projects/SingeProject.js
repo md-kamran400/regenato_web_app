@@ -305,7 +305,7 @@ const SingeProject = () => {
 
       const newSubAssembly = await response.json();
       setSubAssemblyItems((prevItems) => [...prevItems, newSubAssembly]);
-      setModalAddSubassembly(false);
+      setModalAddSubAssembly(false);
       setSelectedSubAssembly(null);
       setSubAssemblyName("");
       setSubAssemblyNumber("");
