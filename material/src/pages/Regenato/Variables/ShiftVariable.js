@@ -19,11 +19,14 @@ import { MdOutlineDelete } from "react-icons/md";
 const ShiftVariable = () => {
   const [shiftData, setShiftData] = useState([]);
   const [modalOpen, setModalOpen] = useState(false);
+  // Update the initial formData state:
   const [formData, setFormData] = useState({
     categoryId: "",
     name: "",
     StartTime: "",
     EndTime: "",
+    LaunchStartTime: "",
+    LaunchEndTime: "",
     TotalHours: "",
   });
   const [posting, setPosting] = useState(false);
@@ -41,6 +44,7 @@ const ShiftVariable = () => {
     setModal_delete(true);
   };
 
+  // Update the handleEdit function to include new fields:
   const handleEdit = (shift) => {
     setSelectedShift(shift);
     setFormData({
@@ -48,6 +52,8 @@ const ShiftVariable = () => {
       name: shift.name,
       StartTime: shift.StartTime,
       EndTime: shift.EndTime,
+      LaunchStartTime: shift.LaunchStartTime,
+      LaunchEndTime: shift.LaunchEndTime,
       TotalHours: shift.TotalHours,
     });
     setEditModalOpen(true);
@@ -90,19 +96,67 @@ const ShiftVariable = () => {
     }
   };
 
+  // Update the handleChange function to calculate launch times:
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData({
+    const newFormData = {
       ...formData,
       [name]: value,
-      TotalHours:
-        name === "StartTime" || name === "EndTime"
-          ? calculateTotalHours(
-              name === "StartTime" ? value : formData.StartTime,
-              name === "EndTime" ? value : formData.EndTime
-            )
-          : formData.TotalHours,
-    });
+    };
+
+    // Calculate TotalHours if StartTime or EndTime changes
+    if (name === "StartTime" || name === "EndTime") {
+      newFormData.TotalHours = calculateTotalHours(
+        name === "StartTime" ? value : formData.StartTime,
+        name === "EndTime" ? value : formData.EndTime
+      );
+
+      // Calculate launch times when times change
+      if (newFormData.StartTime && newFormData.EndTime) {
+        const launchTimes = calculateLaunchTimes(
+          newFormData.StartTime,
+          newFormData.EndTime
+        );
+        newFormData.LaunchStartTime = launchTimes.launchStart;
+        newFormData.LaunchEndTime = launchTimes.launchEnd;
+      }
+    }
+
+    setFormData(newFormData);
+  };
+
+  // Add this new function to calculate launch times:
+  const calculateLaunchTimes = (startTime, endTime) => {
+    if (!startTime || !endTime) return { launchStart: "", launchEnd: "" };
+
+    const start = new Date(`2000-01-01T${startTime}:00`);
+    const end = new Date(`2000-01-01T${endTime}:00`);
+
+    // If end time is next day (like 02:00), add 24 hours
+    if (end <= start) {
+      end.setHours(end.getHours() + 24);
+    }
+
+    // Calculate midpoint of the shift
+    const midpoint = new Date(
+      start.getTime() + (end.getTime() - start.getTime()) / 2
+    );
+
+    // Set launch break to be 1 hour centered around midpoint (30 min before and after)
+    const launchStart = new Date(midpoint.getTime() - 30 * 60000);
+    const launchEnd = new Date(midpoint.getTime() + 30 * 60000);
+
+    // Format back to HH:mm
+    const formatTime = (date) => {
+      const hours = date.getHours().toString().padStart(2, "0");
+      const mins = date.getMinutes().toString().padStart(2, "0");
+      return `${hours}:${mins}`;
+    };
+
+    return {
+      launchStart: formatTime(launchStart),
+      launchEnd: formatTime(launchEnd),
+    };
   };
 
   const calculateTotalHours = (start, end) => {
@@ -179,7 +233,7 @@ const ShiftVariable = () => {
       <ToastContainer position="top-right" autoClose={3000} />
       <Row>
         <Col lg={12}>
-          <Card style={{marginBottom:'10rem'}}>
+          <Card style={{ marginBottom: "10rem" }}>
             <CardHeader>
               <h4 className="card-title mb-0">Shift Variables</h4>
             </CardHeader>
@@ -218,6 +272,8 @@ const ShiftVariable = () => {
                       <th>Name</th>
                       <th>Start Time</th>
                       <th>End Time</th>
+                      <th>Launch Start</th>
+                      <th>Launch End</th>
                       <th>Total Hours</th>
                       <th>Action</th>
                     </tr>
@@ -230,6 +286,8 @@ const ShiftVariable = () => {
                           <td>{shift.name}</td>
                           <td>{shift.StartTime}</td>
                           <td>{shift.EndTime}</td>
+                          <td>{shift.LaunchStartTime}</td>
+                          <td>{shift.LaunchEndTime}</td>
                           <td>{shift.TotalHours}</td>
                           <td>
                             <div className="d-flex gap-2">
@@ -300,30 +358,61 @@ const ShiftVariable = () => {
                 required
               />
             </div>
-            <div className="mb-3">
-              <label className="form-label">Start Time</label>
-              <input
-                type="time"
-                className="form-control"
-                name="StartTime"
-                value={formData.StartTime}
-                onChange={handleChange}
-                required
-              />
+
+            {/* Shift Times Row */}
+            <div className="d-flex gap-3 mb-3">
+              <div className="flex-grow-1">
+                <label className="form-label">Start Time</label>
+                <input
+                  type="time"
+                  className="form-control"
+                  name="StartTime"
+                  value={formData.StartTime}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+              <div className="flex-grow-1">
+                <label className="form-label">End Time</label>
+                <input
+                  type="time"
+                  className="form-control"
+                  name="EndTime"
+                  value={formData.EndTime}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
             </div>
-            <div className="mb-3">
-              <label className="form-label">End Time</label>
-              <input
-                type="time"
-                className="form-control"
-                name="EndTime"
-                value={formData.EndTime}
-                onChange={handleChange}
-                required
-              />
+
+            {/* Launch Times Row */}
+            <div className="d-flex gap-3 mb-3">
+              <div className="flex-grow-1">
+                <label className="form-label">Launch Start Time</label>
+                <input
+                  type="time"
+                  className="form-control"
+                  name="LaunchStartTime"
+                  value={formData.LaunchStartTime}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+              <div className="flex-grow-1">
+                <label className="form-label">Launch End Time</label>
+                <input
+                  type="time"
+                  className="form-control"
+                  name="LaunchEndTime"
+                  value={formData.LaunchEndTime}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
             </div>
+
             <div className="mb-3">
-              <label className="form-label">Total Hours</label>
+              <label className="form-label">Total Working Hours</label>
               <input
                 type="text"
                 className="form-control"
@@ -397,6 +486,28 @@ const ShiftVariable = () => {
                 className="form-control"
                 name="EndTime"
                 value={formData.EndTime}
+                onChange={handleChange}
+                required
+              />
+            </div>
+            <div className="mb-3">
+              <label className="form-label">Launch Start Time</label>
+              <input
+                type="time"
+                className="form-control"
+                name="LaunchStartTime"
+                value={formData.LaunchStartTime}
+                onChange={handleChange}
+                required
+              />
+            </div>
+            <div className="mb-3">
+              <label className="form-label">Launch End Time</label>
+              <input
+                type="time"
+                className="form-control"
+                name="LaunchEndTime"
+                value={formData.LaunchEndTime}
                 onChange={handleChange}
                 required
               />

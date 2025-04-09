@@ -216,18 +216,18 @@ const ManufacturingVariable = ({
   }, [partDetails, fetchManufacturingData]);
 
   // If you want to ensure the data is sorted even after local updates:
-  useEffect(() => {
-    const sortedData = [...manufacturingData].sort((a, b) => {
-      const numA = parseInt(a.categoryId.replace(/\D/g, "")) || 0;
-      const numB = parseInt(b.categoryId.replace(/\D/g, "")) || 0;
-      return numA - numB;
-    });
+  // useEffect(() => {
+  //   const sortedData = [...manufacturingData].sort((a, b) => {
+  //     const numA = parseInt(a.categoryId.replace(/\D/g, "")) || 0;
+  //     const numB = parseInt(b.categoryId.replace(/\D/g, "")) || 0;
+  //     return numA - numB;
+  //   });
 
-    // Only update if the order actually changed
-    if (JSON.stringify(sortedData) !== JSON.stringify(manufacturingData)) {
-      setManufacturingData(sortedData);
-    }
-  }, [manufacturingData]);
+  //   // Only update if the order actually changed
+  //   if (JSON.stringify(sortedData) !== JSON.stringify(manufacturingData)) {
+  //     setManufacturingData(sortedData);
+  //   }
+  // }, [manufacturingData]);
 
   useEffect(() => {
     const total = manufacturingData.reduce(
@@ -547,7 +547,10 @@ const ManufacturingVariable = ({
       }
 
       const result = await response.json();
+
+      // Update the local state with the new order
       setManufacturingData(result.manufacturingVariables);
+
       toast.success("Variables reordered successfully");
     } catch (error) {
       console.error("Error reordering variables:", error);
@@ -766,14 +769,16 @@ const ManufacturingVariable = ({
                       <button
                         className="btn btn-sm btn-primary"
                         onClick={() => handleReorder(item._id, "up")}
-                        disabled={index === 0}
+                        disabled={index === 0 || posting}
                       >
                         ↑
                       </button>
                       <button
                         className="btn btn-sm btn-primary"
                         onClick={() => handleReorder(item._id, "down")}
-                        disabled={index === manufacturingData.length - 1}
+                        disabled={
+                          index === manufacturingData.length - 1 || posting
+                        }
                       >
                         ↓
                       </button>
