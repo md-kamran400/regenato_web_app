@@ -575,14 +575,14 @@ PartRoutes.get("/:partId/manufacturingVariables", async (req, res) => {
     // Sort by categoryId first, then by index
     const sortedVariables = part.manufacturingVariables.sort((a, b) => {
       // Extract numeric parts from categoryId (e.g., "C1" -> 1, "C10" -> 10)
-      const numA = parseInt(a.categoryId.replace(/\D/g, '')) || 0;
-      const numB = parseInt(b.categoryId.replace(/\D/g, '')) || 0;
-      
+      const numA = parseInt(a.categoryId.replace(/\D/g, "")) || 0;
+      const numB = parseInt(b.categoryId.replace(/\D/g, "")) || 0;
+
       // First sort by numeric part of categoryId
       if (numA !== numB) {
         return numA - numB;
       }
-      
+
       // If categoryIds are equal, sort by index
       return (a.index || 0) - (b.index || 0);
     });
@@ -593,54 +593,20 @@ PartRoutes.get("/:partId/manufacturingVariables", async (req, res) => {
   }
 });
 
-
-// Update your route to handle the reorder endpoint properly
-PartRoutes.put("/:partId/manufacturingVariables/reorder", async (req, res) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
-  try {
-    const { partId } = req.params;  // Changed from _id to partId for clarity
-    const { startIndex, endIndex } = req.body;
-
-    // Validate partId is a valid ObjectId
-    if (!mongoose.Types.ObjectId.isValid(partId)) {
-      await session.abortTransaction();
-      return res.status(400).json({ message: "Invalid part ID" });
-    }
-
-    const part = await PartsModel.findById(partId).session(session);
-    if (!part) {
-      await session.abortTransaction();
-      return res.status(404).json({ message: "Part not found" });
-    }
-
-    // Create a new array with the reordered items
-    const variables = [...part.manufacturingVariables];
-    const [movedItem] = variables.splice(startIndex, 1);
-    variables.splice(endIndex, 0, movedItem);
-
-    // Update indexes
-    variables.forEach((item, index) => {
-      item.index = index;
-    });
-
-    part.manufacturingVariables = variables;
-    await part.save({ session });
-    await session.commitTransaction();
-
-    res.status(200).json({ message: "Reordered successfully" });
-  } catch (error) {
-    await session.abortTransaction();
-    console.error("Reorder error:", error);
-    res.status(500).json({ 
-      message: "Failed to reorder",
-      error: error.message 
-    });
-  } finally {
-    session.endSession();
-  }
-});
+// PartRoutes.get("/:_id/manufacturingVariables", async (req, res) => {
+//   try {
+//     const part = await PartsModel.findById(
+//       req.params._id,
+//       "manufacturingVariables"
+//     );
+//     if (!part) {
+//       return res.status(404).json({ message: "Part not found" });
+//     }
+//     res.status(200).json(part.manufacturingVariables);
+//   } catch (error) {
+//     res.status(500).json({ message: error.message });
+//   }
+// });
 
 PartRoutes.post("/:_id/manufacturingVariables", async (req, res) => {
   try {
@@ -669,6 +635,56 @@ PartRoutes.post("/:_id/manufacturingVariables", async (req, res) => {
     res.status(201).json(updatedPart);
   } catch (error) {
     res.status(400).json({ message: error.message });
+  }
+});
+
+// Add the reorder route BEFORE the variableId route
+PartRoutes.put("/:partId/manufacturing-reorder", async (req, res) => {
+  try {
+    const { partId } = req.params;
+    const { variableId, direction } = req.body;
+
+    const part = await PartsModel.findById(partId);
+    if (!part) {
+      return res.status(404).json({ message: "Part not found" });
+    }
+
+    const currentIndex = part.manufacturingVariables.findIndex(
+      v => v._id.toString() === variableId
+    );
+    
+    if (currentIndex === -1) {
+      return res.status(404).json({ message: "Variable not found" });
+    }
+
+    let newIndex;
+    if (direction === 'up' && currentIndex > 0) {
+      newIndex = currentIndex - 1;
+    } else if (direction === 'down' && currentIndex < part.manufacturingVariables.length - 1) {
+      newIndex = currentIndex + 1;
+    } else {
+      return res.status(400).json({ message: "Invalid move operation" });
+    }
+
+    // Reorder the array
+    const variableToMove = part.manufacturingVariables[currentIndex];
+    part.manufacturingVariables.splice(currentIndex, 1);
+    part.manufacturingVariables.splice(newIndex, 0, variableToMove);
+
+    // Update indexes
+    part.manufacturingVariables.forEach((item, index) => {
+      item.index = index;
+    });
+
+    await part.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Variables reordered successfully",
+      manufacturingVariables: part.manufacturingVariables
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 });
 
