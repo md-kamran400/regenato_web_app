@@ -134,7 +134,7 @@ const List = () => {
 
   const [modal_duplicate, setModalDuplicate] = useState(false);
   const [itemToDuplicate, setItemToDuplicate] = useState(null);
-  
+
   // Replace the existing handleDuplicateProject function with these:
   const handleDuplicateClick = (item) => {
     setItemToDuplicate(item);
@@ -187,33 +187,33 @@ const List = () => {
   // };
 
   //filter
-  
+
   const handleDuplicateConfirm = async () => {
-  if (!itemToDuplicate) return;
-  
-  try {
-    const response = await fetch(
-      `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${itemToDuplicate._id}/duplicate`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+    if (!itemToDuplicate) return;
+
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${itemToDuplicate._id}/duplicate`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      if (!response.ok) {
+        throw new Error("Failed to duplicate project");
       }
-    );
-    if (!response.ok) {
-      throw new Error("Failed to duplicate project");
+      const duplicatedProject = await response.json();
+      setprojectListsData((prevData) => [...prevData, duplicatedProject]);
+      toast.success("Project duplicated successfully!");
+    } catch (error) {
+      toast.error(`Error duplicating project: ${error.message}`);
+    } finally {
+      setModalDuplicate(false);
+      setItemToDuplicate(null);
     }
-    const duplicatedProject = await response.json();
-    setprojectListsData((prevData) => [...prevData, duplicatedProject]);
-    toast.success("Project duplicated successfully!");
-  } catch (error) {
-    toast.error(`Error duplicating project: ${error.message}`);
-  } finally {
-    setModalDuplicate(false);
-    setItemToDuplicate(null);
-  }
-};
+  };
   const handleFilterChange = (e) => {
     setFilterType(e.target.value);
   };
@@ -293,39 +293,38 @@ const List = () => {
   //   }
   // }, [filterType]);
 
-
   // In List.js, modify the fetchData function to ensure it's always fresh
-const fetchData = useCallback(async () => {
-  setIsLoading(true);
-  setError(null);
-  try {
-    const response = await fetch(
-      `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects?filterType=${filterType}`
-    );
-    if (!response.ok) {
-      throw new Error("Failed to fetch projects");
+  const fetchData = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects?filterType=${filterType}`
+      );
+      if (!response.ok) {
+        throw new Error("Failed to fetch projects");
+      }
+      const data = await response.json();
+      // Ensure calculations are done for each project
+      const projectsWithCalculations = await Promise.all(
+        data.map(async (project) => {
+          const projectResponse = await fetch(
+            `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${project._id}`
+          );
+          return projectResponse.json();
+        })
+      );
+      setprojectListsData(projectsWithCalculations);
+      if (initialLoad) {
+        setFilterType(""); // Set filter to empty string on initial load
+        setInitialLoad(false);
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
     }
-    const data = await response.json();
-    // Ensure calculations are done for each project
-    const projectsWithCalculations = await Promise.all(
-      data.map(async (project) => {
-        const projectResponse = await fetch(
-          `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${project._id}`
-        );
-        return projectResponse.json();
-      })
-    );
-    setprojectListsData(projectsWithCalculations);
-    if (initialLoad) {
-      setFilterType(""); // Set filter to empty string on initial load
-      setInitialLoad(false);
-    }
-  } catch (err) {
-    setError(err.message);
-  } finally {
-    setIsLoading(false);
-  }
-}, [filterType]);
+  }, [filterType]);
 
   useEffect(() => {
     fetchData();
@@ -607,16 +606,65 @@ const fetchData = useCallback(async () => {
     }
   };
 
+  // const getStatus = (project) => {
+  //   let status = "On Track";
+  //   let statusColor = "primary";
+
+  //   const checkAllocations = (list) => {
+  //     list.forEach((partsList) => {
+  //       partsList.partsListItems.forEach((item) => {
+  //         item.allocations.forEach((allocationGroup) => {
+  //           allocationGroup.allocations.forEach((allocation) => {
+  //             if (allocation.actualEndDate && allocation.endDate) {
+  //               const actualEnd = new Date(allocation.actualEndDate);
+  //               const plannedEnd = new Date(allocation.endDate);
+
+  //               if (actualEnd > plannedEnd) {
+  //                 status = "Delayed";
+  //                 statusColor = "danger";
+  //               } else if (actualEnd < plannedEnd) {
+  //                 status = "Ahead";
+  //                 statusColor = "success";
+  //               }
+  //             }
+  //           });
+  //         });
+  //       });
+  //     });
+  //   };
+
+  //   checkAllocations(project.partsLists);
+  //   checkAllocations(project.subAssemblyListFirst);
+  //   checkAllocations(project.assemblyList);
+
+  //   return <Badge color={statusColor}>{status}</Badge>;
+  // };
+
+  // In your List component, add this function
+
   const getStatus = (project) => {
     let status = "On Track";
     let statusColor = "primary";
 
     const checkAllocations = (list) => {
+      // Check if list exists and is an array
+      if (!Array.isArray(list)) return;
+
       list.forEach((partsList) => {
+        // Check if partsList and partsListItems exist
+        if (!partsList || !Array.isArray(partsList.partsListItems)) return;
+
         partsList.partsListItems.forEach((item) => {
+          // Check if item and allocations exist
+          if (!item || !Array.isArray(item.allocations)) return;
+
           item.allocations.forEach((allocationGroup) => {
+            // Check if allocationGroup and allocations exist
+            if (!allocationGroup || !Array.isArray(allocationGroup.allocations))
+              return;
+
             allocationGroup.allocations.forEach((allocation) => {
-              if (allocation.actualEndDate && allocation.endDate) {
+              if (allocation?.actualEndDate && allocation?.endDate) {
                 const actualEnd = new Date(allocation.actualEndDate);
                 const plannedEnd = new Date(allocation.endDate);
 
@@ -634,14 +682,15 @@ const fetchData = useCallback(async () => {
       });
     };
 
-    checkAllocations(project.partsLists);
-    checkAllocations(project.subAssemblyListFirst);
-    checkAllocations(project.assemblyList);
+    // Check each list with proper null checks
+    if (project.partsLists) checkAllocations(project.partsLists);
+    if (project.subAssemblyListFirst)
+      checkAllocations(project.subAssemblyListFirst);
+    if (project.assemblyList) checkAllocations(project.assemblyList);
 
     return <Badge color={statusColor}>{status}</Badge>;
   };
 
-  // In your List component, add this function
   const getMachineHours = (project, machineName) => {
     return project.machineHours && project.machineHours[machineName]
       ? project.machineHours[machineName]
@@ -772,7 +821,7 @@ const fetchData = useCallback(async () => {
                 </tr>
               </thead>
               <tbody>
-                {paginatedData.map((item, index) => (
+                {paginatedData?.map((item, index) => (
                   <tr key={index}>
                     <td
                       className="sticky-col"
@@ -786,7 +835,9 @@ const fetchData = useCallback(async () => {
                       </Link>
                     </td>
                     <td>
-                      {new Date(item.createdAt).toISOString().split("T")[0]}
+                      {item.createdAt
+                        ? new Date(item.createdAt).toLocaleDateString()
+                        : "--"}
                     </td>
                     <td>{item.projectType}</td>
                     <td>{Math.ceil(item.costPerUnit)}</td>
@@ -1072,7 +1123,11 @@ const fetchData = useCallback(async () => {
       </Modal>
 
       {/* Duplicate Confirmation Modal */}
-      <Modal isOpen={modal_duplicate} toggle={() => setModalDuplicate(false)} centered>
+      <Modal
+        isOpen={modal_duplicate}
+        toggle={() => setModalDuplicate(false)}
+        centered
+      >
         <ModalHeader toggle={() => setModalDuplicate(false)}>
           Confirm Duplicate
         </ModalHeader>
@@ -1087,7 +1142,8 @@ const fetchData = useCallback(async () => {
             <div className="mt-4 pt-2 fs-15 mx-4 mx-sm-5">
               <h4>Duplicate Project</h4>
               <p className="text-muted mx-4 mb-0">
-                Are you sure you want to duplicate "{itemToDuplicate?.projectName}"?
+                Are you sure you want to duplicate "
+                {itemToDuplicate?.projectName}"?
               </p>
             </div>
           </div>
