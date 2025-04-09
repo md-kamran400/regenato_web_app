@@ -917,21 +917,6 @@ const PartsTable = React.memo(
             <ModalHeader toggle={toggleAddModal}>Add Part</ModalHeader>
             <ModalBody>
               <form onSubmit={handleSubmit}>
-                {/* <Autocomplete
-                  options={parts}
-                  getOptionLabel={(option) =>
-                    `${option.partName} - ${option.id}`
-                  }
-                  onChange={handleAutocompleteChange}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      label="Select Part"
-                      variant="outlined"
-                      // required
-                    />
-                  )}
-                /> */}
                 <Autocomplete
                   options={parts || []}
                   loading={loadingParts}
@@ -961,72 +946,6 @@ const PartsTable = React.memo(
                     />
                   )}
                 />
-                <div className="form-group" style={{ display: "none" }}>
-                  <Label for="partId" className="form-label">
-                    Part ID
-                  </Label>
-                  <Input
-                    className="form-control"
-                    type="text"
-                    id="partId"
-                    value={partId}
-                    onChange={(e) => setPartId(e.target.value)}
-                    // required
-                  />
-                </div>
-                <div className="form-group" style={{ display: "none" }}>
-                  <Label for="codeName" className="form-label">
-                    Code Name
-                  </Label>
-                  <Input
-                    className="form-control"
-                    type="text"
-                    id="codeName"
-                    value={codeName}
-                    onChange={(e) => setCodeName(e.target.value)}
-                    // required
-                  />
-                </div>
-                <div className="form-group" style={{ display: "none" }}>
-                  <Label for="costPerUnit" className="form-label">
-                    Cost Per Unit
-                  </Label>
-                  <Input
-                    className="form-control"
-                    type="number"
-                    step="any"
-                    id="costPerUnit"
-                    value={Math.round(costPerUnit)}
-                    onChange={(e) => setCostPerUnit(e.target.value)}
-                    // required
-                    onWheel={(e) => e.target.blur()}
-                    onKeyDown={(e) => {
-                      if (e.key === "ArrowUp" || e.key === "ArrowDown") {
-                        e.preventDefault();
-                      }
-                    }}
-                  />
-                </div>
-                <div className="form-group" style={{ display: "none" }}>
-                  <Label for="timePerUnit" className="form-label">
-                    Time Per Unit
-                  </Label>
-                  <Input
-                    className="form-control"
-                    type="number"
-                    step="any"
-                    id="timePerUnit"
-                    value={Math.round(timePerUnit)}
-                    onChange={(e) => setTimePerUnit(e.target.value)}
-                    // required
-                    onWheel={(e) => e.target.blur()}
-                    onKeyDown={(e) => {
-                      if (e.key === "ArrowUp" || e.key === "ArrowDown") {
-                        e.preventDefault();
-                      }
-                    }}
-                  />
-                </div>
 
                 <div className="form-group">
                   <Label for="quantity" className="form-label">

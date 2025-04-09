@@ -527,6 +527,36 @@ const ManufacturingVariable = ({
     }
   };
 
+  // Add the handleReorder function
+  const handleReorder = async (variableId, direction) => {
+    try {
+      setPosting(true);
+      const response = await fetch(
+        `${process.env.REACT_APP_BASE_URL}/api/parts/${partDetails._id}/manufacturing-reorder`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ variableId, direction }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to reorder variables");
+      }
+
+      const result = await response.json();
+      setManufacturingData(result.manufacturingVariables);
+      toast.success("Variables reordered successfully");
+    } catch (error) {
+      console.error("Error reordering variables:", error);
+      toast.error(error.message);
+    } finally {
+      setPosting(false);
+    }
+  };
+
   // Handle form submission for editing a variable (PUT request)
   const handleEditSubmit = async (e) => {
     e.preventDefault();
@@ -691,11 +721,12 @@ const ManufacturingVariable = ({
                 <th>Hourly Rate (INR)</th>
                 <th>Total Rate</th>
                 <th>Action</th>
+                <th>Reorder</th>
               </tr>
             </thead>
             <tbody>
-              {manufacturingData.map((item) => (
-                <tr key={item.id}>
+              {manufacturingData.map((item, index) => (
+                <tr key={item._id}>
                   {/* <td>
                     <div className="form-check">
                       <input className="form-check-input" type="checkbox" />
@@ -727,6 +758,24 @@ const ManufacturingVariable = ({
                         }}
                       >
                         Remove
+                      </button>
+                    </div>
+                  </td>
+                  <td>
+                    <div className="d-flex gap-1">
+                      <button
+                        className="btn btn-sm btn-primary"
+                        onClick={() => handleReorder(item._id, "up")}
+                        disabled={index === 0}
+                      >
+                        ↑
+                      </button>
+                      <button
+                        className="btn btn-sm btn-primary"
+                        onClick={() => handleReorder(item._id, "down")}
+                        disabled={index === manufacturingData.length - 1}
+                      >
+                        ↓
                       </button>
                     </div>
                   </td>
