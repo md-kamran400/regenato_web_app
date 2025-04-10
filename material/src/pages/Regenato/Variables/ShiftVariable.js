@@ -388,7 +388,7 @@ const ShiftVariable = () => {
             {/* Launch Times Row */}
             <div className="d-flex gap-3 mb-3">
               <div className="flex-grow-1">
-                <label className="form-label">Launch Start Time</label>
+                <label className="form-label">Break Start Time</label>
                 <input
                   type="time"
                   className="form-control"
@@ -399,7 +399,7 @@ const ShiftVariable = () => {
                 />
               </div>
               <div className="flex-grow-1">
-                <label className="form-label">Launch End Time</label>
+                <label className="form-label">Break End Time</label>
                 <input
                   type="time"
                   className="form-control"
@@ -491,7 +491,7 @@ const ShiftVariable = () => {
               />
             </div>
             <div className="mb-3">
-              <label className="form-label">Launch Start Time</label>
+              <label className="form-label">Break Start Time</label>
               <input
                 type="time"
                 className="form-control"
@@ -502,7 +502,7 @@ const ShiftVariable = () => {
               />
             </div>
             <div className="mb-3">
-              <label className="form-label">Launch End Time</label>
+              <label className="form-label">Break End Time</label>
               <input
                 type="time"
                 className="form-control"

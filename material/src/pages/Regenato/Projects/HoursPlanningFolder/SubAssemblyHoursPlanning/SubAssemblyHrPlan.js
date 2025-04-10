@@ -55,25 +55,72 @@ export const SubAssemblyHrPlan = ({
   const [allocatedMachines, setAllocatedMachines] = useState({});
   const [operatorAllocations, setOperatorAllocations] = useState({});
 
+  // useEffect(() => {
+  //   fetch(`${process.env.REACT_APP_BASE_URL}/api/eventScheduler/events`)
+  //     .then((response) => response.json())
+  //     .then((data) => {
+  //       let allDates = [];
+
+  //       data.forEach((event) => {
+  //         let currentDate = new Date(event.startDate);
+  //         const endDate = new Date(event.endDate);
+
+  //         while (currentDate <= endDate) {
+  //           allDates.push(new Date(currentDate)); // Add each date to the list
+  //           currentDate.setDate(currentDate.getDate() + 1); // Move to next day
+  //         }
+  //       });
+
+  //       setEventDates(allDates);
+  //     })
+  //     .catch((error) => console.error("Error fetching events:", error));
+  // }, []);
+
+  // Modify the shift data processing to include break duration
   useEffect(() => {
-    fetch(`${process.env.REACT_APP_BASE_URL}/api/eventScheduler/events`)
-      .then((response) => response.json())
-      .then((data) => {
-        let allDates = [];
+    const fetchShifts = async () => {
+      try {
+        const response = await fetch(
+          `${process.env.REACT_APP_BASE_URL}/api/shiftVariable`
+        );
+        const data = await response.json();
+        if (response.ok) {
+          const formattedShifts = data.map((shift) => {
+            // Calculate total working minutes (subtract break time)
+            const start = new Date(`2000-01-01T${shift.StartTime}:00`);
+            const end = new Date(`2000-01-01T${shift.EndTime}:00`);
+            const launchStart = new Date(
+              `2000-01-01T${shift.LaunchStartTime}:00`
+            );
+            const launchEnd = new Date(`2000-01-01T${shift.LaunchEndTime}:00`);
 
-        data.forEach((event) => {
-          let currentDate = new Date(event.startDate);
-          const endDate = new Date(event.endDate);
+            // Total shift duration in minutes
+            const totalShiftMinutes = (end - start) / (1000 * 60);
+            // Break duration in minutes
+            const breakMinutes = (launchEnd - launchStart) / (1000 * 60);
+            // Actual working minutes
+            const workingMinutes = totalShiftMinutes - breakMinutes;
 
-          while (currentDate <= endDate) {
-            allDates.push(new Date(currentDate)); // Add each date to the list
-            currentDate.setDate(currentDate.getDate() + 1); // Move to next day
-          }
-        });
+            return {
+              name: shift.name,
+              _id: shift._id,
+              startTime: shift.StartTime,
+              endTime: shift.EndTime,
+              breakStartTime: shift.LaunchStartTime,
+              breakEndTime: shift.LaunchEndTime,
+              totalShiftMinutes, // Total shift duration including breaks
+              workingMinutes, // Actual working minutes (excluding breaks)
+              breakMinutes, // Break duration
+            };
+          });
+          setShiftOptions(formattedShifts);
+        }
+      } catch (error) {
+        console.error("Error fetching shifts:", error);
+      }
+    };
 
-        setEventDates(allDates);
-      })
-      .catch((error) => console.error("Error fetching events:", error));
+    fetchShifts();
   }, []);
 
   useEffect(() => {
@@ -220,6 +267,96 @@ export const SubAssemblyHrPlan = ({
     };
   };
 
+  // const calculateEndDateWithDowntime = (
+  //   startDate,
+  //   plannedMinutes,
+  //   shiftMinutes = 480,
+  //   machine
+  // ) => {
+  //   if (!startDate || !plannedMinutes) return "";
+
+  //   let parsedDate = new Date(startDate);
+  //   if (isNaN(parsedDate.getTime())) return "";
+
+  //   let remainingMinutes = plannedMinutes;
+  //   let currentDate = new Date(parsedDate);
+  //   let totalDowntimeAdded = 0;
+
+  //   // First, find all downtime periods that overlap with our scheduling window
+  //   const relevantDowntimes =
+  //     machine?.downtimeHistory?.filter((downtime) => {
+  //       if (downtime.isCompleted) return false;
+
+  //       const downtimeStart = new Date(downtime.startTime);
+  //       const downtimeEnd = new Date(downtime.endTime);
+
+  //       // Check if downtime overlaps with our scheduling period
+  //       return (
+  //         (downtimeStart <= currentDate && downtimeEnd >= currentDate) || // Downtime encompasses current date
+  //         downtimeStart >= currentDate // Downtime starts in the future
+  //       );
+  //     }) || [];
+
+  //   // Sort downtimes by start time
+  //   relevantDowntimes.sort(
+  //     (a, b) => new Date(a.startTime) - new Date(b.startTime)
+  //   );
+
+  //   while (remainingMinutes > 0) {
+  //     // Skip non-working days (Sundays and holidays)
+  //     while (
+  //       getDay(currentDate) === 0 ||
+  //       eventDates.some((d) => isSameDay(d, currentDate))
+  //     ) {
+  //       currentDate.setDate(currentDate.getDate() + 1);
+  //     }
+
+  //     // Check for downtime on this day
+  //     const todaysDowntime = relevantDowntimes.find((downtime) => {
+  //       const downtimeStart = new Date(downtime.startTime);
+  //       return isSameDay(downtimeStart, currentDate);
+  //     });
+
+  //     if (todaysDowntime) {
+  //       // Calculate downtime duration in minutes
+  //       const downtimeStart = new Date(todaysDowntime.startTime);
+  //       const downtimeEnd = new Date(todaysDowntime.endTime);
+  //       const downtimeMinutes = Math.ceil(
+  //         (downtimeEnd - downtimeStart) / (1000 * 60)
+  //       );
+
+  //       // Add downtime to the total work needed
+  //       remainingMinutes += downtimeMinutes;
+  //       totalDowntimeAdded += downtimeMinutes;
+  //     }
+
+  //     // Subtract a day's worth of work
+  //     const minutesToDeduct = Math.min(remainingMinutes, shiftMinutes);
+  //     remainingMinutes -= minutesToDeduct;
+
+  //     // Move to next day if there's still work remaining
+  //     if (remainingMinutes > 0) {
+  //       currentDate.setDate(currentDate.getDate() + 1);
+  //     }
+  //   }
+
+  //   // Update the row with total downtime added
+  //   setRows((prevRows) => {
+  //     const updatedRows = { ...prevRows };
+  //     if (updatedRows[index]?.[rowIndex]) {
+  //       updatedRows[index][rowIndex] = {
+  //         ...updatedRows[index][rowIndex],
+  //         totalDowntimeAdded,
+  //       };
+  //     }
+  //     return updatedRows;
+  //   });
+
+  //   return currentDate.toISOString().split("T")[0];
+  // };
+
+  // Helper functions for machine status
+
   const getMachineStatus = (machine, startDate, endDate, allocatedMachines) => {
     const downtimeInfo = isMachineOnDowntimeDuringPeriod(
       machine,
@@ -360,6 +497,28 @@ export const SubAssemblyHrPlan = ({
 
     return <div className={className}>{day}</div>;
   };
+
+  // useEffect(() => {
+  //   const initialRows = manufacturingVariables.reduce((acc, man, index) => {
+  //     acc[index] = [
+  //       {
+  //         plannedQuantity: isAutoSchedule ? quantity : "",
+  //         plannedQtyTime: isAutoSchedule
+  //           ? calculatePlannedMinutes(quantity * man.hours)
+  //           : "",
+  //         startDate: "",
+  //         startTime: "",
+  //         endDate: "",
+  //         machineId: "",
+  //         shift: "",
+  //         processName: man.name,
+  //       },
+  //     ];
+  //     return acc;
+  //   }, {});
+
+  //   setRows(initialRows);
+  // }, [manufacturingVariables, quantity, isAutoSchedule]);
 
   useEffect(() => {
     const initialRows = manufacturingVariables.reduce((acc, man, index) => {
@@ -510,7 +669,29 @@ export const SubAssemblyHrPlan = ({
     fetchMachines();
   }, [manufacturingVariables]);
 
-  // console.log("Machine Options:", machineOptions);
+  console.log("Machine Options:", machineOptions);
+
+  // useEffect(() => {
+  //   // Only initialize rows with empty data
+  //   const initialRows = manufacturingVariables.reduce((acc, man, index) => {
+  //     acc[index] = [
+  //       {
+  //         // partType: "Make",
+  //         plannedQuantity: quantity,
+  //         startDate: "",
+  //         startTime: "",
+  //         endDate: "",
+  //         machineId: "",
+  //         shift: "",
+  //         plannedQtyTime: calculatePlannedMinutes(man.hours * quantity),
+  //         processName: man.name,
+  //       },
+  //     ];
+  //     return acc;
+  //   }, {});
+
+  //   setRows(initialRows);
+  // }, [manufacturingVariables, quantity]);
 
   // And ensure your initial rows useEffect accounts for this:
   useEffect(() => {
@@ -539,14 +720,17 @@ export const SubAssemblyHrPlan = ({
     return Math.ceil(hours * 60);
   };
 
-  const calculateEndDate = (startDate, plannedMinutes, shiftMinutes = 480) => {
+  const calculateEndDate = (startDate, plannedMinutes, shift) => {
     if (!startDate || !plannedMinutes) return "";
 
     let parsedDate = new Date(startDate);
     if (isNaN(parsedDate.getTime())) return "";
 
+    // Use working minutes from shift (excluding breaks)
+    const workingMinutesPerDay = shift?.workingMinutes || 450; // Default to 7.5 hours if no shift
+
     // Calculate total number of full working days needed
-    let totalDays = Math.ceil(plannedMinutes / shiftMinutes);
+    let totalDays = Math.ceil(plannedMinutes / workingMinutesPerDay);
     let currentDate = new Date(parsedDate);
     let daysAdded = 0;
 
@@ -640,14 +824,18 @@ export const SubAssemblyHrPlan = ({
     return `${year}-${month}-${day}`; // Format: YYYY-MM-DD
   };
 
-  const calculateStartAndEndDates = (
-    inputStartDate,
-    plannedMinutes,
-    shiftMinutes = 480
-  ) => {
+  // const getNextWorkingDay = (date) => {
+  //   let nextDay = new Date(date);
+  //   while (isHighlightedOrDisabled(nextDay)) {
+  //     nextDay.setDate(nextDay.getDate() + 1);
+  //   }
+  //   return nextDay;
+  // };
+
+  const calculateStartAndEndDates = (inputStartDate, plannedMinutes, shift) => {
     let parsedStartDate = new Date(inputStartDate);
     let remainingMinutes = plannedMinutes;
-    let totalShiftMinutes = shiftMinutes;
+    let workingMinutesPerDay = shift?.workingMinutes || 450; // Default to 7.5 hours
     let currentDate = new Date(parsedStartDate);
 
     // Skip holidays or Sundays initially
@@ -668,7 +856,7 @@ export const SubAssemblyHrPlan = ({
         getDay(currentDate) !== 0 &&
         !eventDates.some((d) => isSameDay(d, currentDate))
       ) {
-        remainingMinutes -= totalShiftMinutes;
+        remainingMinutes -= workingMinutesPerDay;
       }
 
       // If remaining minutes still left, go to next day
@@ -828,7 +1016,7 @@ export const SubAssemblyHrPlan = ({
   const calculateEndDateWithDowntime = (
     startDate,
     plannedMinutes,
-    shiftMinutes = 480,
+    shift,
     machine,
     currentIndex,
     currentRowIndex
@@ -841,6 +1029,7 @@ export const SubAssemblyHrPlan = ({
     let remainingMinutes = plannedMinutes;
     let currentDate = new Date(parsedDate);
     let totalDowntimeAdded = 0;
+    const workingMinutesPerDay = shift?.workingMinutes || 450; // Default to 7.5 hours
 
     while (remainingMinutes > 0) {
       // Skip non-working days
@@ -856,7 +1045,7 @@ export const SubAssemblyHrPlan = ({
         const downtimeInfo = isMachineOnDowntimeDuringPeriod(
           machine,
           currentDate,
-          new Date(currentDate.getTime() + shiftMinutes * 60000)
+          new Date(currentDate.getTime() + workingMinutesPerDay * 60000)
         );
 
         if (downtimeInfo.isDowntime) {
@@ -865,7 +1054,7 @@ export const SubAssemblyHrPlan = ({
         }
       }
 
-      const minutesToDeduct = Math.min(remainingMinutes, shiftMinutes);
+      const minutesToDeduct = Math.min(remainingMinutes, workingMinutesPerDay);
       remainingMinutes -= minutesToDeduct;
 
       if (remainingMinutes > 0) {
@@ -1078,18 +1267,49 @@ export const SubAssemblyHrPlan = ({
   };
 
   // Add this function in your component
-  const calculateEndTime = (startTime, plannedMinutes) => {
+  const calculateEndTime = (startTime, plannedMinutes, shift) => {
     if (!startTime || !plannedMinutes) return "";
 
     // Parse the start time (format: "HH:MM")
     const [hours, minutes] = startTime.split(":").map(Number);
-
-    // Create a date object (we just need it for calculations)
-    const date = new Date();
+    let date = new Date();
     date.setHours(hours, minutes, 0, 0);
 
-    // Add the planned minutes
-    date.setMinutes(date.getMinutes() + plannedMinutes);
+    // If we have shift data with break times
+    if (shift && shift.breakStartTime && shift.breakEndTime) {
+      const [breakStartHour, breakStartMinute] = shift.breakStartTime
+        .split(":")
+        .map(Number);
+      const [breakEndHour, breakEndMinute] = shift.breakEndTime
+        .split(":")
+        .map(Number);
+
+      const breakStart = new Date(date);
+      breakStart.setHours(breakStartHour, breakStartMinute, 0, 0);
+
+      const breakEnd = new Date(date);
+      breakEnd.setHours(breakEndHour, breakEndMinute, 0, 0);
+
+      let remainingMinutes = plannedMinutes;
+
+      // Work until break starts
+      const minutesUntilBreak = (breakStart - date) / (1000 * 60);
+      if (remainingMinutes <= minutesUntilBreak) {
+        date.setMinutes(date.getMinutes() + remainingMinutes);
+        remainingMinutes = 0;
+      } else {
+        date = new Date(breakEnd); // Skip to after break
+        remainingMinutes -= minutesUntilBreak;
+      }
+
+      // Add remaining time after break
+      if (remainingMinutes > 0) {
+        date.setMinutes(date.getMinutes() + remainingMinutes);
+      }
+    } else {
+      // No break information, just add the minutes directly
+      date.setMinutes(date.getMinutes() + plannedMinutes);
+    }
 
     // Format back to HH:MM
     const endHours = String(date.getHours()).padStart(2, "0");

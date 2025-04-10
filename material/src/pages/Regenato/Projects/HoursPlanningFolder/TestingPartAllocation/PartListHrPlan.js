@@ -55,26 +55,71 @@ export const PartListHrPlan = ({
   const [allocatedMachines, setAllocatedMachines] = useState({});
   const [operatorAllocations, setOperatorAllocations] = useState({});
   
-  useEffect(() => {
-    fetch(`${process.env.REACT_APP_BASE_URL}/api/eventScheduler/events`)
-      .then((response) => response.json())
-      .then((data) => {
-        let allDates = [];
+  // useEffect(() => {
+  //   fetch(`${process.env.REACT_APP_BASE_URL}/api/eventScheduler/events`)
+  //     .then((response) => response.json())
+  //     .then((data) => {
+  //       let allDates = [];
 
-        data.forEach((event) => {
-          let currentDate = new Date(event.startDate);
-          const endDate = new Date(event.endDate);
+  //       data.forEach((event) => {
+  //         let currentDate = new Date(event.startDate);
+  //         const endDate = new Date(event.endDate);
 
-          while (currentDate <= endDate) {
-            allDates.push(new Date(currentDate)); // Add each date to the list
-            currentDate.setDate(currentDate.getDate() + 1); // Move to next day
-          }
+  //         while (currentDate <= endDate) {
+  //           allDates.push(new Date(currentDate)); // Add each date to the list
+  //           currentDate.setDate(currentDate.getDate() + 1); // Move to next day
+  //         }
+  //       });
+
+  //       setEventDates(allDates);
+  //     })
+  //     .catch((error) => console.error("Error fetching events:", error));
+  // }, []);
+
+  // Modify the shift data processing to include break duration
+useEffect(() => {
+  const fetchShifts = async () => {
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_BASE_URL}/api/shiftVariable`
+      );
+      const data = await response.json();
+      if (response.ok) {
+        const formattedShifts = data.map((shift) => {
+          // Calculate total working minutes (subtract break time)
+          const start = new Date(`2000-01-01T${shift.StartTime}:00`);
+          const end = new Date(`2000-01-01T${shift.EndTime}:00`);
+          const launchStart = new Date(`2000-01-01T${shift.LaunchStartTime}:00`);
+          const launchEnd = new Date(`2000-01-01T${shift.LaunchEndTime}:00`);
+          
+          // Total shift duration in minutes
+          const totalShiftMinutes = (end - start) / (1000 * 60);
+          // Break duration in minutes
+          const breakMinutes = (launchEnd - launchStart) / (1000 * 60);
+          // Actual working minutes
+          const workingMinutes = totalShiftMinutes - breakMinutes;
+          
+          return {
+            name: shift.name,
+            _id: shift._id,
+            startTime: shift.StartTime,
+            endTime: shift.EndTime,
+            breakStartTime: shift.LaunchStartTime,
+            breakEndTime: shift.LaunchEndTime,
+            totalShiftMinutes, // Total shift duration including breaks
+            workingMinutes,    // Actual working minutes (excluding breaks)
+            breakMinutes,      // Break duration
+          };
         });
+        setShiftOptions(formattedShifts);
+      }
+    } catch (error) {
+      console.error("Error fetching shifts:", error);
+    }
+  };
 
-        setEventDates(allDates);
-      })
-      .catch((error) => console.error("Error fetching events:", error));
-  }, []);
+  fetchShifts();
+}, []);
 
   useEffect(() => {
     const fetchAllocatedData = async () => {
@@ -673,17 +718,20 @@ useEffect(() => {
     return Math.ceil(hours * 60);
   };
 
-  const calculateEndDate = (startDate, plannedMinutes, shiftMinutes = 480) => {
+  const calculateEndDate = (startDate, plannedMinutes, shift) => {
     if (!startDate || !plannedMinutes) return "";
-
+  
     let parsedDate = new Date(startDate);
     if (isNaN(parsedDate.getTime())) return "";
-
+  
+    // Use working minutes from shift (excluding breaks)
+    const workingMinutesPerDay = shift?.workingMinutes || 450; // Default to 7.5 hours if no shift
+    
     // Calculate total number of full working days needed
-    let totalDays = Math.ceil(plannedMinutes / shiftMinutes);
+    let totalDays = Math.ceil(plannedMinutes / workingMinutesPerDay);
     let currentDate = new Date(parsedDate);
     let daysAdded = 0;
-
+  
     while (daysAdded < totalDays) {
       // Skip non-working days (Sundays and holidays)
       while (
@@ -692,15 +740,15 @@ useEffect(() => {
       ) {
         currentDate.setDate(currentDate.getDate() + 1);
       }
-
+  
       daysAdded++;
-
+  
       // If there are still days to add, move to the next day
       if (daysAdded <= totalDays) {
         currentDate.setDate(currentDate.getDate() + 1);
       }
     }
-
+  
     return currentDate.toISOString().split("T")[0];
   };
 
@@ -785,13 +833,13 @@ useEffect(() => {
   const calculateStartAndEndDates = (
     inputStartDate,
     plannedMinutes,
-    shiftMinutes = 480
+    shift
   ) => {
     let parsedStartDate = new Date(inputStartDate);
     let remainingMinutes = plannedMinutes;
-    let totalShiftMinutes = shiftMinutes;
+    let workingMinutesPerDay = shift?.workingMinutes || 450; // Default to 7.5 hours
     let currentDate = new Date(parsedStartDate);
-
+  
     // Skip holidays or Sundays initially
     while (
       getDay(currentDate) === 0 ||
@@ -799,10 +847,10 @@ useEffect(() => {
     ) {
       currentDate.setDate(currentDate.getDate() + 1);
     }
-
+  
     // Keep track of start date
     const startDate = new Date(currentDate);
-
+  
     // Loop to calculate how many days needed
     while (remainingMinutes > 0) {
       // If it's a working day
@@ -810,18 +858,18 @@ useEffect(() => {
         getDay(currentDate) !== 0 &&
         !eventDates.some((d) => isSameDay(d, currentDate))
       ) {
-        remainingMinutes -= totalShiftMinutes;
+        remainingMinutes -= workingMinutesPerDay;
       }
-
+  
       // If remaining minutes still left, go to next day
       if (remainingMinutes > 0) {
         currentDate.setDate(currentDate.getDate() + 1);
       }
     }
-
+  
     // Final end date
     const endDate = new Date(currentDate);
-
+  
     return {
       startDate: formatDate(startDate),
       endDate: formatDate(endDate),
@@ -970,20 +1018,21 @@ useEffect(() => {
   const calculateEndDateWithDowntime = (
     startDate,
     plannedMinutes,
-    shiftMinutes = 480,
+    shift,
     machine,
     currentIndex,
     currentRowIndex
   ) => {
     if (!startDate || !plannedMinutes) return "";
-
+  
     const parsedDate = new Date(startDate);
     if (isNaN(parsedDate.getTime())) return "";
-
+  
     let remainingMinutes = plannedMinutes;
     let currentDate = new Date(parsedDate);
     let totalDowntimeAdded = 0;
-
+    const workingMinutesPerDay = shift?.workingMinutes || 450; // Default to 7.5 hours
+  
     while (remainingMinutes > 0) {
       // Skip non-working days
       while (
@@ -992,29 +1041,29 @@ useEffect(() => {
       ) {
         currentDate.setDate(currentDate.getDate() + 1);
       }
-
+  
       // Check for machine downtime
       if (machine) {
         const downtimeInfo = isMachineOnDowntimeDuringPeriod(
           machine,
           currentDate,
-          new Date(currentDate.getTime() + shiftMinutes * 60000)
+          new Date(currentDate.getTime() + workingMinutesPerDay * 60000)
         );
-
+  
         if (downtimeInfo.isDowntime) {
           remainingMinutes += downtimeInfo.downtimeMinutes;
           totalDowntimeAdded += downtimeInfo.downtimeMinutes;
         }
       }
-
-      const minutesToDeduct = Math.min(remainingMinutes, shiftMinutes);
+  
+      const minutesToDeduct = Math.min(remainingMinutes, workingMinutesPerDay);
       remainingMinutes -= minutesToDeduct;
-
+  
       if (remainingMinutes > 0) {
         currentDate.setDate(currentDate.getDate() + 1);
       }
     }
-
+  
     // Update the row with downtime information
     setRows((prevRows) => {
       const updatedRows = { ...prevRows };
@@ -1026,7 +1075,7 @@ useEffect(() => {
       }
       return updatedRows;
     });
-
+  
     return formatDateUTC(currentDate);
   };
 
@@ -1220,23 +1269,50 @@ useEffect(() => {
   };
 
   // Add this function in your component
-  const calculateEndTime = (startTime, plannedMinutes) => {
+  const calculateEndTime = (startTime, plannedMinutes, shift) => {
     if (!startTime || !plannedMinutes) return "";
-
+  
     // Parse the start time (format: "HH:MM")
     const [hours, minutes] = startTime.split(":").map(Number);
-
-    // Create a date object (we just need it for calculations)
-    const date = new Date();
+    let date = new Date();
     date.setHours(hours, minutes, 0, 0);
-
-    // Add the planned minutes
-    date.setMinutes(date.getMinutes() + plannedMinutes);
-
+  
+    // If we have shift data with break times
+    if (shift && shift.breakStartTime && shift.breakEndTime) {
+      const [breakStartHour, breakStartMinute] = shift.breakStartTime.split(":").map(Number);
+      const [breakEndHour, breakEndMinute] = shift.breakEndTime.split(":").map(Number);
+      
+      const breakStart = new Date(date);
+      breakStart.setHours(breakStartHour, breakStartMinute, 0, 0);
+      
+      const breakEnd = new Date(date);
+      breakEnd.setHours(breakEndHour, breakEndMinute, 0, 0);
+      
+      let remainingMinutes = plannedMinutes;
+      
+      // Work until break starts
+      const minutesUntilBreak = (breakStart - date) / (1000 * 60);
+      if (remainingMinutes <= minutesUntilBreak) {
+        date.setMinutes(date.getMinutes() + remainingMinutes);
+        remainingMinutes = 0;
+      } else {
+        date = new Date(breakEnd); // Skip to after break
+        remainingMinutes -= minutesUntilBreak;
+      }
+      
+      // Add remaining time after break
+      if (remainingMinutes > 0) {
+        date.setMinutes(date.getMinutes() + remainingMinutes);
+      }
+    } else {
+      // No break information, just add the minutes directly
+      date.setMinutes(date.getMinutes() + plannedMinutes);
+    }
+  
     // Format back to HH:MM
     const endHours = String(date.getHours()).padStart(2, "0");
     const endMinutes = String(date.getMinutes()).padStart(2, "0");
-
+  
     return `${endHours}:${endMinutes}`;
   };
 
