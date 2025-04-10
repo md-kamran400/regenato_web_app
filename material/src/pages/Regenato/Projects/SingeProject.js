@@ -873,7 +873,7 @@ const SingeProject = () => {
     <React.Fragment>
       <div className="page-content">
         <Container fluid>
-          <div className="project-header">
+          <div className="project-header" style={{ marginTop: "-2rem" }}>
             {/* Left Section */}
             <div className="header-section left">
               <h2 className="project-name" style={{ fontWeight: "bold" }}>
