@@ -153,9 +153,8 @@ const PartsTable = React.memo(
 
     const handlePartsChange = useCallback((event, newValue) => {
       setSelectedParts(newValue);
-      setSelectedPartIds(new Set(newValue.map(part => part.id)));
+      setSelectedPartIds(new Set(newValue.map((part) => part.id)));
     }, []);
-    
 
     useEffect(() => {
       const fetchManufacturingVariables = async () => {
@@ -408,15 +407,15 @@ const PartsTable = React.memo(
     const handleSubmit = async (event) => {
       event.preventDefault();
       setIsLoading(true);
-    
+
       if (selectedParts.length === 0) {
         toast.error("Please select at least one part");
         setIsLoading(false);
         return;
       }
-    
+
       try {
-        const payload = selectedParts.map(part => ({
+        const payload = selectedParts.map((part) => ({
           partId: part.id,
           partName: part.partName,
           codeName: part.codeName || "",
@@ -428,7 +427,7 @@ const PartsTable = React.memo(
           shipmentVariables: part.shipmentVariables || [],
           overheadsAndProfits: part.overheadsAndProfits || [],
         }));
-    
+
         const response = await fetch(
           `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${_id}/partsLists/${partsList._id}/items`,
           {
@@ -437,26 +436,29 @@ const PartsTable = React.memo(
             body: JSON.stringify(payload),
           }
         );
-    
+
         if (!response.ok) {
           throw new Error("Failed to add parts");
         }
-    
+
         const data = await response.json();
-        
+
         // Update local state with new parts
-        setPartsListsItems((prevItems) => [...prevItems, ...data.data.partsListItems]);
+        setPartsListsItems((prevItems) => [
+          ...prevItems,
+          ...data.data.partsListItems,
+        ]);
         onUpdatePrts(data);
-        
+
         setModalAdd(false);
         setIsLoading(false);
         toast.success(`${selectedParts.length} new records added successfully`);
-        
+
         // Reset form
         setSelectedParts([]);
         setSelectedPartIds(new Set());
         setQuantity(0);
-        
+
         // Update the partsListItemsUpdated state
         setPartsListItemsUpdated(true);
       } catch (error) {
@@ -644,6 +646,8 @@ const PartsTable = React.memo(
       const totalMinutes = Math.round(time * 60); // Convert hours to minutes
       return `${totalMinutes} m`;
     };
+
+    console.log(" sub assmebly name for specific machine is here --->", partsListItems);
 
     return (
       <>
@@ -848,7 +852,6 @@ const PartsTable = React.memo(
                                     </div>
                                   </td>
                                 </tr>
-
                                 {/* Expanding HoursPlanningCard in a full-width row */}
                                 {/* {expandedRowId === item._id && (
                               <tr>
@@ -864,7 +867,8 @@ const PartsTable = React.memo(
                                 </td>
                               </tr>
                             )} */}
-
+                                 {/* In PartsTable.js, modify the PartListHrPlan
+                                component usage: */}
                                 {expandedRowId === item._id && (
                                   <tr>
                                     <td colSpan="8">
@@ -877,11 +881,13 @@ const PartsTable = React.memo(
                                         porjectID={_id}
                                         partID={partsListID}
                                         partListItemId={item._id}
+                                        partManufacturingVariables={
+                                          item.manufacturingVariables
+                                        } // Add this line
                                       />
                                     </td>
                                   </tr>
                                 )}
-
                                 {modalOpenId === item._id && (
                                   <Modal
                                     isOpen={true}
@@ -986,10 +992,7 @@ const PartsTable = React.memo(
             </Col>
           </Row>
 
-          <Modal
-            isOpen={modalAdd}
-            toggle={toggleAddModal}
-          >
+          <Modal isOpen={modalAdd} toggle={toggleAddModal}>
             <ModalHeader toggle={toggleAddModal}>Add Part</ModalHeader>
             <ModalBody>
               <form onSubmit={handleSubmit}>
@@ -1026,13 +1029,17 @@ const PartsTable = React.memo(
                   multiple
                   options={parts || []}
                   loading={loadingParts}
-                  getOptionLabel={(option) => option ? `${option.partName} - ${option.id}` : ""}
+                  getOptionLabel={(option) =>
+                    option ? `${option.partName} - ${option.id}` : ""
+                  }
                   onChange={handlePartsChange}
                   // onChange={(event, newValue) => {
                   //   setSelectedParts(newValue);
                   //   setSelectedPartIds(new Set(newValue.map(part => part.id)));
                   // }}
-                  noOptionsText={loadingParts ? "Loading parts..." : "No parts available"}
+                  noOptionsText={
+                    loadingParts ? "Loading parts..." : "No parts available"
+                  }
                   renderOption={(props, option, { selected }) => (
                     <li {...props}>
                       <Checkbox
@@ -1061,7 +1068,7 @@ const PartsTable = React.memo(
                     />
                   )}
                 />
-                                
+
                 <div className="form-group" style={{ display: "none" }}>
                   <Label for="partId" className="form-label">
                     Part ID
@@ -1161,36 +1168,37 @@ const PartsTable = React.memo(
                   )}
                 </div> */}
 
-<div className="form-group">
-  <Label for="quantity" className="form-label">
-    Quantity (for all selected parts)
-  </Label>
-  <Input
-    className="form-control"
-    type="number"
-    id="quantity"
-    value={quantity.toString()}
-    onChange={(e) => {
-      const inputValue = e.target.value;
-      if (inputValue === "" || /^\d+$/.test(inputValue)) {
-        const numericValue = inputValue === "" ? 0 : parseInt(inputValue);
-        if (numericValue > 99999) {
-          toast.warning("Maximum quantity is 99999");
-          setQuantity(99999);
-        } else {
-          setQuantity(numericValue);
-        }
-      }
-    }}
-    max="99999"
-    required
-  />
-  {quantity > 99999 && (
-    <small className="text-danger">
-      Maximum quantity is 99999
-    </small>
-  )}
-</div>
+                <div className="form-group">
+                  <Label for="quantity" className="form-label">
+                    Quantity (for all selected parts)
+                  </Label>
+                  <Input
+                    className="form-control"
+                    type="number"
+                    id="quantity"
+                    value={quantity.toString()}
+                    onChange={(e) => {
+                      const inputValue = e.target.value;
+                      if (inputValue === "" || /^\d+$/.test(inputValue)) {
+                        const numericValue =
+                          inputValue === "" ? 0 : parseInt(inputValue);
+                        if (numericValue > 99999) {
+                          toast.warning("Maximum quantity is 99999");
+                          setQuantity(99999);
+                        } else {
+                          setQuantity(numericValue);
+                        }
+                      }
+                    }}
+                    max="99999"
+                    required
+                  />
+                  {quantity > 99999 && (
+                    <small className="text-danger">
+                      Maximum quantity is 99999
+                    </small>
+                  )}
+                </div>
 
                 <div style={{ display: "none" }}>
                   <UncontrolledAccordion defaultOpen="1">
@@ -1435,15 +1443,15 @@ const PartsTable = React.memo(
                   Add
                 </Button> */}
                 <Button
-  style={{ marginLeft: "22rem" }}
-  type="submit"
-  color="primary"
-  disabled={selectedParts.length === 0 || !quantity}
->
-  {selectedParts.length > 0 
-    ? `Add ${selectedParts.length} Part(s)` 
-    : "Add"}
-</Button>
+                  style={{ marginLeft: "22rem" }}
+                  type="submit"
+                  color="primary"
+                  disabled={selectedParts.length === 0 || !quantity}
+                >
+                  {selectedParts.length > 0
+                    ? `Add ${selectedParts.length} Part(s)`
+                    : "Add"}
+                </Button>
               </form>
             </ModalBody>
           </Modal>

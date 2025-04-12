@@ -33,6 +33,7 @@ export const PartListHrPlan = ({
   porjectID,
   partID,
   partListItemId,
+  partManufacturingVariables,
 }) => {
   const [machineOptions, setMachineOptions] = useState({});
   const [isConfirmationModalOpen, setIsConfirmationModalOpen] = useState(false);
@@ -54,7 +55,7 @@ export const PartListHrPlan = ({
   const [isDataAllocated, setIsDataAllocated] = useState(false);
   const [allocatedMachines, setAllocatedMachines] = useState({});
   const [operatorAllocations, setOperatorAllocations] = useState({});
-  
+
   // useEffect(() => {
   //   fetch(`${process.env.REACT_APP_BASE_URL}/api/eventScheduler/events`)
   //     .then((response) => response.json())
@@ -77,49 +78,51 @@ export const PartListHrPlan = ({
   // }, []);
 
   // Modify the shift data processing to include break duration
-useEffect(() => {
-  const fetchShifts = async () => {
-    try {
-      const response = await fetch(
-        `${process.env.REACT_APP_BASE_URL}/api/shiftVariable`
-      );
-      const data = await response.json();
-      if (response.ok) {
-        const formattedShifts = data.map((shift) => {
-          // Calculate total working minutes (subtract break time)
-          const start = new Date(`2000-01-01T${shift.StartTime}:00`);
-          const end = new Date(`2000-01-01T${shift.EndTime}:00`);
-          const launchStart = new Date(`2000-01-01T${shift.LaunchStartTime}:00`);
-          const launchEnd = new Date(`2000-01-01T${shift.LaunchEndTime}:00`);
-          
-          // Total shift duration in minutes
-          const totalShiftMinutes = (end - start) / (1000 * 60);
-          // Break duration in minutes
-          const breakMinutes = (launchEnd - launchStart) / (1000 * 60);
-          // Actual working minutes
-          const workingMinutes = totalShiftMinutes - breakMinutes;
-          
-          return {
-            name: shift.name,
-            _id: shift._id,
-            startTime: shift.StartTime,
-            endTime: shift.EndTime,
-            breakStartTime: shift.LaunchStartTime,
-            breakEndTime: shift.LaunchEndTime,
-            totalShiftMinutes, // Total shift duration including breaks
-            workingMinutes,    // Actual working minutes (excluding breaks)
-            breakMinutes,      // Break duration
-          };
-        });
-        setShiftOptions(formattedShifts);
-      }
-    } catch (error) {
-      console.error("Error fetching shifts:", error);
-    }
-  };
+  useEffect(() => {
+    const fetchShifts = async () => {
+      try {
+        const response = await fetch(
+          `${process.env.REACT_APP_BASE_URL}/api/shiftVariable`
+        );
+        const data = await response.json();
+        if (response.ok) {
+          const formattedShifts = data.map((shift) => {
+            // Calculate total working minutes (subtract break time)
+            const start = new Date(`2000-01-01T${shift.StartTime}:00`);
+            const end = new Date(`2000-01-01T${shift.EndTime}:00`);
+            const launchStart = new Date(
+              `2000-01-01T${shift.LaunchStartTime}:00`
+            );
+            const launchEnd = new Date(`2000-01-01T${shift.LaunchEndTime}:00`);
 
-  fetchShifts();
-}, []);
+            // Total shift duration in minutes
+            const totalShiftMinutes = (end - start) / (1000 * 60);
+            // Break duration in minutes
+            const breakMinutes = (launchEnd - launchStart) / (1000 * 60);
+            // Actual working minutes
+            const workingMinutes = totalShiftMinutes - breakMinutes;
+
+            return {
+              name: shift.name,
+              _id: shift._id,
+              startTime: shift.StartTime,
+              endTime: shift.EndTime,
+              breakStartTime: shift.LaunchStartTime,
+              breakEndTime: shift.LaunchEndTime,
+              totalShiftMinutes, // Total shift duration including breaks
+              workingMinutes, // Actual working minutes (excluding breaks)
+              breakMinutes, // Break duration
+            };
+          });
+          setShiftOptions(formattedShifts);
+        }
+      } catch (error) {
+        console.error("Error fetching shifts:", error);
+      }
+    };
+
+    fetchShifts();
+  }, []);
 
   useEffect(() => {
     const fetchAllocatedData = async () => {
@@ -265,96 +268,6 @@ useEffect(() => {
     };
   };
 
-  // const calculateEndDateWithDowntime = (
-  //   startDate,
-  //   plannedMinutes,
-  //   shiftMinutes = 480,
-  //   machine
-  // ) => {
-  //   if (!startDate || !plannedMinutes) return "";
-
-  //   let parsedDate = new Date(startDate);
-  //   if (isNaN(parsedDate.getTime())) return "";
-
-  //   let remainingMinutes = plannedMinutes;
-  //   let currentDate = new Date(parsedDate);
-  //   let totalDowntimeAdded = 0;
-
-  //   // First, find all downtime periods that overlap with our scheduling window
-  //   const relevantDowntimes =
-  //     machine?.downtimeHistory?.filter((downtime) => {
-  //       if (downtime.isCompleted) return false;
-
-  //       const downtimeStart = new Date(downtime.startTime);
-  //       const downtimeEnd = new Date(downtime.endTime);
-
-  //       // Check if downtime overlaps with our scheduling period
-  //       return (
-  //         (downtimeStart <= currentDate && downtimeEnd >= currentDate) || // Downtime encompasses current date
-  //         downtimeStart >= currentDate // Downtime starts in the future
-  //       );
-  //     }) || [];
-
-  //   // Sort downtimes by start time
-  //   relevantDowntimes.sort(
-  //     (a, b) => new Date(a.startTime) - new Date(b.startTime)
-  //   );
-
-  //   while (remainingMinutes > 0) {
-  //     // Skip non-working days (Sundays and holidays)
-  //     while (
-  //       getDay(currentDate) === 0 ||
-  //       eventDates.some((d) => isSameDay(d, currentDate))
-  //     ) {
-  //       currentDate.setDate(currentDate.getDate() + 1);
-  //     }
-
-  //     // Check for downtime on this day
-  //     const todaysDowntime = relevantDowntimes.find((downtime) => {
-  //       const downtimeStart = new Date(downtime.startTime);
-  //       return isSameDay(downtimeStart, currentDate);
-  //     });
-
-  //     if (todaysDowntime) {
-  //       // Calculate downtime duration in minutes
-  //       const downtimeStart = new Date(todaysDowntime.startTime);
-  //       const downtimeEnd = new Date(todaysDowntime.endTime);
-  //       const downtimeMinutes = Math.ceil(
-  //         (downtimeEnd - downtimeStart) / (1000 * 60)
-  //       );
-
-  //       // Add downtime to the total work needed
-  //       remainingMinutes += downtimeMinutes;
-  //       totalDowntimeAdded += downtimeMinutes;
-  //     }
-
-  //     // Subtract a day's worth of work
-  //     const minutesToDeduct = Math.min(remainingMinutes, shiftMinutes);
-  //     remainingMinutes -= minutesToDeduct;
-
-  //     // Move to next day if there's still work remaining
-  //     if (remainingMinutes > 0) {
-  //       currentDate.setDate(currentDate.getDate() + 1);
-  //     }
-  //   }
-
-  //   // Update the row with total downtime added
-  //   setRows((prevRows) => {
-  //     const updatedRows = { ...prevRows };
-  //     if (updatedRows[index]?.[rowIndex]) {
-  //       updatedRows[index][rowIndex] = {
-  //         ...updatedRows[index][rowIndex],
-  //         totalDowntimeAdded,
-  //       };
-  //     }
-  //     return updatedRows;
-  //   });
-
-  //   return currentDate.toISOString().split("T")[0];
-  // };
-
-  // Helper functions for machine status
-
   const getMachineStatus = (machine, startDate, endDate, allocatedMachines) => {
     const downtimeInfo = isMachineOnDowntimeDuringPeriod(
       machine,
@@ -496,28 +409,6 @@ useEffect(() => {
     return <div className={className}>{day}</div>;
   };
 
-  // useEffect(() => {
-  //   const initialRows = manufacturingVariables.reduce((acc, man, index) => {
-  //     acc[index] = [
-  //       {
-  //         plannedQuantity: isAutoSchedule ? quantity : "",
-  //         plannedQtyTime: isAutoSchedule
-  //           ? calculatePlannedMinutes(quantity * man.hours)
-  //           : "",
-  //         startDate: "",
-  //         startTime: "",
-  //         endDate: "",
-  //         machineId: "",
-  //         shift: "",
-  //         processName: man.name,
-  //       },
-  //     ];
-  //     return acc;
-  //   }, {});
-
-  //   setRows(initialRows);
-  // }, [manufacturingVariables, quantity, isAutoSchedule]);
-
   useEffect(() => {
     const initialRows = manufacturingVariables.reduce((acc, man, index) => {
       acc[index] = [
@@ -639,6 +530,23 @@ useEffect(() => {
     fetchShifts();
   }, []);
 
+  const getFilteredMachines = (man, machines) => {
+    // Find if this process has a SubMachineName defined
+    const processData = partManufacturingVariables?.find(
+      (mv) => mv.name === man.name
+    );
+
+    if (processData?.SubMachineName) {
+      // Filter machines to only include those that match SubMachineName
+      return machines.filter(
+        (machine) => machine.name === processData.SubMachineName
+      );
+    }
+    // If no SubMachineName defined, return all machines
+    return machines;
+  };
+
+  // Modify the machineOptions useEffect to use the filtered machines
   useEffect(() => {
     const fetchMachines = async () => {
       const machineData = {};
@@ -648,16 +556,19 @@ useEffect(() => {
             `${process.env.REACT_APP_BASE_URL}/api/manufacturing/category/${man.categoryId}`
           );
 
-          // Add status information to each machine
-          machineData[man.categoryId] = response.data.subCategories.map(
-            (machine) => ({
-              ...machine,
-              isAvailable:
-                machine.status === "available" &&
-                (!machine.unavailableUntil ||
-                  new Date(machine.unavailableUntil) <= new Date()),
-            })
+          // Filter machines based on SubMachineName if it exists
+          const filteredMachines = getFilteredMachines(
+            man,
+            response.data.subCategories
           );
+
+          machineData[man.categoryId] = filteredMachines.map((machine) => ({
+            ...machine,
+            isAvailable:
+              machine.status === "available" &&
+              (!machine.unavailableUntil ||
+                new Date(machine.unavailableUntil) <= new Date()),
+          }));
         } catch (error) {
           console.error("Error fetching available machines:", error);
         }
@@ -665,54 +576,31 @@ useEffect(() => {
       setMachineOptions(machineData);
     };
     fetchMachines();
-  }, [manufacturingVariables]);
+  }, [manufacturingVariables, partManufacturingVariables]);
 
   console.log("Machine Options:", machineOptions);
 
-  // useEffect(() => {
-  //   // Only initialize rows with empty data
-  //   const initialRows = manufacturingVariables.reduce((acc, man, index) => {
-  //     acc[index] = [
-  //       {
-  //         // partType: "Make",
-  //         plannedQuantity: quantity,
-  //         startDate: "",
-  //         startTime: "",
-  //         endDate: "",
-  //         machineId: "",
-  //         shift: "",
-  //         plannedQtyTime: calculatePlannedMinutes(man.hours * quantity),
-  //         processName: man.name,
-  //       },
-  //     ];
-  //     return acc;
-  //   }, {});
-
-  //   setRows(initialRows);
-  // }, [manufacturingVariables, quantity]);
-
-  // And ensure your initial rows useEffect accounts for this:
-useEffect(() => {
-  const initialRows = manufacturingVariables.reduce((acc, man, index) => {
-    acc[index] = [
-      {
-        plannedQuantity: isAutoSchedule ? quantity : "",
-        plannedQtyTime: isAutoSchedule
-          ? calculatePlannedMinutes(quantity * man.hours)
-          : "",
-        startDate: "",
-        startTime: "",
-        endDate: "",
-        endTime: "",
-        machineId: "",
-        shift: "",
-        processName: man.name,
-      },
-    ];
-    return acc;
-  }, {});
-  setRows(initialRows);
-}, [manufacturingVariables, quantity, isAutoSchedule]);
+  useEffect(() => {
+    const initialRows = manufacturingVariables.reduce((acc, man, index) => {
+      acc[index] = [
+        {
+          plannedQuantity: isAutoSchedule ? quantity : "",
+          plannedQtyTime: isAutoSchedule
+            ? calculatePlannedMinutes(quantity * man.hours)
+            : "",
+          startDate: "",
+          startTime: "",
+          endDate: "",
+          endTime: "",
+          machineId: "",
+          shift: "",
+          processName: man.name,
+        },
+      ];
+      return acc;
+    }, {});
+    setRows(initialRows);
+  }, [manufacturingVariables, quantity, isAutoSchedule]);
 
   const calculatePlannedMinutes = (hours) => {
     return Math.ceil(hours * 60);
@@ -720,18 +608,18 @@ useEffect(() => {
 
   const calculateEndDate = (startDate, plannedMinutes, shift) => {
     if (!startDate || !plannedMinutes) return "";
-  
+
     let parsedDate = new Date(startDate);
     if (isNaN(parsedDate.getTime())) return "";
-  
+
     // Use working minutes from shift (excluding breaks)
     const workingMinutesPerDay = shift?.workingMinutes || 450; // Default to 7.5 hours if no shift
-    
+
     // Calculate total number of full working days needed
     let totalDays = Math.ceil(plannedMinutes / workingMinutesPerDay);
     let currentDate = new Date(parsedDate);
     let daysAdded = 0;
-  
+
     while (daysAdded < totalDays) {
       // Skip non-working days (Sundays and holidays)
       while (
@@ -740,15 +628,15 @@ useEffect(() => {
       ) {
         currentDate.setDate(currentDate.getDate() + 1);
       }
-  
+
       daysAdded++;
-  
+
       // If there are still days to add, move to the next day
       if (daysAdded <= totalDays) {
         currentDate.setDate(currentDate.getDate() + 1);
       }
     }
-  
+
     return currentDate.toISOString().split("T")[0];
   };
 
@@ -830,16 +718,12 @@ useEffect(() => {
   //   return nextDay;
   // };
 
-  const calculateStartAndEndDates = (
-    inputStartDate,
-    plannedMinutes,
-    shift
-  ) => {
+  const calculateStartAndEndDates = (inputStartDate, plannedMinutes, shift) => {
     let parsedStartDate = new Date(inputStartDate);
     let remainingMinutes = plannedMinutes;
     let workingMinutesPerDay = shift?.workingMinutes || 450; // Default to 7.5 hours
     let currentDate = new Date(parsedStartDate);
-  
+
     // Skip holidays or Sundays initially
     while (
       getDay(currentDate) === 0 ||
@@ -847,10 +731,10 @@ useEffect(() => {
     ) {
       currentDate.setDate(currentDate.getDate() + 1);
     }
-  
+
     // Keep track of start date
     const startDate = new Date(currentDate);
-  
+
     // Loop to calculate how many days needed
     while (remainingMinutes > 0) {
       // If it's a working day
@@ -860,16 +744,16 @@ useEffect(() => {
       ) {
         remainingMinutes -= workingMinutesPerDay;
       }
-  
+
       // If remaining minutes still left, go to next day
       if (remainingMinutes > 0) {
         currentDate.setDate(currentDate.getDate() + 1);
       }
     }
-  
+
     // Final end date
     const endDate = new Date(currentDate);
-  
+
     return {
       startDate: formatDate(startDate),
       endDate: formatDate(endDate),
@@ -1024,15 +908,15 @@ useEffect(() => {
     currentRowIndex
   ) => {
     if (!startDate || !plannedMinutes) return "";
-  
+
     const parsedDate = new Date(startDate);
     if (isNaN(parsedDate.getTime())) return "";
-  
+
     let remainingMinutes = plannedMinutes;
     let currentDate = new Date(parsedDate);
     let totalDowntimeAdded = 0;
     const workingMinutesPerDay = shift?.workingMinutes || 450; // Default to 7.5 hours
-  
+
     while (remainingMinutes > 0) {
       // Skip non-working days
       while (
@@ -1041,7 +925,7 @@ useEffect(() => {
       ) {
         currentDate.setDate(currentDate.getDate() + 1);
       }
-  
+
       // Check for machine downtime
       if (machine) {
         const downtimeInfo = isMachineOnDowntimeDuringPeriod(
@@ -1049,21 +933,21 @@ useEffect(() => {
           currentDate,
           new Date(currentDate.getTime() + workingMinutesPerDay * 60000)
         );
-  
+
         if (downtimeInfo.isDowntime) {
           remainingMinutes += downtimeInfo.downtimeMinutes;
           totalDowntimeAdded += downtimeInfo.downtimeMinutes;
         }
       }
-  
+
       const minutesToDeduct = Math.min(remainingMinutes, workingMinutesPerDay);
       remainingMinutes -= minutesToDeduct;
-  
+
       if (remainingMinutes > 0) {
         currentDate.setDate(currentDate.getDate() + 1);
       }
     }
-  
+
     // Update the row with downtime information
     setRows((prevRows) => {
       const updatedRows = { ...prevRows };
@@ -1075,7 +959,7 @@ useEffect(() => {
       }
       return updatedRows;
     });
-  
+
     return formatDateUTC(currentDate);
   };
 
@@ -1271,25 +1155,29 @@ useEffect(() => {
   // Add this function in your component
   const calculateEndTime = (startTime, plannedMinutes, shift) => {
     if (!startTime || !plannedMinutes) return "";
-  
+
     // Parse the start time (format: "HH:MM")
     const [hours, minutes] = startTime.split(":").map(Number);
     let date = new Date();
     date.setHours(hours, minutes, 0, 0);
-  
+
     // If we have shift data with break times
     if (shift && shift.breakStartTime && shift.breakEndTime) {
-      const [breakStartHour, breakStartMinute] = shift.breakStartTime.split(":").map(Number);
-      const [breakEndHour, breakEndMinute] = shift.breakEndTime.split(":").map(Number);
-      
+      const [breakStartHour, breakStartMinute] = shift.breakStartTime
+        .split(":")
+        .map(Number);
+      const [breakEndHour, breakEndMinute] = shift.breakEndTime
+        .split(":")
+        .map(Number);
+
       const breakStart = new Date(date);
       breakStart.setHours(breakStartHour, breakStartMinute, 0, 0);
-      
+
       const breakEnd = new Date(date);
       breakEnd.setHours(breakEndHour, breakEndMinute, 0, 0);
-      
+
       let remainingMinutes = plannedMinutes;
-      
+
       // Work until break starts
       const minutesUntilBreak = (breakStart - date) / (1000 * 60);
       if (remainingMinutes <= minutesUntilBreak) {
@@ -1299,7 +1187,7 @@ useEffect(() => {
         date = new Date(breakEnd); // Skip to after break
         remainingMinutes -= minutesUntilBreak;
       }
-      
+
       // Add remaining time after break
       if (remainingMinutes > 0) {
         date.setMinutes(date.getMinutes() + remainingMinutes);
@@ -1308,11 +1196,11 @@ useEffect(() => {
       // No break information, just add the minutes directly
       date.setMinutes(date.getMinutes() + plannedMinutes);
     }
-  
+
     // Format back to HH:MM
     const endHours = String(date.getHours()).padStart(2, "0");
     const endMinutes = String(date.getMinutes()).padStart(2, "0");
-  
+
     return `${endHours}:${endMinutes}`;
   };
 
@@ -1778,7 +1666,6 @@ useEffect(() => {
                                     machine.subcategoryId === row.machineId
                                 ) || null
                               }
-                              // In your Autocomplete onChange handler for machines:
                               onChange={(event, newValue) => {
                                 if (!hasStartDate) return;
 
@@ -1844,7 +1731,11 @@ useEffect(() => {
                                   row.endDate,
                                   allocatedMachines
                                 );
-                                const isDisabled = status.isAllocated; // Only disable if allocated, not for downtime
+                                const isDisabled = status.isAllocated;
+
+                                // Check if this is the only available machine due to SubMachineName
+                                const isForcedSelection =
+                                  machineOptions[man.categoryId]?.length === 1;
 
                                 return (
                                   <li
@@ -1890,30 +1781,21 @@ useEffect(() => {
                                           flexShrink: 0,
                                         }}
                                       >
-                                        {status.isAllocated &&
-                                        status.isDowntime ? (
-                                          <span
-                                            style={{
-                                              color: "white",
-                                              fontSize: 12,
-                                            }}
-                                          >
-                                            !
-                                          </span>
-                                        ) : (
-                                          <span
-                                            style={{
-                                              color: "white",
-                                              fontSize: 12,
-                                            }}
-                                          >
-                                            {status.isDowntime
-                                              ? "D"
-                                              : status.isAllocated
-                                              ? "O"
-                                              : "A"}
-                                          </span>
-                                        )}
+                                        <span
+                                          style={{
+                                            color: "white",
+                                            fontSize: 12,
+                                          }}
+                                        >
+                                          {status.isAllocated &&
+                                          status.isDowntime
+                                            ? "!"
+                                            : status.isDowntime
+                                            ? "D"
+                                            : status.isAllocated
+                                            ? "O"
+                                            : "A"}
+                                        </span>
                                       </div>
 
                                       <div style={{ flexGrow: 1 }}>
@@ -1924,6 +1806,17 @@ useEffect(() => {
                                           }}
                                         >
                                           {option.name}
+                                          {isForcedSelection && (
+                                            <span
+                                              style={{
+                                                marginLeft: 8,
+                                                fontSize: "0.75rem",
+                                                color: "#666",
+                                              }}
+                                            >
+                                              (Required for this process)
+                                            </span>
+                                          )}
                                           <span
                                             style={{
                                               marginLeft: 8,
@@ -1988,7 +1881,9 @@ useEffect(() => {
                                           )}
                                           {!isDisabled && (
                                             <div style={{ color: "#4caf50" }}>
-                                              Available for selection
+                                              {isForcedSelection
+                                                ? "This machine is required for this process"
+                                                : "Available for selection"}
                                             </div>
                                           )}
                                         </div>
@@ -2033,7 +1928,9 @@ useEffect(() => {
                                     textAlign: "center",
                                   }}
                                 >
-                                  No machines available in this category
+                                  {machineOptions[man.categoryId]?.length === 0
+                                    ? "No machines available for this process"
+                                    : "No matching machines found"}
                                 </div>
                               }
                               loadingText={

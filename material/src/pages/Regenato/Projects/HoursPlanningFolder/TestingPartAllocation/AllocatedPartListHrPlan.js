@@ -231,14 +231,30 @@ export const AllocatedPartListHrPlan = ({
     setAddRowModal(false);
   };
 
+ 
   const handleDailyTrackingChange = (index, field, value) => {
+    if (field === "produced") {
+      const remainingQty = calculateRemainingQuantity();
+      const numericValue = Number(value) || 0;
+
+      // If the new value exceeds remaining quantity
+      if (numericValue > remainingQty) {
+        toast.error(
+          `Produced quantity cannot exceed remaining quantity (${remainingQty})`
+        );
+
+        // Keep the previous value (don't update the state)
+        return;
+      }
+    }
+
     setDailyTracking((prev) => {
       const updated = [...prev];
 
       // SAFETY CHECK
       if (!updated[index]) {
         console.warn(`Index ${index} is undefined`);
-        return prev; // or return updated without modification
+        return prev;
       }
 
       updated[index][field] = value;
@@ -263,7 +279,6 @@ export const AllocatedPartListHrPlan = ({
     });
   };
 
-  // Calculate the remaining quantity to produce
   const calculateRemainingQuantity = () => {
     if (!selectedSection || !selectedSection.data[0]) return 0;
 
@@ -381,6 +396,16 @@ export const AllocatedPartListHrPlan = ({
     ]);
   };
 
+  const hasTrackingForToday = () => {
+    if (!existingDailyTracking || existingDailyTracking.length === 0)
+      return false;
+
+    const today = moment().startOf("day"); // Get today's date at midnight
+    return existingDailyTracking.some((task) =>
+      moment(task.date).startOf("day").isSame(today)
+    );
+  };
+
   return (
     <div style={{ width: "100%" }}>
       <Container fluid className="mt-4">
@@ -475,7 +500,8 @@ export const AllocatedPartListHrPlan = ({
       >
         <ModalHeader toggle={() => setDailyTaskModal(false)}>
           {/* Update Daily Tracking -  {selectedSection?.title}  */}
-          Update Daily Tracking  --  {selectedSection?.title} - (Machine ID: {selectedSection?.data[0]?.machineId || 'N/A'})
+          Update Daily Tracking -- {selectedSection?.title} - (Machine ID:{" "}
+          {selectedSection?.data[0]?.machineId || "N/A"})
         </ModalHeader>
 
         <ModalBody>
@@ -555,9 +581,11 @@ export const AllocatedPartListHrPlan = ({
                 <Button
                   color="primary"
                   onClick={openAddRowModal}
-                  disabled={calculateRemainingQuantity() <= 0}
+                  disabled={
+                    calculateRemainingQuantity() <= 0 || hasTrackingForToday()
+                  }
                 >
-                  Add Row
+                  Add Daily Input
                 </Button>
               </div>
             </>
@@ -662,7 +690,6 @@ export const AllocatedPartListHrPlan = ({
         <ModalHeader toggle={closeAddRowModal}>Add Daily Tracking</ModalHeader>
         <ModalBody>
           <form>
-            {/* Date Input */}
             <div className="form-group">
               <label>Date</label>
               <div>
@@ -670,7 +697,7 @@ export const AllocatedPartListHrPlan = ({
                   selected={
                     dailyTracking[0].date
                       ? new Date(dailyTracking[0].date)
-                      : null
+                      : new Date() // Default to current date
                   }
                   onChange={(date) =>
                     handleDailyTrackingChange(0, "date", date)
@@ -735,14 +762,18 @@ export const AllocatedPartListHrPlan = ({
                   readOnly
                 />
               </div>
+              
               <div className="form-group col-md-6">
-                <label>Produced</label>
+                <label>
+                  Produced (Remaining: {calculateRemainingQuantity()})
+                </label>
                 <input
                   type="number"
                   className="form-control"
                   value={
                     dailyTracking.length > 0 ? dailyTracking[0].produced : ""
                   }
+                  max={calculateRemainingQuantity()} // HTML max attribute
                   onChange={(e) =>
                     handleDailyTrackingChange(0, "produced", e.target.value)
                   }

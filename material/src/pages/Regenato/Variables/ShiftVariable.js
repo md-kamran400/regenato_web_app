@@ -272,8 +272,8 @@ const ShiftVariable = () => {
                       <th>Name</th>
                       <th>Start Time</th>
                       <th>End Time</th>
-                      <th>Launch Start</th>
-                      <th>Launch End</th>
+                      <th>Break Start</th>
+                      <th>Break End</th>
                       <th>Total Hours</th>
                       <th>Action</th>
                     </tr>
