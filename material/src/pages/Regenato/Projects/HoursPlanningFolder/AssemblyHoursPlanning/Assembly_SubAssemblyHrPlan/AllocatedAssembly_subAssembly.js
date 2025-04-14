@@ -231,13 +231,28 @@ export const AllocatedAssembly_subAssembly = ({
   };
 
   const handleDailyTrackingChange = (index, field, value) => {
+    if (field === "produced") {
+      const remainingQty = calculateRemainingQuantity();
+      const numericValue = Number(value) || 0;
+
+      // If the new value exceeds remaining quantity
+      if (numericValue > remainingQty) {
+        toast.error(
+          `Produced quantity cannot exceed remaining quantity (${remainingQty})`
+        );
+
+        // Keep the previous value (don't update the state)
+        return;
+      }
+    }
+
     setDailyTracking((prev) => {
       const updated = [...prev];
 
       // SAFETY CHECK
       if (!updated[index]) {
         console.warn(`Index ${index} is undefined`);
-        return prev; // or return updated without modification
+        return prev;
       }
 
       updated[index][field] = value;
@@ -378,6 +393,16 @@ export const AllocatedAssembly_subAssembly = ({
         operator: selectedSection?.data[0]?.operator || "",
       },
     ]);
+  };
+
+  const hasTrackingForToday = () => {
+    if (!existingDailyTracking || existingDailyTracking.length === 0)
+      return false;
+
+    const today = moment().startOf("day"); // Get today's date at midnight
+    return existingDailyTracking.some((task) =>
+      moment(task.date).startOf("day").isSame(today)
+    );
   };
 
   return (
@@ -552,9 +577,11 @@ export const AllocatedAssembly_subAssembly = ({
                 <Button
                   color="primary"
                   onClick={openAddRowModal}
-                  disabled={calculateRemainingQuantity() <= 0}
+                  disabled={
+                    calculateRemainingQuantity() <= 0 || hasTrackingForToday()
+                  }
                 >
-                  Add Row
+                  Add Daily Input
                 </Button>
               </div>
             </>
@@ -667,7 +694,7 @@ export const AllocatedAssembly_subAssembly = ({
                   selected={
                     dailyTracking[0].date
                       ? new Date(dailyTracking[0].date)
-                      : null
+                      : new Date() // Default to current date
                   }
                   onChange={(date) =>
                     handleDailyTrackingChange(0, "date", date)
@@ -733,13 +760,16 @@ export const AllocatedAssembly_subAssembly = ({
                 />
               </div>
               <div className="form-group col-md-6">
-                <label>Produced</label>
+                <label>
+                  Produced (Remaining: {calculateRemainingQuantity()})
+                </label>
                 <input
                   type="number"
                   className="form-control"
                   value={
                     dailyTracking.length > 0 ? dailyTracking[0].produced : ""
                   }
+                  max={calculateRemainingQuantity()} // HTML max attribute
                   onChange={(e) =>
                     handleDailyTrackingChange(0, "produced", e.target.value)
                   }
