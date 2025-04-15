@@ -2,11 +2,11 @@ import React from "react";
 import { Card, CardBody, CardHeader, Col, Container, Row } from "reactstrap";
 import BreadCrumb from "../../../Components/Common/BreadCrumb";
 import Widgets from "./Widgets";
-import { Advanced } from "./TimelineCharts";
-import ProjectsOverview from "./ProjectsOverview";
-import UpcomingSchedules from "./UpcomingSchedules";
-import ActiveProjects from "./ActiveProjects";
-import ProjectsStatus from "./ProjectsStatus";
+// import { Advanced } from "./TimelineCharts";
+// import ProjectsOverview from "./ProjectsOverview";
+// import UpcomingSchedules from "./UpcomingSchedules";
+// import ActiveProjects from "./ActiveProjects";
+// import ProjectsStatus from "./ProjectsStatus";
 const Home = () => {
   // document.title="Projects | Velzon - React Admin & Dashboard Template";
   return (
@@ -19,7 +19,7 @@ const Home = () => {
               <Widgets />
             </Col>
           </Row>
-          <Row>
+          {/* <Row>
             <Col lg={8}>
               <Card>
                 <CardHeader>
@@ -51,7 +51,7 @@ const Home = () => {
             <Col lg={4}>
               <ProjectsStatus />
             </Col>
-          </Row>
+          </Row> */}
         </Container>
       </div>
     </React.Fragment>
