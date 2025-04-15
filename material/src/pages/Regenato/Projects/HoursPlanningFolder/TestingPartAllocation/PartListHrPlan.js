@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   Card,
   CardBody,
@@ -56,26 +56,26 @@ export const PartListHrPlan = ({
   const [allocatedMachines, setAllocatedMachines] = useState({});
   const [operatorAllocations, setOperatorAllocations] = useState({});
 
-  // useEffect(() => {
-  //   fetch(`${process.env.REACT_APP_BASE_URL}/api/eventScheduler/events`)
-  //     .then((response) => response.json())
-  //     .then((data) => {
-  //       let allDates = [];
+  useEffect(() => {
+    fetch(`${process.env.REACT_APP_BASE_URL}/api/eventScheduler/events`)
+      .then((response) => response.json())
+      .then((data) => {
+        let allDates = [];
 
-  //       data.forEach((event) => {
-  //         let currentDate = new Date(event.startDate);
-  //         const endDate = new Date(event.endDate);
+        data.forEach((event) => {
+          let currentDate = new Date(event.startDate);
+          const endDate = new Date(event.endDate);
 
-  //         while (currentDate <= endDate) {
-  //           allDates.push(new Date(currentDate)); // Add each date to the list
-  //           currentDate.setDate(currentDate.getDate() + 1); // Move to next day
-  //         }
-  //       });
+          while (currentDate <= endDate) {
+            allDates.push(new Date(currentDate)); // Add each date to the list
+            currentDate.setDate(currentDate.getDate() + 1); // Move to next day
+          }
+        });
 
-  //       setEventDates(allDates);
-  //     })
-  //     .catch((error) => console.error("Error fetching events:", error));
-  // }, []);
+        setEventDates(allDates);
+      })
+      .catch((error) => console.error("Error fetching events:", error));
+  }, []);
 
   // Modify the shift data processing to include break duration
   useEffect(() => {
@@ -899,24 +899,86 @@ export const PartListHrPlan = ({
   };
 
   // Updated calculateEndDateWithDowntime with proper index handling
+  // const calculateEndDateWithDowntime = (
+  //   startDate,
+  //   plannedMinutes,
+  //   shift,
+  //   machine,
+  //   currentIndex,
+  //   currentRowIndex
+  // ) => {
+  //   if (!startDate || !plannedMinutes) return "";
+
+  //   const parsedDate = new Date(startDate);
+  //   if (isNaN(parsedDate.getTime())) return "";
+
+  //   let remainingMinutes = plannedMinutes;
+  //   let currentDate = new Date(parsedDate);
+  //   let totalDowntimeAdded = 0;
+  //   const workingMinutesPerDay = shift?.workingMinutes || 450; // Default to 7.5 hours
+
+  //   while (remainingMinutes > 0) {
+  //     // Skip non-working days
+  //     while (
+  //       getDay(currentDate) === 0 ||
+  //       eventDates.some((d) => isSameDay(d, currentDate))
+  //     ) {
+  //       currentDate.setDate(currentDate.getDate() + 1);
+  //     }
+
+  //     // Check for machine downtime
+  //     if (machine) {
+  //       const downtimeInfo = isMachineOnDowntimeDuringPeriod(
+  //         machine,
+  //         currentDate,
+  //         new Date(currentDate.getTime() + workingMinutesPerDay * 60000)
+  //       );
+
+  //       if (downtimeInfo.isDowntime) {
+  //         remainingMinutes += downtimeInfo.downtimeMinutes;
+  //         totalDowntimeAdded += downtimeInfo.downtimeMinutes;
+  //       }
+  //     }
+
+  //     const minutesToDeduct = Math.min(remainingMinutes, workingMinutesPerDay);
+  //     remainingMinutes -= minutesToDeduct;
+
+  //     if (remainingMinutes > 0) {
+  //       currentDate.setDate(currentDate.getDate() + 1);
+  //     }
+  //   }
+
+  //   // Update the row with downtime information
+  //   setRows((prevRows) => {
+  //     const updatedRows = { ...prevRows };
+  //     if (updatedRows[currentIndex]?.[currentRowIndex]) {
+  //       updatedRows[currentIndex][currentRowIndex] = {
+  //         ...updatedRows[currentIndex][currentRowIndex],
+  //         totalDowntimeAdded,
+  //       };
+  //     }
+  //     return updatedRows;
+  //   });
+
+  //   return formatDateUTC(currentDate);
+  // };
+
   const calculateEndDateWithDowntime = (
     startDate,
     plannedMinutes,
     shift,
-    machine,
-    currentIndex,
-    currentRowIndex
+    machine
   ) => {
     if (!startDate || !plannedMinutes) return "";
-
+  
     const parsedDate = new Date(startDate);
     if (isNaN(parsedDate.getTime())) return "";
-
+  
     let remainingMinutes = plannedMinutes;
     let currentDate = new Date(parsedDate);
     let totalDowntimeAdded = 0;
-    const workingMinutesPerDay = shift?.workingMinutes || 450; // Default to 7.5 hours
-
+    const workingMinutesPerDay = shift?.workingMinutes || 450;
+  
     while (remainingMinutes > 0) {
       // Skip non-working days
       while (
@@ -925,43 +987,31 @@ export const PartListHrPlan = ({
       ) {
         currentDate.setDate(currentDate.getDate() + 1);
       }
-
-      // Check for machine downtime
+  
       if (machine) {
         const downtimeInfo = isMachineOnDowntimeDuringPeriod(
           machine,
           currentDate,
           new Date(currentDate.getTime() + workingMinutesPerDay * 60000)
         );
-
+  
         if (downtimeInfo.isDowntime) {
           remainingMinutes += downtimeInfo.downtimeMinutes;
           totalDowntimeAdded += downtimeInfo.downtimeMinutes;
         }
       }
-
+  
       const minutesToDeduct = Math.min(remainingMinutes, workingMinutesPerDay);
       remainingMinutes -= minutesToDeduct;
-
+  
       if (remainingMinutes > 0) {
         currentDate.setDate(currentDate.getDate() + 1);
       }
     }
-
-    // Update the row with downtime information
-    setRows((prevRows) => {
-      const updatedRows = { ...prevRows };
-      if (updatedRows[currentIndex]?.[currentRowIndex]) {
-        updatedRows[currentIndex][currentRowIndex] = {
-          ...updatedRows[currentIndex][currentRowIndex],
-          totalDowntimeAdded,
-        };
-      }
-      return updatedRows;
-    });
-
+  
     return formatDateUTC(currentDate);
   };
+  
 
   const addRow = (index) => {
     if (!hasStartDate) return;
@@ -1345,7 +1395,7 @@ export const PartListHrPlan = ({
                               <Input
                                 type="number"
                                 value={row.plannedQuantity}
-                                placeholder="Enter Value"
+                                // placeholder="QTY"
                                 required
                                 onChange={(e) => {
                                   const newValue =
@@ -1394,7 +1444,7 @@ export const PartListHrPlan = ({
                             ) : (
                               <Input
                                 type="number"
-                                placeholder="Enter QTY"
+                                // placeholder="QTY"
                                 value={row.plannedQuantity}
                                 onChange={(e) =>
                                   handleQuantityChange(
@@ -1537,16 +1587,23 @@ export const PartListHrPlan = ({
                                   const availability = isMachineAvailable(
                                     machine.subcategoryId,
                                     date,
+                                    // calculateEndDateWithDowntime(
+                                    //   date,
+                                    //   row.plannedQtyTime,
+                                    //   shiftOptions.find(
+                                    //     (s) => s.name === row.shift
+                                    //   )?.TotalHours,
+                                    //   machine,
+                                    //   index,
+                                    //   rowIndex
+                                    // )
                                     calculateEndDateWithDowntime(
                                       date,
                                       row.plannedQtyTime,
-                                      shiftOptions.find(
-                                        (s) => s.name === row.shift
-                                      )?.TotalHours,
-                                      machine,
-                                      index,
-                                      rowIndex
+                                      shiftOptions.find((s) => s.name === row.shift),
+                                      machine
                                     )
+                                    
                                   );
                                   return availability.available
                                     ? ""
