@@ -20,7 +20,7 @@ import "./PlanPage.css";
 const generateRandomColor = () => {
   const letters = "89ABCDEF"; // Exclude low brightness values (0-7)
   let color = "#";
-  
+
   for (let i = 0; i < 6; i++) {
     color += letters[Math.floor(Math.random() * letters.length)];
   }
@@ -198,6 +198,9 @@ export function PlanPage() {
               shift: a.shift,
               splitNumber: a.splitNumber || a.orderNumber,
               AllocationPartType: a.AllocationPartType,
+              startDate: a.startDate,
+              endDate: a.endDate,
+              startTime: a.startTime,
               dailyTracking: a.dailyTracking,
             },
           });
@@ -360,6 +363,7 @@ export function PlanPage() {
           plannedQuantity: allocation.plannedQuantity,
           startDate: allocation.startDate,
           endDate: allocation.endDate,
+          startTime: allocation.startTime,
           actualEndDate: allocation.actualEndDate,
         },
       };
@@ -367,7 +371,7 @@ export function PlanPage() {
   };
 
   return (
-    <div className="p-4" >
+    <div className="p-4">
       <div className="process-header">
         <div className="flex items-center gap-4">
           <h2 className="text-2xl font-bold">Production Planning</h2>
@@ -411,7 +415,6 @@ export function PlanPage() {
       {/* FullCalendar with Year View */}
 
       <FullCalendar
-    
         plugins={[resourceTimelinePlugin, adaptivePlugin]}
         initialView="resourceTimelineMonth"
         schedulerLicenseKey="CC-Attribution-NonCommercial-NoDerivatives"
@@ -451,9 +454,10 @@ export function PlanPage() {
           e.jsEvent.preventDefault();
           e.jsEvent.stopPropagation();
         }}
-        
         eventContent={(arg) => {
-          const processColor = getProcessColor(arg.event.extendedProps.processName);
+          const processColor = getProcessColor(
+            arg.event.extendedProps.processName
+          );
           return (
             <div
               className="p-1 text-sm"
@@ -466,19 +470,26 @@ export function PlanPage() {
             >
               <div
                 style={{
-                  color: "black", // Change text color to black
-                  fontWeight: "bold", // Make text bold
-                  fontSize:'16px',
+                  color: "black",
+                  fontWeight: "bold",
+                  fontSize: "16px",
+                  padding: "6px 10px",
+                  borderRadius: "6px",
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
                 }}
               >
-                {arg.event.extendedProps.processName} -{" "}
-                {arg.event.extendedProps.machineId} -{" "}
-                {arg.event.extendedProps.operator}
+                🔧 {arg.event.extendedProps.processName} · 🛠{" "}
+                {arg.event.extendedProps.machineId} · 👷{" "}
+                {arg.event.extendedProps.operator} · 📅{" "}
+                {formatDate(arg.event.extendedProps.startDate)}{" "}
+                {arg.event.extendedProps.startTime} →{" "}
+                {formatDate(arg.event.extendedProps.endDate)}
               </div>
             </div>
           );
         }}
-        
         eventDidMount={(info) => {
           const event = info.event;
           const props = event.extendedProps;
@@ -500,7 +511,6 @@ export function PlanPage() {
           info.el.style.cursor = "not-allowed"; // Prevent clicking
           info.el.style.opacity = "0.6"; // Optional dim effect
           info.el.style.pointerEvents = "auto"; // Allow hover effects
-          
 
           // Use a better tooltip approach (e.g., Tippy.js)
           if (window.tippy) {
@@ -854,7 +864,7 @@ export function PlanPage() {
                         borderColor: statusColor,
                         extendedProps: {
                           processName: selectedSplit.processName,
-                          machineId: allocation.machineId,  
+                          machineId: allocation.machineId,
                           splitNumber: allocation.splitNumber,
                           operator: allocation.operator,
                           plannedQuantity: allocation.plannedQuantity,

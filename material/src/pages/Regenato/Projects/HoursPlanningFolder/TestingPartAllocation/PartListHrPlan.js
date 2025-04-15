@@ -970,15 +970,15 @@ export const PartListHrPlan = ({
     machine
   ) => {
     if (!startDate || !plannedMinutes) return "";
-  
+
     const parsedDate = new Date(startDate);
     if (isNaN(parsedDate.getTime())) return "";
-  
+
     let remainingMinutes = plannedMinutes;
     let currentDate = new Date(parsedDate);
     let totalDowntimeAdded = 0;
     const workingMinutesPerDay = shift?.workingMinutes || 450;
-  
+
     while (remainingMinutes > 0) {
       // Skip non-working days
       while (
@@ -987,31 +987,30 @@ export const PartListHrPlan = ({
       ) {
         currentDate.setDate(currentDate.getDate() + 1);
       }
-  
+
       if (machine) {
         const downtimeInfo = isMachineOnDowntimeDuringPeriod(
           machine,
           currentDate,
           new Date(currentDate.getTime() + workingMinutesPerDay * 60000)
         );
-  
+
         if (downtimeInfo.isDowntime) {
           remainingMinutes += downtimeInfo.downtimeMinutes;
           totalDowntimeAdded += downtimeInfo.downtimeMinutes;
         }
       }
-  
+
       const minutesToDeduct = Math.min(remainingMinutes, workingMinutesPerDay);
       remainingMinutes -= minutesToDeduct;
-  
+
       if (remainingMinutes > 0) {
         currentDate.setDate(currentDate.getDate() + 1);
       }
     }
-  
+
     return formatDateUTC(currentDate);
   };
-  
 
   const addRow = (index) => {
     if (!hasStartDate) return;
@@ -1031,7 +1030,7 @@ export const PartListHrPlan = ({
           plannedQuantity: "",
           startDate: "",
           endDate: "",
-          machineId: "",
+          machineId: "", // Clear machine selection for new row
           shift: "",
           plannedQtyTime: calculatePlannedMinutes(
             currentRemaining * manufacturingVariables[index].hours
@@ -1043,6 +1042,39 @@ export const PartListHrPlan = ({
     }));
 
     updateRemainingQuantity(index);
+  };
+
+  const getAvailableMachinesForRow = (processIndex, rowIndex) => {
+    const allMachines =
+      machineOptions[manufacturingVariables[processIndex].categoryId] || [];
+
+    // Get all selected machines in the current process except for the current row
+    const selectedMachinesInProcess = rows[processIndex]
+      ? rows[processIndex]
+          .filter((_, idx) => idx !== rowIndex) // Exclude current row
+          .map((row) => row.machineId)
+          .filter(Boolean) // Remove empty/null values
+      : [];
+
+    // Filter out machines that are already selected
+    return allMachines.filter(
+      (machine) => !selectedMachinesInProcess.includes(machine.subcategoryId)
+    );
+  };
+
+  const getAvailableOperatorsForRow = (processIndex, rowIndex) => {
+    // Get all selected operators in the current process except for the current row
+    const selectedOperatorsInProcess = rows[processIndex]
+      ? rows[processIndex]
+          .filter((_, idx) => idx !== rowIndex)
+          .map((row) => row.operatorId)
+          .filter(Boolean)
+      : [];
+
+    // Filter out operators that are already selected
+    return operators.filter(
+      (operator) => !selectedOperatorsInProcess.includes(operator._id)
+    );
   };
 
   const deleteRow = (index, rowIndex) => {
@@ -1600,10 +1632,11 @@ export const PartListHrPlan = ({
                                     calculateEndDateWithDowntime(
                                       date,
                                       row.plannedQtyTime,
-                                      shiftOptions.find((s) => s.name === row.shift),
+                                      shiftOptions.find(
+                                        (s) => s.name === row.shift
+                                      ),
                                       machine
                                     )
-                                    
                                   );
                                   return availability.available
                                     ? ""
@@ -1704,6 +1737,12 @@ export const PartListHrPlan = ({
                                   padding: "6px !important",
                                   fontSize: "0.875rem",
                                 },
+                                // Add styles for disabled options
+                                "& .MuiAutocomplete-option[aria-disabled='true']":
+                                  {
+                                    opacity: 0.5,
+                                    cursor: "not-allowed",
+                                  },
                               }}
                               componentsProps={{
                                 paper: {
@@ -1716,7 +1755,10 @@ export const PartListHrPlan = ({
                                   },
                                 },
                               }}
-                              options={machineOptions[man.categoryId] || []}
+                              options={getAvailableMachinesForRow(
+                                index,
+                                rowIndex
+                              )}
                               value={
                                 machineOptions[man.categoryId]?.find(
                                   (machine) =>
@@ -1725,6 +1767,36 @@ export const PartListHrPlan = ({
                               }
                               onChange={(event, newValue) => {
                                 if (!hasStartDate) return;
+
+                                // Check if machine is already selected in another row
+                                const isAlreadySelected = rows[index].some(
+                                  (r, idx) =>
+                                    idx !== rowIndex &&
+                                    r.machineId === newValue?.subcategoryId
+                                );
+
+                                if (isAlreadySelected) {
+                                  toast.error(
+                                    "This machine is already selected in another row for this process"
+                                  );
+                                  return;
+                                }
+
+                                // Check if machine is occupied
+                                if (newValue) {
+                                  const status = getMachineStatus(
+                                    newValue,
+                                    row.startDate,
+                                    row.endDate,
+                                    allocatedMachines
+                                  );
+                                  if (status.isAllocated) {
+                                    toast.error(
+                                      "This machine is occupied during the selected time period"
+                                    );
+                                    return;
+                                  }
+                                }
 
                                 setRows((prevRows) => {
                                   const updatedRows = [...prevRows[index]];
@@ -1745,7 +1817,6 @@ export const PartListHrPlan = ({
                                         updatedRows[rowIndex].shift
                                     );
 
-                                    // Recalculate end date with downtime
                                     updatedRows[rowIndex].endDate =
                                       calculateEndDateWithDowntime(
                                         updatedRows[rowIndex].startDate,
@@ -1754,7 +1825,6 @@ export const PartListHrPlan = ({
                                         newValue
                                       );
 
-                                    // Show notification if machine has downtime
                                     const downtimeInfo =
                                       isMachineOnDowntimeDuringPeriod(
                                         newValue,
@@ -1790,24 +1860,72 @@ export const PartListHrPlan = ({
                                 );
                                 const isDisabled = status.isAllocated;
 
-                                // Check if this is the only available machine due to SubMachineName
-                                const isForcedSelection =
-                                  machineOptions[man.categoryId]?.length === 1;
+                                // Don't render the option at all if it's disabled
+                                if (isDisabled) {
+                                  return (
+                                    <li
+                                      {...props}
+                                      style={{
+                                        padding: "10px 16px",
+                                        backgroundColor: "#f5f5f5",
+                                        color: "#999",
+                                        cursor: "not-allowed",
+                                        opacity: 0.7,
+                                        pointerEvents: "none",
+                                      }}
+                                    >
+                                      <div
+                                        style={{
+                                          display: "flex",
+                                          alignItems: "center",
+                                        }}
+                                      >
+                                        <div
+                                          style={{
+                                            width: 24,
+                                            height: 24,
+                                            borderRadius: "50%",
+                                            backgroundColor: "#ff9800",
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            marginRight: 12,
+                                          }}
+                                        >
+                                          <span
+                                            style={{
+                                              color: "white",
+                                              fontSize: 12,
+                                            }}
+                                          >
+                                            O
+                                          </span>
+                                        </div>
+                                        <div>
+                                          <div style={{ fontWeight: 500 }}>
+                                            {option.name}
+                                          </div>
+                                          <div
+                                            style={{
+                                              fontSize: "0.75rem",
+                                              color: "#666",
+                                            }}
+                                          >
+                                            Occupied - Not Available
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </li>
+                                  );
+                                }
 
                                 return (
                                   <li
                                     {...props}
                                     style={{
-                                      backgroundColor: isDisabled
-                                        ? "#fff9f9"
-                                        : "white",
                                       padding: "10px 16px",
                                       borderBottom: "1px solid #f0f0f0",
-                                      cursor: isDisabled
-                                        ? "not-allowed"
-                                        : "pointer",
-                                      opacity: isDisabled ? 0.8 : 1,
-                                      ...props.style,
+                                      cursor: "pointer",
                                     }}
                                   >
                                     <div
@@ -1816,26 +1934,18 @@ export const PartListHrPlan = ({
                                         alignItems: "center",
                                       }}
                                     >
-                                      {/* Status Icon */}
                                       <div
                                         style={{
                                           width: 24,
                                           height: 24,
                                           borderRadius: "50%",
-                                          backgroundColor:
-                                            status.isAllocated &&
-                                            status.isDowntime
-                                              ? "#d32f2f"
-                                              : status.isDowntime
-                                              ? "#f44336"
-                                              : status.isAllocated
-                                              ? "#ff9800"
-                                              : "#4caf50",
+                                          backgroundColor: status.isDowntime
+                                            ? "#f44336"
+                                            : "#4caf50",
                                           display: "flex",
                                           alignItems: "center",
                                           justifyContent: "center",
                                           marginRight: 12,
-                                          flexShrink: 0,
                                         }}
                                       >
                                         <span
@@ -1844,105 +1954,24 @@ export const PartListHrPlan = ({
                                             fontSize: 12,
                                           }}
                                         >
-                                          {status.isAllocated &&
-                                          status.isDowntime
-                                            ? "!"
-                                            : status.isDowntime
-                                            ? "D"
-                                            : status.isAllocated
-                                            ? "O"
-                                            : "A"}
+                                          {status.isDowntime ? "D" : "A"}
                                         </span>
                                       </div>
-
-                                      <div style={{ flexGrow: 1 }}>
-                                        <div
-                                          style={{
-                                            fontWeight: 500,
-                                            color: isDisabled ? "#555" : "#222",
-                                          }}
-                                        >
+                                      <div>
+                                        <div style={{ fontWeight: 500 }}>
                                           {option.name}
-                                          {isForcedSelection && (
-                                            <span
-                                              style={{
-                                                marginLeft: 8,
-                                                fontSize: "0.75rem",
-                                                color: "#666",
-                                              }}
-                                            >
-                                              (Required for this process)
-                                            </span>
-                                          )}
-                                          <span
-                                            style={{
-                                              marginLeft: 8,
-                                              fontSize: "0.75rem",
-                                              color:
-                                                status.isAllocated &&
-                                                status.isDowntime
-                                                  ? "#d32f2f"
-                                                  : status.isDowntime
-                                                  ? "#f44336"
-                                                  : status.isAllocated
-                                                  ? "#ff9800"
-                                                  : "#4caf50",
-                                              fontWeight: 600,
-                                            }}
-                                          >
-                                            {status.status}
-                                          </span>
                                         </div>
-
-                                        {/* Detailed Status Information */}
                                         <div
                                           style={{
                                             fontSize: "0.75rem",
                                             color: "#666",
-                                            marginTop: 4,
                                           }}
                                         >
-                                          {status.isDowntime && (
-                                            <div>
-                                              <span>Downtime: </span>
-                                              <span style={{ fontWeight: 500 }}>
-                                                {formatDowntime(
-                                                  status.downtimeMinutes
-                                                )}
-                                              </span>
-                                              {status.downtimeReason && (
-                                                <span>
-                                                  {" "}
-                                                  ({status.downtimeReason})
-                                                </span>
-                                              )}
-                                            </div>
-                                          )}
-                                          {status.isAllocated && (
-                                            <div>
-                                              <span>Allocated: </span>
-                                              <span style={{ fontWeight: 500 }}>
-                                                {allocatedMachines[
-                                                  option.subcategoryId
-                                                ]?.[0]?.startDate
-                                                  ? formatDate(
-                                                      new Date(
-                                                        allocatedMachines[
-                                                          option.subcategoryId
-                                                        ][0].startDate
-                                                      )
-                                                    )
-                                                  : "Unknown period"}
-                                              </span>
-                                            </div>
-                                          )}
-                                          {!isDisabled && (
-                                            <div style={{ color: "#4caf50" }}>
-                                              {isForcedSelection
-                                                ? "This machine is required for this process"
-                                                : "Available for selection"}
-                                            </div>
-                                          )}
+                                          {status.isDowntime
+                                            ? `Downtime: ${formatDowntime(
+                                                status.downtimeMinutes
+                                              )}`
+                                            : "Available"}
                                         </div>
                                       </div>
                                     </div>
@@ -1990,17 +2019,6 @@ export const PartListHrPlan = ({
                                     : "No matching machines found"}
                                 </div>
                               }
-                              loadingText={
-                                <div
-                                  style={{
-                                    padding: 12,
-                                    color: "#666",
-                                    textAlign: "center",
-                                  }}
-                                >
-                                  Loading machines...
-                                </div>
-                              }
                               disabled={!hasStartDate}
                               isOptionEqualToValue={(option, value) =>
                                 option.subcategoryId === value.subcategoryId
@@ -2029,6 +2047,12 @@ export const PartListHrPlan = ({
                                   padding: "6px !important",
                                   fontSize: "0.875rem",
                                 },
+                                // Add styles for disabled options
+                                "& .MuiAutocomplete-option[aria-disabled='true']":
+                                  {
+                                    opacity: 0.5,
+                                    cursor: "not-allowed",
+                                  },
                               }}
                               componentsProps={{
                                 paper: {
@@ -2077,16 +2101,109 @@ export const PartListHrPlan = ({
                                   row.startDate,
                                   row.endDate
                                 );
+                                const isDisabled = isOnLeave || isAllocated;
                                 const leaveDuration = option.leavePeriod?.[0]
                                   ? Math.ceil(
-                                      new Date(option.leavePeriod[0].endDate) -
+                                      (new Date(option.leavePeriod[0].endDate) -
                                         new Date(
                                           option.leavePeriod[0].startDate
-                                        )
-                                    ) /
-                                      (1000 * 60 * 60 * 24) +
-                                    1
+                                        )) /
+                                        (1000 * 60 * 60 * 24)
+                                    ) + 1
                                   : 0;
+
+                                // Don't render clickable option if operator is unavailable
+                                if (isDisabled) {
+                                  return (
+                                    <li
+                                      {...props}
+                                      style={{
+                                        padding: "10px 16px",
+                                        backgroundColor: isOnLeave
+                                          ? "#fff0f0"
+                                          : "#fff9e6",
+                                        color: "#999",
+                                        cursor: "not-allowed",
+                                        opacity: 0.7,
+                                        pointerEvents: "none",
+                                      }}
+                                    >
+                                      <div
+                                        style={{
+                                          display: "flex",
+                                          alignItems: "center",
+                                        }}
+                                      >
+                                        <div
+                                          style={{
+                                            width: 24,
+                                            height: 24,
+                                            borderRadius: "50%",
+                                            backgroundColor: isOnLeave
+                                              ? "#ff6b6b"
+                                              : "#ffc107",
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            marginRight: 12,
+                                            flexShrink: 0,
+                                          }}
+                                        >
+                                          <span
+                                            style={{
+                                              color: "white",
+                                              fontSize: 12,
+                                            }}
+                                          >
+                                            {isOnLeave ? "✈" : "⏳"}
+                                          </span>
+                                        </div>
+                                        <div style={{ flexGrow: 1 }}>
+                                          <div
+                                            style={{
+                                              fontWeight: 500,
+                                              color: "#666",
+                                            }}
+                                          >
+                                            {option.name}
+                                            <span
+                                              style={{
+                                                marginLeft: 8,
+                                                fontSize: "0.75rem",
+                                                color: "#666",
+                                              }}
+                                            >
+                                              {isOnLeave
+                                                ? `On Leave (${leaveDuration}d)`
+                                                : "Allocated"}
+                                            </span>
+                                          </div>
+                                          {option.leavePeriod?.[0] && (
+                                            <div
+                                              style={{
+                                                fontSize: "0.75rem",
+                                                color: "#666",
+                                                marginTop: 4,
+                                              }}
+                                            >
+                                              {formatDate(
+                                                new Date(
+                                                  option.leavePeriod[0].startDate
+                                                )
+                                              )}{" "}
+                                              -{" "}
+                                              {formatDate(
+                                                new Date(
+                                                  option.leavePeriod[0].endDate
+                                                )
+                                              )}
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </li>
+                                  );
+                                }
 
                                 return (
                                   <li
@@ -2095,12 +2212,7 @@ export const PartListHrPlan = ({
                                       padding: "10px 16px",
                                       borderBottom: "1px solid #f0f0f0",
                                       cursor: "pointer",
-                                      backgroundColor: isOnLeave
-                                        ? "#fff0f0"
-                                        : isAllocated
-                                        ? "#fff9e6"
-                                        : "white",
-                                      ...props.style,
+                                      backgroundColor: "white",
                                     }}
                                   >
                                     <div
@@ -2114,11 +2226,7 @@ export const PartListHrPlan = ({
                                           width: 24,
                                           height: 24,
                                           borderRadius: "50%",
-                                          backgroundColor: isOnLeave
-                                            ? "#ff6b6b"
-                                            : isAllocated
-                                            ? "#ffc107"
-                                            : "#4caf50",
+                                          backgroundColor: "#4caf50",
                                           display: "flex",
                                           alignItems: "center",
                                           justifyContent: "center",
@@ -2132,11 +2240,7 @@ export const PartListHrPlan = ({
                                             fontSize: 12,
                                           }}
                                         >
-                                          {isOnLeave
-                                            ? "✈"
-                                            : isAllocated
-                                            ? "⏳"
-                                            : "👤"}
+                                          👤
                                         </span>
                                       </div>
                                       <div style={{ flexGrow: 1 }}>
@@ -2151,37 +2255,12 @@ export const PartListHrPlan = ({
                                             style={{
                                               marginLeft: 8,
                                               fontSize: "0.75rem",
-                                              color: "#666",
+                                              color: "#4caf50",
                                             }}
                                           >
-                                            {isOnLeave &&
-                                              `On Leave (${leaveDuration}d)`}
-                                            {isAllocated &&
-                                              !isOnLeave &&
-                                              "Allocated"}
+                                            Available
                                           </span>
                                         </div>
-                                        {option.leavePeriod?.[0] && (
-                                          <div
-                                            style={{
-                                              fontSize: "0.75rem",
-                                              color: "#666",
-                                              marginTop: 4,
-                                            }}
-                                          >
-                                            {formatDate(
-                                              new Date(
-                                                option.leavePeriod[0].startDate
-                                              )
-                                            )}{" "}
-                                            -{" "}
-                                            {formatDate(
-                                              new Date(
-                                                option.leavePeriod[0].endDate
-                                              )
-                                            )}
-                                          </div>
-                                        )}
                                       </div>
                                     </div>
                                   </li>
@@ -2190,18 +2269,46 @@ export const PartListHrPlan = ({
                               onChange={(event, newValue) => {
                                 if (!hasStartDate) return;
 
-                                if (
-                                  newValue &&
-                                  !isOperatorAvailable(
+                                // Check if operator is available
+                                if (newValue) {
+                                  const isOnLeave = isOperatorOnLeave(
+                                    newValue,
+                                    row.startDate,
+                                    row.endDate
+                                  );
+                                  const isAllocated = !isOperatorAvailable(
                                     newValue.name,
                                     row.startDate,
                                     row.endDate
-                                  )
-                                ) {
-                                  toast.error(
-                                    "This operator is allocated during the selected dates."
                                   );
-                                  return;
+
+                                  if (isOnLeave) {
+                                    toast.error(
+                                      `${newValue.name} is on leave during the selected dates`
+                                    );
+                                    return;
+                                  }
+
+                                  if (isAllocated) {
+                                    toast.error(
+                                      `${newValue.name} is already allocated during the selected dates`
+                                    );
+                                    return;
+                                  }
+
+                                  // Check if operator is already selected in another row
+                                  const isAlreadySelected = rows[index].some(
+                                    (r, idx) =>
+                                      idx !== rowIndex &&
+                                      r.operatorId === newValue._id
+                                  );
+
+                                  if (isAlreadySelected) {
+                                    toast.error(
+                                      `${newValue.name} is already assigned to another row in this process`
+                                    );
+                                    return;
+                                  }
                                 }
 
                                 setRows((prevRows) => ({
@@ -2259,6 +2366,13 @@ export const PartListHrPlan = ({
                                 </div>
                               }
                               disabled={!hasStartDate}
+                              filterOptions={(options, state) => {
+                                return options.filter((option) =>
+                                  option.name
+                                    .toLowerCase()
+                                    .includes(state.inputValue.toLowerCase())
+                                );
+                              }}
                             />
                           </td>
                           <td>

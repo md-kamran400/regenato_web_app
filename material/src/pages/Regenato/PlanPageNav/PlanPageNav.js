@@ -190,6 +190,9 @@ export function PlanPageNav() {
               shift: a.shift,
               splitNumber: a.splitNumber || a.orderNumber,
               AllocationPartType: a.AllocationPartType,
+              startDate: a.startDate,
+              endDate: a.endDate,
+              startTime: a.startTime,
               dailyTracking: a.dailyTracking,
             },
           });
@@ -352,6 +355,7 @@ export function PlanPageNav() {
           plannedQuantity: allocation.plannedQuantity,
           startDate: allocation.startDate,
           endDate: allocation.endDate,
+          startTime: allocation.startTime,
           actualEndDate: allocation.actualEndDate,
         },
       };
@@ -457,14 +461,22 @@ export function PlanPageNav() {
             >
               <div
                 style={{
-                  color: "black", // Change text color to black
-                  fontWeight: "bold", // Make text bold
+                  color: "black",
+                  fontWeight: "bold",
                   fontSize: "16px",
+                  padding: "6px 10px",
+                  borderRadius: "6px",
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
                 }}
               >
-                {arg.event.extendedProps.processName} -{" "}
-                {arg.event.extendedProps.machineId} -{" "}
-                {arg.event.extendedProps.operator}
+                🔧 {arg.event.extendedProps.processName} · 🛠{" "}
+                {arg.event.extendedProps.machineId} · 👷{" "}
+                {arg.event.extendedProps.operator} · 📅{" "}
+                {formatDate(arg.event.extendedProps.startDate)}{" "}
+                {arg.event.extendedProps.startTime} →{" "}
+                {formatDate(arg.event.extendedProps.endDate)}
               </div>
             </div>
           );
