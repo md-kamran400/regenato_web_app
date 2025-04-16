@@ -288,7 +288,14 @@ const ShiftVariable = () => {
                           <td>{shift.EndTime}</td>
                           <td>{shift.LaunchStartTime}</td>
                           <td>{shift.LaunchEndTime}</td>
-                          <td>{shift.TotalHours}</td>
+                          <td >
+                            {shift.TotalHours && (
+                              <>
+                                <span>{Math.floor(shift.TotalHours)}h </span>
+                                <span>{(shift.TotalHours % 1 * 60).toFixed(0)}m</span>
+                              </>
+                            ) || 'N'}
+                          </td>
                           <td>
                             <div className="d-flex gap-2">
                               <Button

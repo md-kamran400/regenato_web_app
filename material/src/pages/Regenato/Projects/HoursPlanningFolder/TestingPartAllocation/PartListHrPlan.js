@@ -429,7 +429,7 @@ export const PartListHrPlan = ({
       return acc;
     }, {});
     setRows(initialRows);
-  }, [manufacturingVariables, quantity, isAutoSchedule]);
+  }, [manufacturingVariables, quantity, isAutoSchedule, shiftOptions]);
 
   const handleQuantityChange = (index, rowIndex, value) => {
     setRows((prevRows) => {
@@ -1171,6 +1171,24 @@ export const PartListHrPlan = ({
               (shift) => shift.name === row.shift
             );
 
+            // groupedAllocations[key].allocations.push({
+            //   splitNumber,
+            //   AllocationPartType: "Part",
+            //   plannedQuantity: row.plannedQuantity,
+            //   startDate: new Date(row.startDate).toISOString(),
+            //   startTime: row.startTime || "08:00 AM",
+            //   endDate: new Date(row.endDate).toISOString(),
+            //   machineId: row.machineId,
+            //   shift: row.shift,
+            //   plannedTime: row.plannedQtyTime,
+            //   operator:
+            //     operators.find((op) => op._id === row.operatorId)?.name ||
+            //     "Unknown",
+            //   shiftTotalTime: selectedShift ? selectedShift.TotalHours : 0,
+            //   perMachinetotalTime: Math.ceil(man.hours * 60),
+            //   processId: man.categoryId, //Add processId to each allocation as well
+            // });
+
             groupedAllocations[key].allocations.push({
               splitNumber,
               AllocationPartType: "Part",
@@ -1178,6 +1196,12 @@ export const PartListHrPlan = ({
               startDate: new Date(row.startDate).toISOString(),
               startTime: row.startTime || "08:00 AM",
               endDate: new Date(row.endDate).toISOString(),
+              endTime: calculateEndTime(
+                // Add the calculated end time
+                row.startTime,
+                row.plannedQtyTime,
+                shiftOptions.find((s) => s.name === row.shift)
+              ),
               machineId: row.machineId,
               shift: row.shift,
               plannedTime: row.plannedQtyTime,
@@ -1186,7 +1210,7 @@ export const PartListHrPlan = ({
                 "Unknown",
               shiftTotalTime: selectedShift ? selectedShift.TotalHours : 0,
               perMachinetotalTime: Math.ceil(man.hours * 60),
-              processId: man.categoryId, //Add processId to each allocation as well
+              processId: man.categoryId,
             });
           } else {
             console.warn(
@@ -1234,56 +1258,81 @@ export const PartListHrPlan = ({
     setIsDataAllocated(false);
   };
 
-  // Add this function in your component
   const calculateEndTime = (startTime, plannedMinutes, shift) => {
-    if (!startTime || !plannedMinutes) return "";
+    if (!startTime || !plannedMinutes || !shift) return "17:00"; // Default end time if data missing
 
-    // Parse the start time (format: "HH:MM")
-    const [hours, minutes] = startTime.split(":").map(Number);
-    let date = new Date();
-    date.setHours(hours, minutes, 0, 0);
+    try {
+      // Parse the start time (format: "HH:MM")
+      const [startHours, startMinutes] = startTime.split(":").map(Number);
+      let currentTime = new Date();
+      currentTime.setHours(startHours, startMinutes, 0, 0);
 
-    // If we have shift data with break times
-    if (shift && shift.breakStartTime && shift.breakEndTime) {
-      const [breakStartHour, breakStartMinute] = shift.breakStartTime
-        .split(":")
-        .map(Number);
-      const [breakEndHour, breakEndMinute] = shift.breakEndTime
-        .split(":")
-        .map(Number);
+      // Calculate working minutes per day (excluding breaks)
+      const workingMinutesPerDay = shift.workingMinutes || 450; // Default to 7.5 hours
 
-      const breakStart = new Date(date);
-      breakStart.setHours(breakStartHour, breakStartMinute, 0, 0);
+      // Calculate how many full days of work are needed
+      const fullDays = Math.floor(plannedMinutes / workingMinutesPerDay);
+      let remainingMinutes = plannedMinutes % workingMinutesPerDay;
 
-      const breakEnd = new Date(date);
-      breakEnd.setHours(breakEndHour, breakEndMinute, 0, 0);
+      // If no remaining minutes but we have full days, use full shift end time
+      if (remainingMinutes === 0 && fullDays > 0) {
+        const [shiftEndHour, shiftEndMinute] = shift.endTime
+          .split(":")
+          .map(Number);
+        return `${String(shiftEndHour).padStart(2, "0")}:${String(
+          shiftEndMinute
+        ).padStart(2, "0")}`;
+      }
 
-      let remainingMinutes = plannedMinutes;
+      // For multi-day production, we'll start at shift start time on the last day
+      if (fullDays > 0) {
+        // Reset to shift start time for the final day
+        currentTime.setHours(startHours, startMinutes, 0, 0);
+      }
 
-      // Work until break starts
-      const minutesUntilBreak = (breakStart - date) / (1000 * 60);
-      if (remainingMinutes <= minutesUntilBreak) {
-        date.setMinutes(date.getMinutes() + remainingMinutes);
-        remainingMinutes = 0;
+      // Handle breaks if they exist
+      if (shift.breakStartTime && shift.breakEndTime) {
+        const [breakStartHour, breakStartMinute] = shift.breakStartTime
+          .split(":")
+          .map(Number);
+        const [breakEndHour, breakEndMinute] = shift.breakEndTime
+          .split(":")
+          .map(Number);
+
+        const breakStart = new Date(currentTime);
+        breakStart.setHours(breakStartHour, breakStartMinute, 0, 0);
+
+        const breakEnd = new Date(currentTime);
+        breakEnd.setHours(breakEndHour, breakEndMinute, 0, 0);
+
+        // Check if remaining work crosses break time
+        const minutesUntilBreak = (breakStart - currentTime) / (1000 * 60);
+
+        if (remainingMinutes <= minutesUntilBreak) {
+          // Can finish before break
+          currentTime.setMinutes(currentTime.getMinutes() + remainingMinutes);
+        } else {
+          // Need to work after break
+          // Work until break starts
+          const workBeforeBreak = minutesUntilBreak;
+          currentTime = new Date(breakEnd);
+          remainingMinutes -= workBeforeBreak;
+          currentTime.setMinutes(currentTime.getMinutes() + remainingMinutes);
+        }
       } else {
-        date = new Date(breakEnd); // Skip to after break
-        remainingMinutes -= minutesUntilBreak;
+        // No break information, just add the minutes directly
+        currentTime.setMinutes(currentTime.getMinutes() + remainingMinutes);
       }
 
-      // Add remaining time after break
-      if (remainingMinutes > 0) {
-        date.setMinutes(date.getMinutes() + remainingMinutes);
-      }
-    } else {
-      // No break information, just add the minutes directly
-      date.setMinutes(date.getMinutes() + plannedMinutes);
+      // Format back to HH:MM
+      const endHours = String(currentTime.getHours()).padStart(2, "0");
+      const endMinutes = String(currentTime.getMinutes()).padStart(2, "0");
+
+      return `${endHours}:${endMinutes}`;
+    } catch (error) {
+      console.error("Error calculating end time:", error);
+      return "17:00"; // Fallback end time
     }
-
-    // Format back to HH:MM
-    const endHours = String(date.getHours()).padStart(2, "0");
-    const endMinutes = String(date.getMinutes()).padStart(2, "0");
-
-    return `${endHours}:${endMinutes}`;
   };
 
   return (
@@ -1410,10 +1459,11 @@ export const PartListHrPlan = ({
                         <th>Plan Qty</th>
                         <th>Plan Qty Time</th>
                         <th style={{ width: "20%" }}>Shift</th>
-                        <th style={{ width: "15%" }}>Start Time</th>
                         <th style={{ width: "10%" }}>Start Date</th>
-                        <th>End Time</th>
+                        <th style={{ width: "15%" }}>Start Time</th>
                         <th style={{ width: "8%" }}>End Date</th>
+                        <th>End Time</th>
+
                         <th style={{ width: "25%" }}>Machine ID</th>
                         <th style={{ width: "50%" }}>Operator</th>
                         <th>Actions</th>
@@ -1490,7 +1540,7 @@ export const PartListHrPlan = ({
                           </td>
                           <td>{row.plannedQtyTime} m</td>
                           <td>
-                            <Autocomplete
+                            {/* <Autocomplete
                               sx={{
                                 width: 130,
                                 margin: "auto",
@@ -1562,24 +1612,84 @@ export const PartListHrPlan = ({
                               autoHighlight
                               noOptionsText="No shifts available"
                               disabled={!hasStartDate && index !== 0}
-                            />
-                          </td>
-
-                          <td>
-                            <Input
-                              type="time"
-                              value={row.startTime}
-                              onChange={(e) => {
-                                setRows((prevRows) => {
-                                  const updatedRows = [...prevRows[index]];
-                                  updatedRows[rowIndex].startTime =
-                                    e.target.value;
-                                  return { ...prevRows, [index]: updatedRows };
-                                });
+                            /> */}
+                            <Autocomplete
+                              sx={{
+                                width: 130,
+                                margin: "auto",
+                                "& .MuiOutlinedInput-root": {
+                                  padding: "6px !important",
+                                  fontSize: "0.875rem",
+                                },
                               }}
+                              componentsProps={{
+                                paper: {
+                                  sx: {
+                                    width: 380,
+                                    boxShadow:
+                                      "0px 4px 20px rgba(0, 0, 0, 0.15)",
+                                    borderRadius: "8px",
+                                    marginTop: "4px",
+                                  },
+                                },
+                              }}
+                              options={shiftOptions || []}
+                              value={
+                                shiftOptions.find(
+                                  (option) => option.name === row.shift
+                                ) ||
+                                (shiftOptions.length > 0
+                                  ? shiftOptions[0]
+                                  : null) // Default to first shift if none selected
+                              }
+                              onChange={(event, newValue) => {
+                                if (!newValue) return;
+
+                                setRows((prevRows) => ({
+                                  ...prevRows,
+                                  [index]: prevRows[index].map(
+                                    (row, rowIdx) => {
+                                      if (rowIdx === rowIndex) {
+                                        let updatedEndDate = row.endDate;
+                                        // Only recalculate if startDate exists
+                                        if (row.startDate) {
+                                          const recalculated =
+                                            calculateStartAndEndDates(
+                                              row.startDate,
+                                              row.plannedQtyTime,
+                                              newValue.TotalHours
+                                            );
+                                          updatedEndDate = recalculated.endDate;
+                                        }
+                                        return {
+                                          ...row,
+                                          shift: newValue.name,
+                                          startTime: newValue.startTime,
+                                          shiftMinutes: newValue.TotalHours,
+                                          endDate: updatedEndDate,
+                                        };
+                                      }
+                                      return row;
+                                    }
+                                  ),
+                                }));
+                              }}
+                              getOptionLabel={(option) => option.name}
+                              renderInput={(params) => (
+                                <TextField
+                                  {...params}
+                                  label="Shift"
+                                  variant="outlined"
+                                  size="small"
+                                  placeholder="Select Shift"
+                                />
+                              )}
+                              disablePortal
+                              autoHighlight
+                              noOptionsText="No shifts available"
+                              disabled={!hasStartDate && index !== 0}
                             />
                           </td>
-
                           <td style={{ width: "180px" }}>
                             <DatePicker
                               selected={
@@ -1650,18 +1760,17 @@ export const PartListHrPlan = ({
                               wrapperClassName="small-datepicker"
                             />
                           </td>
-
                           <td>
                             <Input
                               type="time"
-                              value={calculateEndTime(
-                                row.startTime,
-                                row.plannedQtyTime
-                              )}
-                              readOnly
-                              style={{
-                                cursor: "not-allowed",
-                                backgroundColor: "#f8f9fa",
+                              value={row.startTime}
+                              onChange={(e) => {
+                                setRows((prevRows) => {
+                                  const updatedRows = [...prevRows[index]];
+                                  updatedRows[rowIndex].startTime =
+                                    e.target.value;
+                                  return { ...prevRows, [index]: updatedRows };
+                                });
                               }}
                             />
                           </td>
@@ -1726,6 +1835,31 @@ export const PartListHrPlan = ({
                                 opacity: 1;
                               }
                             `}</style>
+                          </td>
+
+                          <td>
+                            {/* <Input
+                              type="time"
+                              value={calculateEndTime(
+                                row.startTime,
+                                row.plannedQtyTime
+                              )}
+                              readOnly
+                              style={{
+                                cursor: "not-allowed",
+                                backgroundColor: "#f8f9fa",
+                              }}
+                            /> */}
+                            {/* // When displaying end time in your table: */}
+                            <Input
+                              type="time"
+                              value={calculateEndTime(
+                                row.startTime,
+                                row.plannedQtyTime,
+                                shiftOptions.find((s) => s.name === row.shift)
+                              )}
+                              readOnly
+                            />
                           </td>
 
                           <td>
@@ -1849,7 +1983,7 @@ export const PartListHrPlan = ({
                                   row.endDate,
                                   allocatedMachines
                                 );
-                                return `${option.name} (${status.status})`;
+                                return `${option.name}`;
                               }}
                               renderOption={(props, option) => {
                                 const status = getMachineStatus(
