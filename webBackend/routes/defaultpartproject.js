@@ -433,6 +433,7 @@ partproject.post("/projects/:projectId/partsLists/:listId/items", async (req, re
     itemsToAdd.forEach((item) => {
       partsList.partsListItems.push({
         partId: item.partId,
+        id: item.id,
         partName: item.partName,
         codeName: item.codeName || "",
         costPerUnit: Number(item.costPerUnit || 0),

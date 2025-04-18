@@ -104,6 +104,7 @@ const AllocationPlanningSchema = new mongoose.Schema(
 
 const partSchema = new mongoose.Schema({
   Uid: String,
+  partsCodeId: String,
   partName: String,
   codeName: String,
   costPerUnit: Number,
