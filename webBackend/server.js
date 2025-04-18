@@ -133,6 +133,7 @@ const allocationRoutes = require("./routes/Allocation/allocation.routes");
 const shiftRoutes = require("./routes/variableRoutes/shifts.routes");
 const eventRoutes = require("./routes/variableRoutes/eventScheduler");
 const { PartsExcelRoutes } = require("./routes/partsRoutes/partsExcel.routes");
+const { inchargeVariableRouter } = require("./routes/variableRoutes/incharge.route");
 
 // MongoDB connection
 const connect = async () => {
@@ -155,6 +156,7 @@ app.use("/api/general", GeneralRouter);
 app.use("/api/manufacturingStatics", manufacturingStaticRouter);
 app.use("/api/userVariable", userVariableRouter);
 app.use("/api/shiftVariable", shiftRoutes);
+app.use("/api/inchargeVariable", inchargeVariableRouter);
 app.use("/api/eventScheduler", eventRoutes);
 app.use("/api/parts", PartsExcelRoutes);
 app.use("/api/projects", ProjectRouter);
