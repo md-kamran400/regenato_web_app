@@ -28,6 +28,7 @@ import { AllocatedPartListHrPlan } from "./AllocatedPartListHrPlan";
 
 export const PartListHrPlan = ({
   partName,
+  partId,
   manufacturingVariables,
   quantity,
   porjectID,
@@ -55,6 +56,8 @@ export const PartListHrPlan = ({
   const [isDataAllocated, setIsDataAllocated] = useState(false);
   const [allocatedMachines, setAllocatedMachines] = useState({});
   const [operatorAllocations, setOperatorAllocations] = useState({});
+
+  console.log(partId);
 
   useEffect(() => {
     fetch(`${process.env.REACT_APP_BASE_URL}/api/eventScheduler/events`)
@@ -430,6 +433,39 @@ export const PartListHrPlan = ({
     }, {});
     setRows(initialRows);
   }, [manufacturingVariables, quantity, isAutoSchedule, shiftOptions]);
+
+  // const handleQuantityChange = (index, rowIndex, value) => {
+  //   setRows((prevRows) => {
+  //     const updatedRows = { ...prevRows };
+  //     const processRows = [...(updatedRows[index] || [])];
+  //     const newQuantity =
+  //       value === "" ? "" : Math.max(0, Math.min(quantity, Number(value)));
+
+  //     processRows[rowIndex] = {
+  //       ...processRows[rowIndex],
+  //       plannedQuantity: newQuantity,
+  //       plannedQtyTime: newQuantity
+  //         ? calculatePlannedMinutes(
+  //             newQuantity * manufacturingVariables[index].hours
+  //           )
+  //         : "",
+  //     };
+
+  //     updatedRows[index] = processRows;
+
+  //     const usedQuantity = processRows.reduce(
+  //       (sum, row) => sum + Number(row.plannedQuantity || 0),
+  //       0
+  //     );
+
+  //     setRemainingQuantities((prev) => ({
+  //       ...prev,
+  //       [index]: Math.max(0, quantity - usedQuantity),
+  //     }));
+
+  //     return updatedRows;
+  //   });
+  // };
 
   const handleQuantityChange = (index, rowIndex, value) => {
     setRows((prevRows) => {
@@ -1477,7 +1513,6 @@ export const PartListHrPlan = ({
                               <Input
                                 type="number"
                                 value={row.plannedQuantity}
-                                // placeholder="QTY"
                                 required
                                 onChange={(e) => {
                                   const newValue =
@@ -1491,31 +1526,47 @@ export const PartListHrPlan = ({
                                       ...(updatedRows[index] || []),
                                     ];
 
-                                    // Update the planned quantity safely
+                                    // Calculate total used quantity excluding the current row
+                                    const usedQuantityExcludingCurrent =
+                                      processRows.reduce((sum, r, i) => {
+                                        return i === rowIndex
+                                          ? sum
+                                          : sum +
+                                              Number(r.plannedQuantity || 0);
+                                      }, 0);
+
+                                    // Ensure new planned quantity does not exceed available quantity
+                                    const maxAllowed =
+                                      quantity - usedQuantityExcludingCurrent;
+                                    const safeValue = Math.min(
+                                      Number(newValue),
+                                      maxAllowed
+                                    );
+
                                     processRows[rowIndex] = {
                                       ...processRows[rowIndex],
-                                      plannedQuantity: newValue,
+                                      plannedQuantity: safeValue,
                                       plannedQtyTime: calculatePlannedMinutes(
-                                        (newValue || 0) *
+                                        (safeValue || 0) *
                                           manufacturingVariables[index].hours
                                       ),
                                     };
 
-                                    // Update the rows state
                                     updatedRows[index] = processRows;
 
-                                    // Compute remaining quantity **before** updating the state
-                                    const usedQuantity = processRows.reduce(
-                                      (sum, row) =>
-                                        sum + Number(row.plannedQuantity || 0),
-                                      0
-                                    );
+                                    const totalUsedQuantity =
+                                      processRows.reduce(
+                                        (sum, row) =>
+                                          sum +
+                                          Number(row.plannedQuantity || 0),
+                                        0
+                                      );
 
                                     setRemainingQuantities((prev) => ({
                                       ...prev,
                                       [index]: Math.max(
                                         0,
-                                        quantity - usedQuantity
+                                        quantity - totalUsedQuantity
                                       ),
                                     }));
 

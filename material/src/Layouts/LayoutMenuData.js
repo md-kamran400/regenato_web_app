@@ -20,6 +20,13 @@ const navdata = () => {
         //   link: "/regenato-allocation",
         //   icon: "fa fa-wrench", // Example FontAwesome icon class
         // },
+
+        // {
+        //   id: "Plan",
+        //   label: "Plan",
+        //   link: "/regenato-allocation-plan",
+        //   icon: "fa fa-wrench"
+        // },
         {
           id: "parts",
           label: "Parts",

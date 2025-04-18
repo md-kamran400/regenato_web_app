@@ -102,6 +102,8 @@ const PartsTable = React.memo(
     // console.log(partsList._id);
     // console.log(updatePartsLists)
 
+    const [open, setOpen] = useState(false);
+
     // fetching
     useEffect(() => {
       const fetchPartsListItems = async () => {
@@ -115,7 +117,7 @@ const PartsTable = React.memo(
           }
           const data = await response.json();
           setPartsListsItems(data.data);
-          // console.log("items data of parts lists", data);
+          console.log("items data of parts lists", data);
         } catch (error) {
           console.error("Error fetching parts list items:", error);
           // You might want to handle the error, e.g., show an error message to the user
@@ -151,9 +153,15 @@ const PartsTable = React.memo(
       return { text: "Allocated", class: "badge bg-dark text-white" };
     };
 
+    // const handlePartsChange = useCallback((event, newValue) => {
+    //   setSelectedParts(newValue);
+    //   setSelectedPartIds(new Set(newValue.map((part) => part.id)));
+    // }, []);
+
     const handlePartsChange = useCallback((event, newValue) => {
       setSelectedParts(newValue);
       setSelectedPartIds(new Set(newValue.map((part) => part.id)));
+      setOpen(true); // Keep dropdown open after selection
     }, []);
 
     useEffect(() => {
@@ -342,68 +350,6 @@ const PartsTable = React.memo(
       PartsTableFetch();
     }, [PartsTableFetch]);
 
-    // const handleSubmit = async (event) => {
-    //   event.preventDefault();
-    //   setIsLoading(true);
-
-    //   const payload = {
-    //     partId: selectedPartData.id,
-    //     partName: selectedPartData.partName,
-    //     codeName: codeName,
-    //     costPerUnit: Number(costPerUnit),
-    //     timePerUnit: Number(timePerUnit),
-    //     quantity: Number(quantity),
-    //     rmVariables: detailedPartData.rmVariables || [],
-    //     manufacturingVariables: detailedPartData.manufacturingVariables || [],
-    //     shipmentVariables: detailedPartData.shipmentVariables || [],
-    //     overheadsAndProfits: detailedPartData.overheadsAndProfits || [],
-    //   };
-
-    //   try {
-    //     const response = await fetch(
-    //       // `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/partsLists/${partsList._id}/items`,
-    //       `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${_id}/partsLists/${partsList._id}/items`,
-
-    //       // /projects/:_id/partsLists/:listId/items
-    //       {
-    //         method: "POST",
-    //         headers: { "Content-Type": "application/json" },
-    //         body: JSON.stringify(payload),
-    //       }
-    //     );
-
-    //     if (!response.ok) {
-    //       throw new Error("Failed to add part");
-    //     }
-
-    //     const newPart = await response.json();
-
-    //     // Update local state with new part
-    //     setPartsListsItems((prevItems) => [...prevItems, newPart]);
-
-    //     onUpdatePrts(newPart);
-
-    //     setModalAdd(false);
-    //     setIsLoading(false);
-    //     toast.success("New Records Added successfully");
-    //     // Reset form
-    //     setSelectedPartData(null);
-    //     setCostPerUnit("");
-    //     setTimePerUnit("");
-    //     setQuantity(0);
-    //     setDetailedPartData({});
-
-    //     // Update the partsListItemsUpdated state
-    //     setPartsListItemsUpdated(true);
-    //   } catch (error) {
-    //     console.error("Error:", error);
-    //     setError("Failed to add part. Please try again.");
-    //     toast.error("Failed to add Records. Please try again.");
-    //   } finally {
-    //     setIsLoading(false);
-    //   }
-    // };
-
     const handleSubmit = async (event) => {
       event.preventDefault();
       setIsLoading(true);
@@ -416,7 +362,7 @@ const PartsTable = React.memo(
 
       try {
         const payload = selectedParts.map((part) => ({
-          partId: part.id,
+          partsCodeId: part.id, // ✅ changed here
           partName: part.partName,
           codeName: part.codeName || "",
           costPerUnit: Number(part.costPerUnit || 0),
@@ -647,7 +593,10 @@ const PartsTable = React.memo(
       return `${totalMinutes} m`;
     };
 
-    console.log(" sub assmebly name for specific machine is here --->", partsListItems);
+    console.log(
+      " sub assmebly name for specific machine is here --->",
+      partsListItems
+    );
 
     return (
       <>
@@ -852,28 +801,13 @@ const PartsTable = React.memo(
                                     </div>
                                   </td>
                                 </tr>
-                                {/* Expanding HoursPlanningCard in a full-width row */}
-                                {/* {expandedRowId === item._id && (
-                              <tr>
-                                <td colSpan="7">
-                                  <HoursPlanningCard
-                                    partName={item.partName}
-                                    manufacturingVariables={
-                                      item.manufacturingVariables || []
-                                    }
-                                    quantity={item.quantity}
-                                    hours={item.hours}
-                                  />
-                                </td>
-                              </tr>
-                            )} */}
-                                 {/* In PartsTable.js, modify the PartListHrPlan
-                                component usage: */}
+
                                 {expandedRowId === item._id && (
                                   <tr>
                                     <td colSpan="8">
                                       <PartListHrPlan
                                         partName={item.partName}
+                                        partId={item.id}
                                         manufacturingVariables={
                                           item.manufacturingVariables || []
                                         }
@@ -997,46 +931,13 @@ const PartsTable = React.memo(
             <ModalBody>
               <form onSubmit={handleSubmit}>
                 {/* <Autocomplete
-                  options={parts || []}
-                  loading={loadingParts}
-                  getOptionLabel={(option) =>
-                    option ? `${option.partName} - ${option.id}` : ""
-                  }
-                  onChange={handleAutocompleteChange}
-                  noOptionsText={
-                    loadingParts ? "Loading parts..." : "No parts available"
-                  }
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      label="Select Part"
-                      variant="outlined"
-                      InputProps={{
-                        ...params.InputProps,
-                        endAdornment: (
-                          <>
-                            {loadingParts ? (
-                              <CircularProgress color="inherit" size={20} />
-                            ) : null}
-                            {params.InputProps.endAdornment}
-                          </>
-                        ),
-                      }}
-                    />
-                  )}
-                /> */}
-                <Autocomplete
                   multiple
                   options={parts || []}
                   loading={loadingParts}
                   getOptionLabel={(option) =>
-                    option ? `${option.partName} - ${option.id}` : ""
+                    option ? `${option.partName} - ${option.id}---` : ""
                   }
                   onChange={handlePartsChange}
-                  // onChange={(event, newValue) => {
-                  //   setSelectedParts(newValue);
-                  //   setSelectedPartIds(new Set(newValue.map(part => part.id)));
-                  // }}
                   noOptionsText={
                     loadingParts ? "Loading parts..." : "No parts available"
                   }
@@ -1067,6 +968,51 @@ const PartsTable = React.memo(
                       }}
                     />
                   )}
+                /> */}
+
+                <Autocomplete
+                  multiple
+                  open={open}
+                  onOpen={() => setOpen(true)}
+                  onClose={() => setOpen(false)}
+                  options={parts || []}
+                  loading={loadingParts}
+                  getOptionLabel={(option) =>
+                    option ? `${option.partName} - ${option.id}---` : ""
+                  }
+                  onChange={handlePartsChange}
+                  noOptionsText={
+                    loadingParts ? "Loading parts..." : "No parts available"
+                  }
+                  renderOption={(props, option, { selected }) => (
+                    <li {...props}>
+                      <Checkbox
+                        style={{ marginRight: 8 }}
+                        checked={selectedPartIds.has(option.id)}
+                      />
+                      {`${option.partName} - ${option.id}`}
+                    </li>
+                  )}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Select Parts"
+                      variant="outlined"
+                      onClick={() => setOpen(true)} // Open dropdown when clicking input
+                      InputProps={{
+                        ...params.InputProps,
+                        endAdornment: (
+                          <>
+                            {loadingParts ? (
+                              <CircularProgress color="inherit" size={20} />
+                            ) : null}
+                            {params.InputProps.endAdornment}
+                          </>
+                        ),
+                      }}
+                    />
+                  )}
+                  disableCloseOnSelect // This prevents closing when selecting an option
                 />
 
                 <div className="form-group" style={{ display: "none" }}>
@@ -1135,38 +1081,6 @@ const PartsTable = React.memo(
                     }}
                   />
                 </div>
-
-                {/* <div className="form-group">
-                  <Label for="quantity" className="form-label">
-                    Quantity
-                  </Label>
-                  <Input
-                    className="form-control"
-                    type="number"
-                    id="quantity"
-                    value={quantity.toString()}
-                    onChange={(e) => {
-                      const inputValue = e.target.value;
-                      if (inputValue === "" || /^\d+$/.test(inputValue)) {
-                        const numericValue =
-                          inputValue === "" ? 0 : parseInt(inputValue);
-                        if (numericValue > 99999) {
-                          toast.warning("Maximum quantity is 99999");
-                          setQuantity(99999);
-                        } else {
-                          setQuantity(numericValue);
-                        }
-                      }
-                    }}
-                    max="99999"
-                    required
-                  />
-                  {quantity > 99999 && (
-                    <small className="text-danger">
-                      Maximum quantity is 99999
-                    </small>
-                  )}
-                </div> */}
 
                 <div className="form-group">
                   <Label for="quantity" className="form-label">
@@ -1443,7 +1357,7 @@ const PartsTable = React.memo(
                   Add
                 </Button> */}
                 <Button
-                  style={{ marginLeft: "22rem" }}
+                  style={{ marginLeft: "18rem" }}
                   type="submit"
                   color="primary"
                   disabled={selectedParts.length === 0 || !quantity}
