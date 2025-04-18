@@ -1,32 +1,58 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { RxHamburgerMenu } from "react-icons/rx";
 import { MdClose } from "react-icons/md";
 import ProfileDropdown from "../Components/Common/ProfileDropdown";
 import "./navbar.css";
 import navdata from "../Layouts/LayoutMenuData";
-import logo from "../assets/logo/regenato logo.png";
 import logo1 from "../assets/logo/remove -bg-regenato logo.png";
-
 
 const Navbar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState(null);
-  const location = useLocation(); // Get current route
+  const [userRole, setUserRole] = useState("guest");
+  const location = useLocation();
+
+  // Custom hook to sync localStorage with state
+  const useLocalStorageSync = () => {
+    useEffect(() => {
+      const handleStorageChange = () => {
+        const user = JSON.parse(localStorage.getItem("user"));
+        setUserRole(user?.role || "guest");
+      };
+
+      // Listen for storage changes
+      window.addEventListener("storage", handleStorageChange);
+
+      // Also check on initial load
+      handleStorageChange();
+
+      return () => {
+        window.removeEventListener("storage", handleStorageChange);
+      };
+    }, []);
+  };
+
+  useLocalStorageSync();
+
+  // Also check user role when location changes (as backup)
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem("user"));
+    if (user && user.role) {
+      setUserRole(user.role);
+    }
+  }, [location]);
 
   const toggleMobileMenu = () => setMenuOpen(!menuOpen);
-
   const handleMouseEnter = (id) => setActiveDropdown(id);
-
   const handleMouseLeave = () => setActiveDropdown(null);
 
-  const menuItems = navdata()[0]?.subItems || [];
+  const menuItems = navdata(userRole)[0]?.subItems || [];
 
   return (
     <header className="header-class">
       <div className="layout-width">
         <div className="navbar-header">
-          {/* Navbar Menu Toggle for Small Screens */}
           <button
             onClick={toggleMobileMenu}
             className="menu-toggle"
@@ -43,7 +69,6 @@ const Navbar = () => {
               />
             </Link>
           </div>
-          {/* Navbar Menu */}
           <nav className={`navbar ${menuOpen ? "show" : ""}`}>
             <ul className="nav">
               {menuItems.map((item) => (
@@ -59,7 +84,6 @@ const Navbar = () => {
                     <i className={item.icon}></i> {item.label}
                   </Link>
 
-                  {/* Always render dropdown but control visibility */}
                   {item.children && (
                     <ul
                       className={`dropdown-menu ${
@@ -79,8 +103,6 @@ const Navbar = () => {
               ))}
             </ul>
           </nav>
-
-          {/* Profile Dropdown */}
           <ProfileDropdown />
         </div>
       </div>

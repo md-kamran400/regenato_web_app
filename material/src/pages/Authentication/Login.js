@@ -15,7 +15,7 @@ import {
 } from "reactstrap";
 
 const Login = () => {
-  const [email, setEmail] = useState("");
+  const [employeeId, setEmployeeId] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -28,7 +28,7 @@ const Login = () => {
       console.log("Token found, redirecting...");
       navigate("/regenato-home");
     }
-  }, [token, navigate]); // Depend on token so it re-runs when it updates
+  }, [token, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -41,18 +41,23 @@ const Login = () => {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password }),
+          body: JSON.stringify({ employeeId, password }),
         }
       );
 
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || "Login failed");
 
-      // Store token and update state
+      // Store token and user data
       localStorage.setItem("token", data.token);
-      setToken(data.token); // This will trigger useEffect
+      localStorage.setItem("user", JSON.stringify(data.user));
+
+      // Trigger storage event to update all components
+      window.dispatchEvent(new Event("storage"));
+
+      setToken(data.token);
     } catch (err) {
-      setError(err.message || "Invalid email or password");
+      setError(err.message || "Invalid employee ID or password");
     } finally {
       setLoading(false);
     }
@@ -83,16 +88,16 @@ const Login = () => {
 
                 <Form onSubmit={handleSubmit}>
                   <div className="mb-3">
-                    <Label htmlFor="email" className="form-label">
-                      Email
+                    <Label htmlFor="employeeId" className="form-label">
+                      Employee ID
                     </Label>
                     <Input
-                      name="email"
+                      name="employeeId"
                       className="form-control"
-                      placeholder="Email"
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="Employee ID"
+                      type="text"
+                      value={employeeId}
+                      onChange={(e) => setEmployeeId(e.target.value)}
                       required
                     />
                   </div>

@@ -20,7 +20,7 @@ import {
 import BreadCrumb from "../../../Components/Common/BreadCrumb";
 import List from "list.js";
 import "./Variables.css";
- 
+
 // Import table data
 import GeneralVariable from "./GeneralVariable";
 import RmVariable from "./RmVariable";
@@ -30,18 +30,19 @@ import OverheadsVariable from "./OverheadsVariable";
 import UsersListVariable from "./UsersListVariable";
 import ShiftVariable from "./ShiftVariable";
 import { EventScheduler } from "./EventScheduler";
- 
+import InhchargeVariable from "./InhchargeVariable";
+
 const Variables = () => {
   const [modal_list, setmodal_list] = useState(false);
   const [modal_delete, setmodal_delete] = useState(false);
   const [activeTab, setActiveTab] = useState("GeneralVariable");
- 
+
   const toggleTab = (tab) => {
     if (activeTab !== tab) {
       setActiveTab(tab);
     }
   };
- 
+
   const renderComponent = () => {
     switch (activeTab) {
       case "GeneralVariable":
@@ -60,11 +61,13 @@ const Variables = () => {
         return <ShiftVariable />;
       case "EventScheduler":
         return <EventScheduler />;
+      case "Incharge":
+        return <InhchargeVariable />;
       default:
         return <GeneralVariable />;
     }
   };
- 
+
   useEffect(() => {
     const element = document.getElementById("fuzzysearch-list");
     if (element) {
@@ -72,7 +75,7 @@ const Variables = () => {
         valueNames: ["name"],
       });
     }
- 
+
     const paginationElement = document.getElementById("pagination-list");
     if (paginationElement) {
       new List("pagination-list", {
@@ -82,7 +85,7 @@ const Variables = () => {
       });
     }
   }, []);
- 
+
   return (
     <React.Fragment>
       <div className="page-content">
@@ -115,7 +118,7 @@ const Variables = () => {
                     }
                     onClick={() => toggleTab("ManufacturingVariable")}
                   >
-                    Manufacturing 
+                    Manufacturing
                   </NavLink>
                 </NavItem>
                 <NavItem>
@@ -123,7 +126,7 @@ const Variables = () => {
                     className={activeTab === "ShipmentVariable" ? "active" : ""}
                     onClick={() => toggleTab("ShipmentVariable")}
                   >
-                    Shipment 
+                    Shipment
                   </NavLink>
                 </NavItem>
                 <NavItem>
@@ -133,7 +136,7 @@ const Variables = () => {
                     }
                     onClick={() => toggleTab("OverheadsVariable")}
                   >
-                    Overheads 
+                    Overheads
                   </NavLink>
                 </NavItem>
                 <NavItem>
@@ -143,7 +146,7 @@ const Variables = () => {
                     }
                     onClick={() => toggleTab("UsersListVariable")}
                   >
-                  Operator
+                    Operator
                   </NavLink>
                 </NavItem>
                 <NavItem>
@@ -151,7 +154,7 @@ const Variables = () => {
                     className={activeTab === "ShiftVariable" ? "active" : ""}
                     onClick={() => toggleTab("ShiftVariable")}
                   >
-                    Shift 
+                    Shift
                   </NavLink>
                 </NavItem>
                 <NavItem>
@@ -162,9 +165,17 @@ const Variables = () => {
                     Event Scheduler
                   </NavLink>
                 </NavItem>
+                <NavItem>
+                  <NavLink
+                    className={activeTab === "Incharge" ? "active" : ""}
+                    onClick={() => toggleTab("Incharge")}
+                  >
+                    Incharge
+                  </NavLink>
+                </NavItem>
               </Nav>
             </Col>
- 
+
             {/* Main Content */}
             <Col md="9" lg="10" className="main-content">
               {renderComponent()}
@@ -175,5 +186,5 @@ const Variables = () => {
     </React.Fragment>
   );
 };
- 
+
 export default Variables;

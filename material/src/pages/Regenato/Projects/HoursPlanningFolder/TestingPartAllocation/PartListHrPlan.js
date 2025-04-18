@@ -34,6 +34,7 @@ export const PartListHrPlan = ({
   partID,
   partListItemId,
   partManufacturingVariables,
+  partsCodeId,
 }) => {
   const [machineOptions, setMachineOptions] = useState({});
   const [isConfirmationModalOpen, setIsConfirmationModalOpen] = useState(false);
@@ -1160,6 +1161,7 @@ export const PartListHrPlan = ({
                 partName: partName,
                 processName: `${man.categoryId} - ${man.name}`, // Combine categoryId and name
                 processId: man.categoryId, // Add processId here
+                partsCodeId: partsCodeId,
                 allocations: [],
               };
             }

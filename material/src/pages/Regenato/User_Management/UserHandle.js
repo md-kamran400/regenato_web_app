@@ -279,6 +279,7 @@ const UserHandle = () => {
                 <option value="production">Production</option>
                 <option value="admin">Admin</option>
                 <option value="finance">Finance</option>
+                <option value="incharge">Incharge</option>
               </Input>
             </div>
             <Button type="submit" color="primary" disabled={isSubmitting}>
@@ -358,6 +359,7 @@ const UserHandle = () => {
               <option value="production">Production</option>
               <option value="admin">Admin</option>
               <option value="finance">Finance</option>
+              <option value="incharge">Incharge</option>
             </Input>
           </div>
           <div className="mb-3">
