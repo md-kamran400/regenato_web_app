@@ -410,6 +410,7 @@ const getStatus = (allocations) => {
 //     }
 //   }
 // );
+
 partproject.post("/projects/:projectId/partsLists/:listId/items", async (req, res) => {
   try {
     const { projectId, listId } = req.params;
@@ -432,8 +433,7 @@ partproject.post("/projects/:projectId/partsLists/:listId/items", async (req, re
     // Push each part item to partsListItems
     itemsToAdd.forEach((item) => {
       partsList.partsListItems.push({
-        partId: item.partId,
-        id: item.id,
+        partsCodeId: item.partsCodeId, // ✅ this is your updated field
         partName: item.partName,
         codeName: item.codeName || "",
         costPerUnit: Number(item.costPerUnit || 0),
@@ -2693,6 +2693,7 @@ partproject.post(
           partName: alloc.partName,
           processName: alloc.processName,
           processId: alloc.processId, // ✅ Add this
+          partsCodeId: alloc.partsCodeId,
           allocations: alloc.allocations,
         });
       });

@@ -6,12 +6,12 @@ const userSchema = mongoose.Schema({
   password: { type: String, required: true },
   role: {
     type: String,
-    enum: ["production", "admin", "finance"],
+    enum: ["production", "admin", "finance", "incharge"],
     required: true,
   },
   employeeId: { type: String, required: true, unique: true },
 });
 
-const userModel = mongoose.model("users", userSchema); // Collection name: users
+const userModel = mongoose.model("users", userSchema);
 
 module.exports = userModel;

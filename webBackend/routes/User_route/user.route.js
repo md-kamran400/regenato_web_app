@@ -4,21 +4,23 @@ const mongoose = require("mongoose");
 const UserModal = require("../../model/UserModal/usermodal");
 const jwt = require("jsonwebtoken");
 
-// Sign Up Route (No Hashing)
+// Sign Up Route
 UserRouter.post("/signup", async (req, res) => {
   const { name, email, password, role, employeeId } = req.body;
 
   try {
-    // Check if user already exists
-    let existingUser = await UserModal.findOne({ email });
+    // Check if user already exists by employeeId or email
+    let existingUser = await UserModal.findOne({ 
+      $or: [{ email }, { employeeId }] 
+    });
     if (existingUser) {
-      return res.status(400).json({ message: "Email already registered" });
+      return res.status(400).json({ message: "User already exists with this email or employee ID" });
     }
 
     const newUser = new UserModal({
       name,
       email,
-      password, // Storing password as plain text (not recommended)
+      password, // Note: In production, you should hash this password
       role,
       employeeId,
     });
@@ -31,24 +33,38 @@ UserRouter.post("/signup", async (req, res) => {
   }
 });
 
-// Login Route (Plain Text Password Comparison)
+// Login Route - Now using employeeId instead of email
 UserRouter.post("/login", async (req, res) => {
-  const {email, password } = req.body;
+  const { employeeId, password } = req.body;
   try {
-    console.log("Login request received:", req.body);
-    const user = await UserModal.findOne({ email });
+    const user = await UserModal.findOne({ employeeId });
     if (!user) return res.status(400).json({ message: "User not found" });
 
-    console.log("User found:", user);
-
-    // Directly compare passwords (plain text)
+    // Direct password comparison (in production, use bcrypt)
     if (password !== user.password) {
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
-    const token = jwt.sign({ id: user._id, role: user.role }, "regnato_web");
+    const token = jwt.sign(
+      { 
+        id: user._id, 
+        role: user.role,
+        name: user.name,
+        employeeId: user.employeeId 
+      }, 
+      "regnato_web",
+      { expiresIn: '8h' }
+    );
 
-    res.json({ token, user  });
+    res.json({ 
+      token, 
+      user: {
+        name: user.name,
+        role: user.role,
+        employeeId: user.employeeId,
+        email: user.email
+      }
+    });
   } catch (error) {
     console.error("Error in login:", error);
     res.status(500).json({ message: "Server error", error: error.message });

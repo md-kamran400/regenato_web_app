@@ -13,6 +13,10 @@ const AllocationPlanningSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    partsCodeId: {
+     type: String,
+     required: true,
+    },
     allocations: [
       {
         splitNumber: {
@@ -104,7 +108,7 @@ const AllocationPlanningSchema = new mongoose.Schema(
 
 const partSchema = new mongoose.Schema({
   Uid: String,
-  partsCodeId: String,
+  partsCodeId: String, // ✅ NEW FIELD
   partName: String,
   codeName: String,
   costPerUnit: Number,

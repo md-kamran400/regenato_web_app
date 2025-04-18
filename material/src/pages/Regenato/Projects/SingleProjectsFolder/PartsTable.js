@@ -372,7 +372,7 @@ const PartsTable = React.memo(
           manufacturingVariables: part.manufacturingVariables || [],
           shipmentVariables: part.shipmentVariables || [],
           overheadsAndProfits: part.overheadsAndProfits || [],
-        }));
+        }));        
 
         const response = await fetch(
           `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${_id}/partsLists/${partsList._id}/items`,
@@ -720,7 +720,7 @@ const PartsTable = React.memo(
                                       color: "#64B5F6",
                                     }}
                                   >
-                                    {item.partName} ({item.Uid || ""})
+                                    {item.partName} ({item.partsCodeId || ""})
                                     {item.codeName || ""}
                                   </td>
                                   {/* <td>{getStatus(item.allocations)}</td> */}
@@ -807,6 +807,10 @@ const PartsTable = React.memo(
                                     <td colSpan="8">
                                       <PartListHrPlan
                                         partName={item.partName}
+<<<<<<< HEAD
+=======
+                                        partsCodeId = {item.partsCodeId}
+>>>>>>> 4d7f22f59dc375dcd50d920a94899953c2dfc7d8
                                         partId={item.id}
                                         manufacturingVariables={
                                           item.manufacturingVariables || []
@@ -930,8 +934,15 @@ const PartsTable = React.memo(
             <ModalHeader toggle={toggleAddModal}>Add Part</ModalHeader>
             <ModalBody>
               <form onSubmit={handleSubmit}>
+<<<<<<< HEAD
                 {/* <Autocomplete
+=======
+                <Autocomplete
+>>>>>>> 4d7f22f59dc375dcd50d920a94899953c2dfc7d8
                   multiple
+                  open={open}
+                  onOpen={() => setOpen(true)}
+                  onClose={() => setOpen(false)}
                   options={parts || []}
                   loading={loadingParts}
                   getOptionLabel={(option) =>
@@ -955,6 +966,7 @@ const PartsTable = React.memo(
                       {...params}
                       label="Select Parts"
                       variant="outlined"
+                      onClick={() => setOpen(true)} // Open dropdown when clicking input
                       InputProps={{
                         ...params.InputProps,
                         endAdornment: (
@@ -968,6 +980,7 @@ const PartsTable = React.memo(
                       }}
                     />
                   )}
+<<<<<<< HEAD
                 /> */}
 
                 <Autocomplete
@@ -1012,6 +1025,8 @@ const PartsTable = React.memo(
                       }}
                     />
                   )}
+=======
+>>>>>>> 4d7f22f59dc375dcd50d920a94899953c2dfc7d8
                   disableCloseOnSelect // This prevents closing when selecting an option
                 />
 

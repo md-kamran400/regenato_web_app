@@ -2,6 +2,16 @@ import React from "react";
 import { Card, CardBody, CardHeader, Col, Container, Row } from "reactstrap";
 import BreadCrumb from "../../../Components/Common/BreadCrumb";
 import Widgets from "./Widgets";
+import RechartsLineChart from "./RechartsLineChart";
+import RechartsBarChart from "./RechartsBarChart";
+import RechartsPieChart from "./RechartsPieChart";
+import RechartsMixedChart from "./RechartsMixedChart";
+import ChartJSLineChart from "./ChartJSLineChart";
+import ChartJSBarChart from "./ChartJSBarChart";
+import ChartJSPieChart from "./ChartJSPieChart";
+import ChartJSMixedChart from "./ChartJSMixedChart";
+import BigMultiChart from "./BigMultiChart";
+import BigChartJS from "./BigChartJS";
 
 const Home = () => {
   // document.title="Projects | Velzon - React Admin & Dashboard Template";
@@ -15,6 +25,52 @@ const Home = () => {
               <Widgets />
             </Col>
           </Row>
+
+          {/* Recharts Section */}
+          <Row>
+            <Col lg={6}>
+              <RechartsLineChart />
+            </Col>
+            <Col lg={6}>
+              <RechartsBarChart />
+            </Col>
+          </Row>
+          <Row>
+            <Col lg={6}>
+              <RechartsPieChart />
+            </Col>
+            <Col lg={6}>
+              <RechartsMixedChart />
+            </Col>
+          </Row>
+
+          {/* Chart.js Section */}
+          <Row>
+            <Col lg={6}>
+              <ChartJSLineChart />
+            </Col>
+            <Col lg={6}>
+              <ChartJSBarChart />
+            </Col>
+          </Row>
+          <Row>
+            <Col lg={6}>
+              <ChartJSPieChart />
+            </Col>
+            <Col lg={6}>
+              <ChartJSMixedChart />
+            </Col>
+          </Row>
+          <Row>
+            <Col lg={12}>
+              <BigMultiChart />
+            </Col>
+          </Row>
+          {/* <Row>
+            <Col lg={12}>
+              <BigChartJS />
+            </Col>
+          </Row> */}
         </Container>
       </div>
     </React.Fragment>
