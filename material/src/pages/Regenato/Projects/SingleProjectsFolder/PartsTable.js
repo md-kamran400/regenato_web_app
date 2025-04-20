@@ -372,7 +372,7 @@ const PartsTable = React.memo(
           manufacturingVariables: part.manufacturingVariables || [],
           shipmentVariables: part.shipmentVariables || [],
           overheadsAndProfits: part.overheadsAndProfits || [],
-        }));        
+        }));
 
         const response = await fetch(
           `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${_id}/partsLists/${partsList._id}/items`,
@@ -593,10 +593,7 @@ const PartsTable = React.memo(
       return `${totalMinutes} m`;
     };
 
-    console.log(
-      " sub assmebly name for specific machine is here --->",
-      partsListItems
-    );
+    
 
     return (
       <>
@@ -807,10 +804,7 @@ const PartsTable = React.memo(
                                     <td colSpan="8">
                                       <PartListHrPlan
                                         partName={item.partName}
-<<<<<<< HEAD
-=======
-                                        partsCodeId = {item.partsCodeId}
->>>>>>> 4d7f22f59dc375dcd50d920a94899953c2dfc7d8
+                                        partsCodeId={item.partsCodeId}
                                         partId={item.id}
                                         manufacturingVariables={
                                           item.manufacturingVariables || []
@@ -934,55 +928,6 @@ const PartsTable = React.memo(
             <ModalHeader toggle={toggleAddModal}>Add Part</ModalHeader>
             <ModalBody>
               <form onSubmit={handleSubmit}>
-<<<<<<< HEAD
-                {/* <Autocomplete
-=======
-                <Autocomplete
->>>>>>> 4d7f22f59dc375dcd50d920a94899953c2dfc7d8
-                  multiple
-                  open={open}
-                  onOpen={() => setOpen(true)}
-                  onClose={() => setOpen(false)}
-                  options={parts || []}
-                  loading={loadingParts}
-                  getOptionLabel={(option) =>
-                    option ? `${option.partName} - ${option.id}---` : ""
-                  }
-                  onChange={handlePartsChange}
-                  noOptionsText={
-                    loadingParts ? "Loading parts..." : "No parts available"
-                  }
-                  renderOption={(props, option, { selected }) => (
-                    <li {...props}>
-                      <Checkbox
-                        style={{ marginRight: 8 }}
-                        checked={selectedPartIds.has(option.id)}
-                      />
-                      {`${option.partName} - ${option.id}`}
-                    </li>
-                  )}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      label="Select Parts"
-                      variant="outlined"
-                      onClick={() => setOpen(true)} // Open dropdown when clicking input
-                      InputProps={{
-                        ...params.InputProps,
-                        endAdornment: (
-                          <>
-                            {loadingParts ? (
-                              <CircularProgress color="inherit" size={20} />
-                            ) : null}
-                            {params.InputProps.endAdornment}
-                          </>
-                        ),
-                      }}
-                    />
-                  )}
-<<<<<<< HEAD
-                /> */}
-
                 <Autocomplete
                   multiple
                   open={open}
@@ -1025,8 +970,6 @@ const PartsTable = React.memo(
                       }}
                     />
                   )}
-=======
->>>>>>> 4d7f22f59dc375dcd50d920a94899953c2dfc7d8
                   disableCloseOnSelect // This prevents closing when selecting an option
                 />
 
@@ -1372,7 +1315,7 @@ const PartsTable = React.memo(
                   Add
                 </Button> */}
                 <Button
-                  style={{ marginLeft: "18rem" }}
+                  // style={{ marginLeft: "18rem" }}
                   type="submit"
                   color="primary"
                   disabled={selectedParts.length === 0 || !quantity}

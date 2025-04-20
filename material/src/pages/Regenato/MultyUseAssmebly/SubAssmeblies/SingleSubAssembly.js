@@ -211,6 +211,7 @@ const SingleSubAssembly = () => {
       const partData = data.find((part) => part.partName === partName);
       if (partData) {
         setDetailedPartData(partData);
+        console.log(partData)
       } else {
         setDetailedPartData({});
       }
@@ -286,7 +287,7 @@ const SingleSubAssembly = () => {
     setIsLoading(true);
 
     const payload = {
-      partId: selectedPartData?.id || null,
+      partsCodeId: selectedPartData?.id || "",
       partName: selectedPartData?.partName || "",
       codeName: codeName.trim(),
       costPerUnit: Number(costPerUnit) || 0,
@@ -642,8 +643,8 @@ const SingleSubAssembly = () => {
                                   }}
                                   className="parent_partName"
                                 >
-                                  {item.partName} ({item.Uid || ""}){" "}
-                                  {item.codeName || ""}
+                                  {item.partName} ({item.partsCodeId || ""}){" "}
+                                  {/* {item.codeName || ""} */}
                                 </td>
                                 <td>
                                   {Math.round(

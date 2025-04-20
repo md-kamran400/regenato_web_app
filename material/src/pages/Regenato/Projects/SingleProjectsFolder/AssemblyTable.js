@@ -403,7 +403,7 @@ const AssemblyTable = React.memo(
           setCostPerUnit(selectedPart.costPerUnit || "");
           setTimePerUnit(selectedPart.timePerUnit || "");
           setQuantity(1);
-          setPartId(selectedPart.id || "");
+          setPartId(selectedPart.partsCodeId || "");
           setCodeName(selectedPart.codeName || "");
         } else {
           setSelectedPartData(null);
@@ -454,7 +454,7 @@ const AssemblyTable = React.memo(
       event.preventDefault();
 
       const payload = {
-        partId: selectedPartData.id,
+        partsCodeId: selectedPartData.partsCodeId || selectedPartData.id || "", 
         partName: selectedPartData.partName,
         costPerUnit: Number(costPerUnit),
         timePerUnit: Number(timePerUnit),
@@ -1030,6 +1030,7 @@ const AssemblyTable = React.memo(
                                     <td colSpan="8">
                                       <AssemblyPartListHoursPlan
                                         partName={item.partName}
+                                        partsCodeId={item.partsCodeId}
                                         manufacturingVariables={
                                           item.manufacturingVariables || []
                                         }
@@ -1037,6 +1038,9 @@ const AssemblyTable = React.memo(
                                         porjectID={_id}
                                         AssemblyListId={assemblypartsListId}
                                         partListItemId={item._id}
+                                        partManufacturingVariables={
+                                          item.manufacturingVariables
+                                        }
                                       />
                                     </td>
                                   </tr>

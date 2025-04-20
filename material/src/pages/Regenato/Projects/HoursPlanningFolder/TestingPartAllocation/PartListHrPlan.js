@@ -285,6 +285,7 @@ export const PartListHrPlan = ({
       allocatedMachines
     );
 
+    // If machine is in downtime and also allocated
     if (downtimeInfo.isDowntime && !availabilityInfo.available) {
       return {
         status: "Downtime & Occupied",
@@ -294,6 +295,7 @@ export const PartListHrPlan = ({
         downtimeReason: downtimeInfo.downtimeReason,
       };
     }
+    // If machine is in downtime but not allocated
     if (downtimeInfo.isDowntime) {
       return {
         status: `Downtime (${formatDowntime(downtimeInfo.downtimeMinutes)})`,
@@ -303,6 +305,7 @@ export const PartListHrPlan = ({
         downtimeReason: downtimeInfo.downtimeReason,
       };
     }
+    // If machine is allocated but not in downtime
     if (!availabilityInfo.available) {
       return {
         status: "Occupied",
@@ -311,6 +314,7 @@ export const PartListHrPlan = ({
         downtimeMinutes: 0,
       };
     }
+    // Machine is available
     return {
       status: "Available",
       isDowntime: false,
@@ -1916,7 +1920,7 @@ export const PartListHrPlan = ({
                           </td>
 
                           <td>
-                            <Autocomplete
+                            {/* <Autocomplete
                               sx={{
                                 width: 150,
                                 margin: "auto",
@@ -2038,6 +2042,7 @@ export const PartListHrPlan = ({
                                 );
                                 return `${option.name}`;
                               }}
+
                               renderOption={(props, option) => {
                                 const status = getMachineStatus(
                                   option,
@@ -2165,6 +2170,7 @@ export const PartListHrPlan = ({
                                   </li>
                                 );
                               }}
+                              
                               renderInput={(params) => (
                                 <TextField
                                   {...params}
@@ -2182,6 +2188,318 @@ export const PartListHrPlan = ({
                                               height: 12,
                                               borderRadius: "50%",
                                               backgroundColor: "#4caf50",
+                                              marginRight: 8,
+                                            }}
+                                          />
+                                        )}
+                                        {params.InputProps.startAdornment}
+                                      </>
+                                    ),
+                                  }}
+                                  placeholder="Search machines..."
+                                />
+                              )}
+                              noOptionsText={
+                                <div
+                                  style={{
+                                    padding: 12,
+                                    color: "#666",
+                                    textAlign: "center",
+                                  }}
+                                >
+                                  {machineOptions[man.categoryId]?.length === 0
+                                    ? "No machines available for this process"
+                                    : "No matching machines found"}
+                                </div>
+                              }
+                              disabled={!hasStartDate}
+                              isOptionEqualToValue={(option, value) =>
+                                option.subcategoryId === value.subcategoryId
+                              }
+                              filterOptions={(options, state) => {
+                                return options.filter(
+                                  (option) =>
+                                    option.name
+                                      .toLowerCase()
+                                      .includes(
+                                        state.inputValue.toLowerCase()
+                                      ) ||
+                                    option.subcategoryId
+                                      .toLowerCase()
+                                      .includes(state.inputValue.toLowerCase())
+                                );
+                              }}
+                            /> */}
+
+                            <Autocomplete
+                              sx={{
+                                width: 150,
+                                margin: "auto",
+                                "& .MuiOutlinedInput-root": {
+                                  padding: "6px !important",
+                                  fontSize: "0.875rem",
+                                },
+                                "& .MuiAutocomplete-option[aria-disabled='true']":
+                                  {
+                                    opacity: 0.5,
+                                    cursor: "not-allowed",
+                                  },
+                              }}
+                              componentsProps={{
+                                paper: {
+                                  sx: {
+                                    width: 380,
+                                    boxShadow:
+                                      "0px 4px 20px rgba(0, 0, 0, 0.15)",
+                                    borderRadius: "8px",
+                                    marginTop: "4px",
+                                  },
+                                },
+                              }}
+                              options={getAvailableMachinesForRow(
+                                index,
+                                rowIndex
+                              )}
+                              value={
+                                machineOptions[man.categoryId]?.find(
+                                  (machine) =>
+                                    machine.subcategoryId === row.machineId
+                                ) || null
+                              }
+                              onChange={(event, newValue) => {
+                                if (!hasStartDate) return;
+
+                                // Check if machine is already selected in another row
+                                const isAlreadySelected = rows[index].some(
+                                  (r, idx) =>
+                                    idx !== rowIndex &&
+                                    r.machineId === newValue?.subcategoryId
+                                );
+
+                                if (isAlreadySelected) {
+                                  toast.error(
+                                    "This machine is already selected in another row for this process"
+                                  );
+                                  return;
+                                }
+
+                                // Check if machine is available
+                                if (newValue) {
+                                  const status = getMachineStatus(
+                                    newValue,
+                                    row.startDate,
+                                    row.endDate,
+                                    allocatedMachines
+                                  );
+
+                                  if (status.isDowntime) {
+                                    toast.error(
+                                      `This machine is in downtime until ${new Date(
+                                        newValue.unavailableUntil
+                                      ).toLocaleDateString()} (Reason: ${
+                                        status.downtimeReason
+                                      })`
+                                    );
+                                    return;
+                                  }
+
+                                  if (status.isAllocated) {
+                                    toast.error(
+                                      "This machine is occupied during the selected time period"
+                                    );
+                                    return;
+                                  }
+                                }
+
+                                setRows((prevRows) => {
+                                  const updatedRows = [...prevRows[index]];
+                                  updatedRows[rowIndex] = {
+                                    ...updatedRows[rowIndex],
+                                    machineId: newValue
+                                      ? newValue.subcategoryId
+                                      : "",
+                                  };
+
+                                  if (
+                                    newValue &&
+                                    updatedRows[rowIndex].startDate
+                                  ) {
+                                    const shift = shiftOptions.find(
+                                      (option) =>
+                                        option.name ===
+                                        updatedRows[rowIndex].shift
+                                    );
+
+                                    updatedRows[rowIndex].endDate =
+                                      calculateEndDateWithDowntime(
+                                        updatedRows[rowIndex].startDate,
+                                        updatedRows[rowIndex].plannedQtyTime,
+                                        shift,
+                                        newValue
+                                      );
+
+                                    const downtimeInfo =
+                                      isMachineOnDowntimeDuringPeriod(
+                                        newValue,
+                                        updatedRows[rowIndex].startDate,
+                                        updatedRows[rowIndex].endDate
+                                      );
+
+                                    if (downtimeInfo.isDowntime) {
+                                      toast.info(
+                                        `Machine has ${downtimeInfo.downtimeMinutes} minutes of downtime. End date extended to ${updatedRows[rowIndex].endDate}.`
+                                      );
+                                    }
+                                  }
+
+                                  return { ...prevRows, [index]: updatedRows };
+                                });
+                              }}
+                              getOptionLabel={(option) => {
+                                const status = getMachineStatus(
+                                  option,
+                                  row.startDate,
+                                  row.endDate,
+                                  allocatedMachines
+                                );
+                                return `${option.name}${
+                                  status.isDowntime ? " (Downtime)" : ""
+                                }`;
+                              }}
+                              renderOption={(props, option) => {
+                                const status = getMachineStatus(
+                                  option,
+                                  row.startDate,
+                                  row.endDate,
+                                  allocatedMachines
+                                );
+                                const isDisabled =
+                                  status.isAllocated || status.isDowntime;
+
+                                // Format downtime end time if available
+                                const downtimeEnd = status.downtimeEnd
+                                  ? new Date(
+                                      status.downtimeEnd
+                                    ).toLocaleDateString()
+                                  : option.unavailableUntil
+                                  ? new Date(
+                                      option.unavailableUntil
+                                    ).toLocaleDateString()
+                                  : null;
+
+                                return (
+                                  <li
+                                    {...props}
+                                    style={{
+                                      padding: "10px 16px",
+                                      backgroundColor: isDisabled
+                                        ? "#f8f9fa"
+                                        : "white",
+                                      color: isDisabled ? "#6c757d" : "#212529",
+                                      cursor: isDisabled
+                                        ? "not-allowed"
+                                        : "pointer",
+                                      opacity: isDisabled ? 0.7 : 1,
+                                      pointerEvents: isDisabled
+                                        ? "none"
+                                        : "auto",
+                                    }}
+                                  >
+                                    <div
+                                      style={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                      }}
+                                    >
+                                      {/* Status indicator */}
+                                      <div
+                                        style={{
+                                          width: 24,
+                                          height: 24,
+                                          borderRadius: "50%",
+                                          backgroundColor: status.isDowntime
+                                            ? "#dc3545"
+                                            : status.isAllocated
+                                            ? "#ffc107"
+                                            : "#28a745",
+                                          display: "flex",
+                                          alignItems: "center",
+                                          justifyContent: "center",
+                                          marginRight: 12,
+                                          flexShrink: 0,
+                                        }}
+                                      >
+                                        <span
+                                          style={{
+                                            color: "white",
+                                            fontSize: 12,
+                                          }}
+                                        >
+                                          {status.isDowntime
+                                            ? "D"
+                                            : status.isAllocated
+                                            ? "O"
+                                            : "A"}
+                                        </span>
+                                      </div>
+
+                                      {/* Machine info */}
+                                      <div style={{ flexGrow: 1 }}>
+                                        <div style={{ fontWeight: 500 }}>
+                                          {option.name}
+                                        </div>
+                                        <div
+                                          style={{
+                                            fontSize: "0.75rem",
+                                            color: "#6c757d",
+                                          }}
+                                        >
+                                          {status.isDowntime ? (
+                                            <>
+                                              <div>
+                                                Downtime:{" "}
+                                                {formatDowntime(
+                                                  status.downtimeMinutes
+                                                )}
+                                              </div>
+                                              {status.downtimeReason && (
+                                                <div>
+                                                  Reason:{" "}
+                                                  {status.downtimeReason}
+                                                </div>
+                                              )}
+                                              {downtimeEnd && (
+                                                <div>Until: {downtimeEnd}</div>
+                                              )}
+                                            </>
+                                          ) : status.isAllocated ? (
+                                            "Occupied - Not Available"
+                                          ) : (
+                                            "Available"
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </li>
+                                );
+                              }}
+                              renderInput={(params) => (
+                                <TextField
+                                  {...params}
+                                  label="Select Machine"
+                                  variant="outlined"
+                                  size="small"
+                                  InputProps={{
+                                    ...params.InputProps,
+                                    startAdornment: (
+                                      <>
+                                        {row.machineId && (
+                                          <div
+                                            style={{
+                                              width: 12,
+                                              height: 12,
+                                              borderRadius: "50%",
+                                              backgroundColor: "#28a745",
                                               marginRight: 8,
                                             }}
                                           />

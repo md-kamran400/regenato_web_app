@@ -276,9 +276,9 @@ const UserHandle = () => {
                 required
               >
                 <option value="">Select a Role</option>
-                <option value="production">Production</option>
+                {/* <option value="production">Production</option> */}
                 <option value="admin">Admin</option>
-                <option value="finance">Finance</option>
+                {/* <option value="finance">Finance</option> */}
                 <option value="incharge">Incharge</option>
               </Input>
             </div>

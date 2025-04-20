@@ -299,7 +299,7 @@ const SingleAssmeblyList = () => {
     setIsLoading(true);
 
     const payload = {
-      partId: selectedPartData?.id || null,
+      partsCodeId: selectedPartData?.id || "",
       partName: selectedPartData?.partName || "",
       codeName: codeName.trim(),
       costPerUnit: Number(costPerUnit) || 0,
@@ -674,7 +674,7 @@ const SingleAssmeblyList = () => {
                                   }}
                                   className="parent_partName"
                                 >
-                                  {item.partName} ({item.Uid || ""}){" "}
+                                  {item.partName} ({item.partsCodeId || ""}){" "}
                                   {item.codeName || ""}
                                 </td>
                                 <td>

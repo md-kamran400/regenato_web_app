@@ -247,9 +247,7 @@ const OuterSubAssmebly = React.memo(
 
     // Add this useEffect to reset the partsListItemsUpdated state
 
-    useEffect(() => {
-     
-    }, [subAssemblyItem.partsListItems]);
+    useEffect(() => {}, [subAssemblyItem.partsListItems]);
 
     const getStatus = (allocations) => {
       if (
@@ -396,7 +394,7 @@ const OuterSubAssmebly = React.memo(
           setCostPerUnit(selectedPart.costPerUnit || "");
           setTimePerUnit(selectedPart.timePerUnit || "");
           setQuantity(1);
-          setPartId(selectedPart.id || "");
+          setPartId(selectedPart.partsCodeId || ""); // Changed from selectedPart.id to selectedPart.partsCodeId
           setCodeName(selectedPart.codeName || "");
         } else {
           setSelectedPartData(null);
@@ -459,6 +457,7 @@ const OuterSubAssmebly = React.memo(
       event.preventDefault();
       setIsSubmitting(true);
       const payload = {
+        partsCodeId: selectedPartData.partsCodeId || selectedPartData.id || "", 
         partName: selectedPartData.partName,
         codeName: codeName,
         costPerUnit: Number(costPerUnit),
@@ -762,7 +761,7 @@ const OuterSubAssmebly = React.memo(
                                     }}
                                     className="parent_partName"
                                   >
-                                    {item.partName} ({item.Uid || ""}){" "}
+                                    {item.partName} ({item.partsCodeId || ""}){" "}
                                     {item.codeName || ""}
                                   </td>
                                   <td>
@@ -851,6 +850,7 @@ const OuterSubAssmebly = React.memo(
                                     <td colSpan="8">
                                       <SubAssemblyHrPlan
                                         partName={item.partName}
+                                        partsCodeId={item.partsCodeId}
                                         manufacturingVariables={
                                           item.manufacturingVariables || []
                                         }
@@ -858,6 +858,9 @@ const OuterSubAssmebly = React.memo(
                                         porjectID={_id}
                                         subAssemblyListFirstId={subAssemblyId}
                                         partListItemId={item._id}
+                                        partManufacturingVariables={
+                                          item.manufacturingVariables
+                                        } // Add this line
                                       />
                                     </td>
                                   </tr>
@@ -965,7 +968,7 @@ const OuterSubAssmebly = React.memo(
                   options={parts || []}
                   loading={loadingParts}
                   getOptionLabel={(option) =>
-                    option ? `${option.partName} - ${option.id}` : ""
+                    option ? `${option.partName} - ${option.partsCodeId}` : ""
                   }
                   onChange={handleAutocompleteChange}
                   noOptionsText={

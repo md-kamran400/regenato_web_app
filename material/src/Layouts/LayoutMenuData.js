@@ -7,6 +7,12 @@ const navdata = (userRole = "guest") => {
       link: "/regenato-projects",
       icon: "fa fa-folder",
     },
+    Plan: {
+      id: "Plan",
+      label: "Plan",
+      link: "/regenato-allocation-plan",
+      icon: "fa fa-wrench",
+    },
     variables: {
       id: "variables",
       label: "Variables",
@@ -18,25 +24,6 @@ const navdata = (userRole = "guest") => {
       label: "View",
       icon: "fa fa-cogs",
       children: [
-        {
-          id: "projects",
-          label: "Production Order",
-          link: "/regenato-projects",
-          icon: "fa fa-folder", // Example FontAwesome icon class
-        },
-        // {
-        //   id: "allocation",
-        //   label: "Allocation",
-        //   link: "/regenato-allocation",
-        //   icon: "fa fa-wrench", // Example FontAwesome icon class
-        // },
-
-        {
-          id: "Plan",
-          label: "Plan",
-          link: "/regenato-allocation-plan",
-          icon: "fa fa-wrench"
-        },
         {
           id: "parts",
           label: "Parts",
@@ -67,7 +54,6 @@ const navdata = (userRole = "guest") => {
           label: "Process View",
           link: "/regenato-process-view",
           icon: "fa fa-list",
-
         },
         {
           id: "OperatorView",
@@ -134,6 +120,7 @@ const navdata = (userRole = "guest") => {
   const roleConfigurations = {
     admin: [
       allMenuItems.projects,
+      allMenuItems.Plan,
       allMenuItems.parts,
       allMenuItems.variables,
       allMenuItems.view,
@@ -147,6 +134,7 @@ const navdata = (userRole = "guest") => {
     ],
     incharge: [
       allMenuItems.projects,
+      allMenuItems.Plan,
       allMenuItems.variables,
       allMenuItems.view,
     ],
@@ -155,7 +143,7 @@ const navdata = (userRole = "guest") => {
 
   // Return the appropriate menu items based on role
   return [
-    { subItems: roleConfigurations[userRole] || roleC/onfigurations.guest },
+    { subItems: roleConfigurations[userRole] || roleC / onfigurations.guest },
   ];
 };
 

@@ -43,11 +43,6 @@ const Assmebly_subAssembly = ({
   onupdateAssmebly,
   // getStatus,
 }) => {
-  // console.log("sub assmenly id", subAssembly._id);
-  // console.log("sub project id", projectId);
-  // console.log("assembly id", assemblyId);
-  // console.log("sub assmenly main id", subAssembly);
-
   const { _id } = useParams();
   const location = useLocation();
   const subAssemblyName = location.state?.subAssemblyName || "";
@@ -118,6 +113,7 @@ const Assmebly_subAssembly = ({
   useEffect(() => {
     fetchParts();
   }, []);
+
   const fetchParts = async () => {
     setLoadingParts(true);
     try {
@@ -212,7 +208,7 @@ const Assmebly_subAssembly = ({
         setCostPerUnit(selectedPart.costPerUnit || "");
         setTimePerUnit(selectedPart.timePerUnit || "");
         setQuantity(1);
-        setPartId(selectedPart.id || "");
+        setPartId(selectedPart.partsCodeId || "");
         setCodeName(selectedPart.codeName || "");
       } else {
         setSelectedPartData(null);
@@ -238,7 +234,7 @@ const Assmebly_subAssembly = ({
     event.preventDefault();
     setIsLoading(true);
     const payload = {
-      partId: selectedPartData?.id || null,
+      partsCodeId: selectedPartData.partsCodeId || selectedPartData.id || "",
       partName: selectedPartData?.partName || "",
       codeName: codeName.trim(),
       costPerUnit: Number(costPerUnit) || 0,
@@ -549,6 +545,8 @@ const Assmebly_subAssembly = ({
                             })
                             .map((item) => {
                               const statusInfo = getStatus(item.allocations);
+                              console.log(item._id, "motherrrrrrrrr");
+                              
                               return (
                                 <React.Fragment key={item._id}>
                                   <tr
@@ -571,7 +569,7 @@ const Assmebly_subAssembly = ({
                                       }}
                                       className="parent_partName"
                                     >
-                                      {item.partName} ({item.Uid || ""}){" "}
+                                      {item.partName} ({item.partsCodeId || ""}){" "}
                                       {item.codeName || ""}
                                     </td>
                                     <td>
@@ -587,7 +585,7 @@ const Assmebly_subAssembly = ({
                                     <td>{formatTime(item.timePerUnit || 0)}</td>
                                     <td>
                                       <div
-                                         style={{
+                                        style={{
                                           display: "flex",
                                           justifyContent: "space-between",
                                           width: "80%",
@@ -662,7 +660,9 @@ const Assmebly_subAssembly = ({
                                     <tr>
                                       <td colSpan="8">
                                         <Assembly_SubAssemblyHoursPlanning
+                                          partListItemId={item._id}
                                           partName={item.partName}
+                                          partsCodeId={item.partsCodeId}
                                           manufacturingVariables={
                                             item.manufacturingVariables || []
                                           }
@@ -670,7 +670,9 @@ const Assmebly_subAssembly = ({
                                           porjectID={_id}
                                           AssemblyListId={assemblyId}
                                           subAssembliesId={subAssembly._id}
-                                          partListItemId={item._id}
+                                          partManufacturingVariables={
+                                            item.manufacturingVariables
+                                          }
                                         />
                                       </td>
                                     </tr>

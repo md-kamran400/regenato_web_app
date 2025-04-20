@@ -222,7 +222,7 @@ const Assmebly_subAssembly = ({
     event.preventDefault();
     setIsLoading(true);
     const payload = {
-      partId: selectedPartData?.id || null,
+      partsCodeId: selectedPartData?.id || "",
       partName: selectedPartData?.partName || "",
       codeName: codeName.trim(),
       costPerUnit: Number(costPerUnit) || 0,
@@ -660,7 +660,7 @@ const Assmebly_subAssembly = ({
                                   }}
                                   className="parent_partName"
                                 >
-                                  {item.partName} ({item.Uid || ""}){" "}
+                                  {item.partName} ({item.partsCodeId || ""}){" "}
                                   {item.codeName || ""}
                                 </td>
                                 <td>
