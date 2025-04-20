@@ -269,10 +269,63 @@ subAssemblyRoutes.delete("/:id", async (req, res) => {
 
 // POST add a part to a sub-assembly
 // POST route to add data to partsListItems for a specific sub-assembly
+// subAssemblyRoutes.post("/:id/partsListItems", async (req, res) => {
+//   try {
+//     const { id } = req.params;
+//     const {
+//       partName,
+//       codeName,
+//       costPerUnit,
+//       timePerUnit,
+//       quantity,
+//       rmVariables,
+//       manufacturingVariables,
+//       shipmentVariables,
+//       overheadsAndProfits,
+//     } = req.body;
+
+//     // Fetch the sub-assembly document by ID
+//     const subAssembly = await SubAssemblyModel.findById(id);
+
+//     if (!subAssembly) {
+//       return res.status(404).json({ error: "Sub-assembly not found" });
+//     }
+
+//     // Create the new part object
+//     const newPart = {
+//       partName,
+//       codeName,
+//       costPerUnit,
+//       timePerUnit,
+//       quantity,
+//       rmVariables: rmVariables || [],
+//       manufacturingVariables: manufacturingVariables || [],
+//       shipmentVariables: shipmentVariables || [],
+//       overheadsAndProfits: overheadsAndProfits || [],
+//     };
+
+//     // Add the new part to the partsListItems array
+//     subAssembly.partsListItems.push(newPart);
+
+//     // Save the updated sub-assembly to the database
+//     await subAssembly.save();
+
+//     // Return only the newly added part
+//     res.status(201).json({
+//       message: "Part added successfully",
+//       data: newPart,
+//     });
+//   } catch (error) {
+//     console.error("Error adding part:", error.message);
+//     res.status(500).json({ error: error.message });
+//   }
+// });
+
 subAssemblyRoutes.post("/:id/partsListItems", async (req, res) => {
   try {
     const { id } = req.params;
     const {
+      partsCodeId, // Add partsCodeId to destructuring
       partName,
       codeName,
       costPerUnit,
@@ -291,8 +344,9 @@ subAssemblyRoutes.post("/:id/partsListItems", async (req, res) => {
       return res.status(404).json({ error: "Sub-assembly not found" });
     }
 
-    // Create the new part object
+    // Create the new part object with partsCodeId
     const newPart = {
+      partsCodeId, // Include partsCodeId
       partName,
       codeName,
       costPerUnit,

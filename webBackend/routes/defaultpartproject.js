@@ -1021,6 +1021,7 @@ partproject.post(
   async (req, res) => {
     const { projectId, subAssemblyId } = req.params;
     const {
+      partsCodeId,
       partName,
       codeName,
       costPerUnit,
@@ -1063,6 +1064,7 @@ partproject.post(
 
       // Create a new part item
       const newPartItem = {
+        partsCodeId,
         partName,
         codeName,
         costPerUnit,
@@ -3035,6 +3037,7 @@ partproject.post(
           partName: alloc.partName,
           processName: alloc.processName,
           processId: alloc.processId, // ✅ Add this
+          partsCodeId: alloc.partsCodeId,
           allocations: alloc.allocations,
         });
       });
@@ -3366,6 +3369,7 @@ partproject.post(
           partName: alloc.partName,
           processName: alloc.processName,
           processId: alloc.processId, // ✅ Add this
+          partsCodeId: alloc.partsCodeId,
           allocations: alloc.allocations,
         });
       });
@@ -3828,6 +3832,7 @@ partproject.post(
           partName: alloc.partName,
           processName: alloc.processName,
           processId: alloc.processId, // ✅ Add this
+          partsCodeId: alloc.partsCodeId,
           allocations: alloc.allocations,
         });
       });

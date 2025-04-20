@@ -271,6 +271,7 @@ AssemblyRoutes.post("/:id/partsListItems", async (req, res) => {
   try {
     const { id } = req.params;
     const {
+      partsCodeId,
       partName,
       codeName,
       costPerUnit,
@@ -291,6 +292,7 @@ AssemblyRoutes.post("/:id/partsListItems", async (req, res) => {
 
     // Create the new part object
     const newPart = {
+      partsCodeId,
       partName,
       codeName,
       costPerUnit,
@@ -325,6 +327,7 @@ AssemblyRoutes.post(
     try {
       const { id, subAssemblyId } = req.params;
       const {
+        partsCodeId,
         partName,
         codeName,
         costPerUnit,
@@ -352,6 +355,7 @@ AssemblyRoutes.post(
 
       // Create the new part object
       const newPart = {
+        partsCodeId,
         partName,
         codeName,
         costPerUnit,
@@ -751,7 +755,7 @@ AssemblyRoutes.post("/:id/subAssemblies", async (req, res) => {
   try {
     const { id } = req.params;
     const subAssembly = req.body;
-    console.log("Received subAssembly data:", subAssembly); // Debugging
+    // console.log("Received subAssembly data:", subAssembly); // Debugging
 
     const assembly = await AssemblyModel.findById(id);
     if (!assembly) {
@@ -760,7 +764,7 @@ AssemblyRoutes.post("/:id/subAssemblies", async (req, res) => {
     assembly.subAssemblies.push(subAssembly);
     await assembly.save();
 
-    console.log("Updated Assembly:", assembly); // Debugging
+    // console.log("Updated Assembly:", assembly); // Debugging
     res.status(201).json(assembly);
   } catch (error) {
     console.error("Error adding sub-assembly:", error);

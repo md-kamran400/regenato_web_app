@@ -3,6 +3,7 @@ const { default: mongoose } = require("mongoose");
 const partSchema = new mongoose.Schema({
   partsListName: String,
   Uid: String,
+  partsCodeId: String,
   partName: String,
   codeName: String,
   costPerUnit: Number,
