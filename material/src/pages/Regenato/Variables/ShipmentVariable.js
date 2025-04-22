@@ -299,7 +299,7 @@ const ShipmentVariable = () => {
                               <div className="d-flex gap-2">
                                 <button
                                   className="btn btn-sm btn-success edit-item-btn"
-                                  data-bs-toggle="modal"
+                               
                                   data-bs-target="#showModal"
                                   onClick={() => tog_edit(item)}
                                 >
@@ -307,7 +307,7 @@ const ShipmentVariable = () => {
                                 </button>
                                 <button
                                   className="btn btn-sm btn-danger remove-item-btn"
-                                  data-bs-toggle="modal"
+                                 
                                   data-bs-target="#deleteRecordModal"
                                   onClick={() => {
                                     setSelectedId(item._id);
