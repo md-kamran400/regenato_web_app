@@ -30,6 +30,7 @@ const Login = () => {
     }
   }, [token, navigate]);
 
+  // In Login.js, modify the handleSubmit function:
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -48,9 +49,10 @@ const Login = () => {
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || "Login failed");
 
-      // Store token and user data
+      // Store token and user data with role information
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
+      localStorage.setItem("userRole", data.user.role); // Store user role
 
       // Trigger storage event to update all components
       window.dispatchEvent(new Event("storage"));

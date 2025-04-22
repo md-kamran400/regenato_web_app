@@ -1,6 +1,7 @@
 const { Router } = require("express");
 const userVariableModal = require("../../model/userVariableModal");
 const userVariableRouter = Router();
+const axios = require("axios");
 
 userVariableRouter.post("/", async (req, res) => {
   try {
@@ -36,6 +37,7 @@ userVariableRouter.post("/", async (req, res) => {
   }
 });
 
+
 // GET request to retrieve all Shipment data (already existing)
 userVariableRouter.get("/", async (req, res) => {
   try {
@@ -46,6 +48,32 @@ userVariableRouter.get("/", async (req, res) => {
   }
 });
 
+// GET request to retrieve all Shipment data (already existing)
+// Modified GET endpoint in your backend
+// userVariableRouter.get("/", async (req, res) => {
+//   try {
+//     // First fetch incharge data
+//     const inchargeResponse = await axios.get('http://0.0.0.0:4040/api/inchargeVariable');
+//     const inchargeData = inchargeResponse.data;
+
+//     // Extract all operator categoryIds
+//     const operatorCategoryIds = inchargeData.flatMap(incharge => 
+//       incharge.operators.map(operator => operator.categoryId)
+//     );
+
+//     // Get unique categoryIds
+//     const uniqueCategoryIds = [...new Set(operatorCategoryIds)];
+
+//     // Find users whose categoryId is in the operators list
+//     const filteredUsers = await userVariableModal.find({
+//       categoryId: { $in: uniqueCategoryIds }
+//     });
+
+//     res.status(200).json(filteredUsers);
+//   } catch (error) {
+//     res.status(400).json({ error: error.message });
+//   }
+// });
 userVariableRouter.get("/:id", async (req, res) => {
   try {
     const userVariable = await userVariableModal.findById(req.params.id);

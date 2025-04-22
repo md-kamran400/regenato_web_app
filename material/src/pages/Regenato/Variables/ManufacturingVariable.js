@@ -692,22 +692,8 @@ const ManufacturingVariable = () => {
                                           getStatusBadge(status);
 
                                         return (
-                                          // <tr
-                                          //   key={subCategory.subcategoryId}
-                                          //   style={{
-                                          //     backgroundColor:
-                                          //       status === "available"
-                                          //         ? "transparent"
-                                          //         : status === "occupied"
-                                          //         ? "#fff3cd"
-                                          //         : "#ffcccc",
-                                          //   }}
-                                          // >
                                           <tr
                                             key={subCategory.subcategoryId}
-                                            onClick={() =>
-                                              handleMachineRowClick(subCategory)
-                                            }
                                             style={{
                                               backgroundColor:
                                                 subCategory.status ===
@@ -725,7 +711,13 @@ const ManufacturingVariable = () => {
                                             <td>{subCategory.name} </td>
                                             <td>{subCategory.hourlyRate}</td>
 
-                                            <td>
+                                            <td
+                                              onClick={() =>
+                                                handleMachineRowClick(
+                                                  subCategory
+                                                )
+                                              }
+                                            >
                                               {subCategory.status ===
                                               "occupied" ? (
                                                 <span

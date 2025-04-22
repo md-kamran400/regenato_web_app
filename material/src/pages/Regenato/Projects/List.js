@@ -864,7 +864,7 @@ const List = () => {
                           />
                         </DropdownToggle>
 
-                        <DropdownMenu className="dropdown-menu-end">
+                        <DropdownMenu direction="start" container="body">
                           <DropdownItem
                             href="#"
                             onClick={() => {

@@ -13,13 +13,13 @@ import {
   ModalHeader,
   FormGroup,
   Label,
-  Input
+  Input,
 } from "reactstrap";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { FaEdit } from "react-icons/fa";
 import { MdOutlineDelete } from "react-icons/md";
-import Select from 'react-select';
+import Select from "react-select";
 
 const InhchargeVariable = () => {
   const [inchargeData, setInchargeData] = useState([]);
@@ -29,7 +29,7 @@ const InhchargeVariable = () => {
     name: "",
     processeName: "",
     processess: [],
-    operators: []
+    operators: [],
   });
   const [posting, setPosting] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
@@ -85,7 +85,7 @@ const InhchargeVariable = () => {
 
   const generateNextId = (data) => {
     if (data.length === 0) {
-      setFormData(prev => ({ ...prev, categoryId: "IN1" }));
+      setFormData((prev) => ({ ...prev, categoryId: "IN1" }));
       return;
     }
     const lastIncharge = data[data.length - 1];
@@ -94,46 +94,56 @@ const InhchargeVariable = () => {
 
     if (match) {
       const nextNumber = parseInt(match[1]) + 1;
-      setFormData(prev => ({ ...prev, categoryId: `IN${nextNumber}` }));
+      setFormData((prev) => ({ ...prev, categoryId: `IN${nextNumber}` }));
     } else {
-      setFormData(prev => ({ ...prev, categoryId: "IN1" }));
+      setFormData((prev) => ({ ...prev, categoryId: "IN1" }));
     }
   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleProcessChange = (selectedOption) => {
-    const selectedProcess = manufacturingProcesses.find(p => p.name === selectedOption.value);
-    setFormData(prev => ({
+    const selectedProcess = manufacturingProcesses.find(
+      (p) => p.name === selectedOption.value
+    );
+    setFormData((prev) => ({
       ...prev,
       processeName: selectedOption.value,
-      processess: []
+      processess: [],
     }));
-    
+
     // Update sub-process options
     if (selectedProcess) {
-      const options = selectedProcess.subCategories.map(sub => ({
+      const options = selectedProcess.subCategories.map((sub) => ({
         value: sub.name,
-        label: sub.name
+        label: sub.name,
       }));
       setSubProcessOptions(options);
     }
   };
 
   const handleSubProcessChange = (selectedOptions) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      processess: selectedOptions ? selectedOptions.map(option => option.value) : []
+      processess: selectedOptions
+        ? selectedOptions.map((option) => option.value)
+        : [],
     }));
   };
 
+  // Update handleOperatorsChange to store both name and categoryId
   const handleOperatorsChange = (selectedOptions) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      operators: selectedOptions ? selectedOptions.map(option => option.value) : []
+      operators: selectedOptions
+        ? selectedOptions.map((option) => ({
+            name: option.value.name,
+            categoryId: option.value.categoryId,
+          }))
+        : [],
     }));
   };
 
@@ -153,7 +163,7 @@ const InhchargeVariable = () => {
         name: "",
         processeName: "",
         processess: [],
-        operators: []
+        operators: [],
       });
     } catch (error) {
       console.error("Error adding incharge variable:", error);
@@ -189,19 +199,21 @@ const InhchargeVariable = () => {
       name: incharge.name,
       processeName: incharge.processeName,
       processess: incharge.processess,
-      operators: incharge.operators
+      operators: incharge.operators,
     });
-    
+
     // Set sub-process options for the selected process
-    const selectedProcess = manufacturingProcesses.find(p => p.name === incharge.processeName);
+    const selectedProcess = manufacturingProcesses.find(
+      (p) => p.name === incharge.processeName
+    );
     if (selectedProcess) {
-      const options = selectedProcess.subCategories.map(sub => ({
+      const options = selectedProcess.subCategories.map((sub) => ({
         value: sub.name,
-        label: sub.name
+        label: sub.name,
       }));
       setSubProcessOptions(options);
     }
-    
+
     setEditModalOpen(true);
   };
 
@@ -224,24 +236,29 @@ const InhchargeVariable = () => {
   };
 
   // Prepare options for select components
-  const processOptions = manufacturingProcesses.map(process => ({
+  const processOptions = manufacturingProcesses.map((process) => ({
     value: process.name,
-    label: process.name
+    label: process.name,
   }));
 
-  const operatorOptions = operatorsList.map(operator => ({
-    value: operator.name,
-    label: operator.name
+  // Update the operatorOptions to include both name and categoryId
+  const operatorOptions = operatorsList.map((operator) => ({
+    value: {
+      name: operator.name,
+      categoryId: operator.categoryId,
+    },
+    label: `${operator.categoryId} - ${operator.name}`,
   }));
 
-  const selectedSubProcesses = formData.processess.map(process => ({
+  const selectedSubProcesses = formData.processess.map((process) => ({
     value: process,
-    label: process
+    label: process,
   }));
 
-  const selectedOperators = formData.operators.map(operator => ({
+  // Update the selectedOperators to match the new structure
+  const selectedOperators = formData.operators.map((operator) => ({
     value: operator,
-    label: operator
+    label: `${operator.categoryId} - ${operator.name}`,
   }));
 
   return (
@@ -299,11 +316,16 @@ const InhchargeVariable = () => {
                           <td>{incharge.categoryId}</td>
                           <td>{incharge.name}</td>
                           <td>{incharge.processeName}</td>
+                          <td>{incharge.processess.join(", ")}</td>
+                          {/* <td>{incharge.operators.join(", ")}</td> */}
                           <td>
-                            {incharge.processess.join(", ")}
-                          </td>
-                          <td>
-                            {incharge.operators.join(", ")}
+                            {incharge.operators
+                              .map((op) =>
+                                typeof op === "string"
+                                  ? op
+                                  : `${op.categoryId} - ${op.name}`
+                              )
+                              .join(", ")}
                           </td>
                           <td>
                             <div className="d-flex gap-2">
@@ -360,7 +382,7 @@ const InhchargeVariable = () => {
                 readOnly
               />
             </FormGroup>
-            
+
             <FormGroup>
               <Label>Name</Label>
               <Input
@@ -371,19 +393,21 @@ const InhchargeVariable = () => {
                 required
               />
             </FormGroup>
-            
+
             <FormGroup>
               <Label>Process Name</Label>
               <Select
                 options={processOptions}
-                value={processOptions.find(option => option.value === formData.processeName)}
+                value={processOptions.find(
+                  (option) => option.value === formData.processeName
+                )}
                 onChange={handleProcessChange}
                 placeholder="Select Process"
                 isSearchable
                 required
               />
             </FormGroup>
-            
+
             <FormGroup>
               <Label>Processes</Label>
               <Select
@@ -395,7 +419,7 @@ const InhchargeVariable = () => {
                 isDisabled={!formData.processeName}
               />
             </FormGroup>
-            
+
             <FormGroup>
               <Label>Operators</Label>
               <Select
@@ -407,7 +431,7 @@ const InhchargeVariable = () => {
                 isSearchable
               />
             </FormGroup>
-            
+
             <ModalFooter>
               <Button
                 color="secondary"
@@ -445,7 +469,7 @@ const InhchargeVariable = () => {
                 readOnly
               />
             </FormGroup>
-            
+
             <FormGroup>
               <Label>Name</Label>
               <Input
@@ -456,19 +480,21 @@ const InhchargeVariable = () => {
                 required
               />
             </FormGroup>
-            
+
             <FormGroup>
               <Label>Process Name</Label>
               <Select
                 options={processOptions}
-                value={processOptions.find(option => option.value === formData.processeName)}
+                value={processOptions.find(
+                  (option) => option.value === formData.processeName
+                )}
                 onChange={handleProcessChange}
                 placeholder="Select Process"
                 isSearchable
                 required
               />
             </FormGroup>
-            
+
             <FormGroup>
               <Label>Processes</Label>
               <Select
@@ -480,7 +506,7 @@ const InhchargeVariable = () => {
                 isDisabled={!formData.processeName}
               />
             </FormGroup>
-            
+
             <FormGroup>
               <Label>Operators</Label>
               <Select
@@ -492,7 +518,7 @@ const InhchargeVariable = () => {
                 isSearchable
               />
             </FormGroup>
-            
+
             <ModalFooter>
               <Button
                 color="secondary"

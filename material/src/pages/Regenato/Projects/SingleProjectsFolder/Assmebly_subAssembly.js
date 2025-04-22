@@ -36,6 +36,7 @@ import { useLocation } from "react-router-dom";
 import { FaEdit } from "react-icons/fa";
 import { toast } from "react-toastify";
 import { Assembly_SubAssemblyHoursPlanning } from "../HoursPlanningFolder/AssemblyHoursPlanning/Assembly_SubAssemblyHrPlan/Assembly_SubAssemblyHoursPlanning";
+import { Fetch } from "../HoursPlanningFolder/AssemblyHoursPlanning/Assembly_SubAssemblyHrPlan/Fetch";
 const Assmebly_subAssembly = ({
   projectId,
   subAssembly,
@@ -545,8 +546,7 @@ const Assmebly_subAssembly = ({
                             })
                             .map((item) => {
                               const statusInfo = getStatus(item.allocations);
-                              console.log(item._id, "motherrrrrrrrr");
-                              
+
                               return (
                                 <React.Fragment key={item._id}>
                                   <tr
