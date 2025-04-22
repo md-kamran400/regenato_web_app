@@ -5,7 +5,10 @@ const inchargeVariableSchema = mongoose.Schema({
   name: String,
   processeName: String,
   processess: [{ type: String }],
-  operators: [{ type: String }],
+  operators: [{
+    name: String,
+    categoryId: String
+  }]
 });
 
 const InchargeVariableModal = mongoose.model("inchargeVariable", inchargeVariableSchema);
