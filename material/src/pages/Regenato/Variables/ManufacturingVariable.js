@@ -560,7 +560,7 @@ const ManufacturingVariable = () => {
         <Col lg={12}>
           <Card style={{ marginBottom: "10rem" }}>
             <CardHeader>
-              <h4 className="card-title mb-0">Manufacturing Variable</h4>
+              <h4 className="card-title mb-0">Manufacturing</h4>
             </CardHeader>
             <CardBody>
               <Row className="g-4 mb-3">
@@ -885,7 +885,7 @@ const ManufacturingVariable = () => {
       {/* Add Modal */}
       <Modal isOpen={modal_add} toggle={tog_add} centered>
         <ModalHeader className="bg-light p-3" toggle={tog_add}>
-          Add Manufacturing Variable
+          Add Manufacturing
         </ModalHeader>
         <ModalBody>
           <form className="tablelist-form" onSubmit={handleSubmit}>

@@ -235,7 +235,7 @@ const ShiftVariable = () => {
         <Col lg={12}>
           <Card style={{ marginBottom: "10rem" }}>
             <CardHeader>
-              <h4 className="card-title mb-0">Shift Variables</h4>
+              <h4 className="card-title mb-0">Shift</h4>
             </CardHeader>
             <CardBody>
               <Row className="g-4 mb-3">
@@ -340,7 +340,7 @@ const ShiftVariable = () => {
         centered
       >
         <ModalHeader toggle={() => setModalOpen(!modalOpen)}>
-          Add Shift Variable
+          Add Shift 
         </ModalHeader>
         <ModalBody>
           <form onSubmit={handleSubmit}>
@@ -450,7 +450,7 @@ const ShiftVariable = () => {
         centered
       >
         <ModalHeader toggle={() => setEditModalOpen(!editModalOpen)}>
-          Edit Shift Variable
+          Edit Shift
         </ModalHeader>
         <ModalBody>
           <form onSubmit={handleUpdate}>

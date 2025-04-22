@@ -216,7 +216,7 @@ const GeneralVariable = () => {
         <Col lg={12}>
           <Card style={{ marginBottom: "10rem" }}>
             <CardHeader>
-              <h4 className="card-title mb-0">General Variable</h4>
+              <h4 className="card-title mb-0">General</h4>
             </CardHeader>
             <CardBody>
               <Row className="g-4 mb-3">
@@ -311,7 +311,7 @@ const GeneralVariable = () => {
       <Modal isOpen={modalListOpen} toggle={toggleListModal} centered>
         <ModalHeader className="bg-light p-3" toggle={toggleListModal}>
           {" "}
-          Add General Variable{" "}
+          Add General{" "}
         </ModalHeader>
         <ModalBody>
           <form className="tablelist-form" onSubmit={handleSubmit}>
@@ -358,7 +358,7 @@ const GeneralVariable = () => {
                 Cancel
               </Button>
               <Button color="success" className="add-btn me-1" type="submit">
-                Add Variable
+                Add
               </Button>
             </ModalFooter>
           </form>
@@ -367,7 +367,7 @@ const GeneralVariable = () => {
 
       {/* Edit modal */}
       <Modal isOpen={modal_edit} toggle={tog_edit}>
-        <ModalHeader toggle={tog_edit}>Edit General Variable</ModalHeader>
+        <ModalHeader toggle={tog_edit}>Edit General</ModalHeader>
         <ModalBody>
           <form onSubmit={handleEditSubmit}>
             <div className="mb-3">

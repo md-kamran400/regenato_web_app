@@ -323,7 +323,7 @@ const InhchargeVariable = () => {
         <Col lg={12}>
           <Card style={{ marginBottom: "10rem" }}>
             <CardHeader>
-              <h4 className="card-title mb-0">Incharge Variables</h4>
+              <h4 className="card-title mb-0">Incharge</h4>
             </CardHeader>
             <CardBody>
               <Row className="g-4 mb-3">
@@ -359,7 +359,6 @@ const InhchargeVariable = () => {
                       <th>ID</th>
                       <th>Name</th>
                       <th>Process Name</th>
-
                       <th>Operators</th>
                       <th>Action</th>
                     </tr>
@@ -372,7 +371,11 @@ const InhchargeVariable = () => {
                           <td>{incharge.name}</td>
                           <td>
                             {incharge.processeName.length > 1 ? (
-                              <Button
+                              <span
+                                style={{
+                                  color: "#007bff",
+                                  textDecoration: "none",
+                                }}
                                 color="link"
                                 onClick={() =>
                                   showItemsModal(
@@ -382,8 +385,8 @@ const InhchargeVariable = () => {
                                 }
                                 className="p-0"
                               >
-                                {incharge.processeName.length} processes
-                              </Button>
+                                {incharge.processeName[0]} ...
+                              </span>
                             ) : (
                               incharge.processeName[0] || "-"
                             )}
@@ -391,7 +394,11 @@ const InhchargeVariable = () => {
 
                           <td>
                             {incharge.operators.length > 1 ? (
-                              <Button
+                              <span
+                                style={{
+                                  color: "#007bff",
+                                  textDecoration: "none",
+                                }}
                                 color="link"
                                 onClick={() =>
                                   showItemsModal(
@@ -405,8 +412,11 @@ const InhchargeVariable = () => {
                                 }
                                 className="p-0"
                               >
-                                {incharge.operators.length} operators
-                              </Button>
+                                {typeof incharge.operators[0] === "string"
+                                  ? incharge.operators[0]
+                                  : `${incharge.operators[0].categoryId} - ${incharge.operators[0].name}`}{" "}
+                                ...
+                              </span>
                             ) : (
                               incharge.operators
                                 .map((op) =>
@@ -460,86 +470,165 @@ const InhchargeVariable = () => {
         size="lg"
       >
         <ModalHeader toggle={() => setModalOpen(!modalOpen)}>
-          Add Incharge Variable
+          <h5 className="modal-title">Add Incharge</h5>
         </ModalHeader>
         <ModalBody>
           <form onSubmit={handleSubmit}>
-            <FormGroup>
-              <Label>ID</Label>
-              <Input
-                type="text"
-                name="categoryId"
-                value={formData.categoryId}
-                readOnly
-              />
-            </FormGroup>
+            <Row>
+              <Col md={6}>
+                <FormGroup className="mb-3">
+                  <Label className="form-label">ID</Label>
+                  <Input
+                    type="text"
+                    name="categoryId"
+                    value={formData.categoryId}
+                    readOnly
+                    className="form-control bg-light"
+                  />
+                </FormGroup>
+              </Col>
+              <Col md={6}>
+                <FormGroup className="mb-3">
+                  <Label className="form-label">Employee Name</Label>
+                  <Select
+                    options={userOptions}
+                    value={userOptions.find(
+                      (option) => option.value === formData.name
+                    )}
+                    onChange={(selectedOption) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        name: selectedOption ? selectedOption.value : "",
+                      }))
+                    }
+                    placeholder="Select Employee"
+                    isSearchable
+                    required
+                    className="react-select-container"
+                    classNamePrefix="react-select"
+                    styles={{
+                      control: (base) => ({
+                        ...base,
+                        minHeight: "36px",
+                        borderColor: "#ced4da",
+                        "&:hover": {
+                          borderColor: "#ced4da",
+                        },
+                      }),
+                    }}
+                  />
+                </FormGroup>
+              </Col>
+            </Row>
 
-            <FormGroup>
-              <Label>Name</Label>
-              <Select
-                options={userOptions}
-                value={userOptions.find(
-                  (option) => option.value === formData.name
-                )}
-                onChange={(selectedOption) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    name: selectedOption ? selectedOption.value : "",
-                  }))
-                }
-                placeholder="Select Employee"
-                isSearchable
-                required
-              />
-            </FormGroup>
-
-            <FormGroup>
-              <Label>Process Name</Label>
+            <FormGroup className="mb-3">
+              <Label className="form-label">Process Name</Label>
               <Select
                 options={processOptions}
                 value={selectedProcesses}
                 onChange={handleProcessChange}
                 isMulti
-                placeholder="Select Process"
+                placeholder="Select Process(es)"
                 isSearchable
                 required
+                className="react-select-container"
+                classNamePrefix="react-select"
+                styles={{
+                  control: (base) => ({
+                    ...base,
+                    minHeight: "36px",
+                    borderColor: "#ced4da",
+                    "&:hover": {
+                      borderColor: "#ced4da",
+                    },
+                  }),
+                  multiValue: (base) => ({
+                    ...base,
+                    backgroundColor: "#e3f2fd",
+                    borderRadius: "4px",
+                  }),
+                  multiValueLabel: (base) => ({
+                    ...base,
+                    color: "#1976d2",
+                    fontWeight: "500",
+                  }),
+                  multiValueRemove: (base) => ({
+                    ...base,
+                    color: "#1976d2",
+                    ":hover": {
+                      backgroundColor: "#bbdefb",
+                      color: "#0d47a1",
+                    },
+                  }),
+                }}
               />
             </FormGroup>
 
-            {/* <FormGroup>
-              <Label>Processes</Label>
-              <Select
-                options={subProcessOptions}
-                value={selectedSubProcesses}
-                onChange={handleSubProcessChange}
-                isMulti
-                placeholder="Select Sub-Processes"
-                isDisabled={formData.processeName.length === 0}
-              />
-            </FormGroup> */}
-
-            <FormGroup>
-              <Label>Operators</Label>
+            <FormGroup className="mb-3">
+              <Label className="form-label">Operators</Label>
               <Select
                 options={operatorOptions}
                 value={selectedOperators}
                 onChange={handleOperatorsChange}
                 isMulti
-                placeholder="Select Operators"
+                placeholder="Select Operator(s)"
                 isSearchable
+                className="react-select-container"
+                classNamePrefix="react-select"
+                styles={{
+                  control: (base) => ({
+                    ...base,
+                    minHeight: "36px",
+                    borderColor: "#ced4da",
+                    "&:hover": {
+                      borderColor: "#ced4da",
+                    },
+                  }),
+                  multiValue: (base) => ({
+                    ...base,
+                    backgroundColor: "#e8f5e9",
+                    borderRadius: "4px",
+                  }),
+                  multiValueLabel: (base) => ({
+                    ...base,
+                    color: "#2e7d32",
+                    fontWeight: "500",
+                  }),
+                  multiValueRemove: (base) => ({
+                    ...base,
+                    color: "#2e7d32",
+                    ":hover": {
+                      backgroundColor: "#c8e6c9",
+                      color: "#1b5e20",
+                    },
+                  }),
+                }}
               />
             </FormGroup>
 
-            <ModalFooter>
+            <ModalFooter className="border-top-0 pt-3">
               <Button
-                color="secondary"
+                color="light"
                 onClick={() => setModalOpen(false)}
                 disabled={posting}
+                className="px-4"
               >
                 Cancel
               </Button>
-              <Button color="success" type="submit" disabled={posting}>
-                {posting ? "Adding..." : "Add Incharge"}
+              <Button
+                color="primary"
+                type="submit"
+                disabled={posting}
+                className="px-4"
+              >
+                {posting ? (
+                  <>
+                    <span className="spinner-border spinner-border-sm me-1"></span>
+                    Adding...
+                  </>
+                ) : (
+                  "Add Incharge"
+                )}
               </Button>
             </ModalFooter>
           </form>
@@ -554,79 +643,167 @@ const InhchargeVariable = () => {
         size="lg"
       >
         <ModalHeader toggle={() => setEditModalOpen(!editModalOpen)}>
-          Edit Incharge Variable
+          <h5 className="modal-title">Edit Incharge</h5>
         </ModalHeader>
         <ModalBody>
           <form onSubmit={handleUpdate}>
-            <FormGroup>
-              <Label>ID</Label>
-              <Input
-                type="text"
-                name="categoryId"
-                value={formData.categoryId}
-                readOnly
-              />
-            </FormGroup>
+            <Row>
+              <Col md={6}>
+                <FormGroup className="mb-3">
+                  <Label className="form-label">ID</Label>
+                  <Input
+                    type="text"
+                    name="categoryId"
+                    value={formData.categoryId}
+                    readOnly
+                    className="form-control bg-light"
+                  />
+                </FormGroup>
+              </Col>
+              <Col md={6}>
+                <FormGroup className="mb-3">
+                  <Label className="form-label">Employee Name</Label>
+                  <Select
+                    options={userOptions}
+                    value={userOptions.find(
+                      (option) => option.value === formData.name
+                    )}
+                    onChange={(selectedOption) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        name: selectedOption ? selectedOption.value : "",
+                      }))
+                    }
+                    placeholder="Select Employee"
+                    isSearchable
+                    required
+                    className="react-select-container"
+                    classNamePrefix="react-select"
+                    styles={{
+                      control: (base) => ({
+                        ...base,
+                        minHeight: "36px",
+                        borderColor: "#ced4da",
+                        "&:hover": {
+                          borderColor: "#ced4da",
+                        },
+                      }),
+                    }}
+                  />
+                </FormGroup>
+              </Col>
+            </Row>
 
-            <FormGroup>
-              <Label>Name</Label>
-              <Input
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                required
-              />
-            </FormGroup>
-
-            <FormGroup>
-              <Label>Process Name</Label>
+            <FormGroup className="mb-3">
+              <Label className="form-label">Process Name</Label>
               <Select
                 options={processOptions}
-                value={processOptions.find(
-                  (option) => option.value === formData.processeName
+                value={processOptions.filter((option) =>
+                  formData.processeName.includes(option.value)
                 )}
                 onChange={handleProcessChange}
-                placeholder="Select Process"
+                isMulti
+                placeholder="Select Process(es)"
                 isSearchable
                 required
+                className="react-select-container"
+                classNamePrefix="react-select"
+                styles={{
+                  control: (base) => ({
+                    ...base,
+                    minHeight: "36px",
+                    borderColor: "#ced4da",
+                    "&:hover": {
+                      borderColor: "#ced4da",
+                    },
+                  }),
+                  multiValue: (base) => ({
+                    ...base,
+                    backgroundColor: "#e3f2fd",
+                    borderRadius: "4px",
+                  }),
+                  multiValueLabel: (base) => ({
+                    ...base,
+                    color: "#1976d2",
+                    fontWeight: "500",
+                  }),
+                  multiValueRemove: (base) => ({
+                    ...base,
+                    color: "#1976d2",
+                    ":hover": {
+                      backgroundColor: "#bbdefb",
+                      color: "#0d47a1",
+                    },
+                  }),
+                }}
               />
             </FormGroup>
 
-            <FormGroup>
-              <Label>Processes</Label>
-              <Select
-                options={subProcessOptions}
-                value={selectedSubProcesses}
-                onChange={handleSubProcessChange}
-                isMulti
-                placeholder="Select Sub-Processes"
-                isDisabled={!formData.processeName}
-              />
-            </FormGroup>
-
-            <FormGroup>
-              <Label>Operators</Label>
+            <FormGroup className="mb-3">
+              <Label className="form-label">Operators</Label>
               <Select
                 options={operatorOptions}
                 value={selectedOperators}
                 onChange={handleOperatorsChange}
                 isMulti
-                placeholder="Select Operators"
+                placeholder="Select Operator(s)"
                 isSearchable
+                className="react-select-container"
+                classNamePrefix="react-select"
+                styles={{
+                  control: (base) => ({
+                    ...base,
+                    minHeight: "36px",
+                    borderColor: "#ced4da",
+                    "&:hover": {
+                      borderColor: "#ced4da",
+                    },
+                  }),
+                  multiValue: (base) => ({
+                    ...base,
+                    backgroundColor: "#e8f5e9",
+                    borderRadius: "4px",
+                  }),
+                  multiValueLabel: (base) => ({
+                    ...base,
+                    color: "#2e7d32",
+                    fontWeight: "500",
+                  }),
+                  multiValueRemove: (base) => ({
+                    ...base,
+                    color: "#2e7d32",
+                    ":hover": {
+                      backgroundColor: "#c8e6c9",
+                      color: "#1b5e20",
+                    },
+                  }),
+                }}
               />
             </FormGroup>
 
-            <ModalFooter>
+            <ModalFooter className="border-top-0 pt-3">
               <Button
-                color="secondary"
+                color="light"
                 onClick={() => setEditModalOpen(false)}
                 disabled={posting}
+                className="px-4"
               >
                 Cancel
               </Button>
-              <Button color="success" type="submit" disabled={posting}>
-                {posting ? "Updating..." : "Update"}
+              <Button
+                color="primary"
+                type="submit"
+                disabled={posting}
+                className="px-4"
+              >
+                {posting ? (
+                  <>
+                    <span className="spinner-border spinner-border-sm me-1"></span>
+                    Updating...
+                  </>
+                ) : (
+                  "Update Incharge"
+                )}
               </Button>
             </ModalFooter>
           </form>

@@ -47,7 +47,7 @@ const AllocationPlan = () => {
   const fetchAllocations = async () => {
     try {
       const response = await axios.get(
-        "http://localhost:4040/api/defpartproject/all-allocations"
+        `${process.env.REACT_APP_BASE_URL}/api/defpartproject/all-allocations`
       );
       const data = response.data.data;
       setAllocations(data);

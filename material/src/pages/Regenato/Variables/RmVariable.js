@@ -217,7 +217,7 @@ const RmVariable = () => {
         <Col lg={12}>
           <Card style={{ marginBottom: "10rem" }}>
             <CardHeader>
-              <h4 className="card-title mb-0">Raw Material Variables</h4>
+              <h4 className="card-title mb-0">Raw Material</h4>
             </CardHeader>
             <CardBody>
               <div className="listjs-table" id="customerList">
@@ -313,7 +313,7 @@ const RmVariable = () => {
                 {/* Edit modal */}
                 <Modal isOpen={modal_edit} toggle={tog_edit} centered>
                   <ModalHeader className="bg-light p-3" toggle={tog_edit}>
-                    Edit Raw Material Variable
+                    Edit Raw Material 
                   </ModalHeader>
                   <form onSubmit={handleEditSubmit}>
                     <ModalBody>
@@ -379,7 +379,7 @@ const RmVariable = () => {
 
       {/* Modal for adding new variables */}
       <Modal isOpen={modal_list} toggle={tog_list}>
-        <ModalHeader toggle={tog_list}>Add Raw Material Variable</ModalHeader>
+        <ModalHeader toggle={tog_list}>Add Raw Material</ModalHeader>
         <ModalBody>
           <form onSubmit={handleSubmit}>
             <div className="mb-3">

@@ -24,6 +24,7 @@ import { Tooltip } from "bootstrap";
 import { FaRegEye } from "react-icons/fa";
 
 const UsersListVariable = () => {
+  const userRole = localStorage.getItem("userRole");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentItem, setCurrentItem] = useState(null);
   const [modal_add, setModalList] = useState(false);
@@ -89,7 +90,7 @@ const UsersListVariable = () => {
     setError(null);
     try {
       const response = await fetch(
-        `${process.env.REACT_APP_BASE_URL}/api/userVariable`
+        `${process.env.REACT_APP_BASE_URL}/api/userVariable/filteruser`
       );
       if (!response.ok) {
         throw new Error("Network response was not ok");
@@ -202,23 +203,25 @@ const UsersListVariable = () => {
         <Col lg={12}>
           <Card style={{ marginBottom: "10rem" }}>
             <CardHeader>
-              <h4 className="card-title mb-0">Users Variables</h4>
+              <h4 className="card-title mb-0">Operators</h4>
             </CardHeader>
             <CardBody>
               <div className="listjs-table" id="customerList">
                 <Row className="g-4 mb-3">
-                  <Col className="col-sm-auto">
-                    <div>
-                      <Button
-                        color="success"
-                        className="add-btn me-1"
-                        onClick={tog_add}
-                        id="create-btn"
-                      >
-                        <i className="ri-add-line align-bottom me-1"></i> Add
-                      </Button>
-                    </div>
-                  </Col>
+                  {userRole === "admin" && (
+                    <Col className="col-sm-auto">
+                      <div>
+                        <Button
+                          color="success"
+                          className="add-btn me-1"
+                          onClick={tog_add}
+                          id="create-btn"
+                        >
+                          <i className="ri-add-line align-bottom me-1"></i> Add
+                        </Button>
+                      </div>
+                    </Col>
+                  )}
                   <Col className="col-sm">
                     <div className="d-flex justify-content-sm-end">
                       <div className="search-box ms-2">
@@ -304,25 +307,27 @@ const UsersListVariable = () => {
 
                             <td>
                               <div className="d-flex gap-2">
-                                <button
-                                  className="btn btn-sm btn-success edit-item-btn"
-                                  
-                                  data-bs-target="#showModal"
-                                  onClick={() => tog_edit(item)}
-                                >
-                                  <FaEdit size={15} />
-                                </button>
-                                <button
-                                  className="btn btn-sm btn-danger remove-item-btn"
-                                 
-                                  data-bs-target="#deleteRecordModal"
-                                  onClick={() => {
-                                    setSelectedId(item._id);
-                                    tog_delete();
-                                  }}
-                                >
-                                  <MdOutlineDelete size={17} />
-                                </button>
+                                {userRole === "admin" && (
+                                  <button
+                                    className="btn btn-sm btn-success edit-item-btn"
+                                    data-bs-target="#showModal"
+                                    onClick={() => tog_edit(item)}
+                                  >
+                                    <FaEdit size={15} />
+                                  </button>
+                                )}
+                                {userRole === "admin" && (
+                                  <button
+                                    className="btn btn-sm btn-danger remove-item-btn"
+                                    data-bs-target="#deleteRecordModal"
+                                    onClick={() => {
+                                      setSelectedId(item._id);
+                                      tog_delete();
+                                    }}
+                                  >
+                                    <MdOutlineDelete size={17} />
+                                  </button>
+                                )}
                                 <Button
                                   color="info"
                                   size="sm"
@@ -368,7 +373,7 @@ const UsersListVariable = () => {
 
       {/* Add Modal */}
       <Modal isOpen={modal_add} toggle={tog_add} centered>
-        <ModalHeader toggle={tog_add}>Add Variable</ModalHeader>
+        <ModalHeader toggle={tog_add}>Add</ModalHeader>
         <ModalBody>
           <form onSubmit={handleSubmit}>
             <div className="mb-3">
@@ -438,7 +443,7 @@ const UsersListVariable = () => {
 
       {/* Edit modal */}
       <Modal isOpen={modal_edit} toggle={tog_edit} centered>
-        <ModalHeader toggle={tog_edit}>Edit Variable</ModalHeader>
+        <ModalHeader toggle={tog_edit}>Edit</ModalHeader>
         <ModalBody>
           <form onSubmit={handleSubmit}>
             <div className="mb-3">

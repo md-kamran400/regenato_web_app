@@ -238,7 +238,7 @@ const ShipmentVariable = () => {
         <Col lg={12}>
           <Card style={{ marginBottom: "10rem" }}>
             <CardHeader>
-              <h4 className="card-title mb-0">Shipment Variables</h4>
+              <h4 className="card-title mb-0">Shipment</h4>
             </CardHeader>
             <CardBody>
               <div className="listjs-table" id="customerList">
@@ -416,7 +416,7 @@ const ShipmentVariable = () => {
 
       {/* Edit modal */}
       <Modal isOpen={modal_edit} toggle={tog_edit}>
-        <ModalHeader toggle={tog_edit}>Edit Shipment Variable</ModalHeader>
+        <ModalHeader toggle={tog_edit}>Edit Shipment </ModalHeader>
         <ModalBody>
           <form onSubmit={handleEditSubmit}>
             <div className="mb-3">
