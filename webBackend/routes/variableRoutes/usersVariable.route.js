@@ -1,3 +1,4 @@
+require("dotenv").config();
 const { Router } = require("express");
 const userVariableModal = require("../../model/userVariableModal");
 const userVariableRouter = Router();
@@ -37,28 +38,29 @@ userVariableRouter.post("/", async (req, res) => {
   }
 });
 
-
 // GET request to retrieve all Shipment data (already existing)
-// userVariableRouter.get("/", async (req, res) => {
-//   try {
-//     const allShipment = await userVariableModal.find();
-//     res.status(200).json(allShipment);
-//   } catch (error) {
-//     res.status(400).json({ error: error.message });
-//   }
-// });
+userVariableRouter.get("/", async (req, res) => {
+  try {
+    const allShipment = await userVariableModal.find();
+    res.status(200).json(allShipment);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
 
 // GET request to retrieve all Shipment data (already existing)
 // Modified GET endpoint in your backend
-userVariableRouter.get("/", async (req, res) => {
+userVariableRouter.get("/filteruser", async (req, res) => {
   try {
     // First fetch incharge data
-    const inchargeResponse = await axios.get('http://0.0.0.0:4040/api/inchargeVariable');
+    const inchargeResponse = await axios.get(
+      `${process.env.BASE_URL}/api/inchargeVariable`
+    );
     const inchargeData = inchargeResponse.data;
 
     // Extract all operator categoryIds
-    const operatorCategoryIds = inchargeData.flatMap(incharge => 
-      incharge.operators.map(operator => operator.categoryId)
+    const operatorCategoryIds = inchargeData.flatMap((incharge) =>
+      incharge.operators.map((operator) => operator.categoryId)
     );
 
     // Get unique categoryIds
@@ -66,7 +68,7 @@ userVariableRouter.get("/", async (req, res) => {
 
     // Find users whose categoryId is in the operators list
     const filteredUsers = await userVariableModal.find({
-      categoryId: { $in: uniqueCategoryIds }
+      categoryId: { $in: uniqueCategoryIds },
     });
 
     res.status(200).json(filteredUsers);
@@ -74,6 +76,7 @@ userVariableRouter.get("/", async (req, res) => {
     res.status(400).json({ error: error.message });
   }
 });
+
 userVariableRouter.get("/:id", async (req, res) => {
   try {
     const userVariable = await userVariableModal.findById(req.params.id);
@@ -205,7 +208,8 @@ userVariableRouter.delete("/:id/leave/:index", async (req, res) => {
     // Update status based on the latest leave
     if (user.leavePeriod.length > 0) {
       const latestLeave = user.leavePeriod[user.leavePeriod.length - 1];
-      user.status = new Date(latestLeave.endDate) >= new Date() ? "On Leave" : "Active";
+      user.status =
+        new Date(latestLeave.endDate) >= new Date() ? "On Leave" : "Active";
     } else {
       user.status = "Active";
     }
@@ -239,7 +243,5 @@ userVariableRouter.get("/leave/:id", async (req, res) => {
     res.status(500).json({ message: "Server error", error });
   }
 });
-
-
 
 module.exports = { userVariableRouter };
