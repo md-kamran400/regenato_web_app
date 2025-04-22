@@ -36,6 +36,19 @@ const Variables = () => {
   const [modal_list, setmodal_list] = useState(false);
   const [modal_delete, setmodal_delete] = useState(false);
   const [activeTab, setActiveTab] = useState("GeneralVariable");
+  const [userRole, setUserRole] = useState("");
+
+  useEffect(() => {
+    // Get user role from localStorage when component mounts
+    const role = localStorage.getItem("userRole");
+    if (role) {
+      setUserRole(role);
+      // If user is incharge, set default tab to UsersListVariable
+      if (role === "incharge") {
+        setActiveTab("UsersListVariable");
+      }
+    }
+  }, []);
 
   const toggleTab = (tab) => {
     if (activeTab !== tab) {
@@ -44,6 +57,12 @@ const Variables = () => {
   };
 
   const renderComponent = () => {
+    // If user is incharge, only show UsersListVariable
+    if (userRole === "incharge") {
+      return <UsersListVariable />;
+    }
+
+    // Admin can see all components
     switch (activeTab) {
       case "GeneralVariable":
         return <GeneralVariable />;
@@ -66,6 +85,25 @@ const Variables = () => {
       default:
         return <GeneralVariable />;
     }
+  };
+
+  // Filter tabs based on user role
+  const getFilteredTabs = () => {
+    if (userRole === "incharge") {
+      return [{ id: "UsersListVariable", label: "Operator" }];
+    }
+
+    return [
+      { id: "GeneralVariable", label: "General" },
+      { id: "RmVariable", label: "Raw Material" },
+      { id: "ManufacturingVariable", label: "Manufacturing" },
+      { id: "ShipmentVariable", label: "Shipment" },
+      { id: "OverheadsVariable", label: "Overheads" },
+      { id: "UsersListVariable", label: "Operator" },
+      { id: "ShiftVariable", label: "Shift" },
+      { id: "EventScheduler", label: "Event Scheduler" },
+      { id: "Incharge", label: "Incharge" },
+    ];
   };
 
   useEffect(() => {
@@ -95,84 +133,16 @@ const Variables = () => {
             {/* Sidebar */}
             <Col md="3" lg="2" className="sidebar">
               <Nav vertical>
-                <NavItem>
-                  <NavLink
-                    className={activeTab === "GeneralVariable" ? "active" : ""}
-                    onClick={() => toggleTab("GeneralVariable")}
-                  >
-                    General
-                  </NavLink>
-                </NavItem>
-                <NavItem>
-                  <NavLink
-                    className={activeTab === "RmVariable" ? "active" : ""}
-                    onClick={() => toggleTab("RmVariable")}
-                  >
-                    Raw Material
-                  </NavLink>
-                </NavItem>
-                <NavItem>
-                  <NavLink
-                    className={
-                      activeTab === "ManufacturingVariable" ? "active" : ""
-                    }
-                    onClick={() => toggleTab("ManufacturingVariable")}
-                  >
-                    Manufacturing
-                  </NavLink>
-                </NavItem>
-                <NavItem>
-                  <NavLink
-                    className={activeTab === "ShipmentVariable" ? "active" : ""}
-                    onClick={() => toggleTab("ShipmentVariable")}
-                  >
-                    Shipment
-                  </NavLink>
-                </NavItem>
-                <NavItem>
-                  <NavLink
-                    className={
-                      activeTab === "OverheadsVariable" ? "active" : ""
-                    }
-                    onClick={() => toggleTab("OverheadsVariable")}
-                  >
-                    Overheads
-                  </NavLink>
-                </NavItem>
-                <NavItem>
-                  <NavLink
-                    className={
-                      activeTab === "UsersListVariable" ? "active" : ""
-                    }
-                    onClick={() => toggleTab("UsersListVariable")}
-                  >
-                    Operator
-                  </NavLink>
-                </NavItem>
-                <NavItem>
-                  <NavLink
-                    className={activeTab === "ShiftVariable" ? "active" : ""}
-                    onClick={() => toggleTab("ShiftVariable")}
-                  >
-                    Shift
-                  </NavLink>
-                </NavItem>
-                <NavItem>
-                  <NavLink
-                    className={activeTab === "EventScheduler" ? "active" : ""}
-                    onClick={() => toggleTab("EventScheduler")}
-                  >
-                    Event Scheduler
-                  </NavLink>
-                </NavItem>
-                <NavItem>
-                  <NavLink
-                    className={activeTab === "Incharge" ? "active" : ""}
-                    onClick={() => toggleTab("Incharge")}
-                  >
-                    Incharge
-                  </NavLink>
-                </NavItem>
+                {getFilteredTabs().map((tab) => (
+                  <NavItem key={tab.id}>
+                    <NavLink
+                      className={activeTab === tab.id ? "active" : ""}
+                      onClick={() => toggleTab(tab.id)}
+                    >
+                      {tab.label}
+                    </NavLink>
+                  </NavItem>
+                ))}
               </Nav>
             </Col>
 

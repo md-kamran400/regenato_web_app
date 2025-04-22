@@ -27,7 +27,7 @@ const InhchargeVariable = () => {
   const [formData, setFormData] = useState({
     categoryId: "",
     name: "",
-    processeName: "",
+    processeName: [],
     processess: [],
     operators: [],
   });
@@ -39,12 +39,36 @@ const InhchargeVariable = () => {
   const [manufacturingProcesses, setManufacturingProcesses] = useState([]);
   const [operatorsList, setOperatorsList] = useState([]);
   const [subProcessOptions, setSubProcessOptions] = useState([]);
+  const [usersList, setUsersList] = useState([]); // New state for users
+
+  const [viewModalOpen, setViewModalOpen] = useState(false);
+  const [modalContent, setModalContent] = useState({
+    title: "",
+    items: [],
+  });
 
   useEffect(() => {
     fetchInchargeData();
     fetchManufacturingProcesses();
     fetchOperators();
+    fetchUsers();
   }, []);
+
+  const fetchUsers = async () => {
+    try {
+      const response = await axios.get(
+        `${process.env.REACT_APP_BASE_URL}/api/userManagement/users`
+      );
+      // Filter out admin users and only keep incharge users
+      const inchargeUsers = response.data.filter(
+        (user) => user.role === "incharge"
+      );
+      setUsersList(inchargeUsers);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      toast.error("Failed to fetch users.");
+    }
+  };
 
   const fetchInchargeData = async () => {
     try {
@@ -105,23 +129,37 @@ const InhchargeVariable = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleProcessChange = (selectedOption) => {
-    const selectedProcess = manufacturingProcesses.find(
-      (p) => p.name === selectedOption.value
-    );
+  const handleProcessChange = (selectedOptions) => {
+    const selectedProcessNames = selectedOptions
+      ? selectedOptions.map((option) => option.value)
+      : [];
     setFormData((prev) => ({
       ...prev,
-      processeName: selectedOption.value,
+      processeName: selectedProcessNames,
       processess: [],
     }));
 
-    // Update sub-process options
-    if (selectedProcess) {
-      const options = selectedProcess.subCategories.map((sub) => ({
-        value: sub.name,
-        label: sub.name,
-      }));
-      setSubProcessOptions(options);
+    // Update sub-process options for all selected processes
+    if (selectedOptions && selectedOptions.length > 0) {
+      const allSubProcesses = [];
+      selectedOptions.forEach((option) => {
+        const selectedProcess = manufacturingProcesses.find(
+          (p) => p.name === option.value
+        );
+        if (selectedProcess) {
+          selectedProcess.subCategories.forEach((sub) => {
+            if (!allSubProcesses.some((sp) => sp.value === sub.name)) {
+              allSubProcesses.push({
+                value: sub.name,
+                label: sub.name,
+              });
+            }
+          });
+        }
+      });
+      setSubProcessOptions(allSubProcesses);
+    } else {
+      setSubProcessOptions([]);
     }
   };
 
@@ -134,7 +172,6 @@ const InhchargeVariable = () => {
     }));
   };
 
-  // Update handleOperatorsChange to store both name and categoryId
   const handleOperatorsChange = (selectedOptions) => {
     setFormData((prev) => ({
       ...prev,
@@ -145,6 +182,14 @@ const InhchargeVariable = () => {
           }))
         : [],
     }));
+  };
+
+  const showItemsModal = (title, items) => {
+    setModalContent({
+      title,
+      items: Array.isArray(items) ? items : [items],
+    });
+    setViewModalOpen(true);
   };
 
   const handleSubmit = async (e) => {
@@ -161,7 +206,7 @@ const InhchargeVariable = () => {
       setFormData({
         categoryId: "",
         name: "",
-        processeName: "",
+        processeName: [],
         processess: [],
         operators: [],
       });
@@ -241,6 +286,11 @@ const InhchargeVariable = () => {
     label: process.name,
   }));
 
+  const userOptions = usersList.map((user) => ({
+    value: user.employeeId,
+    label: `${user.name} - ${user.employeeId}`,
+  }));
+
   // Update the operatorOptions to include both name and categoryId
   const operatorOptions = operatorsList.map((operator) => ({
     value: {
@@ -251,6 +301,11 @@ const InhchargeVariable = () => {
   }));
 
   const selectedSubProcesses = formData.processess.map((process) => ({
+    value: process,
+    label: process,
+  }));
+
+  const selectedProcesses = formData.processeName.map((process) => ({
     value: process,
     label: process,
   }));
@@ -304,7 +359,7 @@ const InhchargeVariable = () => {
                       <th>ID</th>
                       <th>Name</th>
                       <th>Process Name</th>
-                      <th>Processes</th>
+
                       <th>Operators</th>
                       <th>Action</th>
                     </tr>
@@ -315,18 +370,54 @@ const InhchargeVariable = () => {
                         <tr key={incharge._id}>
                           <td>{incharge.categoryId}</td>
                           <td>{incharge.name}</td>
-                          <td>{incharge.processeName}</td>
-                          <td>{incharge.processess.join(", ")}</td>
-                          {/* <td>{incharge.operators.join(", ")}</td> */}
                           <td>
-                            {incharge.operators
-                              .map((op) =>
-                                typeof op === "string"
-                                  ? op
-                                  : `${op.categoryId} - ${op.name}`
-                              )
-                              .join(", ")}
+                            {incharge.processeName.length > 1 ? (
+                              <Button
+                                color="link"
+                                onClick={() =>
+                                  showItemsModal(
+                                    "Process Names",
+                                    incharge.processeName
+                                  )
+                                }
+                                className="p-0"
+                              >
+                                {incharge.processeName.length} processes
+                              </Button>
+                            ) : (
+                              incharge.processeName[0] || "-"
+                            )}
                           </td>
+
+                          <td>
+                            {incharge.operators.length > 1 ? (
+                              <Button
+                                color="link"
+                                onClick={() =>
+                                  showItemsModal(
+                                    "Operators",
+                                    incharge.operators.map((op) =>
+                                      typeof op === "string"
+                                        ? op
+                                        : `${op.categoryId} - ${op.name}`
+                                    )
+                                  )
+                                }
+                                className="p-0"
+                              >
+                                {incharge.operators.length} operators
+                              </Button>
+                            ) : (
+                              incharge.operators
+                                .map((op) =>
+                                  typeof op === "string"
+                                    ? op
+                                    : `${op.categoryId} - ${op.name}`
+                                )
+                                .join(", ") || "-"
+                            )}
+                          </td>
+
                           <td>
                             <div className="d-flex gap-2">
                               <Button
@@ -385,11 +476,19 @@ const InhchargeVariable = () => {
 
             <FormGroup>
               <Label>Name</Label>
-              <Input
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
+              <Select
+                options={userOptions}
+                value={userOptions.find(
+                  (option) => option.value === formData.name
+                )}
+                onChange={(selectedOption) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    name: selectedOption ? selectedOption.value : "",
+                  }))
+                }
+                placeholder="Select Employee"
+                isSearchable
                 required
               />
             </FormGroup>
@@ -398,17 +497,16 @@ const InhchargeVariable = () => {
               <Label>Process Name</Label>
               <Select
                 options={processOptions}
-                value={processOptions.find(
-                  (option) => option.value === formData.processeName
-                )}
+                value={selectedProcesses}
                 onChange={handleProcessChange}
+                isMulti
                 placeholder="Select Process"
                 isSearchable
                 required
               />
             </FormGroup>
 
-            <FormGroup>
+            {/* <FormGroup>
               <Label>Processes</Label>
               <Select
                 options={subProcessOptions}
@@ -416,9 +514,9 @@ const InhchargeVariable = () => {
                 onChange={handleSubProcessChange}
                 isMulti
                 placeholder="Select Sub-Processes"
-                isDisabled={!formData.processeName}
+                isDisabled={formData.processeName.length === 0}
               />
-            </FormGroup>
+            </FormGroup> */}
 
             <FormGroup>
               <Label>Operators</Label>
@@ -573,6 +671,29 @@ const InhchargeVariable = () => {
             disabled={posting}
           >
             Cancel
+          </Button>
+        </ModalFooter>
+      </Modal>
+
+      {/* View Items Modal */}
+      <Modal
+        isOpen={viewModalOpen}
+        toggle={() => setViewModalOpen(false)}
+        centered
+      >
+        <ModalHeader toggle={() => setViewModalOpen(false)}>
+          {modalContent.title}
+        </ModalHeader>
+        <ModalBody>
+          <ol>
+            {modalContent.items.map((item, index) => (
+              <li key={index}>{item}</li>
+            ))}
+          </ol>
+        </ModalBody>
+        <ModalFooter>
+          <Button color="secondary" onClick={() => setViewModalOpen(false)}>
+            Close
           </Button>
         </ModalFooter>
       </Modal>
