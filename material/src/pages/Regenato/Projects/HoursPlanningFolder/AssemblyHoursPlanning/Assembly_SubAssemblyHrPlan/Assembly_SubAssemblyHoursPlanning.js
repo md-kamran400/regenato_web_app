@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useRef } from "react";
 import {
   Card,
   CardBody,
@@ -27,7 +27,6 @@ import { isSameDay, parseISO, getDay, isSameMonth } from "date-fns";
 import { AllocatedAssembly_subAssembly } from "./AllocatedAssembly_subAssembly";
 
 export const Assembly_SubAssemblyHoursPlanning = ({
-  partListItemId,
   partName,
   partId,
   manufacturingVariables,
@@ -35,6 +34,7 @@ export const Assembly_SubAssemblyHoursPlanning = ({
   porjectID,
   AssemblyListId,
   subAssembliesId,
+  partListItemId,
   partManufacturingVariables,
   partsCodeId,
 }) => {
@@ -58,8 +58,7 @@ export const Assembly_SubAssemblyHoursPlanning = ({
   const [isDataAllocated, setIsDataAllocated] = useState(false);
   const [allocatedMachines, setAllocatedMachines] = useState({});
   const [operatorAllocations, setOperatorAllocations] = useState({});
-  const [isLoading, setIsLoading] = useState(true);
-
+  const hasFetchedRef = useRef(false);
   useEffect(() => {
     fetch(`${process.env.REACT_APP_BASE_URL}/api/eventScheduler/events`)
       .then((response) => response.json())
@@ -129,42 +128,51 @@ export const Assembly_SubAssemblyHoursPlanning = ({
   }, []);
 
   useEffect(() => {
-    // Prevent running unless all IDs are present
+    console.log("FETCH TRIGGERED with:", {
+      porjectID,
+      AssemblyListId,
+      subAssembliesId,
+      partListItemId,
+    });
+
     if (
+      hasFetchedRef.current || // if already fetched
       !porjectID ||
       !AssemblyListId ||
       !subAssembliesId ||
-      !partListItemId ||
-      partListItemId === "undefined"
+      !partListItemId
     ) {
-      console.log("⛔ Skipping fetch due to missing partListItemId");
+      if (
+        !porjectID ||
+        !AssemblyListId ||
+        !subAssembliesId ||
+        !partListItemId
+      ) {
+        console.warn("Skipping fetch — Missing one of the parameters");
+      }
       return;
     }
-    
 
     const fetchAllocatedData = async () => {
       try {
-        const response = await axios.get(
-          `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/assemblyList/${AssemblyListId}/subAssemblies/${subAssembliesId}/partsListItems/${partListItemId}/allocations`
-        );
+        const url = `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/assemblyList/${AssemblyListId}/subAssemblies/${subAssembliesId}/partsListItems/${partListItemId}/allocations`;
+
+        console.log("Fetching from:", url); // log full URL
+
+        const response = await axios.get(url);
 
         if (response.data.data.length > 0) {
           setIsDataAllocated(true);
           setActiveTab("planned");
-        } else {
-          setIsDataAllocated(false);
         }
+
+        hasFetchedRef.current = true; // mark as fetched
       } catch (error) {
         console.error("Error fetching allocated data:", error);
-        setIsDataAllocated(false);
       }
     };
 
-    const timer = setTimeout(() => {
-      fetchAllocatedData();
-    }, 300);
-
-    return () => clearTimeout(timer);
+    fetchAllocatedData();
   }, [porjectID, AssemblyListId, subAssembliesId, partListItemId]);
 
   useEffect(() => {
@@ -353,10 +361,6 @@ export const Assembly_SubAssemblyHoursPlanning = ({
     return `${minutes}m`;
   };
 
-  // const formatDate = (date) => {
-  //   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  // };
-
   const isOperatorAvailable = (operatorName, startDate, endDate) => {
     // If no dates selected, consider available
     if (!startDate || !endDate) return true;
@@ -457,39 +461,6 @@ export const Assembly_SubAssemblyHoursPlanning = ({
     }, {});
     setRows(initialRows);
   }, [manufacturingVariables, quantity, isAutoSchedule, shiftOptions]);
-
-  // const handleQuantityChange = (index, rowIndex, value) => {
-  //   setRows((prevRows) => {
-  //     const updatedRows = { ...prevRows };
-  //     const processRows = [...(updatedRows[index] || [])];
-  //     const newQuantity =
-  //       value === "" ? "" : Math.max(0, Math.min(quantity, Number(value)));
-
-  //     processRows[rowIndex] = {
-  //       ...processRows[rowIndex],
-  //       plannedQuantity: newQuantity,
-  //       plannedQtyTime: newQuantity
-  //         ? calculatePlannedMinutes(
-  //             newQuantity * manufacturingVariables[index].hours
-  //           )
-  //         : "",
-  //     };
-
-  //     updatedRows[index] = processRows;
-
-  //     const usedQuantity = processRows.reduce(
-  //       (sum, row) => sum + Number(row.plannedQuantity || 0),
-  //       0
-  //     );
-
-  //     setRemainingQuantities((prev) => ({
-  //       ...prev,
-  //       [index]: Math.max(0, quantity - usedQuantity),
-  //     }));
-
-  //     return updatedRows;
-  //   });
-  // };
 
   const handleQuantityChange = (index, rowIndex, value) => {
     setRows((prevRows) => {
@@ -638,8 +609,6 @@ export const Assembly_SubAssemblyHoursPlanning = ({
     fetchMachines();
   }, [manufacturingVariables, partManufacturingVariables]);
 
-  // console.log("Machine Options:", machineOptions);
-
   useEffect(() => {
     const initialRows = manufacturingVariables.reduce((acc, man, index) => {
       acc[index] = [
@@ -769,14 +738,6 @@ export const Assembly_SubAssemblyHoursPlanning = ({
     const day = String(dateObj.getDate()).padStart(2, "0");
     return `${year}-${month}-${day}`; // Format: YYYY-MM-DD
   };
-
-  // const getNextWorkingDay = (date) => {
-  //   let nextDay = new Date(date);
-  //   while (isHighlightedOrDisabled(nextDay)) {
-  //     nextDay.setDate(nextDay.getDate() + 1);
-  //   }
-  //   return nextDay;
-  // };
 
   const calculateStartAndEndDates = (inputStartDate, plannedMinutes, shift) => {
     let parsedStartDate = new Date(inputStartDate);
@@ -958,7 +919,6 @@ export const Assembly_SubAssemblyHoursPlanning = ({
     return `${year}-${month}-${day}`;
   };
 
-
   const calculateEndDateWithDowntime = (
     startDate,
     plannedMinutes,
@@ -1122,28 +1082,6 @@ export const Assembly_SubAssemblyHoursPlanning = ({
   };
 
   const handleSubmit = async () => {
-    // console.log("Submitting allocations...");
-    // console.log("Rows before processing:", JSON.stringify(rows, null, 2));
-
-    // Add validation check
-    const isValid = Object.values(rows).every((processRows) =>
-      processRows.every(
-        (row) =>
-          row.plannedQuantity &&
-          row.startDate &&
-          row.endDate &&
-          row.machineId &&
-          row.shift &&
-          row.operatorId &&
-          row.startTime
-      )
-    );
-
-    if (!isValid) {
-      toast.error("Please fill all required fields for all allocations");
-      return;
-    }
-
     try {
       if (Object.keys(rows).length === 0) {
         alert("No allocations to submit.");
@@ -1187,7 +1125,6 @@ export const Assembly_SubAssemblyHoursPlanning = ({
             const selectedShift = shiftOptions.find(
               (shift) => shift.name === row.shift
             );
-
             groupedAllocations[key].allocations.push({
               splitNumber,
               AllocationPartType: "Part",
@@ -1195,12 +1132,12 @@ export const Assembly_SubAssemblyHoursPlanning = ({
               startDate: new Date(row.startDate).toISOString(),
               startTime: row.startTime || "08:00 AM",
               endDate: new Date(row.endDate).toISOString(),
-              endTime:
-                calculateEndTime(
-                  row.startTime,
-                  row.plannedQtyTime,
-                  shiftOptions.find((s) => s.name === row.shift)
-                ) || "17:00", // Fallback time if calculation fails
+              endTime: calculateEndTime(
+                // Add the calculated end time
+                row.startTime,
+                row.plannedQtyTime,
+                shiftOptions.find((s) => s.name === row.shift)
+              ),
               machineId: row.machineId,
               shift: row.shift,
               plannedTime: row.plannedQtyTime,
@@ -1236,12 +1173,6 @@ export const Assembly_SubAssemblyHoursPlanning = ({
       }
 
       // Send the grouped allocations to the backend
-      // const response = await axios.post(
-      //   `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/assemblyList/${AssemblyListId}/subAssemblies/${subAssembliesId}/partsListItems/${subAssembliesId}/allocation`,
-      //   { allocations: finalAllocations }
-      // );
-      //"/projects/:projectId/assemblyList/:assemblyListId/subAssemblies/:subAssembliesId/partsListItems/:partsListItemsId/allocation",
-
       const response = await axios.post(
         `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/assemblyList/${AssemblyListId}/subAssemblies/${subAssembliesId}/partsListItems/${partListItemId}/allocation`,
         { allocations: finalAllocations }
@@ -1255,7 +1186,6 @@ export const Assembly_SubAssemblyHoursPlanning = ({
         toast.error("Failed to add allocations.");
       }
     } catch (error) {
-      console.error("Error submitting allocations:", error);
       toast.error("An error occurred while submitting allocations.");
     }
   };
@@ -1363,6 +1293,7 @@ export const Assembly_SubAssemblyHoursPlanning = ({
               ALLOCATION SUMMARY FOR {partName}
             </span>
           </div>
+
           <div style={{ display: "flex", gap: "10px" }}>
             <Button
               color={isAutoSchedule ? "primary" : "secondary"}
@@ -1392,6 +1323,7 @@ export const Assembly_SubAssemblyHoursPlanning = ({
             porjectID={porjectID}
             AssemblyListId={AssemblyListId}
             subAssembliesId={subAssembliesId}
+            partListItemId={partListItemId}
             onDeleteSuccess={handleDeleteSuccess}
           />
         )}
@@ -1553,79 +1485,6 @@ export const Assembly_SubAssemblyHoursPlanning = ({
                           </td>
                           <td>{row.plannedQtyTime} m</td>
                           <td>
-                            {/* <Autocomplete
-                              sx={{
-                                width: 130,
-                                margin: "auto",
-                                "& .MuiOutlinedInput-root": {
-                                  padding: "6px !important",
-                                  fontSize: "0.875rem",
-                                },
-                              }}
-                              componentsProps={{
-                                paper: {
-                                  sx: {
-                                    width: 380,
-                                    boxShadow:
-                                      "0px 4px 20px rgba(0, 0, 0, 0.15)",
-                                    borderRadius: "8px",
-                                    marginTop: "4px",
-                                  },
-                                },
-                              }}
-                              options={shiftOptions || []}
-                              value={
-                                shiftOptions.find(
-                                  (option) => option.name === row.shift
-                                ) || null
-                              }
-                              onChange={(event, newValue) => {
-                                if (!newValue) return;
-
-                                setRows((prevRows) => ({
-                                  ...prevRows,
-                                  [index]: prevRows[index].map(
-                                    (row, rowIdx) => {
-                                      if (rowIdx === rowIndex) {
-                                        let updatedEndDate = row.endDate;
-                                        // Only recalculate if startDate exists
-                                        if (row.startDate) {
-                                          const recalculated =
-                                            calculateStartAndEndDates(
-                                              row.startDate,
-                                              row.plannedQtyTime,
-                                              newValue.TotalHours
-                                            );
-                                          updatedEndDate = recalculated.endDate;
-                                        }
-                                        return {
-                                          ...row,
-                                          shift: newValue.name,
-                                          startTime: newValue.startTime,
-                                          shiftMinutes: newValue.TotalHours,
-                                          endDate: updatedEndDate,
-                                        };
-                                      }
-                                      return row;
-                                    }
-                                  ),
-                                }));
-                              }}
-                              getOptionLabel={(option) => option.name}
-                              renderInput={(params) => (
-                                <TextField
-                                  {...params}
-                                  label="Shift"
-                                  variant="outlined"
-                                  size="small"
-                                  placeholder="Select Shift"
-                                />
-                              )}
-                              disablePortal
-                              autoHighlight
-                              noOptionsText="No shifts available"
-                              disabled={!hasStartDate && index !== 0}
-                            /> */}
                             <Autocomplete
                               sx={{
                                 width: 130,
@@ -1876,317 +1735,6 @@ export const Assembly_SubAssemblyHoursPlanning = ({
                           </td>
 
                           <td>
-                            {/* <Autocomplete
-                              sx={{
-                                width: 150,
-                                margin: "auto",
-                                "& .MuiOutlinedInput-root": {
-                                  padding: "6px !important",
-                                  fontSize: "0.875rem",
-                                },
-                                // Add styles for disabled options
-                                "& .MuiAutocomplete-option[aria-disabled='true']":
-                                  {
-                                    opacity: 0.5,
-                                    cursor: "not-allowed",
-                                  },
-                              }}
-                              componentsProps={{
-                                paper: {
-                                  sx: {
-                                    width: 380,
-                                    boxShadow:
-                                      "0px 4px 20px rgba(0, 0, 0, 0.15)",
-                                    borderRadius: "8px",
-                                    marginTop: "4px",
-                                  },
-                                },
-                              }}
-                              options={getAvailableMachinesForRow(
-                                index,
-                                rowIndex
-                              )}
-                              value={
-                                machineOptions[man.categoryId]?.find(
-                                  (machine) =>
-                                    machine.subcategoryId === row.machineId
-                                ) || null
-                              }
-                              onChange={(event, newValue) => {
-                                if (!hasStartDate) return;
-
-                                // Check if machine is already selected in another row
-                                const isAlreadySelected = rows[index].some(
-                                  (r, idx) =>
-                                    idx !== rowIndex &&
-                                    r.machineId === newValue?.subcategoryId
-                                );
-
-                                if (isAlreadySelected) {
-                                  toast.error(
-                                    "This machine is already selected in another row for this process"
-                                  );
-                                  return;
-                                }
-
-                                // Check if machine is occupied
-                                if (newValue) {
-                                  const status = getMachineStatus(
-                                    newValue,
-                                    row.startDate,
-                                    row.endDate,
-                                    allocatedMachines
-                                  );
-                                  if (status.isAllocated) {
-                                    toast.error(
-                                      "This machine is occupied during the selected time period"
-                                    );
-                                    return;
-                                  }
-                                }
-
-                                setRows((prevRows) => {
-                                  const updatedRows = [...prevRows[index]];
-                                  updatedRows[rowIndex] = {
-                                    ...updatedRows[rowIndex],
-                                    machineId: newValue
-                                      ? newValue.subcategoryId
-                                      : "",
-                                  };
-
-                                  if (
-                                    newValue &&
-                                    updatedRows[rowIndex].startDate
-                                  ) {
-                                    const shift = shiftOptions.find(
-                                      (option) =>
-                                        option.name ===
-                                        updatedRows[rowIndex].shift
-                                    );
-
-                                    updatedRows[rowIndex].endDate =
-                                      calculateEndDateWithDowntime(
-                                        updatedRows[rowIndex].startDate,
-                                        updatedRows[rowIndex].plannedQtyTime,
-                                        shift?.TotalHours,
-                                        newValue
-                                      );
-
-                                    const downtimeInfo =
-                                      isMachineOnDowntimeDuringPeriod(
-                                        newValue,
-                                        updatedRows[rowIndex].startDate,
-                                        updatedRows[rowIndex].endDate
-                                      );
-
-                                    if (downtimeInfo.isDowntime) {
-                                      toast.info(
-                                        `Machine has ${downtimeInfo.downtimeMinutes} minutes of downtime. End date extended to ${updatedRows[rowIndex].endDate}.`
-                                      );
-                                    }
-                                  }
-
-                                  return { ...prevRows, [index]: updatedRows };
-                                });
-                              }}
-                              getOptionLabel={(option) => {
-                                const status = getMachineStatus(
-                                  option,
-                                  row.startDate,
-                                  row.endDate,
-                                  allocatedMachines
-                                );
-                                return `${option.name}`;
-                              }}
-
-                              renderOption={(props, option) => {
-                                const status = getMachineStatus(
-                                  option,
-                                  row.startDate,
-                                  row.endDate,
-                                  allocatedMachines
-                                );
-                                const isDisabled = status.isAllocated;
-
-                                // Don't render the option at all if it's disabled
-                                if (isDisabled) {
-                                  return (
-                                    <li
-                                      {...props}
-                                      style={{
-                                        padding: "10px 16px",
-                                        backgroundColor: "#f5f5f5",
-                                        color: "#999",
-                                        cursor: "not-allowed",
-                                        opacity: 0.7,
-                                        pointerEvents: "none",
-                                      }}
-                                    >
-                                      <div
-                                        style={{
-                                          display: "flex",
-                                          alignItems: "center",
-                                        }}
-                                      >
-                                        <div
-                                          style={{
-                                            width: 24,
-                                            height: 24,
-                                            borderRadius: "50%",
-                                            backgroundColor: "#ff9800",
-                                            display: "flex",
-                                            alignItems: "center",
-                                            justifyContent: "center",
-                                            marginRight: 12,
-                                          }}
-                                        >
-                                          <span
-                                            style={{
-                                              color: "white",
-                                              fontSize: 12,
-                                            }}
-                                          >
-                                            O
-                                          </span>
-                                        </div>
-                                        <div>
-                                          <div style={{ fontWeight: 500 }}>
-                                            {option.name}
-                                          </div>
-                                          <div
-                                            style={{
-                                              fontSize: "0.75rem",
-                                              color: "#666",
-                                            }}
-                                          >
-                                            Occupied - Not Available
-                                          </div>
-                                        </div>
-                                      </div>
-                                    </li>
-                                  );
-                                }
-
-                                return (
-                                  <li
-                                    {...props}
-                                    style={{
-                                      padding: "10px 16px",
-                                      borderBottom: "1px solid #f0f0f0",
-                                      cursor: "pointer",
-                                    }}
-                                  >
-                                    <div
-                                      style={{
-                                        display: "flex",
-                                        alignItems: "center",
-                                      }}
-                                    >
-                                      <div
-                                        style={{
-                                          width: 24,
-                                          height: 24,
-                                          borderRadius: "50%",
-                                          backgroundColor: status.isDowntime
-                                            ? "#f44336"
-                                            : "#4caf50",
-                                          display: "flex",
-                                          alignItems: "center",
-                                          justifyContent: "center",
-                                          marginRight: 12,
-                                        }}
-                                      >
-                                        <span
-                                          style={{
-                                            color: "white",
-                                            fontSize: 12,
-                                          }}
-                                        >
-                                          {status.isDowntime ? "D" : "A"}
-                                        </span>
-                                      </div>
-                                      <div>
-                                        <div style={{ fontWeight: 500 }}>
-                                          {option.name}
-                                        </div>
-                                        <div
-                                          style={{
-                                            fontSize: "0.75rem",
-                                            color: "#666",
-                                          }}
-                                        >
-                                          {status.isDowntime
-                                            ? `Downtime: ${formatDowntime(
-                                                status.downtimeMinutes
-                                              )}`
-                                            : "Available"}
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </li>
-                                );
-                              }}
-                              
-                              renderInput={(params) => (
-                                <TextField
-                                  {...params}
-                                  label="Select Machine"
-                                  variant="outlined"
-                                  size="small"
-                                  InputProps={{
-                                    ...params.InputProps,
-                                    startAdornment: (
-                                      <>
-                                        {row.machineId && (
-                                          <div
-                                            style={{
-                                              width: 12,
-                                              height: 12,
-                                              borderRadius: "50%",
-                                              backgroundColor: "#4caf50",
-                                              marginRight: 8,
-                                            }}
-                                          />
-                                        )}
-                                        {params.InputProps.startAdornment}
-                                      </>
-                                    ),
-                                  }}
-                                  placeholder="Search machines..."
-                                />
-                              )}
-                              noOptionsText={
-                                <div
-                                  style={{
-                                    padding: 12,
-                                    color: "#666",
-                                    textAlign: "center",
-                                  }}
-                                >
-                                  {machineOptions[man.categoryId]?.length === 0
-                                    ? "No machines available for this process"
-                                    : "No matching machines found"}
-                                </div>
-                              }
-                              disabled={!hasStartDate}
-                              isOptionEqualToValue={(option, value) =>
-                                option.subcategoryId === value.subcategoryId
-                              }
-                              filterOptions={(options, state) => {
-                                return options.filter(
-                                  (option) =>
-                                    option.name
-                                      .toLowerCase()
-                                      .includes(
-                                        state.inputValue.toLowerCase()
-                                      ) ||
-                                    option.subcategoryId
-                                      .toLowerCase()
-                                      .includes(state.inputValue.toLowerCase())
-                                );
-                              }}
-                            /> */}
-
                             <Autocomplete
                               sx={{
                                 width: 150,
