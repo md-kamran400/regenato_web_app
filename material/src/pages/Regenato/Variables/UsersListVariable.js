@@ -89,9 +89,12 @@ const UsersListVariable = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(
-        `${process.env.REACT_APP_BASE_URL}/api/userVariable/filteruser`
-      );
+      // Determine API endpoint based on user role
+      const apiUrl = userRole === "admin" 
+        ? `${process.env.REACT_APP_BASE_URL}/api/userVariable`
+        : `${process.env.REACT_APP_BASE_URL}/api/userVariable/filteruser`;
+      
+      const response = await fetch(apiUrl);
       if (!response.ok) {
         throw new Error("Network response was not ok");
       }
@@ -102,7 +105,7 @@ const UsersListVariable = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [userRole]); // Add userRole to dependencies
 
   useEffect(() => {
     fetchusersData();

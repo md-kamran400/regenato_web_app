@@ -51,6 +51,7 @@ const PartsTable = React.memo(
     onUpdatePrts,
     // getStatus,
   }) => {
+    const userRole = localStorage.getItem("userRole");
     const [selectedParts, setSelectedParts] = useState([]);
     const [selectedPartIds, setSelectedPartIds] = useState(new Set());
     const { _id, listId } = useParams();
@@ -593,8 +594,6 @@ const PartsTable = React.memo(
       return `${totalMinutes} m`;
     };
 
-    
-
     return (
       <>
         {isLoading && (
@@ -615,14 +614,16 @@ const PartsTable = React.memo(
             padding: "0.5rem",
           }}
         >
-          <Button color="success" className="add-btn" onClick={toggleAddModal}>
-            <i className="ri-add-line align-bottom me-1"></i> Add Part
-          </Button>
-          {/* <Link to={`/hoursplanningtab/${_id}`}>
-            <Button color="success" className="add-btn">
-              <i className="ri-add-line align-bottom me-1"></i> Allocation
+          {userRole === "admin" && (
+           <Button
+              color="success"
+              className="add-btn"
+              onClick={toggleAddModal}
+            >
+              <i className="ri-add-line align-bottom me-1"></i> Add Part
             </Button>
-          </Link> */}
+          )}
+           
         </div>
 
         <Col

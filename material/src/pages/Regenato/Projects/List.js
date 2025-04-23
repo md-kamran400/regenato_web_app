@@ -134,6 +134,7 @@ const List = () => {
 
   const [modal_duplicate, setModalDuplicate] = useState(false);
   const [itemToDuplicate, setItemToDuplicate] = useState(null);
+  const userRole = localStorage.getItem("userRole");
 
   // Replace the existing handleDuplicateProject function with these:
   const handleDuplicateClick = (item) => {
@@ -741,11 +742,13 @@ const List = () => {
       />
       <Row className="g-4 mb-3">
         <div className="col-sm-auto">
-          <div>
-            <Button className="btn btn-success" onClick={toggleModal}>
-              <i className="ri-add-line align-bottom me-1"></i> Add New
-            </Button>
-          </div>
+          {userRole === "admin" && (
+            <div>
+              <Button className="btn btn-success" onClick={toggleModal}>
+                <i className="ri-add-line align-bottom me-1"></i> Add New
+              </Button>
+            </div>
+          )}
         </div>
 
         <div className="col-sm-7 ms-auto">

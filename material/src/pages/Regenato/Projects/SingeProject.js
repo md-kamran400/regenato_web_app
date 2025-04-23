@@ -40,6 +40,7 @@ import OuterSubAssmebly from "./SingleProjectsFolder/OuterSubAssmebly";
 import { toast } from "react-toastify";
 
 const SingeProject = () => {
+  const userRole = localStorage.getItem("userRole");
   const { _id } = useParams();
   const [modalAdd, setModalAdd] = useState(false);
   const [modalAddassembly, setModalAddassembly] = useState(false);
@@ -888,21 +889,26 @@ const SingeProject = () => {
               </p>
             </div>
           </div>
-          <div className="button-group" style={{ marginLeft: "7.9rem"}}>
-            <Button
-              color="danger"
-              className="add-btn"
-              onClick={() => setModalAddSubAssembly(true)}
-            >
-              <i className="ri-add-line align-bottom me-1"></i> Add Sub Assembly
-            </Button>
-            <Button
-              color="primary"
-              className="add-btn"
-              onClick={toggleAddModalAssembly}
-            >
-              <i className="ri-add-line align-bottom me-1"></i> Add Assembly
-            </Button>
+          <div className="button-group" style={{ marginLeft: "7.9rem" }}>
+            {userRole === "admin" && (
+              <>
+                <Button
+                  color="danger"
+                  className="add-btn"
+                  onClick={() => setModalAddSubAssembly(true)}
+                >
+                  <i className="ri-add-line align-bottom me-1"></i> Add Sub
+                  Assembly
+                </Button>
+                <Button
+                  color="primary"
+                  className="add-btn"
+                  onClick={toggleAddModalAssembly}
+                >
+                  <i className="ri-add-line align-bottom me-1"></i> Add Assembly
+                </Button>
+              </>
+            )}
           </div>
           {/* showTable */}
 

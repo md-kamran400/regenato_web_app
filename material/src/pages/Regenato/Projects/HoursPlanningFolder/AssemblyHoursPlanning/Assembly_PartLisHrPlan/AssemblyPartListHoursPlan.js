@@ -37,6 +37,7 @@ export const AssemblyPartListHoursPlan = ({
   partManufacturingVariables,
   partsCodeId,
 }) => {
+  const userRole = localStorage.getItem("userRole");
   const [machineOptions, setMachineOptions] = useState({});
   const [isConfirmationModalOpen, setIsConfirmationModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("actual");
@@ -584,8 +585,6 @@ export const AssemblyPartListHoursPlan = ({
     fetchMachines();
   }, [manufacturingVariables, partManufacturingVariables]);
 
-  
-
   useEffect(() => {
     const initialRows = manufacturingVariables.reduce((acc, man, index) => {
       acc[index] = [
@@ -1066,7 +1065,6 @@ export const AssemblyPartListHoursPlan = ({
     });
   };
   const handleSubmit = async () => {
-
     try {
       if (Object.keys(rows).length === 0) {
         alert("No allocations to submit.");
@@ -1280,28 +1278,30 @@ export const AssemblyPartListHoursPlan = ({
             </span>
           </div>
 
-          <div style={{ display: "flex", gap: "10px" }}>
-            <Button
-              color={isAutoSchedule ? "primary" : "secondary"}
-              onClick={() => setIsAutoSchedule(!isAutoSchedule)}
-              disabled={isDataAllocated} // Add disabled state
-            >
-              {isAutoSchedule ? "Auto Schedule ✅" : "Auto Schedule"}
-            </Button>
-            <Button
-              color={activeTab === "planned" ? "primary" : "secondary"}
-              onClick={() => setActiveTab("planned")}
-            >
-              Planned
-            </Button>
-            <Button
-              color={activeTab === "actual" ? "primary" : "secondary"}
-              onClick={() => setActiveTab("actual")}
-              disabled={isDataAllocated} // Add disabled state
-            >
-              Actual
-            </Button>
-          </div>
+          {userRole === "admin" && (
+            <div style={{ display: "flex", gap: "10px" }}>
+              <Button
+                color={isAutoSchedule ? "primary" : "secondary"}
+                onClick={() => setIsAutoSchedule(!isAutoSchedule)}
+                disabled={isDataAllocated} // Add disabled state
+              >
+                {isAutoSchedule ? "Auto Schedule ✅" : "Auto Schedule"}
+              </Button>
+              <Button
+                color={activeTab === "planned" ? "primary" : "secondary"}
+                onClick={() => setActiveTab("planned")}
+              >
+                Planned
+              </Button>
+              <Button
+                color={activeTab === "actual" ? "primary" : "secondary"}
+                onClick={() => setActiveTab("actual")}
+                disabled={isDataAllocated} // Add disabled state
+              >
+                Actual
+              </Button>
+            </div>
+          )}
         </CardHeader>
 
         {activeTab === "planned" && (

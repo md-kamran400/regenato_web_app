@@ -24,6 +24,7 @@ export const AllocatedAssemblyPartList = ({
   partListItemId,
   onDeleteSuccess,
 }) => {
+  const userRole = localStorage.getItem("userRole");
   const [sections, setSections] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -480,13 +481,15 @@ export const AllocatedAssemblyPartList = ({
           ))
         )}
         <CardBody className="d-flex justify-content-end align-items-center">
-          <Button
-            color="danger"
-            onClick={() => setDeleteConfirmationModal(true)}
-            disabled={sections.length === 0}
-          >
-            Cancel Allocation
-          </Button>
+          {userRole === "admin" && (
+            <Button
+              color="danger"
+              onClick={() => setDeleteConfirmationModal(true)}
+              disabled={sections.length === 0}
+            >
+              Cancel Allocation
+            </Button>
+          )}
         </CardBody>
       </Container>
 

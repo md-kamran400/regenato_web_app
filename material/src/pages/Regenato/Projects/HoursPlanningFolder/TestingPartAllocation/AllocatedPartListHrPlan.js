@@ -24,6 +24,7 @@ export const AllocatedPartListHrPlan = ({
   partListItemId,
   onDeleteSuccess,
 }) => {
+  const userRole = localStorage.getItem("userRole");
   const [sections, setSections] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -231,7 +232,6 @@ export const AllocatedPartListHrPlan = ({
     setAddRowModal(false);
   };
 
- 
   const handleDailyTrackingChange = (index, field, value) => {
     if (field === "produced") {
       const remainingQty = calculateRemainingQuantity();
@@ -482,13 +482,15 @@ export const AllocatedPartListHrPlan = ({
           ))
         )}
         <CardBody className="d-flex justify-content-end align-items-center">
-          <Button
-            color="danger"
-            onClick={() => setDeleteConfirmationModal(true)}
-            disabled={sections.length === 0}
-          >
-            Cancel Allocation
-          </Button>
+          {userRole === "admin" && (
+            <Button
+              color="danger"
+              onClick={() => setDeleteConfirmationModal(true)}
+              disabled={sections.length === 0}
+            >
+              Cancel Allocation
+            </Button>
+          )}
         </CardBody>
       </Container>
 
@@ -693,63 +695,62 @@ export const AllocatedPartListHrPlan = ({
             <div className="form-group">
               <label>Date</label>
               <div>
-              <DatePicker
-  selected={
-    dailyTracking[0].date
-      ? new Date(dailyTracking[0].date)
-      : new Date() // default
-  }
-  onChange={(date) => {
-    handleDailyTrackingChange(0, "date", date);
-  }}
-  onCalendarClose={() => {
-    // When the calendar closes, if no date was selected manually, set today's date
-    if (!dailyTracking[0].date) {
-      const today = new Date();
-      handleDailyTrackingChange(0, "date", today);
-    }
-  }}
-  dateFormat="dd-MM-yyyy"
-  className="form-control-date"
-  placeholderText="DD-MM-YYYY"
-  minDate={new Date(selectedSection?.data[0]?.startDate)}
-  maxDate={
-    actulEndDateData?.actualEndDate
-      ? new Date(actulEndDateData.actualEndDate)
-      : selectedSection?.data[0]?.endDate
-      ? new Date(selectedSection.data[0].endDate)
-      : null
-  }
-  filterDate={(date) => {
-    const isHoliday = highlightDates.some(
-      (d) => d.toDateString() === date.toDateString()
-    );
-    const isSunday = date.getDay() === 0;
+                <DatePicker
+                  selected={
+                    dailyTracking[0].date
+                      ? new Date(dailyTracking[0].date)
+                      : new Date() // default
+                  }
+                  onChange={(date) => {
+                    handleDailyTrackingChange(0, "date", date);
+                  }}
+                  onCalendarClose={() => {
+                    // When the calendar closes, if no date was selected manually, set today's date
+                    if (!dailyTracking[0].date) {
+                      const today = new Date();
+                      handleDailyTrackingChange(0, "date", today);
+                    }
+                  }}
+                  dateFormat="dd-MM-yyyy"
+                  className="form-control-date"
+                  placeholderText="DD-MM-YYYY"
+                  minDate={new Date(selectedSection?.data[0]?.startDate)}
+                  maxDate={
+                    actulEndDateData?.actualEndDate
+                      ? new Date(actulEndDateData.actualEndDate)
+                      : selectedSection?.data[0]?.endDate
+                      ? new Date(selectedSection.data[0].endDate)
+                      : null
+                  }
+                  filterDate={(date) => {
+                    const isHoliday = highlightDates.some(
+                      (d) => d.toDateString() === date.toDateString()
+                    );
+                    const isSunday = date.getDay() === 0;
 
-    const maxAllowedDate = actulEndDateData?.actualEndDate
-      ? new Date(actulEndDateData.actualEndDate)
-      : selectedSection?.data[0]?.endDate
-      ? new Date(selectedSection.data[0].endDate)
-      : null;
+                    const maxAllowedDate = actulEndDateData?.actualEndDate
+                      ? new Date(actulEndDateData.actualEndDate)
+                      : selectedSection?.data[0]?.endDate
+                      ? new Date(selectedSection.data[0].endDate)
+                      : null;
 
-    return (
-      !isHoliday &&
-      !isSunday &&
-      (!maxAllowedDate || date <= maxAllowedDate)
-    );
-  }}
-  dayClassName={(date) => {
-    const isHighlighted = highlightDates.some(
-      (d) => d.toDateString() === date.toDateString()
-    );
-    const isSunday = date.getDay() === 0;
-    if (isHighlighted || isSunday) {
-      return "highlighted-date";
-    }
-    return undefined;
-  }}
-/>
-
+                    return (
+                      !isHoliday &&
+                      !isSunday &&
+                      (!maxAllowedDate || date <= maxAllowedDate)
+                    );
+                  }}
+                  dayClassName={(date) => {
+                    const isHighlighted = highlightDates.some(
+                      (d) => d.toDateString() === date.toDateString()
+                    );
+                    const isSunday = date.getDay() === 0;
+                    if (isHighlighted || isSunday) {
+                      return "highlighted-date";
+                    }
+                    return undefined;
+                  }}
+                />
               </div>
             </div>
 
@@ -768,7 +769,7 @@ export const AllocatedPartListHrPlan = ({
                   readOnly
                 />
               </div>
-              
+
               <div className="form-group col-md-6">
                 <label>
                   Produced (Remaining: {calculateRemainingQuantity()})

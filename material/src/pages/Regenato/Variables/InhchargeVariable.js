@@ -316,6 +316,22 @@ const InhchargeVariable = () => {
     label: `${operator.categoryId} - ${operator.name}`,
   }));
 
+  // Safe access to process names
+  const getFirstProcessName = (incharge) => {
+    if (!incharge.processeName || incharge.processeName.length === 0)
+      return "-";
+    return incharge.processeName[0];
+  };
+
+  // Safe access to operators
+  const getFirstOperator = (incharge) => {
+    if (!incharge.operators || incharge.operators.length === 0) return "-";
+    const firstOp = incharge.operators[0];
+    return typeof firstOp === "string"
+      ? firstOp
+      : `${firstOp.categoryId || ""} - ${firstOp.name || ""}`;
+  };
+
   return (
     <React.Fragment>
       <ToastContainer position="top-right" autoClose={3000} />
@@ -353,7 +369,7 @@ const InhchargeVariable = () => {
                 </Col>
               </Row>
               <div className="table-responsive table-card mt-3 mb-1">
-                <table className="table align-middle table-nowrap">
+                {/* <table className="table align-middle table-nowrap">
                   <thead className="table-light">
                     <tr>
                       <th>ID</th>
@@ -364,13 +380,13 @@ const InhchargeVariable = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {inchargeData.length > 0 ? (
-                      inchargeData.map((incharge) => (
+                    {inchargeData?.length > 0 ? (
+                      inchargeData?.map((incharge) => (
                         <tr key={incharge._id}>
                           <td>{incharge.categoryId}</td>
                           <td>{incharge.name}</td>
                           <td>
-                            {incharge.processeName.length > 1 ? (
+                            {incharge?.processeName?.length > 1 ? (
                               <span
                                 style={{
                                   color: "#007bff",
@@ -385,10 +401,10 @@ const InhchargeVariable = () => {
                                 }
                                 className="p-0"
                               >
-                                {incharge.processeName[0]} ...
+                                {incharge?.processeName[0]} ...
                               </span>
                             ) : (
-                              incharge.processeName[0] || "-"
+                              incharge?.processeName[0] || "-"
                             )}
                           </td>
 
@@ -425,6 +441,111 @@ const InhchargeVariable = () => {
                                     : `${op.categoryId} - ${op.name}`
                                 )
                                 .join(", ") || "-"
+                            )}
+                          </td>
+
+                          <td>
+                            <div className="d-flex gap-2">
+                              <Button
+                                className="btn btn-sm btn-success edit-item-btn"
+                                onClick={() => handleEdit(incharge)}
+                              >
+                                <FaEdit size={15} />
+                              </Button>
+                              <Button
+                                className="btn btn-sm btn-danger remove-item-btn"
+                                onClick={() => handleDelete(incharge._id)}
+                                disabled={posting}
+                              >
+                                <MdOutlineDelete size={17} />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan="6" className="text-center">
+                          No data available
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table> */}
+
+                <table className="table align-middle table-nowrap">
+                  <thead className="table-light">
+                    <tr>
+                      <th>ID</th>
+                      <th>Name</th>
+                      <th>Process Name</th>
+                      <th>Operators</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {inchargeData?.length > 0 ? (
+                      inchargeData?.map((incharge) => (
+                        <tr key={incharge._id}>
+                          <td>{incharge.categoryId}</td>
+                          <td>{incharge.name}</td>
+                          <td>
+                            {incharge?.processeName?.length > 1 ? (
+                              <span
+                                style={{
+                                  color: "#007bff",
+                                  textDecoration: "none",
+                                }}
+                                color="link"
+                                onClick={() =>
+                                  showItemsModal(
+                                    "Process Names",
+                                    incharge.processeName
+                                  )
+                                }
+                                className="p-0"
+                              >
+                                {getFirstProcessName(incharge)} ...
+                              </span>
+                            ) : (
+                              getFirstProcessName(incharge)
+                            )}
+                          </td>
+
+                          <td>
+                            {incharge?.operators?.length > 1 ? (
+                              <span
+                                style={{
+                                  color: "#007bff",
+                                  textDecoration: "none",
+                                }}
+                                color="link"
+                                onClick={() =>
+                                  showItemsModal(
+                                    "Operators",
+                                    incharge.operators.map((op) =>
+                                      typeof op === "string"
+                                        ? op
+                                        : `${op.categoryId || ""} - ${
+                                            op.name || ""
+                                          }`
+                                    )
+                                  )
+                                }
+                                className="p-0"
+                              >
+                                {getFirstOperator(incharge)} ...
+                              </span>
+                            ) : (
+                              incharge.operators
+                                ?.map((op) =>
+                                  typeof op === "string"
+                                    ? op
+                                    : `${op.categoryId || ""} - ${
+                                        op.name || ""
+                                      }`
+                                )
+                                ?.join(", ") || "-"
                             )}
                           </td>
 
