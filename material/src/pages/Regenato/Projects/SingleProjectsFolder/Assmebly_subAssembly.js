@@ -44,6 +44,7 @@ const Assmebly_subAssembly = ({
   onupdateAssmebly,
   // getStatus,
 }) => {
+  const userRole = localStorage.getItem("userRole");
   const { _id } = useParams();
   const location = useLocation();
   const subAssemblyName = location.state?.subAssemblyName || "";
@@ -474,13 +475,16 @@ const Assmebly_subAssembly = ({
                   </div>
 
                   <div className="button-group">
-                    <Button
-                      color="success"
-                      className="add-btn"
-                      onClick={toggleAddModal}
-                    >
-                      <i className="ri-add-line align-bottom me-1"></i> Add Part
-                    </Button>
+                    {userRole === "admin" && (
+                      <Button
+                        color="success"
+                        className="add-btn"
+                        onClick={toggleAddModal}
+                      >
+                        <i className="ri-add-line align-bottom me-1"></i> Add
+                        Part
+                      </Button>
+                    )}
                   </div>
 
                   <div

@@ -15,6 +15,7 @@ import {
 } from "reactstrap";
 
 const Login = () => {
+ 
   const [employeeId, setEmployeeId] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -77,10 +78,10 @@ const Login = () => {
                 fontWeight: "600",
                 marginBottom: "0.5rem"
               }}>CCMPL</h2>
-              <p style={{
+              {/* <p style={{
                 color: "#95aac9",
                 fontSize: "0.875rem"
-              }}>Company Management Portal</p>
+              }}>Company Management Portal</p> */}
             </div>
 
             {/* Login Card */}

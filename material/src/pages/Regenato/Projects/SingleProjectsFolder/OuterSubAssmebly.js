@@ -48,6 +48,7 @@ const OuterSubAssmebly = React.memo(
     setSubAssemblyItems,
   }) => {
     // console.log(subAssemblyItem.partsListItems[0].allocations)
+    const userRole = localStorage.getItem("userRole");
     const { _id } = useParams();
     const [modalAdd, setModalAdd] = useState(false);
     const [modal_delete, setModalDelete] = useState(false);
@@ -457,7 +458,7 @@ const OuterSubAssmebly = React.memo(
       event.preventDefault();
       setIsSubmitting(true);
       const payload = {
-        partsCodeId: selectedPartData.partsCodeId || selectedPartData.id || "", 
+        partsCodeId: selectedPartData.partsCodeId || selectedPartData.id || "",
         partName: selectedPartData.partName,
         codeName: codeName,
         costPerUnit: Number(costPerUnit),
@@ -686,13 +687,16 @@ const OuterSubAssmebly = React.memo(
                     </UncontrolledDropdown>
                   </div>
                   <div className="button-group">
-                    <Button
-                      color="success"
-                      className="add-btn"
-                      onClick={toggleAddModal}
-                    >
-                      <i className="ri-add-line align-bottom me-1"></i> Add Part
-                    </Button>
+                    {userRole === "admin" && (
+                      <Button
+                        color="success"
+                        className="add-btn"
+                        onClick={toggleAddModal}
+                      >
+                        <i className="ri-add-line align-bottom me-1"></i> Add
+                        Part
+                      </Button>
+                    )}
                   </div>
 
                   {/* Add the filter select box here */}

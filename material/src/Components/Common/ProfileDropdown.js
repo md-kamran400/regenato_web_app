@@ -10,6 +10,7 @@ import {
 import { FaUser } from "react-icons/fa";
 
 const ProfileDropdown = () => {
+  const userRole = localStorage.getItem("userRole");
   const [isProfileDropdown, setIsProfileDropdown] = useState(false);
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem("user")) || null;
@@ -68,12 +69,14 @@ const ProfileDropdown = () => {
             Logout
           </span>
         </DropdownItem>
-        <DropdownItem href="/regenato-user-management">
-          <i className="ri-settings-5-line text-muted fs-16 align-middle me-1"></i>{" "}
-          <span className="align-middle" data-key="t-logout">
-            Settings
-          </span>
-        </DropdownItem>
+        {userRole === "admin" && (
+          <DropdownItem href="/regenato-user-management">
+            <i className="ri-settings-5-line text-muted fs-16 align-middle me-1"></i>{" "}
+            <span className="align-middle" data-key="t-logout">
+              Settings
+            </span>
+          </DropdownItem>
+        )}
       </DropdownMenu>
     </Dropdown>
   );

@@ -51,6 +51,7 @@ const AssemblyTable = React.memo(
     setassemblyLists,
     // getStatus,
   }) => {
+    const userRole = localStorage.getItem("userRole");
     const { _id } = useParams();
     const [modalAdd, setModalAdd] = useState(false);
     const [modal_delete, setModalDelete] = useState(false);
@@ -454,7 +455,7 @@ const AssemblyTable = React.memo(
       event.preventDefault();
 
       const payload = {
-        partsCodeId: selectedPartData.partsCodeId || selectedPartData.id || "", 
+        partsCodeId: selectedPartData.partsCodeId || selectedPartData.id || "",
         partName: selectedPartData.partName,
         costPerUnit: Number(costPerUnit),
         timePerUnit: Number(timePerUnit),
@@ -852,13 +853,15 @@ const AssemblyTable = React.memo(
                   </UncontrolledDropdown>
                 </div>
                 <div className="button-group">
-                  <Button
-                    color="success"
-                    className="add-btn"
-                    onClick={toggleAddModal}
-                  >
-                    <i className="ri-add-line align-bottom me-1"></i> Add Part
-                  </Button>
+                  {userRole === "admin" && (
+                    <Button
+                      color="success"
+                      className="add-btn"
+                      onClick={toggleAddModal}
+                    >
+                      <i className="ri-add-line align-bottom me-1"></i> Add Part
+                    </Button>
+                  )}
                 </div>
 
                 <div
