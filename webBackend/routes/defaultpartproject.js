@@ -5,6 +5,7 @@ const partproject = express.Router();
 const PartListProjectModel = require("../model/project/PartListProjectModel");
 const ManufacturingModel = require("../model/manufacturingmodel");
 const axios = require("axios");
+const InchargeVariableModal = require("../model/inchargeVariable");
 
 // ============================================ PART-LIST CODE START ===============================
 // Create a new project with a parts list named after the project
@@ -79,7 +80,7 @@ partproject.get("/projects", async (req, res) => {
               });
             }
           } else {
-           //
+            //
           }
         });
       });
@@ -100,36 +101,32 @@ partproject.get("/projects", async (req, res) => {
   }
 });
 
-
-
-
-
 partproject.get("/projects/:id", async (req, res) => {
   try {
     const projectId = req.params.id;
- 
+
     if (!mongoose.Types.ObjectId.isValid(projectId)) {
       return res.status(400).json({ error: "Invalid project ID format" });
     }
- 
+
     const project = await PartListProjectModel.findById(projectId);
     if (!project) {
       return res.status(404).json({ error: "Project not found" });
     }
- 
+
     // Calculate total cost and total hours for each parts list
     let totalProjectCost = 0;
     let totalProjectHours = 0;
     const machineHours = {};
- 
+
     project.partsLists.forEach((partsList) => {
       partsList.partsListItems.forEach((item) => {
         const itemTotalCost = item.costPerUnit * item.quantity;
         const itemTotalHours = item.timePerUnit * item.quantity;
- 
+
         totalProjectCost += itemTotalCost;
         totalProjectHours += itemTotalHours;
- 
+
         // Calculate individual machine hours
         item.manufacturingVariables.forEach((machine) => {
           const machineName = machine.name;
@@ -139,15 +136,15 @@ partproject.get("/projects/:id", async (req, res) => {
         });
       });
     });
- 
+
     // Update the project document with calculated values
     project.costPerUnit = totalProjectCost;
     project.timePerUnit = totalProjectHours;
     project.machineHours = machineHours;
- 
+
     // Save the changes to the database
     await project.save();
- 
+
     res.status(200).json(project);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -411,57 +408,64 @@ const getStatus = (allocations) => {
 //   }
 // );
 
-partproject.post("/projects/:projectId/partsLists/:listId/items", async (req, res) => {
-  try {
-    const { projectId, listId } = req.params;
-    const itemsToAdd = req.body;
+partproject.post(
+  "/projects/:projectId/partsLists/:listId/items",
+  async (req, res) => {
+    try {
+      const { projectId, listId } = req.params;
+      const itemsToAdd = req.body;
 
-    if (!Array.isArray(itemsToAdd) || itemsToAdd.length === 0) {
-      return res.status(400).json({ status: "error", message: "No parts provided" });
-    }
+      if (!Array.isArray(itemsToAdd) || itemsToAdd.length === 0) {
+        return res
+          .status(400)
+          .json({ status: "error", message: "No parts provided" });
+      }
 
-    const project = await PartListProjectModel.findById(projectId);
-    if (!project) {
-      return res.status(404).json({ status: "error", message: "Project not found" });
-    }
+      const project = await PartListProjectModel.findById(projectId);
+      if (!project) {
+        return res
+          .status(404)
+          .json({ status: "error", message: "Project not found" });
+      }
 
-    const partsList = project.partsLists.id(listId);
-    if (!partsList) {
-      return res.status(404).json({ status: "error", message: "Parts list not found" });
-    }
+      const partsList = project.partsLists.id(listId);
+      if (!partsList) {
+        return res
+          .status(404)
+          .json({ status: "error", message: "Parts list not found" });
+      }
 
-    // Push each part item to partsListItems
-    itemsToAdd.forEach((item) => {
-      partsList.partsListItems.push({
-        partsCodeId: item.partsCodeId, // ✅ this is your updated field
-        partName: item.partName,
-        codeName: item.codeName || "",
-        costPerUnit: Number(item.costPerUnit || 0),
-        timePerUnit: Number(item.timePerUnit || 0),
-        quantity: Number(item.quantity || 0),
-        rmVariables: item.rmVariables || [],
-        manufacturingVariables: item.manufacturingVariables || [],
-        shipmentVariables: item.shipmentVariables || [],
-        overheadsAndProfits: item.overheadsAndProfits || [],
+      // Push each part item to partsListItems
+      itemsToAdd.forEach((item) => {
+        partsList.partsListItems.push({
+          partsCodeId: item.partsCodeId, // ✅ this is your updated field
+          partName: item.partName,
+          codeName: item.codeName || "",
+          costPerUnit: Number(item.costPerUnit || 0),
+          timePerUnit: Number(item.timePerUnit || 0),
+          quantity: Number(item.quantity || 0),
+          rmVariables: item.rmVariables || [],
+          manufacturingVariables: item.manufacturingVariables || [],
+          shipmentVariables: item.shipmentVariables || [],
+          overheadsAndProfits: item.overheadsAndProfits || [],
+        });
       });
-    });
 
-    await project.save();
+      await project.save();
 
-    res.status(201).json({
-      status: "success",
-      message: "Parts added successfully",
-      data: {
-        partsListItems: partsList.partsListItems,
-      },
-    });
-  } catch (error) {
-    console.error("POST /partsLists/items error:", error.message);
-    res.status(500).json({ status: "error", message: error.message });
+      res.status(201).json({
+        status: "success",
+        message: "Parts added successfully",
+        data: {
+          partsListItems: partsList.partsListItems,
+        },
+      });
+    } catch (error) {
+      console.error("POST /partsLists/items error:", error.message);
+      res.status(500).json({ status: "error", message: error.message });
+    }
   }
-});
-
-
+);
 
 //put request for quentitiy
 // Route to update part quantity
@@ -557,9 +561,6 @@ partproject.get(
     }
   }
 );
-
-
-
 
 // Route to update partsListName
 partproject.put("/projects/:projectId/partsLists/:listId", async (req, res) => {
@@ -4179,5 +4180,86 @@ partproject.get("/all-allocations", async (req, res) => {
     return res.status(500).json({ message: "Internal Server Error" });
   }
 });
+
+// special routes for filter in the plan page accordin to incharge under those operator
+// partproject.get("/filtered-allocations", async (req, res) => {
+//   try {
+//     const allProjects = await PartListProjectModel.find({});
+//     const allIncharges = await InchargeVariableModal.find({});
+
+//     // Get all operator categoryIds from incharges
+//     const inchargeOperatorIds = new Set();
+//     allIncharges.forEach(incharge => {
+//       incharge.operators.forEach(operator => {
+//         inchargeOperatorIds.add(operator.categoryId);
+//       });
+//     });
+
+//     // Structure the response similar to /all-allocations but filtered
+//     const filteredData = allProjects.map(project => {
+//       // Function to filter allocations based on operator
+//       const filterAllocations = (items = []) => {
+//         return items.map(part => {
+//           const filteredAllocs = part.allocations?.filter(alloc => {
+//             if (alloc.operator) {
+//               const operatorMatch = alloc.operator.match(/^([^\s-]+)/);
+//               return operatorMatch && inchargeOperatorIds.has(operatorMatch[1].trim());
+//             }
+//             return false;
+//           });
+          
+//           // Only include parts that have matching allocations
+//           return filteredAllocs?.length ? {
+//             ...part.toObject(),
+//             allocations: filteredAllocs
+//           } : null;
+//         }).filter(Boolean); // Remove null entries
+//       };
+
+//       // Process all allocation locations
+//       const partsLists = project.partsLists?.map(pl => ({
+//         ...pl.toObject(),
+//         partsListItems: filterAllocations(pl.partsListItems)
+//       })).filter(pl => pl.partsListItems.length);
+
+//       const subAssemblyListFirst = project.subAssemblyListFirst?.map(sa => ({
+//         ...sa.toObject(),
+//         partsListItems: filterAllocations(sa.partsListItems)
+//       })).filter(sa => sa.partsListItems.length);
+
+//       const assemblyList = project.assemblyList?.map(al => {
+//         const filteredSubAssemblies = al.subAssemblies?.map(sub => ({
+//           ...sub.toObject(),
+//           partsListItems: filterAllocations(sub.partsListItems)
+//         })).filter(sub => sub.partsListItems.length);
+
+//         return {
+//           ...al.toObject(),
+//           partsListItems: filterAllocations(al.partsListItems),
+//           subAssemblies: filteredSubAssemblies
+//         };
+//       }).filter(al => al.partsListItems.length || al.subAssemblies?.length);
+
+//       return {
+//         projectName: project.projectName,
+//         partsLists: partsLists,
+//         subAssemblyListFirst: subAssemblyListFirst,
+//         assemblyList: assemblyList
+//       };
+//     }).filter(project => 
+//       project.partsLists?.length || 
+//       project.subAssemblyListFirst?.length || 
+//       project.assemblyList?.length
+//     );
+
+//     res.status(200).json({
+//       message: "Filtered allocations retrieved successfully",
+//       data: filteredData
+//     });
+//   } catch (error) {
+//     console.error("Error filtering allocations:", error);
+//     res.status(500).json({ message: "Internal Server Error" });
+//   }
+// });
 
 module.exports = partproject;
