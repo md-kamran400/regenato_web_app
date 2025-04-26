@@ -416,27 +416,35 @@ export const AssemblyPartListHoursPlan = ({
     return <div className={className}>{day}</div>;
   };
 
-  useEffect(() => {
-    const initialRows = manufacturingVariables.reduce((acc, man, index) => {
-      acc[index] = [
-        {
-          plannedQuantity: isAutoSchedule ? quantity : "",
-          plannedQtyTime: isAutoSchedule
-            ? calculatePlannedMinutes(quantity * man.hours)
-            : "",
-          startDate: "",
-          startTime: "",
-          endDate: "",
-          endTime: "", // Added endTime
-          machineId: "",
-          shift: "",
-          processName: man.name,
-        },
-      ];
-      return acc;
-    }, {});
-    setRows(initialRows);
-  }, [manufacturingVariables, quantity, isAutoSchedule, shiftOptions]);
+ useEffect(() => {
+      const initialRows = manufacturingVariables.reduce((acc, man, index) => {
+        acc[index] = [
+          {
+            plannedQuantity: isAutoSchedule ? quantity : "",
+            plannedQtyTime: isAutoSchedule
+              ? calculatePlannedMinutes(quantity * man.hours)
+              : "",
+            startDate: "",
+            startTime: "",
+            endDate: "",
+            endTime: "",
+            machineId: "",
+            shift: "",
+            processName: man.name,
+          },
+        ];
+  
+        // Initialize remaining quantities for manual mode
+        if (!isAutoSchedule) {
+          setRemainingQuantities((prev) => ({
+            ...prev,
+            [index]: quantity,
+          }));
+        }
+        return acc;
+      }, {});
+      setRows(initialRows);
+    }, [manufacturingVariables, quantity, isAutoSchedule]);
 
   const handleQuantityChange = (index, rowIndex, value) => {
     setRows((prevRows) => {
@@ -1468,7 +1476,8 @@ export const AssemblyPartListHoursPlan = ({
                               />
                             )}
                           </td>
-                          <td>{row.plannedQtyTime} m</td>
+                          <td>{row.plannedQtyTime ? `${row.plannedQtyTime} m` : ""}</td>
+
                           <td>
                             <Autocomplete
                               sx={{
@@ -1492,13 +1501,10 @@ export const AssemblyPartListHoursPlan = ({
                               }}
                               options={shiftOptions || []}
                               value={
-                                shiftOptions.find(
-                                  (option) => option.name === row.shift
-                                ) ||
-                                (shiftOptions.length > 0
-                                  ? shiftOptions[0]
-                                  : null) // Default to first shift if none selected
+                                shiftOptions.find((option) => option.name === row.shift) ||
+                                (isAutoSchedule && shiftOptions.length > 0 ? shiftOptions[0] : null)
                               }
+                              
                               onChange={(event, newValue) => {
                                 if (!newValue) return;
 

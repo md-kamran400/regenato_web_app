@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import {
   Container,
@@ -48,28 +47,29 @@ const AllocationPlan = () => {
     try {
       const response = await axios.get(
         `${process.env.REACT_APP_BASE_URL}/api/defpartproject/all-allocations`
+        // `${process.env.REACT_APP_BASE_URL}/api/defpartproject/filtered-allocations`
       );
       const data = response.data.data;
       setAllocations(data);
-      console.log(data)
+      console.log(data);
       setFilteredAllocations(data);
-      
+
       // Initialize selection values with default data
       const initialSelections = {};
-      data.forEach(project => {
-        project.allocations.forEach(process => {
-          process.allocations.forEach(allocation => {
+      data.forEach((project) => {
+        project.allocations.forEach((process) => {
+          process.allocations.forEach((allocation) => {
             const key = `${allocation._id}`;
             initialSelections[key] = {
               status: allocation.status || "Fresh",
               materialFrom: allocation.materialFrom || "GR",
-              materialTo: allocation.materialTo || "MS"
+              materialTo: allocation.materialTo || "MS",
             };
           });
         });
       });
       setSelectionValues(initialSelections);
-      
+
       setLoading(false);
     } catch (error) {
       console.error("Error fetching allocations:", error);
@@ -78,12 +78,12 @@ const AllocationPlan = () => {
   };
 
   const handleSelectionChange = (allocationId, field, value) => {
-    setSelectionValues(prev => ({
+    setSelectionValues((prev) => ({
       ...prev,
       [allocationId]: {
         ...prev[allocationId],
-        [field]: value
-      }
+        [field]: value,
+      },
     }));
   };
 
@@ -119,7 +119,7 @@ const AllocationPlan = () => {
 
   const handlePrint = () => {
     // Add print-specific styles
-    const style = document.createElement('style');
+    const style = document.createElement("style");
     style.innerHTML = `
       @media print {
         .no-print {
@@ -152,9 +152,9 @@ const AllocationPlan = () => {
       }
     `;
     document.head.appendChild(style);
-    
+
     window.print();
-    
+
     // Clean up after printing
     setTimeout(() => {
       document.head.removeChild(style);
@@ -172,7 +172,7 @@ const AllocationPlan = () => {
         process.allocations.map((allocation) => {
           const selectionKey = `${allocation._id}`;
           const currentSelection = selectionValues[selectionKey] || {};
-          
+
           return {
             Section: `${process.processName} (${
               allocation.machineId || process.processId || "N/A"
@@ -324,9 +324,11 @@ const AllocationPlan = () => {
               </h2>
               {/* Print-only date range display */}
               {(startDate || endDate) && (
-                <div className="print-only" style={{ display: 'none' }}>
+                <div className="print-only" style={{ display: "none" }}>
                   <p className="mb-0">
-                    <strong>Date Range:</strong> {startDate ? formatDate(startDate) : 'Start'} to {endDate ? formatDate(endDate) : 'End'}
+                    <strong>Date Range:</strong>{" "}
+                    {startDate ? formatDate(startDate) : "Start"} to{" "}
+                    {endDate ? formatDate(endDate) : "End"}
                   </p>
                 </div>
               )}
@@ -415,7 +417,7 @@ const AllocationPlan = () => {
               <div key={project.projectName}>
                 <Card
                   className="mb-4 shadow-none border"
-                  style={{ pageBreakInside: 'avoid' }}
+                  style={{ pageBreakInside: "avoid" }}
                 >
                   {project.allocations.map((process) => (
                     <div
@@ -483,8 +485,9 @@ const AllocationPlan = () => {
                           <tbody>
                             {process.allocations.map((allocation) => {
                               const selectionKey = `${allocation._id}`;
-                              const currentSelection = selectionValues[selectionKey] || {};
-                              
+                              const currentSelection =
+                                selectionValues[selectionKey] || {};
+
                               return (
                                 <tr key={allocation._id}>
                                   <td className="fw-semibold">
@@ -509,11 +512,19 @@ const AllocationPlan = () => {
                                       className="form-select form-select-sm no-print"
                                       style={{ width: "120px" }}
                                       value={currentSelection.status || "Fresh"}
-                                      onChange={(e) => handleSelectionChange(selectionKey, 'status', e.target.value)}
+                                      onChange={(e) =>
+                                        handleSelectionChange(
+                                          selectionKey,
+                                          "status",
+                                          e.target.value
+                                        )
+                                      }
                                     >
                                       <option value="Fresh">Fresh</option>
                                       <option value="Pending">Pending</option>
-                                      <option value="Completed">Completed</option>
+                                      <option value="Completed">
+                                        Completed
+                                      </option>
                                     </select>
                                     <span className="print-only">
                                       {currentSelection.status || "Fresh"}
@@ -523,8 +534,16 @@ const AllocationPlan = () => {
                                     <select
                                       className="form-select form-select-sm no-print"
                                       style={{ width: "120px" }}
-                                      value={currentSelection.materialFrom || "GR"}
-                                      onChange={(e) => handleSelectionChange(selectionKey, 'materialFrom', e.target.value)}
+                                      value={
+                                        currentSelection.materialFrom || "GR"
+                                      }
+                                      onChange={(e) =>
+                                        handleSelectionChange(
+                                          selectionKey,
+                                          "materialFrom",
+                                          e.target.value
+                                        )
+                                      }
                                     >
                                       <option value="GR">GR</option>
                                       <option value="MS">MS</option>
@@ -532,7 +551,9 @@ const AllocationPlan = () => {
                                       <option value="Heat Treatment">
                                         Heat Treatment
                                       </option>
-                                      <option value="Auto Black">Auto Black</option>
+                                      <option value="Auto Black">
+                                        Auto Black
+                                      </option>
                                     </select>
                                     <span className="print-only">
                                       {currentSelection.materialFrom || "GR"}
@@ -542,8 +563,16 @@ const AllocationPlan = () => {
                                     <select
                                       className="form-select form-select-sm no-print"
                                       style={{ width: "120px" }}
-                                      value={currentSelection.materialTo || "MS"}
-                                      onChange={(e) => handleSelectionChange(selectionKey, 'materialTo', e.target.value)}
+                                      value={
+                                        currentSelection.materialTo || "MS"
+                                      }
+                                      onChange={(e) =>
+                                        handleSelectionChange(
+                                          selectionKey,
+                                          "materialTo",
+                                          e.target.value
+                                        )
+                                      }
                                     >
                                       <option value="GR">GR</option>
                                       <option value="MS">MS</option>
@@ -551,7 +580,9 @@ const AllocationPlan = () => {
                                       <option value="Heat Treatment">
                                         Heat Treatment
                                       </option>
-                                      <option value="Auto Black">Auto Black</option>
+                                      <option value="Auto Black">
+                                        Auto Black
+                                      </option>
                                     </select>
                                     <span className="print-only">
                                       {currentSelection.materialTo || "MS"}

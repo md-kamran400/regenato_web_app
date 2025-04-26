@@ -914,6 +914,7 @@ const List = () => {
                   <td>--</td>
                   <td>{calculateTotalSum().totalCost}</td>
                   <td>{formatTime(calculateTotalSum().totalHours)}</td>
+                  <td>--</td>
                   {manufacturingData.map((machine) => (
                     <td key={machine._id}>
                       {formatTime(

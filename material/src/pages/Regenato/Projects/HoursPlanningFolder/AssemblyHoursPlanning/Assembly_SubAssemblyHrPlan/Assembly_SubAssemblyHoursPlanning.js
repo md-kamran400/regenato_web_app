@@ -452,16 +452,24 @@ export const Assembly_SubAssemblyHoursPlanning = ({
           startDate: "",
           startTime: "",
           endDate: "",
-          endTime: "", // Added endTime
+          endTime: "",
           machineId: "",
           shift: "",
           processName: man.name,
         },
       ];
+
+      // Initialize remaining quantities for manual mode
+      if (!isAutoSchedule) {
+        setRemainingQuantities((prev) => ({
+          ...prev,
+          [index]: quantity,
+        }));
+      }
       return acc;
     }, {});
     setRows(initialRows);
-  }, [manufacturingVariables, quantity, isAutoSchedule, shiftOptions]);
+  }, [manufacturingVariables, quantity, isAutoSchedule]);
 
   const handleQuantityChange = (index, rowIndex, value) => {
     setRows((prevRows) => {
@@ -1486,7 +1494,8 @@ export const Assembly_SubAssemblyHoursPlanning = ({
                               />
                             )}
                           </td>
-                          <td>{row.plannedQtyTime} m</td>
+                          <td>{row.plannedQtyTime ? `${row.plannedQtyTime} m` : ""}</td>
+
                           <td>
                             <Autocomplete
                               sx={{
@@ -1513,9 +1522,9 @@ export const Assembly_SubAssemblyHoursPlanning = ({
                                 shiftOptions.find(
                                   (option) => option.name === row.shift
                                 ) ||
-                                (shiftOptions.length > 0
+                                (isAutoSchedule && shiftOptions.length > 0
                                   ? shiftOptions[0]
-                                  : null) // Default to first shift if none selected
+                                  : null)
                               }
                               onChange={(event, newValue) => {
                                 if (!newValue) return;
