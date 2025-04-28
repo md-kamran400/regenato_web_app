@@ -215,98 +215,129 @@ export const PartListHrPlan = ({
     };
   };
 
+  const formatDateUTC = (date) => {
+    if (!date || isNaN(new Date(date).getTime())) {
+      return ""; // Return empty string for invalid dates
+    }
+
+    const d = new Date(date);
+    return new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()))
+      .toISOString()
+      .split("T")[0];
+  };
+
   const isMachineOnDowntimeDuringPeriod = (machine, startDate, endDate) => {
     if (!machine?.downtimeHistory?.length) {
       return { isDowntime: false, downtimeMinutes: 0 };
     }
 
-    // Find only active (not completed) downtimes
-    const activeDowntimes = machine.downtimeHistory.filter(
-      (downtime) =>
-        !downtime.isCompleted && new Date(downtime.endTime) > new Date()
-    );
-
-    if (activeDowntimes.length === 0) {
-      return { isDowntime: false, downtimeMinutes: 0 };
-    }
-
-    // If no dates provided, just return that machine is in downtime
-    if (!startDate || !endDate) {
-      const now = new Date();
-      const earliestEnd = new Date(
-        Math.min(...activeDowntimes.map((d) => new Date(d.endTime).getTime()))
-      );
-      const minutesRemaining = Math.ceil((earliestEnd - now) / (1000 * 60));
-      return {
-        isDowntime: true,
-        downtimeMinutes: minutesRemaining,
-        downtimeReason: activeDowntimes[0].reason, // Show first reason
-      };
-    }
-
-    // Check if downtime overlaps with selected period
-    const selectedStart = new Date(startDate);
-    const selectedEnd = new Date(endDate);
-
-    const overlappingDowntime = activeDowntimes.find((downtime) => {
+    // Find only active downtimes that overlap with the requested period
+    const relevantDowntimes = machine.downtimeHistory.filter((downtime) => {
       const downtimeStart = new Date(downtime.startTime);
       const downtimeEnd = new Date(downtime.endTime);
+      const requestStart = startDate ? new Date(startDate) : new Date();
+      const requestEnd = endDate ? new Date(endDate) : new Date(downtimeEnd);
+
       return (
-        (downtimeStart <= selectedEnd && downtimeEnd >= selectedStart) ||
-        (selectedStart <= downtimeEnd && selectedEnd >= downtimeStart)
+        downtimeStart <= requestEnd &&
+        downtimeEnd >= requestStart &&
+        !downtime.isCompleted
       );
     });
 
-    if (!overlappingDowntime) {
+    if (relevantDowntimes.length === 0) {
       return { isDowntime: false, downtimeMinutes: 0 };
     }
 
-    // Calculate remaining minutes
-    const now = new Date();
-    const downtimeEnd = new Date(overlappingDowntime.endTime);
-    const downtimeMinutes = Math.ceil((downtimeEnd - now) / (1000 * 60));
+    // Calculate total downtime minutes that overlap with the requested period
+    let totalDowntimeMinutes = 0;
+    const workingDayMinutes = 510; // 8.5 hours per day
+
+    relevantDowntimes.forEach((downtime) => {
+      const downtimeStart = new Date(downtime.startTime);
+      const downtimeEnd = new Date(downtime.endTime);
+      const requestStart = startDate ? new Date(startDate) : new Date();
+      const requestEnd = endDate ? new Date(endDate) : new Date(downtimeEnd);
+
+      // Calculate the overlapping period
+      const overlapStart = new Date(Math.max(downtimeStart, requestStart));
+      const overlapEnd = new Date(Math.min(downtimeEnd, requestEnd));
+
+      // Calculate total minutes in the overlapping period
+      const totalMinutes = (overlapEnd - overlapStart) / (1000 * 60);
+
+      // If downtime spans multiple days, we only count working minutes per day
+      if (totalMinutes > workingDayMinutes) {
+        // Calculate full working days in downtime
+        const fullDays = Math.floor(totalMinutes / (24 * 60));
+        totalDowntimeMinutes += fullDays * workingDayMinutes;
+
+        // Add remaining minutes if any
+        const remainingMinutes = totalMinutes % (24 * 60);
+        totalDowntimeMinutes += Math.min(remainingMinutes, workingDayMinutes);
+      } else {
+        totalDowntimeMinutes += totalMinutes;
+      }
+    });
+
+    // Get the latest downtime end date from all relevant downtimes
+    const latestDowntimeEnd = new Date(
+      Math.max(...relevantDowntimes.map((d) => new Date(d.endTime).getTime()))
+    );
 
     return {
       isDowntime: true,
-      downtimeMinutes,
-      downtimeReason: overlappingDowntime.reason,
+      downtimeMinutes: totalDowntimeMinutes,
+      downtimeReason: relevantDowntimes[0].reason,
+      downtimeEnd: isNaN(latestDowntimeEnd.getTime())
+        ? null
+        : latestDowntimeEnd,
     };
   };
 
-  const getMachineStatus = (machine, startDate, endDate, allocatedMachines) => {
+  const getMachineStatus = (machine, startDate, endDate) => {
+    if (!machine)
+      return { status: "Unknown", isDowntime: false, isAllocated: false };
+
     const downtimeInfo = isMachineOnDowntimeDuringPeriod(
       machine,
       startDate,
       endDate
     );
+
     const availabilityInfo = isMachineAvailable(
       machine.subcategoryId,
       startDate,
-      endDate,
-      allocatedMachines
+      endDate
     );
 
-    // If machine is in downtime and also allocated
+    // Calculate downtime in working days
+    const downtimeWorkingDays = downtimeInfo.isDowntime
+      ? Math.ceil(downtimeInfo.downtimeMinutes / 510)
+      : 0;
+
     if (downtimeInfo.isDowntime && !availabilityInfo.available) {
       return {
-        status: "Downtime & Occupied",
+        status: `Downtime (${downtimeWorkingDays}d) & Occupied`,
         isDowntime: true,
         isAllocated: true,
         downtimeMinutes: downtimeInfo.downtimeMinutes,
         downtimeReason: downtimeInfo.downtimeReason,
+        downtimeEnd: downtimeInfo.downtimeEnd,
       };
     }
-    // If machine is in downtime but not allocated
+
     if (downtimeInfo.isDowntime) {
       return {
-        status: `Downtime (${formatDowntime(downtimeInfo.downtimeMinutes)})`,
+        status: `Downtime (${downtimeWorkingDays}d)`,
         isDowntime: true,
         isAllocated: false,
         downtimeMinutes: downtimeInfo.downtimeMinutes,
         downtimeReason: downtimeInfo.downtimeReason,
+        downtimeEnd: downtimeInfo.downtimeEnd,
       };
     }
-    // If machine is allocated but not in downtime
+
     if (!availabilityInfo.available) {
       return {
         status: "Occupied",
@@ -315,7 +346,7 @@ export const PartListHrPlan = ({
         downtimeMinutes: 0,
       };
     }
-    // Machine is available
+
     return {
       status: "Available",
       isDowntime: false,
@@ -728,14 +759,6 @@ export const PartListHrPlan = ({
     return `${year}-${month}-${day}`; // Format: YYYY-MM-DD
   };
 
-  // const getNextWorkingDay = (date) => {
-  //   let nextDay = new Date(date);
-  //   while (isHighlightedOrDisabled(nextDay)) {
-  //     nextDay.setDate(nextDay.getDate() + 1);
-  //   }
-  //   return nextDay;
-  // };
-
   const calculateStartAndEndDates = (inputStartDate, plannedMinutes, shift) => {
     let parsedStartDate = new Date(inputStartDate);
     let remainingMinutes = plannedMinutes;
@@ -888,14 +911,6 @@ export const PartListHrPlan = ({
     });
   };
 
-  // Helper function to format dates in UTC
-  const formatDateUTC = (date) => {
-    const d = new Date(date);
-    return new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()))
-      .toISOString()
-      .split("T")[0];
-  };
-
   // Updated getNextWorkingDay to handle UTC dates
   const getNextWorkingDay = (date) => {
     let nextDay = new Date(date);
@@ -915,6 +930,7 @@ export const PartListHrPlan = ({
     const day = String(d.getDate()).padStart(2, "0");
     return `${year}-${month}-${day}`;
   };
+
   const calculateEndDateWithDowntime = (
     startDate,
     plannedMinutes,
@@ -926,11 +942,35 @@ export const PartListHrPlan = ({
     const parsedDate = new Date(startDate);
     if (isNaN(parsedDate.getTime())) return "";
 
+    const workingMinutesPerDay = shift?.workingMinutes || 510; // Default to 8.5 hours
     let remainingMinutes = plannedMinutes;
     let currentDate = new Date(parsedDate);
     let totalDowntimeAdded = 0;
-    const workingMinutesPerDay = shift?.workingMinutes || 450;
 
+    // First check if machine is in downtime at the start
+    if (machine) {
+      const downtimeInfo = isMachineOnDowntimeDuringPeriod(
+        machine,
+        currentDate,
+        null // Only check current status
+      );
+
+      if (downtimeInfo.isDowntime && downtimeInfo.downtimeEnd) {
+        // Skip the entire downtime period
+        currentDate = new Date(downtimeInfo.downtimeEnd);
+        currentDate.setDate(currentDate.getDate() + 1); // Move to next day
+
+        // Skip weekends and holidays
+        while (
+          getDay(currentDate) === 0 ||
+          eventDates.some((d) => isSameDay(d, currentDate))
+        ) {
+          currentDate.setDate(currentDate.getDate() + 1);
+        }
+      }
+    }
+
+    // Rest of the function remains the same...
     while (remainingMinutes > 0) {
       // Skip non-working days
       while (
@@ -940,20 +980,29 @@ export const PartListHrPlan = ({
         currentDate.setDate(currentDate.getDate() + 1);
       }
 
+      // Check for any downtime during this day
+      let dailyDowntimeMinutes = 0;
       if (machine) {
+        const dayStart = new Date(currentDate);
+        const dayEnd = new Date(currentDate);
+        dayEnd.setHours(23, 59, 59, 999);
+
         const downtimeInfo = isMachineOnDowntimeDuringPeriod(
           machine,
-          currentDate,
-          new Date(currentDate.getTime() + workingMinutesPerDay * 60000)
+          dayStart,
+          dayEnd
         );
 
         if (downtimeInfo.isDowntime) {
-          remainingMinutes += downtimeInfo.downtimeMinutes;
-          totalDowntimeAdded += downtimeInfo.downtimeMinutes;
+          dailyDowntimeMinutes = downtimeInfo.downtimeMinutes;
+          totalDowntimeAdded += dailyDowntimeMinutes;
         }
       }
 
-      const minutesToDeduct = Math.min(remainingMinutes, workingMinutesPerDay);
+      // Calculate available working minutes this day (after downtime)
+      const availableMinutes = workingMinutesPerDay - dailyDowntimeMinutes;
+      const minutesToDeduct = Math.min(remainingMinutes, availableMinutes);
+
       remainingMinutes -= minutesToDeduct;
 
       if (remainingMinutes > 0) {
@@ -1300,7 +1349,6 @@ export const PartListHrPlan = ({
     <div style={{ width: "100%", margin: "auto" }}>
       <Card>
         <CardHeader
-          // onClick={toggle}
           style={{
             cursor: "pointer",
             fontWeight: "bold",
@@ -1511,7 +1559,11 @@ export const PartListHrPlan = ({
                               />
                             )}
                           </td>
-                          <td>{row.plannedQtyTime ? `${row.plannedQtyTime} m` : ""}</td>
+                          <td>
+                            {row.plannedQtyTime
+                              ? `${row.plannedQtyTime} m`
+                              : ""}
+                          </td>
 
                           <td>
                             <Autocomplete
@@ -1535,12 +1587,14 @@ export const PartListHrPlan = ({
                                 },
                               }}
                               options={shiftOptions || []}
-                              
                               value={
-                                shiftOptions.find((option) => option.name === row.shift) ||
-                                (isAutoSchedule && shiftOptions.length > 0 ? shiftOptions[0] : null)
+                                shiftOptions.find(
+                                  (option) => option.name === row.shift
+                                ) ||
+                                (isAutoSchedule && shiftOptions.length > 0
+                                  ? shiftOptions[0]
+                                  : null)
                               }
-                              
                               onChange={(event, newValue) => {
                                 if (!newValue) return;
 
@@ -1728,19 +1782,6 @@ export const PartListHrPlan = ({
                           </td>
 
                           <td>
-                            {/* <Input
-                              type="time"
-                              value={calculateEndTime(
-                                row.startTime,
-                                row.plannedQtyTime
-                              )}
-                              readOnly
-                              style={{
-                                cursor: "not-allowed",
-                                backgroundColor: "#f8f9fa",
-                              }}
-                            /> */}
-                            {/* // When displaying end time in your table: */}
                             <Input
                               type="time"
                               value={calculateEndTime(
@@ -1810,17 +1851,20 @@ export const PartListHrPlan = ({
                                   const status = getMachineStatus(
                                     newValue,
                                     row.startDate,
-                                    row.endDate,
-                                    allocatedMachines
+                                    row.endDate
                                   );
 
                                   if (status.isDowntime) {
                                     toast.error(
-                                      `This machine is in downtime until ${new Date(
-                                        newValue.unavailableUntil
-                                      ).toLocaleDateString()} (Reason: ${
-                                        status.downtimeReason
-                                      })`
+                                      `This machine is in downtime until ${
+                                        status.downtimeEnd
+                                          ? new Date(
+                                              status.downtimeEnd
+                                            ).toLocaleDateString()
+                                          : new Date(
+                                              newValue.unavailableUntil
+                                            ).toLocaleDateString()
+                                      } (Reason: ${status.downtimeReason})`
                                     );
                                     return;
                                   }
@@ -1881,24 +1925,18 @@ export const PartListHrPlan = ({
                                 const status = getMachineStatus(
                                   option,
                                   row.startDate,
-                                  row.endDate,
-                                  allocatedMachines
+                                  row.endDate
                                 );
-                                return `${option.name}${
-                                  status.isDowntime ? " (Downtime)" : ""
-                                }`;
+                                return `${option.name}`;
                               }}
                               renderOption={(props, option) => {
                                 const status = getMachineStatus(
                                   option,
                                   row.startDate,
-                                  row.endDate,
-                                  allocatedMachines
+                                  row.endDate
                                 );
                                 const isDisabled =
                                   status.isAllocated || status.isDowntime;
-
-                                // Format downtime end time if available
                                 const downtimeEnd = status.downtimeEnd
                                   ? new Date(
                                       status.downtimeEnd
@@ -2065,6 +2103,7 @@ export const PartListHrPlan = ({
                               }}
                             />
                           </td>
+
                           <td>
                             <Autocomplete
                               sx={{
