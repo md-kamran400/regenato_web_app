@@ -220,56 +220,67 @@ export const SubAssemblyHrPlan = ({
       return { isDowntime: false, downtimeMinutes: 0 };
     }
 
-    // Find only active (not completed) downtimes
-    const activeDowntimes = machine.downtimeHistory.filter(
-      (downtime) =>
-        !downtime.isCompleted && new Date(downtime.endTime) > new Date()
-    );
-
-    if (activeDowntimes.length === 0) {
-      return { isDowntime: false, downtimeMinutes: 0 };
-    }
-
-    // If no dates provided, just return that machine is in downtime
-    if (!startDate || !endDate) {
-      const now = new Date();
-      const earliestEnd = new Date(
-        Math.min(...activeDowntimes.map((d) => new Date(d.endTime).getTime()))
-      );
-      const minutesRemaining = Math.ceil((earliestEnd - now) / (1000 * 60));
-      return {
-        isDowntime: true,
-        downtimeMinutes: minutesRemaining,
-        downtimeReason: activeDowntimes[0].reason, // Show first reason
-      };
-    }
-
-    // Check if downtime overlaps with selected period
-    const selectedStart = new Date(startDate);
-    const selectedEnd = new Date(endDate);
-
-    const overlappingDowntime = activeDowntimes.find((downtime) => {
+    // Find only active downtimes that overlap with the requested period
+    const relevantDowntimes = machine.downtimeHistory.filter((downtime) => {
       const downtimeStart = new Date(downtime.startTime);
       const downtimeEnd = new Date(downtime.endTime);
+      const requestStart = startDate ? new Date(startDate) : new Date();
+      const requestEnd = endDate ? new Date(endDate) : new Date(downtimeEnd);
+
       return (
-        (downtimeStart <= selectedEnd && downtimeEnd >= selectedStart) ||
-        (selectedStart <= downtimeEnd && selectedEnd >= downtimeStart)
+        downtimeStart <= requestEnd &&
+        downtimeEnd >= requestStart &&
+        !downtime.isCompleted
       );
     });
 
-    if (!overlappingDowntime) {
+    if (relevantDowntimes.length === 0) {
       return { isDowntime: false, downtimeMinutes: 0 };
     }
 
-    // Calculate remaining minutes
-    const now = new Date();
-    const downtimeEnd = new Date(overlappingDowntime.endTime);
-    const downtimeMinutes = Math.ceil((downtimeEnd - now) / (1000 * 60));
+    // Calculate total downtime minutes that overlap with the requested period
+    let totalDowntimeMinutes = 0;
+    const workingDayMinutes = 510; // 8.5 hours per day
+
+    relevantDowntimes.forEach((downtime) => {
+      const downtimeStart = new Date(downtime.startTime);
+      const downtimeEnd = new Date(downtime.endTime);
+      const requestStart = startDate ? new Date(startDate) : new Date();
+      const requestEnd = endDate ? new Date(endDate) : new Date(downtimeEnd);
+
+      // Calculate the overlapping period
+      const overlapStart = new Date(Math.max(downtimeStart, requestStart));
+      const overlapEnd = new Date(Math.min(downtimeEnd, requestEnd));
+
+      // Calculate total minutes in the overlapping period
+      const totalMinutes = (overlapEnd - overlapStart) / (1000 * 60);
+
+      // If downtime spans multiple days, we only count working minutes per day
+      if (totalMinutes > workingDayMinutes) {
+        // Calculate full working days in downtime
+        const fullDays = Math.floor(totalMinutes / (24 * 60));
+        totalDowntimeMinutes += fullDays * workingDayMinutes;
+
+        // Add remaining minutes if any
+        const remainingMinutes = totalMinutes % (24 * 60);
+        totalDowntimeMinutes += Math.min(remainingMinutes, workingDayMinutes);
+      } else {
+        totalDowntimeMinutes += totalMinutes;
+      }
+    });
+
+    // Get the latest downtime end date from all relevant downtimes
+    const latestDowntimeEnd = new Date(
+      Math.max(...relevantDowntimes.map((d) => new Date(d.endTime).getTime()))
+    );
 
     return {
       isDowntime: true,
-      downtimeMinutes,
-      downtimeReason: overlappingDowntime.reason,
+      downtimeMinutes: totalDowntimeMinutes,
+      downtimeReason: relevantDowntimes[0].reason,
+      downtimeEnd: isNaN(latestDowntimeEnd.getTime())
+        ? null
+        : latestDowntimeEnd,
     };
   };
 
@@ -418,35 +429,35 @@ export const SubAssemblyHrPlan = ({
     return <div className={className}>{day}</div>;
   };
 
- useEffect(() => {
-     const initialRows = manufacturingVariables.reduce((acc, man, index) => {
-       acc[index] = [
-         {
-           plannedQuantity: isAutoSchedule ? quantity : "",
-           plannedQtyTime: isAutoSchedule
-             ? calculatePlannedMinutes(quantity * man.hours)
-             : "",
-           startDate: "",
-           startTime: "",
-           endDate: "",
-           endTime: "",
-           machineId: "",
-           shift: "",
-           processName: man.name,
-         },
-       ];
- 
-       // Initialize remaining quantities for manual mode
-       if (!isAutoSchedule) {
-         setRemainingQuantities((prev) => ({
-           ...prev,
-           [index]: quantity,
-         }));
-       }
-       return acc;
-     }, {});
-     setRows(initialRows);
-   }, [manufacturingVariables, quantity, isAutoSchedule]);
+  useEffect(() => {
+    const initialRows = manufacturingVariables.reduce((acc, man, index) => {
+      acc[index] = [
+        {
+          plannedQuantity: isAutoSchedule ? quantity : "",
+          plannedQtyTime: isAutoSchedule
+            ? calculatePlannedMinutes(quantity * man.hours)
+            : "",
+          startDate: "",
+          startTime: "",
+          endDate: "",
+          endTime: "",
+          machineId: "",
+          shift: "",
+          processName: man.name,
+        },
+      ];
+
+      // Initialize remaining quantities for manual mode
+      if (!isAutoSchedule) {
+        setRemainingQuantities((prev) => ({
+          ...prev,
+          [index]: quantity,
+        }));
+      }
+      return acc;
+    }, {});
+    setRows(initialRows);
+  }, [manufacturingVariables, quantity, isAutoSchedule]);
 
   const handleQuantityChange = (index, rowIndex, value) => {
     setRows((prevRows) => {
@@ -657,69 +668,7 @@ export const SubAssemblyHrPlan = ({
     return currentDate.toISOString().split("T")[0];
   };
 
-  const prefillData = (allRows, startDate) => {
-    let currentDate = new Date(startDate);
-
-    manufacturingVariables.forEach((man, index) => {
-      if (!allRows[index]) return;
-
-      allRows[index].forEach((row, rowIdx) => {
-        const machineList = machineOptions[man.categoryId] || [];
-        const firstAvailableMachine = machineList.find((machine) =>
-          isMachineAvailable(
-            machine.subcategoryId,
-            currentDate,
-            calculateEndDate(currentDate, row.plannedQtyTime)
-          )
-        );
-
-        const firstMachine = firstAvailableMachine
-          ? firstAvailableMachine.subcategoryId
-          : "";
-
-        const firstOperator = operators.find((op) =>
-          isOperatorAvailable(
-            op.name,
-            currentDate,
-            calculateEndDate(currentDate, row.plannedQtyTime)
-          )
-        );
-
-        const firstShift = shiftOptions.length > 0 ? shiftOptions[0] : null;
-
-        const processStartDate = currentDate.toISOString().split("T")[0];
-        const plannedMinutes = calculatePlannedMinutes(man.hours * quantity);
-        const processEndDate = calculateEndDate(
-          processStartDate,
-          plannedMinutes,
-          firstShift?.TotalHours
-        );
-
-        allRows[index][rowIdx] = {
-          ...row,
-          startDate: processStartDate,
-          endDate: processEndDate,
-          machineId: firstMachine,
-          operatorId: firstOperator ? firstOperator._id : "",
-          shift: firstShift ? firstShift.name : "",
-          startTime: firstShift ? firstShift.startTime : "",
-        };
-
-        currentDate = new Date(processEndDate);
-        currentDate.setDate(currentDate.getDate() + 1);
-
-        while (
-          getDay(currentDate) === 0 ||
-          eventDates.some((d) => isSameDay(d, currentDate))
-        ) {
-          currentDate.setDate(currentDate.getDate() + 1);
-        }
-      });
-    });
-
-    return { ...allRows };
-  };
-
+  
   const formatDate = (dateObj) => {
     const year = dateObj.getFullYear();
     const month = String(dateObj.getMonth() + 1).padStart(2, "0");
@@ -727,13 +676,7 @@ export const SubAssemblyHrPlan = ({
     return `${year}-${month}-${day}`; // Format: YYYY-MM-DD
   };
 
-  // const getNextWorkingDay = (date) => {
-  //   let nextDay = new Date(date);
-  //   while (isHighlightedOrDisabled(nextDay)) {
-  //     nextDay.setDate(nextDay.getDate() + 1);
-  //   }
-  //   return nextDay;
-  // };
+  
 
   const calculateStartAndEndDates = (inputStartDate, plannedMinutes, shift) => {
     let parsedStartDate = new Date(inputStartDate);
@@ -814,9 +757,15 @@ export const SubAssemblyHrPlan = ({
 
             // 👉 Auto-pick Machine
             const machineList = machineOptions[man.categoryId] || [];
-            const firstAvailableMachine = machineList.find((machine) =>
-              isMachineAvailable(machine.subcategoryId, startDate, endDate)
-            );
+
+            const firstAvailableMachine = machineList.find((machine) => {
+              const availability = isMachineAvailable(
+                machine.subcategoryId,
+                startDate,
+                endDate
+              );
+              return availability.available;
+            });
 
             const machineId = firstAvailableMachine
               ? firstAvailableMachine.subcategoryId
@@ -915,7 +864,6 @@ export const SubAssemblyHrPlan = ({
     return `${year}-${month}-${day}`;
   };
 
-  
   const calculateEndDateWithDowntime = (
     startDate,
     plannedMinutes,
@@ -927,11 +875,35 @@ export const SubAssemblyHrPlan = ({
     const parsedDate = new Date(startDate);
     if (isNaN(parsedDate.getTime())) return "";
 
+    const workingMinutesPerDay = shift?.workingMinutes || 510; // Default to 8.5 hours
     let remainingMinutes = plannedMinutes;
     let currentDate = new Date(parsedDate);
     let totalDowntimeAdded = 0;
-    const workingMinutesPerDay = shift?.workingMinutes || 450;
 
+    // First check if machine is in downtime at the start
+    if (machine) {
+      const downtimeInfo = isMachineOnDowntimeDuringPeriod(
+        machine,
+        currentDate,
+        null // Only check current status
+      );
+
+      if (downtimeInfo.isDowntime && downtimeInfo.downtimeEnd) {
+        // Skip the entire downtime period
+        currentDate = new Date(downtimeInfo.downtimeEnd);
+        currentDate.setDate(currentDate.getDate() + 1); // Move to next day
+
+        // Skip weekends and holidays
+        while (
+          getDay(currentDate) === 0 ||
+          eventDates.some((d) => isSameDay(d, currentDate))
+        ) {
+          currentDate.setDate(currentDate.getDate() + 1);
+        }
+      }
+    }
+
+    // Rest of the function remains the same...
     while (remainingMinutes > 0) {
       // Skip non-working days
       while (
@@ -941,20 +913,29 @@ export const SubAssemblyHrPlan = ({
         currentDate.setDate(currentDate.getDate() + 1);
       }
 
+      // Check for any downtime during this day
+      let dailyDowntimeMinutes = 0;
       if (machine) {
+        const dayStart = new Date(currentDate);
+        const dayEnd = new Date(currentDate);
+        dayEnd.setHours(23, 59, 59, 999);
+
         const downtimeInfo = isMachineOnDowntimeDuringPeriod(
           machine,
-          currentDate,
-          new Date(currentDate.getTime() + workingMinutesPerDay * 60000)
+          dayStart,
+          dayEnd
         );
 
         if (downtimeInfo.isDowntime) {
-          remainingMinutes += downtimeInfo.downtimeMinutes;
-          totalDowntimeAdded += downtimeInfo.downtimeMinutes;
+          dailyDowntimeMinutes = downtimeInfo.downtimeMinutes;
+          totalDowntimeAdded += dailyDowntimeMinutes;
         }
       }
 
-      const minutesToDeduct = Math.min(remainingMinutes, workingMinutesPerDay);
+      // Calculate available working minutes this day (after downtime)
+      const availableMinutes = workingMinutesPerDay - dailyDowntimeMinutes;
+      const minutesToDeduct = Math.min(remainingMinutes, availableMinutes);
+
       remainingMinutes -= minutesToDeduct;
 
       if (remainingMinutes > 0) {
@@ -1504,7 +1485,11 @@ export const SubAssemblyHrPlan = ({
                               />
                             )}
                           </td>
-                          <td>{row.plannedQtyTime ? `${row.plannedQtyTime} m` : ""}</td>
+                          <td>
+                            {row.plannedQtyTime
+                              ? `${row.plannedQtyTime} m`
+                              : ""}
+                          </td>
                           <td>
                             <Autocomplete
                               sx={{
@@ -1622,7 +1607,7 @@ export const SubAssemblyHrPlan = ({
                                   const availability = isMachineAvailable(
                                     machine.subcategoryId,
                                     date,
-                                    
+
                                     calculateEndDateWithDowntime(
                                       date,
                                       row.plannedQtyTime,
@@ -1722,7 +1707,6 @@ export const SubAssemblyHrPlan = ({
                           </td>
 
                           <td>
-                            
                             <Input
                               type="time"
                               value={calculateEndTime(
@@ -1735,7 +1719,6 @@ export const SubAssemblyHrPlan = ({
                           </td>
 
                           <td>
-                            
                             <Autocomplete
                               sx={{
                                 width: 150,
@@ -1878,6 +1861,7 @@ export const SubAssemblyHrPlan = ({
                                   row.endDate,
                                   allocatedMachines
                                 );
+
                                 const isDisabled =
                                   status.isAllocated || status.isDowntime;
 
@@ -1923,10 +1907,10 @@ export const SubAssemblyHrPlan = ({
                                           height: 24,
                                           borderRadius: "50%",
                                           backgroundColor: status.isDowntime
-                                            ? "#dc3545"
+                                            ? "#dc3545" // Red for downtime
                                             : status.isAllocated
-                                            ? "#ffc107"
-                                            : "#28a745",
+                                            ? "#ffc107" // Yellow for occupied
+                                            : "#28a745", // Green for available
                                           display: "flex",
                                           alignItems: "center",
                                           justifyContent: "center",
@@ -1948,11 +1932,13 @@ export const SubAssemblyHrPlan = ({
                                         </span>
                                       </div>
 
-                                      {/* Machine info */}
+                                      {/* Machine Info */}
                                       <div style={{ flexGrow: 1 }}>
                                         <div style={{ fontWeight: 500 }}>
                                           {option.name}
                                         </div>
+
+                                        {/* 👇 👇 Yeh part new add karna hai 👇 👇 */}
                                         <div
                                           style={{
                                             fontSize: "0.75rem",

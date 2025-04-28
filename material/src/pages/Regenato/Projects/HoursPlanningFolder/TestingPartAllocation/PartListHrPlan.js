@@ -689,69 +689,6 @@ export const PartListHrPlan = ({
     return currentDate.toISOString().split("T")[0];
   };
 
-  const prefillData = (allRows, startDate) => {
-    let currentDate = new Date(startDate);
-
-    manufacturingVariables.forEach((man, index) => {
-      if (!allRows[index]) return;
-
-      allRows[index].forEach((row, rowIdx) => {
-        const machineList = machineOptions[man.categoryId] || [];
-        const firstAvailableMachine = machineList.find((machine) =>
-          isMachineAvailable(
-            machine.subcategoryId,
-            currentDate,
-            calculateEndDate(currentDate, row.plannedQtyTime)
-          )
-        );
-
-        const firstMachine = firstAvailableMachine
-          ? firstAvailableMachine.subcategoryId
-          : "";
-
-        const firstOperator = operators.find((op) =>
-          isOperatorAvailable(
-            op.name,
-            currentDate,
-            calculateEndDate(currentDate, row.plannedQtyTime)
-          )
-        );
-
-        const firstShift = shiftOptions.length > 0 ? shiftOptions[0] : null;
-
-        const processStartDate = currentDate.toISOString().split("T")[0];
-        const plannedMinutes = calculatePlannedMinutes(man.hours * quantity);
-        const processEndDate = calculateEndDate(
-          processStartDate,
-          plannedMinutes,
-          firstShift?.TotalHours
-        );
-
-        allRows[index][rowIdx] = {
-          ...row,
-          startDate: processStartDate,
-          endDate: processEndDate,
-          machineId: firstMachine,
-          operatorId: firstOperator ? firstOperator._id : "",
-          shift: firstShift ? firstShift.name : "",
-          startTime: firstShift ? firstShift.startTime : "",
-        };
-
-        currentDate = new Date(processEndDate);
-        currentDate.setDate(currentDate.getDate() + 1);
-
-        while (
-          getDay(currentDate) === 0 ||
-          eventDates.some((d) => isSameDay(d, currentDate))
-        ) {
-          currentDate.setDate(currentDate.getDate() + 1);
-        }
-      });
-    });
-
-    return { ...allRows };
-  };
-
   const formatDate = (dateObj) => {
     const year = dateObj.getFullYear();
     const month = String(dateObj.getMonth() + 1).padStart(2, "0");
@@ -838,9 +775,15 @@ export const PartListHrPlan = ({
 
             // 👉 Auto-pick Machine
             const machineList = machineOptions[man.categoryId] || [];
-            const firstAvailableMachine = machineList.find((machine) =>
-              isMachineAvailable(machine.subcategoryId, startDate, endDate)
-            );
+
+            const firstAvailableMachine = machineList.find((machine) => {
+              const availability = isMachineAvailable(
+                machine.subcategoryId,
+                startDate,
+                endDate
+              );
+              return availability.available;
+            });
 
             const machineId = firstAvailableMachine
               ? firstAvailableMachine.subcategoryId
@@ -1930,20 +1873,23 @@ export const PartListHrPlan = ({
                                 return `${option.name}`;
                               }}
                               renderOption={(props, option) => {
+                                const today = new Date();
+                                const tomorrow = new Date();
+                                tomorrow.setDate(today.getDate() + 1);
+
                                 const status = getMachineStatus(
                                   option,
-                                  row.startDate,
-                                  row.endDate
+                                  today,
+                                  tomorrow,
+                                  allocatedMachines
                                 );
+
                                 const isDisabled =
                                   status.isAllocated || status.isDowntime;
+
                                 const downtimeEnd = status.downtimeEnd
                                   ? new Date(
                                       status.downtimeEnd
-                                    ).toLocaleDateString()
-                                  : option.unavailableUntil
-                                  ? new Date(
-                                      option.unavailableUntil
                                     ).toLocaleDateString()
                                   : null;
 
@@ -1971,7 +1917,6 @@ export const PartListHrPlan = ({
                                         alignItems: "center",
                                       }}
                                     >
-                                      {/* Status indicator */}
                                       <div
                                         style={{
                                           width: 24,
@@ -2003,7 +1948,6 @@ export const PartListHrPlan = ({
                                         </span>
                                       </div>
 
-                                      {/* Machine info */}
                                       <div style={{ flexGrow: 1 }}>
                                         <div style={{ fontWeight: 500 }}>
                                           {option.name}

@@ -220,56 +220,67 @@ export const AssemblyPartListHoursPlan = ({
       return { isDowntime: false, downtimeMinutes: 0 };
     }
 
-    // Find only active (not completed) downtimes
-    const activeDowntimes = machine.downtimeHistory.filter(
-      (downtime) =>
-        !downtime.isCompleted && new Date(downtime.endTime) > new Date()
-    );
-
-    if (activeDowntimes.length === 0) {
-      return { isDowntime: false, downtimeMinutes: 0 };
-    }
-
-    // If no dates provided, just return that machine is in downtime
-    if (!startDate || !endDate) {
-      const now = new Date();
-      const earliestEnd = new Date(
-        Math.min(...activeDowntimes.map((d) => new Date(d.endTime).getTime()))
-      );
-      const minutesRemaining = Math.ceil((earliestEnd - now) / (1000 * 60));
-      return {
-        isDowntime: true,
-        downtimeMinutes: minutesRemaining,
-        downtimeReason: activeDowntimes[0].reason, // Show first reason
-      };
-    }
-
-    // Check if downtime overlaps with selected period
-    const selectedStart = new Date(startDate);
-    const selectedEnd = new Date(endDate);
-
-    const overlappingDowntime = activeDowntimes.find((downtime) => {
+    // Find only active downtimes that overlap with the requested period
+    const relevantDowntimes = machine.downtimeHistory.filter((downtime) => {
       const downtimeStart = new Date(downtime.startTime);
       const downtimeEnd = new Date(downtime.endTime);
+      const requestStart = startDate ? new Date(startDate) : new Date();
+      const requestEnd = endDate ? new Date(endDate) : new Date(downtimeEnd);
+
       return (
-        (downtimeStart <= selectedEnd && downtimeEnd >= selectedStart) ||
-        (selectedStart <= downtimeEnd && selectedEnd >= downtimeStart)
+        downtimeStart <= requestEnd &&
+        downtimeEnd >= requestStart &&
+        !downtime.isCompleted
       );
     });
 
-    if (!overlappingDowntime) {
+    if (relevantDowntimes.length === 0) {
       return { isDowntime: false, downtimeMinutes: 0 };
     }
 
-    // Calculate remaining minutes
-    const now = new Date();
-    const downtimeEnd = new Date(overlappingDowntime.endTime);
-    const downtimeMinutes = Math.ceil((downtimeEnd - now) / (1000 * 60));
+    // Calculate total downtime minutes that overlap with the requested period
+    let totalDowntimeMinutes = 0;
+    const workingDayMinutes = 510; // 8.5 hours per day
+
+    relevantDowntimes.forEach((downtime) => {
+      const downtimeStart = new Date(downtime.startTime);
+      const downtimeEnd = new Date(downtime.endTime);
+      const requestStart = startDate ? new Date(startDate) : new Date();
+      const requestEnd = endDate ? new Date(endDate) : new Date(downtimeEnd);
+
+      // Calculate the overlapping period
+      const overlapStart = new Date(Math.max(downtimeStart, requestStart));
+      const overlapEnd = new Date(Math.min(downtimeEnd, requestEnd));
+
+      // Calculate total minutes in the overlapping period
+      const totalMinutes = (overlapEnd - overlapStart) / (1000 * 60);
+
+      // If downtime spans multiple days, we only count working minutes per day
+      if (totalMinutes > workingDayMinutes) {
+        // Calculate full working days in downtime
+        const fullDays = Math.floor(totalMinutes / (24 * 60));
+        totalDowntimeMinutes += fullDays * workingDayMinutes;
+
+        // Add remaining minutes if any
+        const remainingMinutes = totalMinutes % (24 * 60);
+        totalDowntimeMinutes += Math.min(remainingMinutes, workingDayMinutes);
+      } else {
+        totalDowntimeMinutes += totalMinutes;
+      }
+    });
+
+    // Get the latest downtime end date from all relevant downtimes
+    const latestDowntimeEnd = new Date(
+      Math.max(...relevantDowntimes.map((d) => new Date(d.endTime).getTime()))
+    );
 
     return {
       isDowntime: true,
-      downtimeMinutes,
-      downtimeReason: overlappingDowntime.reason,
+      downtimeMinutes: totalDowntimeMinutes,
+      downtimeReason: relevantDowntimes[0].reason,
+      downtimeEnd: isNaN(latestDowntimeEnd.getTime())
+        ? null
+        : latestDowntimeEnd,
     };
   };
 
@@ -416,35 +427,35 @@ export const AssemblyPartListHoursPlan = ({
     return <div className={className}>{day}</div>;
   };
 
- useEffect(() => {
-      const initialRows = manufacturingVariables.reduce((acc, man, index) => {
-        acc[index] = [
-          {
-            plannedQuantity: isAutoSchedule ? quantity : "",
-            plannedQtyTime: isAutoSchedule
-              ? calculatePlannedMinutes(quantity * man.hours)
-              : "",
-            startDate: "",
-            startTime: "",
-            endDate: "",
-            endTime: "",
-            machineId: "",
-            shift: "",
-            processName: man.name,
-          },
-        ];
-  
-        // Initialize remaining quantities for manual mode
-        if (!isAutoSchedule) {
-          setRemainingQuantities((prev) => ({
-            ...prev,
-            [index]: quantity,
-          }));
-        }
-        return acc;
-      }, {});
-      setRows(initialRows);
-    }, [manufacturingVariables, quantity, isAutoSchedule]);
+  useEffect(() => {
+    const initialRows = manufacturingVariables.reduce((acc, man, index) => {
+      acc[index] = [
+        {
+          plannedQuantity: isAutoSchedule ? quantity : "",
+          plannedQtyTime: isAutoSchedule
+            ? calculatePlannedMinutes(quantity * man.hours)
+            : "",
+          startDate: "",
+          startTime: "",
+          endDate: "",
+          endTime: "",
+          machineId: "",
+          shift: "",
+          processName: man.name,
+        },
+      ];
+
+      // Initialize remaining quantities for manual mode
+      if (!isAutoSchedule) {
+        setRemainingQuantities((prev) => ({
+          ...prev,
+          [index]: quantity,
+        }));
+      }
+      return acc;
+    }, {});
+    setRows(initialRows);
+  }, [manufacturingVariables, quantity, isAutoSchedule]);
 
   const handleQuantityChange = (index, rowIndex, value) => {
     setRows((prevRows) => {
@@ -774,115 +785,121 @@ export const AssemblyPartListHoursPlan = ({
   };
 
   const handleStartDateChange = (index, rowIndex, date) => {
-    if (!date) return;
-
-    // Fix for timezone issue - create date without time component
-    const adjustedDate = new Date(
-      Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())
-    );
-
-    const nextWorkingDay = getNextWorkingDay(adjustedDate);
-
-    if (index === 0) {
-      setHasStartDate(!!nextWorkingDay);
-    }
-
-    setRows((prevRows) => {
-      const newRows = { ...prevRows };
-      const currentRow = newRows[index][rowIndex];
-      const currentMachine = machineOptions[
-        manufacturingVariables[index].categoryId
-      ]?.find((m) => m.subcategoryId === currentRow.machineId);
-
-      // === AUTO SCHEDULE MODE ===
-      if (isAutoSchedule && index === 0) {
-        let currentDate = new Date(nextWorkingDay);
-
-        manufacturingVariables.forEach((man, processIndex) => {
-          const shift = shiftOptions.length > 0 ? shiftOptions[0] : null;
-
-          newRows[processIndex] = newRows[processIndex].map((row) => {
-            const { startDate, endDate } = calculateStartAndEndDates(
-              currentDate,
-              row.plannedQtyTime,
-              shift?.TotalHours
-            );
-
-            // 👉 Auto-pick Machine
-            const machineList = machineOptions[man.categoryId] || [];
-            const firstAvailableMachine = machineList.find((machine) =>
-              isMachineAvailable(machine.subcategoryId, startDate, endDate)
-            );
-
-            const machineId = firstAvailableMachine
-              ? firstAvailableMachine.subcategoryId
-              : "";
-
-            // 👉 Auto-pick Operator
-            const firstOperator = operators.find((op) =>
-              isOperatorAvailable(op.name, startDate, endDate)
-            );
-
-            // Prepare for next process
-            currentDate = new Date(endDate);
-            currentDate.setDate(currentDate.getDate() + 1);
-            currentDate = getNextWorkingDay(currentDate);
-
-            return {
-              ...row,
-              startDate,
-              endDate,
-              shift: shift?.name || "",
-              startTime: shift?.startTime || "",
-              machineId: machineId,
-              operatorId: firstOperator ? firstOperator._id : "",
-            };
-          });
-        });
-
-        return newRows;
-      }
-      // === MANUAL MODE ===
-      else {
-        const shift = shiftOptions.find(
-          (option) => option.name === currentRow.shift
-        );
-
-        newRows[index][rowIndex] = {
-          ...currentRow,
-          startDate: formatDateUTC(nextWorkingDay), // Use UTC formatting
-          endDate: calculateEndDateWithDowntime(
-            nextWorkingDay,
-            currentRow.plannedQtyTime,
-            shift?.TotalHours,
-            currentMachine,
-            index,
-            rowIndex
-          ),
-        };
-
-        // Show downtime notification if applicable
-        if (currentMachine) {
-          const downtimeInfo = isMachineOnDowntimeDuringPeriod(
-            currentMachine,
-            newRows[index][rowIndex].startDate,
-            newRows[index][rowIndex].endDate
-          );
-
-          if (downtimeInfo.isDowntime) {
-            toast.info(
-              `Downtime detected: ${formatDowntime(
-                downtimeInfo.downtimeMinutes
-              )} added. End date adjusted.`
-            );
-          }
-        }
-      }
-
-      return newRows;
-    });
-  };
-
+     if (!date) return;
+ 
+     // Fix for timezone issue - create date without time component
+     const adjustedDate = new Date(
+       Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())
+     );
+ 
+     const nextWorkingDay = getNextWorkingDay(adjustedDate);
+ 
+     if (index === 0) {
+       setHasStartDate(!!nextWorkingDay);
+     }
+ 
+     setRows((prevRows) => {
+       const newRows = { ...prevRows };
+       const currentRow = newRows[index][rowIndex];
+       const currentMachine = machineOptions[
+         manufacturingVariables[index].categoryId
+       ]?.find((m) => m.subcategoryId === currentRow.machineId);
+ 
+       // === AUTO SCHEDULE MODE ===
+       if (isAutoSchedule && index === 0) {
+         let currentDate = new Date(nextWorkingDay);
+ 
+         manufacturingVariables.forEach((man, processIndex) => {
+           const shift = shiftOptions.length > 0 ? shiftOptions[0] : null;
+ 
+           newRows[processIndex] = newRows[processIndex].map((row) => {
+             const { startDate, endDate } = calculateStartAndEndDates(
+               currentDate,
+               row.plannedQtyTime,
+               shift?.TotalHours
+             );
+ 
+             // 👉 Auto-pick Machine
+             const machineList = machineOptions[man.categoryId] || [];
+ 
+             const firstAvailableMachine = machineList.find((machine) => {
+               const availability = isMachineAvailable(
+                 machine.subcategoryId,
+                 startDate,
+                 endDate
+               );
+               return availability.available;
+             });
+ 
+             const machineId = firstAvailableMachine
+               ? firstAvailableMachine.subcategoryId
+               : "";
+ 
+             // 👉 Auto-pick Operator
+             const firstOperator = operators.find((op) =>
+               isOperatorAvailable(op.name, startDate, endDate)
+             );
+ 
+             // Prepare for next process
+             currentDate = new Date(endDate);
+             currentDate.setDate(currentDate.getDate() + 1);
+             currentDate = getNextWorkingDay(currentDate);
+ 
+             return {
+               ...row,
+               startDate,
+               endDate,
+               shift: shift?.name || "",
+               startTime: shift?.startTime || "",
+               machineId: machineId,
+               operatorId: firstOperator ? firstOperator._id : "",
+             };
+           });
+         });
+ 
+         return newRows;
+       }
+       // === MANUAL MODE ===
+       else {
+         const shift = shiftOptions.find(
+           (option) => option.name === currentRow.shift
+         );
+ 
+         newRows[index][rowIndex] = {
+           ...currentRow,
+           startDate: formatDateUTC(nextWorkingDay), // Use UTC formatting
+           endDate: calculateEndDateWithDowntime(
+             nextWorkingDay,
+             currentRow.plannedQtyTime,
+             shift?.TotalHours,
+             currentMachine,
+             index,
+             rowIndex
+           ),
+         };
+ 
+         // Show downtime notification if applicable
+         if (currentMachine) {
+           const downtimeInfo = isMachineOnDowntimeDuringPeriod(
+             currentMachine,
+             newRows[index][rowIndex].startDate,
+             newRows[index][rowIndex].endDate
+           );
+ 
+           if (downtimeInfo.isDowntime) {
+             toast.info(
+               `Downtime detected: ${formatDowntime(
+                 downtimeInfo.downtimeMinutes
+               )} added. End date adjusted.`
+             );
+           }
+         }
+       }
+ 
+       return newRows;
+     });
+   };
+ 
   // Helper function to format dates in UTC
   const formatDateUTC = (date) => {
     const d = new Date(date);
@@ -922,11 +939,35 @@ export const AssemblyPartListHoursPlan = ({
     const parsedDate = new Date(startDate);
     if (isNaN(parsedDate.getTime())) return "";
 
+    const workingMinutesPerDay = shift?.workingMinutes || 510; // Default to 8.5 hours
     let remainingMinutes = plannedMinutes;
     let currentDate = new Date(parsedDate);
     let totalDowntimeAdded = 0;
-    const workingMinutesPerDay = shift?.workingMinutes || 450;
 
+    // First check if machine is in downtime at the start
+    if (machine) {
+      const downtimeInfo = isMachineOnDowntimeDuringPeriod(
+        machine,
+        currentDate,
+        null // Only check current status
+      );
+
+      if (downtimeInfo.isDowntime && downtimeInfo.downtimeEnd) {
+        // Skip the entire downtime period
+        currentDate = new Date(downtimeInfo.downtimeEnd);
+        currentDate.setDate(currentDate.getDate() + 1); // Move to next day
+
+        // Skip weekends and holidays
+        while (
+          getDay(currentDate) === 0 ||
+          eventDates.some((d) => isSameDay(d, currentDate))
+        ) {
+          currentDate.setDate(currentDate.getDate() + 1);
+        }
+      }
+    }
+
+    // Rest of the function remains the same...
     while (remainingMinutes > 0) {
       // Skip non-working days
       while (
@@ -936,20 +977,29 @@ export const AssemblyPartListHoursPlan = ({
         currentDate.setDate(currentDate.getDate() + 1);
       }
 
+      // Check for any downtime during this day
+      let dailyDowntimeMinutes = 0;
       if (machine) {
+        const dayStart = new Date(currentDate);
+        const dayEnd = new Date(currentDate);
+        dayEnd.setHours(23, 59, 59, 999);
+
         const downtimeInfo = isMachineOnDowntimeDuringPeriod(
           machine,
-          currentDate,
-          new Date(currentDate.getTime() + workingMinutesPerDay * 60000)
+          dayStart,
+          dayEnd
         );
 
         if (downtimeInfo.isDowntime) {
-          remainingMinutes += downtimeInfo.downtimeMinutes;
-          totalDowntimeAdded += downtimeInfo.downtimeMinutes;
+          dailyDowntimeMinutes = downtimeInfo.downtimeMinutes;
+          totalDowntimeAdded += dailyDowntimeMinutes;
         }
       }
 
-      const minutesToDeduct = Math.min(remainingMinutes, workingMinutesPerDay);
+      // Calculate available working minutes this day (after downtime)
+      const availableMinutes = workingMinutesPerDay - dailyDowntimeMinutes;
+      const minutesToDeduct = Math.min(remainingMinutes, availableMinutes);
+
       remainingMinutes -= minutesToDeduct;
 
       if (remainingMinutes > 0) {
@@ -1476,7 +1526,11 @@ export const AssemblyPartListHoursPlan = ({
                               />
                             )}
                           </td>
-                          <td>{row.plannedQtyTime ? `${row.plannedQtyTime} m` : ""}</td>
+                          <td>
+                            {row.plannedQtyTime
+                              ? `${row.plannedQtyTime} m`
+                              : ""}
+                          </td>
 
                           <td>
                             <Autocomplete
@@ -1501,10 +1555,13 @@ export const AssemblyPartListHoursPlan = ({
                               }}
                               options={shiftOptions || []}
                               value={
-                                shiftOptions.find((option) => option.name === row.shift) ||
-                                (isAutoSchedule && shiftOptions.length > 0 ? shiftOptions[0] : null)
+                                shiftOptions.find(
+                                  (option) => option.name === row.shift
+                                ) ||
+                                (isAutoSchedule && shiftOptions.length > 0
+                                  ? shiftOptions[0]
+                                  : null)
                               }
-                              
                               onChange={(event, newValue) => {
                                 if (!newValue) return;
 

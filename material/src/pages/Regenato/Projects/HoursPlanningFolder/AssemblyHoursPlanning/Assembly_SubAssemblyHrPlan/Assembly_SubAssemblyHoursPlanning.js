@@ -249,56 +249,67 @@ export const Assembly_SubAssemblyHoursPlanning = ({
       return { isDowntime: false, downtimeMinutes: 0 };
     }
 
-    // Find only active (not completed) downtimes
-    const activeDowntimes = machine.downtimeHistory.filter(
-      (downtime) =>
-        !downtime.isCompleted && new Date(downtime.endTime) > new Date()
-    );
-
-    if (activeDowntimes.length === 0) {
-      return { isDowntime: false, downtimeMinutes: 0 };
-    }
-
-    // If no dates provided, just return that machine is in downtime
-    if (!startDate || !endDate) {
-      const now = new Date();
-      const earliestEnd = new Date(
-        Math.min(...activeDowntimes.map((d) => new Date(d.endTime).getTime()))
-      );
-      const minutesRemaining = Math.ceil((earliestEnd - now) / (1000 * 60));
-      return {
-        isDowntime: true,
-        downtimeMinutes: minutesRemaining,
-        downtimeReason: activeDowntimes[0].reason, // Show first reason
-      };
-    }
-
-    // Check if downtime overlaps with selected period
-    const selectedStart = new Date(startDate);
-    const selectedEnd = new Date(endDate);
-
-    const overlappingDowntime = activeDowntimes.find((downtime) => {
+    // Find only active downtimes that overlap with the requested period
+    const relevantDowntimes = machine.downtimeHistory.filter((downtime) => {
       const downtimeStart = new Date(downtime.startTime);
       const downtimeEnd = new Date(downtime.endTime);
+      const requestStart = startDate ? new Date(startDate) : new Date();
+      const requestEnd = endDate ? new Date(endDate) : new Date(downtimeEnd);
+
       return (
-        (downtimeStart <= selectedEnd && downtimeEnd >= selectedStart) ||
-        (selectedStart <= downtimeEnd && selectedEnd >= downtimeStart)
+        downtimeStart <= requestEnd &&
+        downtimeEnd >= requestStart &&
+        !downtime.isCompleted
       );
     });
 
-    if (!overlappingDowntime) {
+    if (relevantDowntimes.length === 0) {
       return { isDowntime: false, downtimeMinutes: 0 };
     }
 
-    // Calculate remaining minutes
-    const now = new Date();
-    const downtimeEnd = new Date(overlappingDowntime.endTime);
-    const downtimeMinutes = Math.ceil((downtimeEnd - now) / (1000 * 60));
+    // Calculate total downtime minutes that overlap with the requested period
+    let totalDowntimeMinutes = 0;
+    const workingDayMinutes = 510; // 8.5 hours per day
+
+    relevantDowntimes.forEach((downtime) => {
+      const downtimeStart = new Date(downtime.startTime);
+      const downtimeEnd = new Date(downtime.endTime);
+      const requestStart = startDate ? new Date(startDate) : new Date();
+      const requestEnd = endDate ? new Date(endDate) : new Date(downtimeEnd);
+
+      // Calculate the overlapping period
+      const overlapStart = new Date(Math.max(downtimeStart, requestStart));
+      const overlapEnd = new Date(Math.min(downtimeEnd, requestEnd));
+
+      // Calculate total minutes in the overlapping period
+      const totalMinutes = (overlapEnd - overlapStart) / (1000 * 60);
+
+      // If downtime spans multiple days, we only count working minutes per day
+      if (totalMinutes > workingDayMinutes) {
+        // Calculate full working days in downtime
+        const fullDays = Math.floor(totalMinutes / (24 * 60));
+        totalDowntimeMinutes += fullDays * workingDayMinutes;
+
+        // Add remaining minutes if any
+        const remainingMinutes = totalMinutes % (24 * 60);
+        totalDowntimeMinutes += Math.min(remainingMinutes, workingDayMinutes);
+      } else {
+        totalDowntimeMinutes += totalMinutes;
+      }
+    });
+
+    // Get the latest downtime end date from all relevant downtimes
+    const latestDowntimeEnd = new Date(
+      Math.max(...relevantDowntimes.map((d) => new Date(d.endTime).getTime()))
+    );
 
     return {
       isDowntime: true,
-      downtimeMinutes,
-      downtimeReason: overlappingDowntime.reason,
+      downtimeMinutes: totalDowntimeMinutes,
+      downtimeReason: relevantDowntimes[0].reason,
+      downtimeEnd: isNaN(latestDowntimeEnd.getTime())
+        ? null
+        : latestDowntimeEnd,
     };
   };
 
@@ -827,9 +838,15 @@ export const Assembly_SubAssemblyHoursPlanning = ({
 
             // 👉 Auto-pick Machine
             const machineList = machineOptions[man.categoryId] || [];
-            const firstAvailableMachine = machineList.find((machine) =>
-              isMachineAvailable(machine.subcategoryId, startDate, endDate)
-            );
+
+            const firstAvailableMachine = machineList.find((machine) => {
+              const availability = isMachineAvailable(
+                machine.subcategoryId,
+                startDate,
+                endDate
+              );
+              return availability.available;
+            });
 
             const machineId = firstAvailableMachine
               ? firstAvailableMachine.subcategoryId
@@ -939,11 +956,35 @@ export const Assembly_SubAssemblyHoursPlanning = ({
     const parsedDate = new Date(startDate);
     if (isNaN(parsedDate.getTime())) return "";
 
+    const workingMinutesPerDay = shift?.workingMinutes || 510; // Default to 8.5 hours
     let remainingMinutes = plannedMinutes;
     let currentDate = new Date(parsedDate);
     let totalDowntimeAdded = 0;
-    const workingMinutesPerDay = shift?.workingMinutes || 450;
 
+    // First check if machine is in downtime at the start
+    if (machine) {
+      const downtimeInfo = isMachineOnDowntimeDuringPeriod(
+        machine,
+        currentDate,
+        null // Only check current status
+      );
+
+      if (downtimeInfo.isDowntime && downtimeInfo.downtimeEnd) {
+        // Skip the entire downtime period
+        currentDate = new Date(downtimeInfo.downtimeEnd);
+        currentDate.setDate(currentDate.getDate() + 1); // Move to next day
+
+        // Skip weekends and holidays
+        while (
+          getDay(currentDate) === 0 ||
+          eventDates.some((d) => isSameDay(d, currentDate))
+        ) {
+          currentDate.setDate(currentDate.getDate() + 1);
+        }
+      }
+    }
+
+    // Rest of the function remains the same...
     while (remainingMinutes > 0) {
       // Skip non-working days
       while (
@@ -953,20 +994,29 @@ export const Assembly_SubAssemblyHoursPlanning = ({
         currentDate.setDate(currentDate.getDate() + 1);
       }
 
+      // Check for any downtime during this day
+      let dailyDowntimeMinutes = 0;
       if (machine) {
+        const dayStart = new Date(currentDate);
+        const dayEnd = new Date(currentDate);
+        dayEnd.setHours(23, 59, 59, 999);
+
         const downtimeInfo = isMachineOnDowntimeDuringPeriod(
           machine,
-          currentDate,
-          new Date(currentDate.getTime() + workingMinutesPerDay * 60000)
+          dayStart,
+          dayEnd
         );
 
         if (downtimeInfo.isDowntime) {
-          remainingMinutes += downtimeInfo.downtimeMinutes;
-          totalDowntimeAdded += downtimeInfo.downtimeMinutes;
+          dailyDowntimeMinutes = downtimeInfo.downtimeMinutes;
+          totalDowntimeAdded += dailyDowntimeMinutes;
         }
       }
 
-      const minutesToDeduct = Math.min(remainingMinutes, workingMinutesPerDay);
+      // Calculate available working minutes this day (after downtime)
+      const availableMinutes = workingMinutesPerDay - dailyDowntimeMinutes;
+      const minutesToDeduct = Math.min(remainingMinutes, availableMinutes);
+
       remainingMinutes -= minutesToDeduct;
 
       if (remainingMinutes > 0) {
@@ -1494,7 +1544,11 @@ export const Assembly_SubAssemblyHoursPlanning = ({
                               />
                             )}
                           </td>
-                          <td>{row.plannedQtyTime ? `${row.plannedQtyTime} m` : ""}</td>
+                          <td>
+                            {row.plannedQtyTime
+                              ? `${row.plannedQtyTime} m`
+                              : ""}
+                          </td>
 
                           <td>
                             <Autocomplete
