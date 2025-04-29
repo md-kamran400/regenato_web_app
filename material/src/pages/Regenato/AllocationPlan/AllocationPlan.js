@@ -18,6 +18,7 @@ import {
   ModalBody,
   ModalFooter,
 } from "reactstrap";
+import "./print.css";
 import axios from "axios";
 import { FiPrinter, FiDownload, FiFilter } from "react-icons/fi";
 import { FaProjectDiagram, FaTasks } from "react-icons/fa";
@@ -118,36 +119,71 @@ const AllocationPlan = () => {
   };
 
   const handlePrint = () => {
-    // Add print-specific styles
+    window.scrollTo(0, 0);
+
     const style = document.createElement("style");
     style.innerHTML = `
       @media print {
+        body * {
+          visibility: hidden;
+        }
+        #print-area, #print-area * {
+          visibility: visible;
+        }
+        #print-area {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          margin: 0;
+          padding: 0;
+        }
+
         .no-print {
           display: none !important;
         }
+
         .print-only {
           display: block !important;
         }
-        body, html {
-          background: white !important;
-          font-size: 12px !important;
-        }
+
+        .container,
+        .row,
+        .col,
         .card {
-          border: none !important;
-          box-shadow: none !important;
+          all: unset;
         }
-        table {
-          width: 100% !important;
-          font-size: 10px !important;
+
+        .card {
+          page-break-inside: avoid;
+          break-inside: avoid;
+          margin-bottom: 10px;
         }
-        th, td {
-          padding: 4px !important;
-        }
+
         .table-responsive {
           overflow: visible !important;
         }
+
+        table {
+          width: 100% !important;
+          font-size: 10px !important;
+          border-collapse: collapse !important;
+        }
+
+        th, td {
+          padding: 4px !important;
+          
+        }
+
         .print-page-break {
           page-break-after: always;
+        }
+
+        html, body {
+          height: auto !important;
+          overflow: visible !important;
+          margin: 0 !important;
+          padding: 0 !important;
         }
       }
     `;
@@ -155,7 +191,6 @@ const AllocationPlan = () => {
 
     window.print();
 
-    // Clean up after printing
     setTimeout(() => {
       document.head.removeChild(style);
     }, 1000);
@@ -284,6 +319,16 @@ const AllocationPlan = () => {
     });
   };
 
+  const formatWordsInChunks = (text, chunkSize = 3) => {
+    if (!text) return "";
+    const words = text.split(" ");
+    let result = [];
+    for (let i = 0; i < words.length; i += chunkSize) {
+      result.push(words.slice(i, i + chunkSize).join(" "));
+    }
+    return result.join("\n"); // or '<br />' if using dangerouslySetInnerHTML
+  };
+
   return (
     <Container fluid className="py-4">
       <BreadCrumb title="Allocation Plan" pageTitle="Allocation Plan" />
@@ -316,44 +361,67 @@ const AllocationPlan = () => {
 
       <Card className="shadow-sm">
         <CardHeader className="bg-white border-bottom-0 py-3">
-          <Row className="align-items-center">
-            <Col md={6}>
-              <h2 className="mb-0 d-flex align-items-center">
-                <FaProjectDiagram className="me-2 text-primary no-print" />
-                Production Allocation Plan
-              </h2>
-              {/* Print-only date range display */}
+          <div className="no-print">
+            <Row className="align-items-center">
+              <Col md={6}>
+                <h2 className="mb-0 d-flex align-items-center">
+                  <FaProjectDiagram className="me-2 text-primary" />
+                  Production Allocation Plan
+                </h2>
+              </Col>
+              <Col md={6} className="d-flex justify-content-end">
+                <div className="d-flex align-items-center">
+                  <Button
+                    color="outline-primary"
+                    className="me-2 d-flex align-items-center"
+                    onClick={handleDownloadExcel}
+                  >
+                    <FiDownload className="me-1" />
+                    Download Excel
+                  </Button>
+                  <Button
+                    color="outline-secondary"
+                    className="d-flex align-items-center"
+                    onClick={handlePrint}
+                  >
+                    <FiPrinter className="me-1" />
+                    Print
+                  </Button>
+                </div>
+              </Col>
+            </Row>
+            {(startDate || endDate) && (
+              <Row className="mt-2">
+                <Col>
+                  <div className="d-flex align-items-center text-muted">
+                    <FiFilter className="me-1" />
+                    <span>
+                      <strong>Filter Applied:</strong>{" "}
+                      {startDate ? formatDate(startDate) : "Start"} to{" "}
+                      {endDate ? formatDate(endDate) : "End"}
+                    </span>
+                  </div>
+                </Col>
+              </Row>
+            )}
+          </div>
+
+          {/* Print-only header */}
+          <div className="print-only" style={{ display: "none" }}>
+            <div className="print-header">
+              <h2>Production Allocation Plan</h2>
               {(startDate || endDate) && (
-                <div className="print-only" style={{ display: "none" }}>
-                  <p className="mb-0">
-                    <strong>Date Range:</strong>{" "}
-                    {startDate ? formatDate(startDate) : "Start"} to{" "}
-                    {endDate ? formatDate(endDate) : "End"}
-                  </p>
+                <div className="print-filter">
+                  <strong>Date Range:</strong>{" "}
+                  {startDate ? formatDate(startDate) : "Start"} to{" "}
+                  {endDate ? formatDate(endDate) : "End"}
                 </div>
               )}
-            </Col>
-            <Col md={6} className="d-flex justify-content-end">
-              <div className="d-flex align-items-center no-print">
-                <Button
-                  color="outline-primary"
-                  className="me-2 d-flex align-items-center"
-                  onClick={handleDownloadExcel}
-                >
-                  <FiDownload className="me-1" />
-                  Download Excel
-                </Button>
-                <Button
-                  color="outline-secondary"
-                  className="d-flex align-items-center"
-                  onClick={handlePrint}
-                >
-                  <FiPrinter className="me-1" />
-                  Print
-                </Button>
+              <div className="print-date">
+                <strong>Print Date:</strong> {new Date().toLocaleDateString()}
               </div>
-            </Col>
-          </Row>
+            </div>
+          </div>
         </CardHeader>
 
         <CardBody>
@@ -418,6 +486,7 @@ const AllocationPlan = () => {
                 <Card
                   className="mb-4 shadow-none border"
                   style={{ pageBreakInside: "avoid" }}
+                  id="print-area"
                 >
                   {project.allocations.map((process) => (
                     <div
@@ -427,9 +496,10 @@ const AllocationPlan = () => {
                       <div className="bg-light p-2 px-3 small d-flex justify-content-between align-items-center">
                         <div>
                           <h5 style={{ fontWeight: "bold" }}>
-                            {process.processName} (
-                            {process.allocations[0]?.machineId || "N/A"}) -{" "}
-                            {process.allocations[0]?.operator || "N/A"}
+                            {process.processName}
+                            {/* {process.processName} (
+                              {process.allocations[0]?.machineId || "N/A"}) -{" "} */}
+                            {/* {process.allocations[0]?.operator || "N/A"} */}
                           </h5>
                         </div>
                       </div>
@@ -471,13 +541,15 @@ const AllocationPlan = () => {
                               <th colSpan="2" className="text-center">
                                 Material Location
                               </th>
-                              <th rowSpan="2" className="align-middle">
+                              <th colSpan="2" className="text-center">
                                 Next Location/Process
                               </th>
                             </tr>
                             <tr>
                               <th className="text-center">Target</th>
                               <th className="text-center">Completion</th>
+                              <th className="text-center">From</th>
+                              <th className="text-center">To</th>
                               <th className="text-center">From</th>
                               <th className="text-center">To</th>
                             </tr>
@@ -493,8 +565,8 @@ const AllocationPlan = () => {
                                   <td className="fw-semibold">
                                     {process.partsCodeId}
                                   </td>
-                                  <td className="text-nowrap">
-                                    {process.partName}
+                                  <td className="white-space-pre">
+                                    {formatWordsInChunks(process.partName)}
                                   </td>
                                   <td>{process.processId}</td>
                                   <td className="text-center">
@@ -530,6 +602,7 @@ const AllocationPlan = () => {
                                       {currentSelection.status || "Fresh"}
                                     </span>
                                   </td>
+                                  {/* Material Location */}
                                   <td className="text-center">
                                     <select
                                       className="form-select form-select-sm no-print"
@@ -588,7 +661,67 @@ const AllocationPlan = () => {
                                       {currentSelection.materialTo || "MS"}
                                     </span>
                                   </td>
-                                  <td>{process.processName}</td>
+                                  {/* Next Location/Process */}
+                                  <td className="text-center">
+                                    <select
+                                      className="form-select form-select-sm no-print"
+                                      style={{ width: "120px" }}
+                                      value={
+                                        currentSelection.nextLocationFrom ||
+                                        "GR"
+                                      }
+                                      onChange={(e) =>
+                                        handleSelectionChange(
+                                          selectionKey,
+                                          "nextLocationFrom",
+                                          e.target.value
+                                        )
+                                      }
+                                    >
+                                      <option value="GR">GR</option>
+                                      <option value="MS">MS</option>
+                                      <option value="Store">Store</option>
+                                      <option value="Heat Treatment">
+                                        Heat Treatment
+                                      </option>
+                                      <option value="Auto Black">
+                                        Auto Black
+                                      </option>
+                                    </select>
+                                    <span className="print-only">
+                                      {currentSelection.nextLocationFrom ||
+                                        "GR"}
+                                    </span>
+                                  </td>
+                                  <td className="text-center">
+                                    <select
+                                      className="form-select form-select-sm no-print"
+                                      style={{ width: "120px" }}
+                                      value={
+                                        currentSelection.nextLocationTo || "MS"
+                                      }
+                                      onChange={(e) =>
+                                        handleSelectionChange(
+                                          selectionKey,
+                                          "nextLocationTo",
+                                          e.target.value
+                                        )
+                                      }
+                                    >
+                                      <option value="GR">GR</option>
+                                      <option value="MS">MS</option>
+                                      <option value="Store">Store</option>
+                                      <option value="Heat Treatment">
+                                        Heat Treatment
+                                      </option>
+                                      <option value="Auto Black">
+                                        Auto Black
+                                      </option>
+                                    </select>
+                                    <span className="print-only">
+                                      {currentSelection.nextLocationTo || "MS"}
+                                    </span>
+                                  </td>
                                 </tr>
                               );
                             })}

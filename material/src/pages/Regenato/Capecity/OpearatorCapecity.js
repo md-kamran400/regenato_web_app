@@ -94,6 +94,20 @@ const OperatorCapacity = () => {
       setAllocations(processedAllocations);
       setFilteredAllocations(processedAllocations);
       setTotalOperators(operatorsData.length);
+      
+      // Calculate initial occupied operators
+      const occupiedOperatorNames = new Set();
+      processedAllocations.forEach((project) => {
+        project.allocations.forEach((alloc) => {
+          alloc.allocations.forEach((machineAlloc) => {
+            if (machineAlloc.operator) {
+              occupiedOperatorNames.add(machineAlloc.operator);
+            }
+          });
+        });
+      });
+      setOccupiedOperators(occupiedOperatorNames.size);
+      
       setLoading(false);
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -126,6 +140,27 @@ const OperatorCapacity = () => {
     });
 
     // Count occupied operators per process category
+    // filteredAllocations.forEach((project) => {
+    //   project.allocations.forEach((alloc) => {
+    //     alloc.allocations.forEach((machineAlloc) => {
+    //       if (machineAlloc.operator) {
+    //         const operator = operators.find(
+    //           (op) => op.name === machineAlloc.operator
+    //         );
+    //         if (operator && operator.processName) {
+    //           operator.processName.forEach((process) => {
+    //             const category = categories.find((cat) => cat.name === process);
+    //             if (category) {
+    //               stats[category._id].occupied += 1;
+    //             }
+    //           });
+    //         }
+    //       }
+    //     });
+    //   });
+    // });
+
+    const countedOperatorCategoryPairs = new Set();
     filteredAllocations.forEach((project) => {
       project.allocations.forEach((alloc) => {
         alloc.allocations.forEach((machineAlloc) => {
@@ -137,7 +172,11 @@ const OperatorCapacity = () => {
               operator.processName.forEach((process) => {
                 const category = categories.find((cat) => cat.name === process);
                 if (category) {
-                  stats[category._id].occupied += 1;
+                  const key = `${machineAlloc.operator}_${category._id}`;
+                  if (!countedOperatorCategoryPairs.has(key)) {
+                    stats[category._id].occupied += 1;
+                    countedOperatorCategoryPairs.add(key);
+                  }
                 }
               });
             }
@@ -150,6 +189,25 @@ const OperatorCapacity = () => {
   };
 
   const filterAllocationsByDate = () => {
+    // If dates are the same or not properly set, show all data
+    if (!startDate || !endDate || startDate.getTime() === endDate.getTime()) {
+      setFilteredAllocations(allocations);
+      
+      // Recalculate occupied operators
+      const occupiedOperatorNames = new Set();
+      allocations.forEach((project) => {
+        project.allocations.forEach((alloc) => {
+          alloc.allocations.forEach((machineAlloc) => {
+            if (machineAlloc.operator) {
+              occupiedOperatorNames.add(machineAlloc.operator);
+            }
+          });
+        });
+      });
+      setOccupiedOperators(occupiedOperatorNames.size);
+      return;
+    }
+
     const filtered = allocations
       .map((project) => {
         return {
@@ -179,9 +237,7 @@ const OperatorCapacity = () => {
     setFilteredAllocations(filtered);
 
     // Count occupied operators
-    let occupied = 0;
     const occupiedOperatorNames = new Set();
-
     filtered.forEach((project) => {
       project.allocations.forEach((alloc) => {
         alloc.allocations.forEach((machineAlloc) => {
@@ -202,16 +258,26 @@ const OperatorCapacity = () => {
       project.allocations.forEach((alloc) => {
         alloc.allocations.forEach((machineAlloc) => {
           if (machineAlloc.operator === operatorName) {
-            const allocStartDate = parseISO(machineAlloc.startDate);
-            const allocEndDate = parseISO(machineAlloc.endDate);
-
-            if (allocStartDate <= endDate && allocEndDate >= startDate) {
+            // Check if we should filter by date or not
+            if (!startDate || !endDate || startDate.getTime() === endDate.getTime()) {
               allAllocations.push({
                 ...machineAlloc,
                 projectName: project.projectName,
                 partName: alloc.partName,
                 processName: alloc.processName,
               });
+            } else {
+              const allocStartDate = parseISO(machineAlloc.startDate);
+              const allocEndDate = parseISO(machineAlloc.endDate);
+
+              if (allocStartDate <= endDate && allocEndDate >= startDate) {
+                allAllocations.push({
+                  ...machineAlloc,
+                  projectName: project.projectName,
+                  partName: alloc.partName,
+                  processName: alloc.processName,
+                });
+              }
             }
           }
         });
@@ -377,8 +443,7 @@ const OperatorCapacity = () => {
                       Occupied
                     </Badge>
                     <span>
-                      {stats.occupied} ({categoryOccupiedPercentage.toFixed(1)}
-                      %)
+                      {stats.occupied} ({categoryOccupiedPercentage.toFixed(1)}%)
                     </span>
                   </div>
                 </div>
