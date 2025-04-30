@@ -522,8 +522,8 @@ const OverheadsVariable = ({ partDetails, totalCost, onTotalCountUpdate }) => {
                         <div className="edit">
                           <button
                             className="btn btn-sm btn-success edit-item-btn"
-                            data-bs-toggle="modal"
-                            data-bs-target="#showModal"
+                            // data-bs-toggle="modal"
+                            // data-bs-target="#showModal"
                             onClick={() => tog_edit(item)}
                           >
                             Edit
@@ -532,8 +532,8 @@ const OverheadsVariable = ({ partDetails, totalCost, onTotalCountUpdate }) => {
                         <div className="remove">
                           <button
                             className="btn btn-sm btn-danger remove-item-btn"
-                            data-bs-toggle="modal"
-                            data-bs-target="#deleteRecordModal"
+                            // data-bs-toggle="modal"
+                            // data-bs-target="#deleteRecordModal"
                             onClick={() => {
                               setSelectedId(item._id);
                               tog_delete();

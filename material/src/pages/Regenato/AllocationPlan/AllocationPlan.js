@@ -496,10 +496,10 @@ const AllocationPlan = () => {
                       <div className="bg-light p-2 px-3 small d-flex justify-content-between align-items-center">
                         <div>
                           <h5 style={{ fontWeight: "bold" }}>
-                            {process.processName}
-                            {/* {process.processName} (
-                              {process.allocations[0]?.machineId || "N/A"}) -{" "} */}
-                            {/* {process.allocations[0]?.operator || "N/A"} */}
+                            {/* {process.processName} */}
+                            {process.processName} (
+                            {process.allocations[0]?.machineId || "N/A"}) -{" "}
+                            {process.allocations[0]?.operator || "N/A"}
                           </h5>
                         </div>
                       </div>
@@ -568,7 +568,7 @@ const AllocationPlan = () => {
                                   <td className="white-space-pre">
                                     {formatWordsInChunks(process.partName)}
                                   </td>
-                                  <td>{process.processId}</td>
+                                  <td>{process.processName}</td>
                                   <td className="text-center">
                                     {allocation.plannedQuantity}
                                   </td>
