@@ -29,13 +29,13 @@ const Home = () => {
           {/* Recharts Section */}
           <Row>
             <Col lg={6}>
-              <RechartsLineChart />
+              <ChartJSPieChart />
             </Col>
             <Col lg={6}>
-              <RechartsBarChart />
+              {/* <ChartJSMixedChart /> */}
             </Col>
           </Row>
-          <Row>
+          {/* <Row>
             <Col lg={6}>
               <RechartsPieChart />
             </Col>
@@ -43,29 +43,30 @@ const Home = () => {
               <RechartsMixedChart />
             </Col>
           </Row>
+          <Row>
+            <Col lg={6}>
+              <RechartsLineChart />
+            </Col>
+            <Col lg={6}>
+              <RechartsBarChart />
+            </Col>
+          </Row> */}
 
           {/* Chart.js Section */}
-          <Row>
+          {/* <Row>
             <Col lg={6}>
               <ChartJSLineChart />
             </Col>
             <Col lg={6}>
               <ChartJSBarChart />
             </Col>
-          </Row>
-          <Row>
-            <Col lg={6}>
-              <ChartJSPieChart />
-            </Col>
-            <Col lg={6}>
-              <ChartJSMixedChart />
-            </Col>
-          </Row>
-          <Row>
+          </Row> */}
+
+          {/* <Row>
             <Col lg={12}>
               <BigMultiChart />
             </Col>
-          </Row>
+          </Row> */}
           {/* <Row>
             <Col lg={12}>
               <BigChartJS />

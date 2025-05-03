@@ -612,11 +612,24 @@ const List = () => {
   //   let statusColor = "primary";
 
   //   const checkAllocations = (list) => {
+  //     // Check if list exists and is an array
+  //     if (!Array.isArray(list)) return;
+
   //     list.forEach((partsList) => {
+  //       // Check if partsList and partsListItems exist
+  //       if (!partsList || !Array.isArray(partsList.partsListItems)) return;
+
   //       partsList.partsListItems.forEach((item) => {
+  //         // Check if item and allocations exist
+  //         if (!item || !Array.isArray(item.allocations)) return;
+
   //         item.allocations.forEach((allocationGroup) => {
+  //           // Check if allocationGroup and allocations exist
+  //           if (!allocationGroup || !Array.isArray(allocationGroup.allocations))
+  //             return;
+
   //           allocationGroup.allocations.forEach((allocation) => {
-  //             if (allocation.actualEndDate && allocation.endDate) {
+  //             if (allocation?.actualEndDate && allocation?.endDate) {
   //               const actualEnd = new Date(allocation.actualEndDate);
   //               const plannedEnd = new Date(allocation.endDate);
 
@@ -634,60 +647,113 @@ const List = () => {
   //     });
   //   };
 
-  //   checkAllocations(project.partsLists);
-  //   checkAllocations(project.subAssemblyListFirst);
-  //   checkAllocations(project.assemblyList);
+  //   // Check each list with proper null checks
+  //   if (project.partsLists) checkAllocations(project.partsLists);
+  //   if (project.subAssemblyListFirst)
+  //     checkAllocations(project.subAssemblyListFirst);
+  //   if (project.assemblyList) checkAllocations(project.assemblyList);
 
   //   return <Badge color={statusColor}>{status}</Badge>;
   // };
 
-  // In your List component, add this function
-
   const getStatus = (project) => {
-    let status = "On Track";
-    let statusColor = "primary";
+    // Default state - Not Allocated
+    let status = "Not Allocated";
+    let statusColor = "secondary";
 
-    const checkAllocations = (list) => {
-      // Check if list exists and is an array
-      if (!Array.isArray(list)) return;
+    // Check if any parts exist in the project
+    const hasPartsItems = project.partsLists?.some(
+      (list) => list.partsListItems && list.partsListItems.length > 0
+    );
+    const hasSubAssemblyItems = project.subAssemblyListFirst?.some(
+      (list) => list.partsListItems && list.partsListItems.length > 0
+    );
+    const hasAssemblyItems = project.assemblyList?.some(
+      (list) => list.partsListItems && list.partsListItems.length > 0
+    );
 
-      list.forEach((partsList) => {
-        // Check if partsList and partsListItems exist
-        if (!partsList || !Array.isArray(partsList.partsListItems)) return;
+    // If no parts exist at all, return Not Allocated
+    if (!hasPartsItems && !hasSubAssemblyItems && !hasAssemblyItems) {
+      return <Badge color={statusColor}>{status}</Badge>;
+    }
 
-        partsList.partsListItems.forEach((item) => {
-          // Check if item and allocations exist
-          if (!item || !Array.isArray(item.allocations)) return;
+    // Helper function to check if any allocations exist in a parts list item
+    const hasAllocations = (partsListItem) => {
+      return (
+        partsListItem.allocations &&
+        Array.isArray(partsListItem.allocations) &&
+        partsListItem.allocations.length > 0
+      );
+    };
 
-          item.allocations.forEach((allocationGroup) => {
-            // Check if allocationGroup and allocations exist
-            if (!allocationGroup || !Array.isArray(allocationGroup.allocations))
-              return;
+    // Check if any parts have allocations
+    const hasAnyAllocations =
+      project.partsLists?.some((list) =>
+        list.partsListItems?.some(hasAllocations)
+      ) ||
+      project.subAssemblyListFirst?.some((list) =>
+        list.partsListItems?.some(hasAllocations)
+      ) ||
+      project.assemblyList?.some((list) =>
+        list.partsListItems?.some(hasAllocations)
+      );
 
-            allocationGroup.allocations.forEach((allocation) => {
-              if (allocation?.actualEndDate && allocation?.endDate) {
-                const actualEnd = new Date(allocation.actualEndDate);
-                const plannedEnd = new Date(allocation.endDate);
+    // If no allocations exist but parts exist, return "Not Allocated"
+    if (!hasAnyAllocations) {
+      return <Badge color={statusColor}>{status}</Badge>;
+    }
+
+    // If we have allocations but no tracking data, return "Allocated"
+    status = "Allocated";
+    statusColor = "info";
+
+    // Helper function to check tracking status
+    const checkTrackingStatus = (partsListItem) => {
+      if (!partsListItem.allocations) return;
+
+      partsListItem.allocations.forEach((allocationGroup) => {
+        if (!allocationGroup.allocations) return;
+
+        allocationGroup.allocations.forEach((allocation) => {
+          if (allocation.dailyTracking && allocation.dailyTracking.length > 0) {
+            allocation.dailyTracking.forEach((tracking) => {
+              if (tracking.actualEndDate && tracking.endDate) {
+                const actualEnd = new Date(tracking.actualEndDate);
+                const plannedEnd = new Date(tracking.endDate);
 
                 if (actualEnd > plannedEnd) {
                   status = "Delayed";
                   statusColor = "danger";
-                } else if (actualEnd < plannedEnd) {
+                } else if (actualEnd < plannedEnd && status !== "Delayed") {
                   status = "Ahead";
                   statusColor = "success";
+                } else if (status === "Allocated") {
+                  status = "On Track";
+                  statusColor = "primary";
                 }
+              } else if (status === "Allocated") {
+                // If we have tracking but no dates, consider it "On Track"
+                status = "On Track";
+                statusColor = "primary";
               }
             });
-          });
+          }
         });
       });
     };
 
-    // Check each list with proper null checks
-    if (project.partsLists) checkAllocations(project.partsLists);
-    if (project.subAssemblyListFirst)
-      checkAllocations(project.subAssemblyListFirst);
-    if (project.assemblyList) checkAllocations(project.assemblyList);
+    // Check tracking status in all parts lists
+    project.partsLists?.forEach((list) => {
+      list.partsListItems?.forEach(checkTrackingStatus);
+    });
+
+    project.subAssemblyListFirst?.forEach((list) => {
+      list.partsListItems?.forEach(checkTrackingStatus);
+    });
+
+    project.assemblyList?.forEach((list) => {
+      list.partsListItems?.forEach(checkTrackingStatus);
+    });
 
     return <Badge color={statusColor}>{status}</Badge>;
   };

@@ -762,16 +762,16 @@ const ManufacturingVariable = ({
                     <div className="d-flex gap-2">
                       <button
                         className="btn btn-sm btn-success edit-item-btn"
-                        data-bs-toggle="modal"
-                        data-bs-target="#showModal"
+                        // data-bs-toggle="modal"
+                        // data-bs-target="#showModal"
                         onClick={() => tog_edit(item)}
                       >
                         Edit
                       </button>
                       <button
                         className="btn btn-sm btn-danger remove-item-btn"
-                        data-bs-toggle="modal"
-                        data-bs-target="#deleteRecordModal"
+                        // data-bs-toggle="modal"
+                        // data-bs-target="#deleteRecordModal"
                         onClick={() => {
                           setSelectedId(item._id);
                           tog_delete();
@@ -849,7 +849,7 @@ const ManufacturingVariable = ({
             {subMachineOptions.length > 0 && (
               <div className="mb-3">
                 <label htmlFor="subMachine" className="form-label">
-                  Sub Machine
+                Specify Machine
                 </label>
                 <Autocomplete
                   options={subMachineOptions}
@@ -860,9 +860,9 @@ const ManufacturingVariable = ({
                   renderInput={(params) => (
                     <TextField
                       {...params}
-                      label="Select Sub Machine"
+                      label="Select Specify Machine"
                       variant="outlined"
-                      required={subMachineOptions.length > 0}
+                      // required={subMachineOptions.length > 0}
                     />
                   )}
                 />
