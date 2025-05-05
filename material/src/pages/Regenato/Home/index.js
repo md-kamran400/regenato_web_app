@@ -14,6 +14,7 @@ import BigMultiChart from "./BigMultiChart";
 import BigChartJS from "./BigChartJS";
 import MachineCapacityChart from "./MachineCapacityChart";
 import OperatorCapacityChart from "./OperatorCapacityChart";
+import PoDailyInput from "./PoDailyInput";
 
 const Home = () => {
   // document.title="Projects | Velzon - React Admin & Dashboard Template";
@@ -34,22 +35,6 @@ const Home = () => {
               <ChartJSPieChart />
             </Col>
           </Row>
-          {/* <Row>
-            <Col lg={6}>
-              <RechartsPieChart />
-            </Col>
-            <Col lg={6}>
-              <RechartsMixedChart />
-            </Col>
-          </Row>
-          <Row>
-            <Col lg={6}>
-              <RechartsLineChart />
-            </Col>
-            <Col lg={6}>
-              <RechartsBarChart />
-            </Col>
-          </Row> */}
 
           {/* Chart.js Section */}
           <Row>
@@ -61,16 +46,9 @@ const Home = () => {
             </Col>
           </Row>
 
-          {/* <Row>
-            <Col lg={12}>
-              <BigMultiChart />
-            </Col>
-          </Row> */}
-          {/* <Row>
-            <Col lg={12}>
-              <BigChartJS />
-            </Col>
-          </Row> */}
+          <Row lg={12}>
+            <PoDailyInput />
+          </Row>
         </Container>
       </div>
     </React.Fragment>

@@ -28,7 +28,7 @@ const ChartJSPieChart = () => {
     setIsLoading(true);
     try {
       const response = await axios.get(
-        "http://localhost:4040/api/defpartproject/projects"
+        `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects`
       );
       setProjects(response.data);
     } catch (error) {
@@ -192,7 +192,7 @@ const ChartJSPieChart = () => {
 
   // Get projects filtered by selected status
   const getFilteredProjects = () => {
-    if (!selectedStatus) return [];
+    if (!selectedStatus) return projects;
     return projects.filter((project) => {
       const { status } = getStatus(project);
       return status === selectedStatus;
@@ -208,7 +208,14 @@ const ChartJSPieChart = () => {
       const statusLabels = Object.keys(statusData).filter(
         (key) => statusData[key] > 0
       );
-      setSelectedStatus(statusLabels[clickedIndex]);
+      const clickedStatus = statusLabels[clickedIndex];
+
+      // Toggle filter if same status is clicked again
+      if (selectedStatus === clickedStatus) {
+        setSelectedStatus(null);
+      } else {
+        setSelectedStatus(clickedStatus);
+      }
     }
   };
 
@@ -289,11 +296,11 @@ const ChartJSPieChart = () => {
   };
 
   return (
-    <Card className="shadow border-0">
+    <Card >
       <CardHeader className="bg-white border-bottom d-flex justify-content-between align-items-center">
         <h5 className="mb-0 d-flex align-items-center">
           <i className="ri-pie-chart-2-line mr-2"></i>
-          Project Status Overview
+          PO Status Overview
         </h5>
         <Button
           color="light"
@@ -303,7 +310,17 @@ const ChartJSPieChart = () => {
         >
           <i className={`ri-refresh-line ${isLoading ? "d-none" : ""}`}></i>
           <span className="ml-1">Refresh</span>
-          {isLoading && <Spinner size="sm" className="ml-2" />}
+          {isLoading && (
+            <Spinner
+              size="sm"
+              style={{
+                width: "1rem",
+                height: "1rem",
+                borderWidth: "0.15em",
+                marginLeft: "1rem",
+              }}
+            />
+          )}
         </Button>
       </CardHeader>
       <CardBody>
@@ -343,6 +360,23 @@ const ChartJSPieChart = () => {
                           <li
                             key={status}
                             className="mb-2 d-flex align-items-center"
+                            onClick={() => {
+                              // Toggle filter if same status is clicked
+                              if (selectedStatus === status) {
+                                setSelectedStatus(null);
+                              } else {
+                                setSelectedStatus(status);
+                              }
+                            }}
+                            style={{
+                              cursor: "pointer",
+                              backgroundColor:
+                                selectedStatus === status
+                                  ? "rgba(0, 0, 0, 0.05)"
+                                  : "transparent",
+                              borderRadius: "4px",
+                              padding: "4px 8px",
+                            }}
                           >
                             <StatusBadge status={status} />
                             <span className="text-muted flex-grow-1 ml-2">
@@ -383,8 +417,8 @@ const ChartJSPieChart = () => {
                   <h5 className="mb-0 d-flex align-items-center">
                     <i className="ri-table-line mr-2"></i>
                     {selectedStatus
-                      ? `${selectedStatus} Projects`
-                      : "All Projects"}
+                      ? `${selectedStatus} Projects (${filteredProjects.length})`
+                      : `All Projects (${projects.length})`}
                     {selectedStatus && (
                       <Button
                         color="link"
@@ -412,8 +446,8 @@ const ChartJSPieChart = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {(selectedStatus ? filteredProjects : projects).map(
-                          (project) => {
+                        {filteredProjects.length > 0 ? (
+                          filteredProjects.map((project) => {
                             const { status, statusColor } = getStatus(project);
                             return (
                               <tr key={project._id}>
@@ -429,7 +463,16 @@ const ChartJSPieChart = () => {
                                 </td>
                               </tr>
                             );
-                          }
+                          })
+                        ) : (
+                          <tr>
+                            <td colSpan="4" className="text-center py-4">
+                              <i className="ri-information-line display-4 text-muted"></i>
+                              <p className="mt-3 mb-0 text-muted">
+                                No projects match the selected filter
+                              </p>
+                            </td>
+                          </tr>
                         )}
                       </tbody>
                     </Table>

@@ -48,7 +48,6 @@ const MachineCapacityChart = () => {
 
           return {
             name: category.name,
-            total: category.subCategories.length,
             available: category.subCategories.length - occupied,
             occupied: occupied,
           };
@@ -69,8 +68,12 @@ const MachineCapacityChart = () => {
   if (error) return <div>Error: {error}</div>;
 
   return (
-    <div style={{ width: "100%", height: 400 }}>
+    <div
+      style={{ width: "100%", height: 400, borderRadius: "8px",marginTop:'2rem' }}
+      className="shadow border-0"
+    >
       <h3>Machine Capacity Overview</h3>
+
       <ResponsiveContainer width="100%" height="90%">
         <BarChart
           data={data}
@@ -88,7 +91,7 @@ const MachineCapacityChart = () => {
             textAnchor="end"
             height={60}
             label={{
-              value: "Manufacturing Process",
+              value: "",
               position: "insideBottom",
               offset: -30,
             }}
@@ -100,21 +103,22 @@ const MachineCapacityChart = () => {
               position: "insideLeft",
             }}
           />
+
           <Tooltip />
-          <Legend />
-          <Bar
-            dataKey="total"
-            stackId="a"
-            fill="#8884d8"
-            name="Total Machines"
-          />
+
           <Bar
             dataKey="available"
             stackId="a"
             fill="#82ca9d"
             name="Available Machines"
           />
-          <Bar dataKey="occupied" fill="#ffc658" name="Occupied Machines" />
+          <Bar
+            dataKey="occupied"
+            stackId="a"
+            fill="#F44336"
+            name="Occupied Machines"
+          />
+          {/* <Legend style={{marginTop:'10rem'}} /> */}
         </BarChart>
       </ResponsiveContainer>
     </div>
