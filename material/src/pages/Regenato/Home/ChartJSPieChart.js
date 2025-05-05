@@ -10,6 +10,7 @@ import {
   Badge,
   Spinner,
   Button,
+  Table,
 } from "reactstrap";
 import { toast } from "react-toastify";
 import axios from "axios";
@@ -20,6 +21,7 @@ const ChartJSPieChart = () => {
   const [projects, setProjects] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshCount, setRefreshCount] = useState(0);
+  const [selectedStatus, setSelectedStatus] = useState(null);
 
   // Fetch projects from API
   const fetchProjects = async () => {
@@ -48,7 +50,7 @@ const ChartJSPieChart = () => {
     toast.info("Refreshing project data...");
   };
 
-  // Enhanced getStatus function
+  // Enhanced getStatus function with updated logic
   const getStatus = (project) => {
     // Default state - Not Allocated
     let status = "Not Allocated";
@@ -70,18 +72,12 @@ const ChartJSPieChart = () => {
       return { status, statusColor };
     }
 
-    // Helper function to check if any allocations exist
+    // Helper function to check if any allocations exist in a parts list item
     const hasAllocations = (partsListItem) => {
       return (
         partsListItem.allocations &&
         Array.isArray(partsListItem.allocations) &&
-        partsListItem.allocations.length > 0 &&
-        partsListItem.allocations.some(
-          (allocGroup) =>
-            allocGroup.allocations &&
-            Array.isArray(allocGroup.allocations) &&
-            allocGroup.allocations.length > 0
-        )
+        partsListItem.allocations.length > 0
       );
     };
 
@@ -110,32 +106,48 @@ const ChartJSPieChart = () => {
     const checkTrackingStatus = (partsListItem) => {
       if (!partsListItem.allocations) return;
 
-      partsListItem.allocations.forEach((allocGroup) => {
-        if (!allocGroup.allocations) return;
+      partsListItem.allocations.forEach((allocationGroup) => {
+        if (!allocationGroup.allocations) return;
 
-        allocGroup.allocations.forEach((allocation) => {
-          if (allocation.dailyTracking && allocation.dailyTracking.length > 0) {
-            allocation.dailyTracking.forEach((tracking) => {
-              if (tracking.actualEndDate && tracking.endDate) {
-                const actualEnd = new Date(tracking.actualEndDate);
-                const plannedEnd = new Date(tracking.endDate);
+        allocationGroup.allocations.forEach((allocation) => {
+          if (allocation.actualEndDate && allocation.endDate) {
+            const actualEnd = new Date(allocation.actualEndDate);
+            const plannedEnd = new Date(allocation.endDate);
 
-                if (actualEnd > plannedEnd) {
-                  status = "Delayed";
-                  statusColor = "danger";
-                } else if (actualEnd < plannedEnd && status !== "Delayed") {
-                  status = "Ahead";
-                  statusColor = "success";
-                } else if (status === "Allocated") {
-                  status = "On Track";
-                  statusColor = "primary";
-                }
-              } else if (status === "Allocated") {
-                // If we have tracking but no dates, consider it "On Track"
-                status = "On Track";
-                statusColor = "primary";
-              }
-            });
+            if (actualEnd > plannedEnd) {
+              status = "Delayed";
+              statusColor = "danger";
+            } else if (actualEnd < plannedEnd && status !== "Delayed") {
+              status = "Ahead";
+              statusColor = "success";
+            } else if (status === "Allocated") {
+              status = "On Track";
+              statusColor = "primary";
+            }
+          } else if (
+            allocation.dailyTracking &&
+            allocation.dailyTracking.length > 0
+          ) {
+            // If we have tracking but no actualEndDate yet, check daily progress
+            const totalProduced = allocation.dailyTracking.reduce(
+              (sum, track) => sum + (track.produced || 0),
+              0
+            );
+            const totalPlanned = allocation.dailyTracking.reduce(
+              (sum, track) => sum + (track.planned || 0),
+              0
+            );
+
+            if (totalProduced < totalPlanned) {
+              status = "Delayed";
+              statusColor = "danger";
+            } else if (totalProduced > totalPlanned && status !== "Delayed") {
+              status = "Ahead";
+              statusColor = "success";
+            } else if (status === "Allocated") {
+              status = "On Track";
+              statusColor = "primary";
+            }
           }
         });
       });
@@ -178,6 +190,28 @@ const ChartJSPieChart = () => {
   const statusData = processStatusData();
   const totalProjects = projects.length;
 
+  // Get projects filtered by selected status
+  const getFilteredProjects = () => {
+    if (!selectedStatus) return [];
+    return projects.filter((project) => {
+      const { status } = getStatus(project);
+      return status === selectedStatus;
+    });
+  };
+
+  const filteredProjects = getFilteredProjects();
+
+  // Handle chart click to filter projects by status
+  const handleChartClick = (elements) => {
+    if (elements.length > 0) {
+      const clickedIndex = elements[0].index;
+      const statusLabels = Object.keys(statusData).filter(
+        (key) => statusData[key] > 0
+      );
+      setSelectedStatus(statusLabels[clickedIndex]);
+    }
+  };
+
   // Chart data configuration
   const chartData = {
     labels: Object.keys(statusData).filter((key) => statusData[key] > 0),
@@ -207,6 +241,7 @@ const ChartJSPieChart = () => {
   const chartOptions = {
     responsive: true,
     maintainAspectRatio: false,
+    onClick: (_, elements) => handleChartClick(elements),
     plugins: {
       legend: {
         position: "right",
@@ -247,7 +282,9 @@ const ChartJSPieChart = () => {
     };
 
     return (
-      <Badge color={colorMap[status]} pill className="mr-2 status-badge" />
+      <Badge color={colorMap[status]} className="badge-pill">
+        {status}
+      </Badge>
     );
   };
 
@@ -289,47 +326,116 @@ const ChartJSPieChart = () => {
             </Button>
           </div>
         ) : (
-          <Row>
-            <Col lg="7" xl="8">
-              <div style={{ height: "350px", position: "relative" }}>
-                <Pie data={chartData} options={chartOptions} />
-              </div>
-            </Col>
-            <Col lg="5" xl="4" className="mt-4 mt-lg-0">
-              <div className="status-legend pl-lg-4">
-                <h6 className="mb-3">Status Breakdown</h6>
-                <ul className="list-unstyled">
-                  {Object.entries(statusData)
-                    .filter(([_, count]) => count > 0)
-                    .map(([status, count]) => (
-                      <li
-                        key={status}
-                        className="mb-2 d-flex align-items-center"
-                      >
-                        <StatusBadge status={status} />
-                        <span className="text-muted flex-grow-1">{status}</span>
+          <Row className="g-4">
+            {/* Chart Section */}
+            <Col lg={6}>
+              <Card className="h-100">
+                <CardBody>
+                  <div style={{ height: "300px", position: "relative" }}>
+                    <Pie data={chartData} options={chartOptions} />
+                  </div>
+                  <div className="status-legend mt-4">
+                    <h6 className="mb-3">Status Breakdown</h6>
+                    <ul className="list-unstyled">
+                      {Object.entries(statusData)
+                        .filter(([_, count]) => count > 0)
+                        .map(([status, count]) => (
+                          <li
+                            key={status}
+                            className="mb-2 d-flex align-items-center"
+                          >
+                            <StatusBadge status={status} />
+                            <span className="text-muted flex-grow-1 ml-2">
+                              {status}
+                            </span>
+                            <span className="font-weight-bold">
+                              {count}{" "}
+                              <small className="text-muted">
+                                ({Math.round((count / totalProjects) * 100)}%)
+                              </small>
+                            </span>
+                          </li>
+                        ))}
+                    </ul>
+                    <div className="mt-4 pt-2 border-top">
+                      <div className="d-flex justify-content-between">
+                        <span className="text-muted">Total Projects</span>
                         <span className="font-weight-bold">
-                          {count}{" "}
-                          <small className="text-muted">
-                            ({Math.round((count / totalProjects) * 100)}%)
-                          </small>
+                          {totalProjects}
                         </span>
-                      </li>
-                    ))}
-                </ul>
-                <div className="mt-4 pt-2 border-top">
-                  <div className="d-flex justify-content-between">
-                    <span className="text-muted">Total Projects</span>
-                    <span className="font-weight-bold">{totalProjects}</span>
+                      </div>
+                      <div className="d-flex justify-content-between mt-2">
+                        <span className="text-muted">Last Updated</span>
+                        <span className="font-weight-bold">
+                          {new Date().toLocaleTimeString()}
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="d-flex justify-content-between mt-2">
-                    <span className="text-muted">Last Updated</span>
-                    <span className="font-weight-bold">
-                      {new Date().toLocaleTimeString()}
-                    </span>
+                </CardBody>
+              </Card>
+            </Col>
+
+            {/* Table Section */}
+            <Col lg={6}>
+              <Card className="h-100">
+                <CardHeader className="bg-white border-bottom">
+                  <h5 className="mb-0 d-flex align-items-center">
+                    <i className="ri-table-line mr-2"></i>
+                    {selectedStatus
+                      ? `${selectedStatus} Projects`
+                      : "All Projects"}
+                    {selectedStatus && (
+                      <Button
+                        color="link"
+                        size="sm"
+                        className="ml-2"
+                        onClick={() => setSelectedStatus(null)}
+                      >
+                        Clear Filter
+                      </Button>
+                    )}
+                  </h5>
+                </CardHeader>
+                <CardBody className="p-0">
+                  <div
+                    className="table-responsive"
+                    style={{ maxHeight: "500px", overflowY: "auto" }}
+                  >
+                    <Table hover className="mb-0">
+                      <thead className="bg-light">
+                        <tr>
+                          <th>Project Name</th>
+                          <th>Project Type</th>
+                          <th>Status</th>
+                          <th>Created Date</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(selectedStatus ? filteredProjects : projects).map(
+                          (project) => {
+                            const { status, statusColor } = getStatus(project);
+                            return (
+                              <tr key={project._id}>
+                                <td>{project.projectName}</td>
+                                <td>{project.projectType}</td>
+                                <td>
+                                  <Badge color={statusColor}>{status}</Badge>
+                                </td>
+                                <td>
+                                  {new Date(
+                                    project.createdAt
+                                  ).toLocaleDateString()}
+                                </td>
+                              </tr>
+                            );
+                          }
+                        )}
+                      </tbody>
+                    </Table>
                   </div>
-                </div>
-              </div>
+                </CardBody>
+              </Card>
             </Col>
           </Row>
         )}

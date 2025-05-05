@@ -19,6 +19,7 @@
     "@fullcalendar/resource-timeline": "^6.1.15",
     "@fullcalendar/timegrid": "^6.1.15",
     "@mdi/font": "^7.4.47",
+    "@mui/icons-material": "^7.0.2",
     "@mui/material": "^6.1.4",
     "@reduxjs/toolkit": "^2.0.1",
     "@simonwep/pickr": "^1.9.0",

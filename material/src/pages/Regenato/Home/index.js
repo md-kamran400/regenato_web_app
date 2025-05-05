@@ -12,6 +12,8 @@ import ChartJSPieChart from "./ChartJSPieChart";
 import ChartJSMixedChart from "./ChartJSMixedChart";
 import BigMultiChart from "./BigMultiChart";
 import BigChartJS from "./BigChartJS";
+import MachineCapacityChart from "./MachineCapacityChart";
+import OperatorCapacityChart from "./OperatorCapacityChart";
 
 const Home = () => {
   // document.title="Projects | Velzon - React Admin & Dashboard Template";
@@ -28,11 +30,8 @@ const Home = () => {
 
           {/* Recharts Section */}
           <Row>
-            <Col lg={6}>
+            <Col lg={12}>
               <ChartJSPieChart />
-            </Col>
-            <Col lg={6}>
-              {/* <ChartJSMixedChart /> */}
             </Col>
           </Row>
           {/* <Row>
@@ -53,14 +52,14 @@ const Home = () => {
           </Row> */}
 
           {/* Chart.js Section */}
-          {/* <Row>
+          <Row>
             <Col lg={6}>
-              <ChartJSLineChart />
+              <MachineCapacityChart />
             </Col>
             <Col lg={6}>
-              <ChartJSBarChart />
+              <OperatorCapacityChart />
             </Col>
-          </Row> */}
+          </Row>
 
           {/* <Row>
             <Col lg={12}>

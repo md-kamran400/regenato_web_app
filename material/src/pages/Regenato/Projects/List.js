@@ -660,7 +660,7 @@ const List = () => {
     // Default state - Not Allocated
     let status = "Not Allocated";
     let statusColor = "secondary";
-
+  
     // Check if any parts exist in the project
     const hasPartsItems = project.partsLists?.some(
       (list) => list.partsListItems && list.partsListItems.length > 0
@@ -671,21 +671,21 @@ const List = () => {
     const hasAssemblyItems = project.assemblyList?.some(
       (list) => list.partsListItems && list.partsListItems.length > 0
     );
-
+  
     // If no parts exist at all, return Not Allocated
     if (!hasPartsItems && !hasSubAssemblyItems && !hasAssemblyItems) {
       return <Badge color={statusColor}>{status}</Badge>;
     }
-
+  
     // Helper function to check if any allocations exist in a parts list item
     const hasAllocations = (partsListItem) => {
       return (
-        partsListItem.allocations &&
+        partsListItem.allocations && 
         Array.isArray(partsListItem.allocations) &&
         partsListItem.allocations.length > 0
       );
     };
-
+  
     // Check if any parts have allocations
     const hasAnyAllocations =
       project.partsLists?.some((list) =>
@@ -697,64 +697,75 @@ const List = () => {
       project.assemblyList?.some((list) =>
         list.partsListItems?.some(hasAllocations)
       );
-
+  
     // If no allocations exist but parts exist, return "Not Allocated"
     if (!hasAnyAllocations) {
       return <Badge color={statusColor}>{status}</Badge>;
     }
-
+  
     // If we have allocations but no tracking data, return "Allocated"
     status = "Allocated";
     statusColor = "info";
-
+  
     // Helper function to check tracking status
     const checkTrackingStatus = (partsListItem) => {
       if (!partsListItem.allocations) return;
-
+  
       partsListItem.allocations.forEach((allocationGroup) => {
         if (!allocationGroup.allocations) return;
-
+  
         allocationGroup.allocations.forEach((allocation) => {
-          if (allocation.dailyTracking && allocation.dailyTracking.length > 0) {
-            allocation.dailyTracking.forEach((tracking) => {
-              if (tracking.actualEndDate && tracking.endDate) {
-                const actualEnd = new Date(tracking.actualEndDate);
-                const plannedEnd = new Date(tracking.endDate);
-
-                if (actualEnd > plannedEnd) {
-                  status = "Delayed";
-                  statusColor = "danger";
-                } else if (actualEnd < plannedEnd && status !== "Delayed") {
-                  status = "Ahead";
-                  statusColor = "success";
-                } else if (status === "Allocated") {
-                  status = "On Track";
-                  statusColor = "primary";
-                }
-              } else if (status === "Allocated") {
-                // If we have tracking but no dates, consider it "On Track"
-                status = "On Track";
-                statusColor = "primary";
-              }
-            });
+          if (allocation.actualEndDate && allocation.endDate) {
+            const actualEnd = new Date(allocation.actualEndDate);
+            const plannedEnd = new Date(allocation.endDate);
+  
+            if (actualEnd > plannedEnd) {
+              status = "Delayed";
+              statusColor = "danger";
+            } else if (actualEnd < plannedEnd && status !== "Delayed") {
+              status = "Ahead";
+              statusColor = "success";
+            } else if (status === "Allocated") {
+              status = "On Track";
+              statusColor = "primary";
+            }
+          } else if (allocation.dailyTracking && allocation.dailyTracking.length > 0) {
+            // If we have tracking but no actualEndDate yet, check daily progress
+            const totalProduced = allocation.dailyTracking.reduce(
+              (sum, track) => sum + (track.produced || 0), 0
+            );
+            const totalPlanned = allocation.dailyTracking.reduce(
+              (sum, track) => sum + (track.planned || 0), 0
+            );
+  
+            if (totalProduced < totalPlanned) {
+              status = "Delayed";
+              statusColor = "danger";
+            } else if (totalProduced > totalPlanned && status !== "Delayed") {
+              status = "Ahead";
+              statusColor = "success";
+            } else if (status === "Allocated") {
+              status = "On Track";
+              statusColor = "primary";
+            }
           }
         });
       });
     };
-
+  
     // Check tracking status in all parts lists
     project.partsLists?.forEach((list) => {
       list.partsListItems?.forEach(checkTrackingStatus);
     });
-
+  
     project.subAssemblyListFirst?.forEach((list) => {
       list.partsListItems?.forEach(checkTrackingStatus);
     });
-
+  
     project.assemblyList?.forEach((list) => {
       list.partsListItems?.forEach(checkTrackingStatus);
     });
-
+  
     return <Badge color={statusColor}>{status}</Badge>;
   };
 
