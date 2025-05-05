@@ -4262,4 +4262,88 @@ partproject.get("/all-allocations", async (req, res) => {
 //   }
 // });
 
+
+// GET all daily tracking data from all projects
+partproject.get("/daily-tracking", async (req, res) => {
+  try {
+    // Find all projects and project only the necessary fields
+    const projects = await PartListProjectModel.find({})
+      .lean();
+ 
+    // Function to extract daily tracking from allocations
+    const extractDailyTracking = (allocations, projectName) => {
+      return allocations.flatMap(allocation =>
+        allocation.allocations.flatMap(alloc =>
+          alloc.dailyTracking.map(track => ({
+            ...track,
+            projectName: projectName,
+            partName: allocation.partName,
+            processName: allocation.processName,
+            processId: allocation.processId,
+            partsCodeId: allocation.partsCodeId,
+            splitNumber: alloc.splitNumber,
+            machineId: alloc.machineId,
+            shift: alloc.shift,
+            operator: alloc.operator
+          }))
+        )
+      );
+    };
+ 
+    // Process all projects and collect all daily tracking
+    const allDailyTracking = projects.flatMap(project => {
+      const projectTracking = [];
+     
+      // Extract from parts lists
+      if (project.partsLists) {
+        project.partsLists.forEach(partsList => {
+          partsList.partsListItems.forEach(part => {
+            if (part.allocations) {
+              projectTracking.push(
+                ...extractDailyTracking(part.allocations, project.projectName)
+              );
+            }
+          });
+        });
+      }
+ 
+      // Extract from sub assemblies
+      if (project.subAssemblyListFirst) {
+        project.subAssemblyListFirst.forEach(subAssembly => {
+          subAssembly.partsListItems.forEach(part => {
+            if (part.allocations) {
+              projectTracking.push(
+                ...extractDailyTracking(part.allocations, project.projectName)
+              );
+            }
+          });
+        });
+      }
+ 
+      // Extract from assemblies
+      if (project.assemblyList) {
+        project.assemblyList.forEach(assembly => {
+          assembly.partsListItems.forEach(part => {
+            if (part.allocations) {
+              projectTracking.push(
+                ...extractDailyTracking(part.allocations, project.projectName)
+              );
+            }
+          });
+        });
+      }
+ 
+      return projectTracking;
+    });
+ 
+    res.json({
+      count: allDailyTracking.length,
+      dailyTracking: allDailyTracking
+    });
+  } catch (error) {
+    console.error('Error fetching all daily tracking:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
 module.exports = partproject;
