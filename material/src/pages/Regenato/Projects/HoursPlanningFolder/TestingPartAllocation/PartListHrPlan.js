@@ -295,7 +295,6 @@ export const PartListHrPlan = ({
     };
   };
 
- 
   const getMachineStatus = (machine, startDate, endDate) => {
     if (!machine)
       return {
@@ -772,7 +771,6 @@ export const PartListHrPlan = ({
     };
   };
 
-  
   const handleStartDateChange = (index, rowIndex, date) => {
     if (!date) return;
 
@@ -895,10 +893,17 @@ export const PartListHrPlan = ({
               endDate = new Date(calcEnd);
             }
 
-            // Find first available operator
-            const firstOperator = operators.find((op) =>
-              isOperatorAvailable(op.name, startDate, endDate)
-            );
+            // ✅ FIXED: Properly filter operator availability
+            const availableOperators = operators.filter((operator) => {
+              const isOnLeave = isOperatorOnLeave(operator, startDate, endDate);
+              const { available } = isOperatorAvailable(
+                `${operator.categoryId} - ${operator.name}`,
+                startDate,
+                endDate
+              );
+              return !isOnLeave && available;
+            });
+            const firstOperator = availableOperators[0];
 
             // Prepare for next process
             currentDate = new Date(endDate);
@@ -987,7 +992,6 @@ export const PartListHrPlan = ({
     return `${year}-${month}-${day}`;
   };
 
- 
   const calculateEndDateWithDowntime = (
     startDate,
     plannedMinutes,
@@ -1243,7 +1247,6 @@ export const PartListHrPlan = ({
               (shift) => shift.name === row.shift
             );
 
-  
             groupedAllocations[key].allocations.push({
               splitNumber,
               AllocationPartType: "Part",
@@ -2172,7 +2175,7 @@ export const PartListHrPlan = ({
                                   row.endDate
                                 );
                                 const { status } = isOperatorAvailable(
-                                  option.name,
+                                  `${option.categoryId} - ${option.name}`,
                                   row.startDate,
                                   row.endDate
                                 );
@@ -2184,9 +2187,8 @@ export const PartListHrPlan = ({
                                     : ""
                                 }`;
                               }}
-                              // In your Autocomplete component:
                               renderOption={(props, option) => {
-                                const operatorName = `${option.categoryId} - ${option.name}`; // Format matches your allocation keys
+                                const operatorName = `${option.categoryId} - ${option.name}`;
                                 const isOnLeave = isOperatorOnLeave(
                                   option,
                                   row.startDate,
@@ -2198,18 +2200,7 @@ export const PartListHrPlan = ({
                                     row.startDate,
                                     row.endDate
                                   );
-                                const isDisabled =
-                                  isOnLeave || status === "Occupied";
-
-                                // Debug log
-                                console.log(`Operator: ${operatorName}`, {
-                                  status,
-                                  allocation,
-                                  isOnLeave,
-                                  isDisabled,
-                                  startDate: row.startDate,
-                                  endDate: row.endDate,
-                                });
+                                const isDisabled = status === "Occupied";
 
                                 return (
                                   <li
@@ -2226,6 +2217,9 @@ export const PartListHrPlan = ({
                                         ? "not-allowed"
                                         : "pointer",
                                       opacity: isDisabled ? 0.7 : 1,
+                                      pointerEvents: isDisabled
+                                        ? "none"
+                                        : "auto", // prevents click
                                     }}
                                   >
                                     <div
@@ -2332,46 +2326,47 @@ export const PartListHrPlan = ({
                                 );
                               }}
                               onChange={(event, newValue) => {
-                                if (!hasStartDate) return;
+                                if (!hasStartDate || !newValue) return;
 
-                                if (newValue) {
-                                  const isOnLeave = isOperatorOnLeave(
-                                    newValue,
+                                const operatorName = `${newValue.categoryId} - ${newValue.name}`;
+                                const isOnLeave = isOperatorOnLeave(
+                                  newValue,
+                                  row.startDate,
+                                  row.endDate
+                                );
+                                const { available, status } =
+                                  isOperatorAvailable(
+                                    operatorName,
                                     row.startDate,
                                     row.endDate
                                   );
-                                  const { available } = isOperatorAvailable(
-                                    newValue.name,
-                                    row.startDate,
-                                    row.endDate
+
+                                if (status === "Occupied") {
+                                  event.preventDefault();
+                                  toast.error(
+                                    `${newValue.name} is already occupied during the selected dates`
                                   );
+                                  return;
+                                }
 
-                                  if (isOnLeave) {
-                                    toast.error(
-                                      `${newValue.name} is on leave during the selected dates`
-                                    );
-                                    return;
-                                  }
-
-                                  if (!available) {
-                                    toast.error(
-                                      `${newValue.name} is already occupied during the selected dates`
-                                    );
-                                    return;
-                                  }
-
-                                  const isAlreadySelected = rows[index].some(
-                                    (r, idx) =>
-                                      idx !== rowIndex &&
-                                      r.operatorId === newValue._id
+                                if (isOnLeave) {
+                                  toast.error(
+                                    `${newValue.name} is on leave during the selected dates`
                                   );
+                                  return;
+                                }
 
-                                  if (isAlreadySelected) {
-                                    toast.error(
-                                      `${newValue.name} is already assigned to another row in this process`
-                                    );
-                                    return;
-                                  }
+                                const isAlreadySelected = rows[index].some(
+                                  (r, idx) =>
+                                    idx !== rowIndex &&
+                                    r.operatorId === newValue._id
+                                );
+
+                                if (isAlreadySelected) {
+                                  toast.error(
+                                    `${newValue.name} is already assigned to another row in this process`
+                                  );
+                                  return;
                                 }
 
                                 setRows((prevRows) => ({
@@ -2380,9 +2375,7 @@ export const PartListHrPlan = ({
                                     if (idx === rowIndex) {
                                       return {
                                         ...r,
-                                        operatorId: newValue
-                                          ? newValue._id
-                                          : "",
+                                        operatorId: newValue._id,
                                       };
                                     }
                                     return r;
