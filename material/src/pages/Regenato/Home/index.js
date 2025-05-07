@@ -20,7 +20,7 @@ const Home = () => {
   const [userRole, setUserRole] = useState("");
 
   useEffect(() => {
-    const role = localStorage.getItem("role");
+    const role = localStorage.getItem("userRole");
     setUserRole(role);
   }, []);
 
