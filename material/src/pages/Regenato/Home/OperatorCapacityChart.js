@@ -11,8 +11,8 @@ import {
 } from "recharts";
 import {
   fetchManufacturingData,
-  fetchAllocationsData,
   fetchOperatorsData,
+  fetchAllocationsData,
 } from "./apiService";
 
 const OperatorCapacityChart = () => {
@@ -26,38 +26,39 @@ const OperatorCapacityChart = () => {
         setLoading(true);
 
         // Fetch data from APIs
-        const [manufacturingRes, allocationsRes, operatorsRes] =
+        const [manufacturingRes, operatorsRes, allocationsRes] =
           await Promise.all([
             fetchManufacturingData(),
-            fetchAllocationsData(),
             fetchOperatorsData(),
+            fetchAllocationsData(),
           ]);
 
         // Process data for chart
         const processedData = manufacturingRes.map((category) => {
-          // Count total operators for this process
-          const total = operatorsRes.filter(
+          // Filter operators for this manufacturing category
+          const categoryOperators = operatorsRes.filter(
             (operator) =>
               operator.processName &&
-              operator.processName.includes(category.name)
-          ).length;
+              operator.processName.some((process) =>
+                process.includes(category.name)
+              )
+          );
 
-          // Count occupied operators for this process
+          // Count total operators for this category
+          const totalOperators = categoryOperators.length;
+
+          // Find all operator IDs for this category
+          const operatorIds = categoryOperators.map(
+            (op) => `${op.categoryId} - ${op.name}`
+          );
+
+          // Count occupied operators for this category
           const occupiedOperators = new Set();
           allocationsRes.data.forEach((project) => {
-            project.allocations.forEach((alloc) => {
-              alloc.allocations.forEach((machineAlloc) => {
-                if (machineAlloc.operator) {
-                  const operator = operatorsRes.find(
-                    (op) => op.name === machineAlloc.operator
-                  );
-                  if (
-                    operator &&
-                    operator.processName &&
-                    operator.processName.includes(category.name)
-                  ) {
-                    occupiedOperators.add(machineAlloc.operator);
-                  }
+            project.allocations.forEach((allocation) => {
+              allocation.allocations.forEach((machineAlloc) => {
+                if (operatorIds.includes(machineAlloc.operator)) {
+                  occupiedOperators.add(machineAlloc.operator);
                 }
               });
             });
@@ -65,8 +66,9 @@ const OperatorCapacityChart = () => {
 
           return {
             name: category.name,
-            available: total - occupiedOperators.size,
+            available: totalOperators - occupiedOperators.size,
             occupied: occupiedOperators.size,
+            total: totalOperators,
           };
         });
 
@@ -130,13 +132,13 @@ const OperatorCapacityChart = () => {
             dataKey="available"
             stackId="a"
             fill="#82ca9d"
-            name="Available Machines"
+            name="Available Operators"
           />
           <Bar
             dataKey="occupied"
             stackId="a"
             fill="#F44336"
-            name="Occupied Machines"
+            name="Occupied Operators"
           />
         </BarChart>
       </ResponsiveContainer>

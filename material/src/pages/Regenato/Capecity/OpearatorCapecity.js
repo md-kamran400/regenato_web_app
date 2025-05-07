@@ -107,6 +107,7 @@ const OperatorCapacity = () => {
         });
       });
       setOccupiedOperators(occupiedOperatorNames.size);
+      console.log(occupiedOperatorNames);
 
       setLoading(false);
     } catch (error) {
@@ -117,8 +118,10 @@ const OperatorCapacity = () => {
 
   const calculateCategoryStats = () => {
     const stats = {};
+    const operatorCategoryMap = {}; // Track which operators belong to which categories
+    const operatorOccupiedMap = {}; // Track which operators are occupied in any category
 
-    // Initialize stats for each category
+    // Initialize category stats
     categories.forEach((category) => {
       stats[category._id] = {
         total: 0,
@@ -127,41 +130,42 @@ const OperatorCapacity = () => {
       };
     });
 
-    // Count operators per process category
+    // First pass: count total operators per category and build operator-category map
     operators.forEach((operator) => {
-      if (operator.processName && Array.isArray(operator.processName)) {
-        operator.processName.forEach((process) => {
-          const category = categories.find((cat) => cat.name === process);
+      if (Array.isArray(operator.processName)) {
+        operator.processName.forEach((procName) => {
+          const category = categories.find((cat) => cat.name === procName);
           if (category) {
             stats[category._id].total += 1;
+            if (!operatorCategoryMap[operator.name]) {
+              operatorCategoryMap[operator.name] = new Set();
+            }
+            operatorCategoryMap[operator.name].add(category._id);
           }
         });
       }
     });
 
-    const countedOperatorCategoryPairs = new Set();
+    // Second pass: identify occupied operators across all categories
     filteredAllocations.forEach((project) => {
       project.allocations.forEach((alloc) => {
         alloc.allocations.forEach((machineAlloc) => {
-          if (machineAlloc.operator) {
-            const operator = operators.find(
-              (op) => op.name === machineAlloc.operator
-            );
-            if (operator && operator.processName) {
-              operator.processName.forEach((process) => {
-                const category = categories.find((cat) => cat.name === process);
-                if (category) {
-                  const key = `${machineAlloc.operator}_${category._id}`;
-                  if (!countedOperatorCategoryPairs.has(key)) {
-                    stats[category._id].occupied += 1;
-                    countedOperatorCategoryPairs.add(key);
-                  }
-                }
-              });
-            }
-          }
+          if (!machineAlloc.operator) return;
+
+          const [opId, opName] = machineAlloc.operator.split(" - ");
+          const operatorName = opName || opId;
+          operatorOccupiedMap[operatorName] = true;
         });
       });
+    });
+
+    // Third pass: count occupied operators per category
+    Object.keys(operatorOccupiedMap).forEach((operatorName) => {
+      if (operatorCategoryMap[operatorName]) {
+        operatorCategoryMap[operatorName].forEach((categoryId) => {
+          stats[categoryId].occupied += 1;
+        });
+      }
     });
 
     setCategoryStats(stats);
@@ -230,37 +234,32 @@ const OperatorCapacity = () => {
     setOccupiedOperators(occupiedOperatorNames.size);
   };
 
-  const getOperatorAllocations = (operatorName) => {
+  const getOperatorAllocations = (operatorName, checkOccupied = false) => {
     const allAllocations = [];
+    const sourceData = checkOccupied ? allocations : filteredAllocations;
 
-    filteredAllocations.forEach((project) => {
+    sourceData.forEach((project) => {
       project.allocations.forEach((alloc) => {
         alloc.allocations.forEach((machineAlloc) => {
-          if (machineAlloc.operator === operatorName) {
-            // Check if we should filter by date or not
-            if (
+          if (!machineAlloc.operator) return;
+
+          const [opId, opName] = machineAlloc.operator.split(" - ");
+
+          if (opId === operatorName || opName === operatorName) {
+            const isWithinRange =
               !startDate ||
               !endDate ||
-              startDate.getTime() === endDate.getTime()
-            ) {
+              startDate.getTime() === endDate.getTime() ||
+              (parseISO(machineAlloc.startDate) <= endDate &&
+                parseISO(machineAlloc.endDate) >= startDate);
+
+            if (checkOccupied || isWithinRange) {
               allAllocations.push({
                 ...machineAlloc,
                 projectName: project.projectName,
                 partName: alloc.partName,
                 processName: alloc.processName,
               });
-            } else {
-              const allocStartDate = parseISO(machineAlloc.startDate);
-              const allocEndDate = parseISO(machineAlloc.endDate);
-
-              if (allocStartDate <= endDate && allocEndDate >= startDate) {
-                allAllocations.push({
-                  ...machineAlloc,
-                  projectName: project.projectName,
-                  partName: alloc.partName,
-                  processName: alloc.processName,
-                });
-              }
             }
           }
         });
