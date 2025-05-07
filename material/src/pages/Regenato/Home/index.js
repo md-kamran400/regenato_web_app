@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Card, CardBody, CardHeader, Col, Container, Row } from "reactstrap";
 import BreadCrumb from "../../../Components/Common/BreadCrumb";
 import Widgets from "./Widgets";
@@ -17,38 +17,59 @@ import OperatorCapacityChart from "./OperatorCapacityChart";
 import PoDailyInput from "./PoDailyInput";
 
 const Home = () => {
-  // document.title="Projects | Velzon - React Admin & Dashboard Template";
+  const [userRole, setUserRole] = useState("");
+
+  useEffect(() => {
+    const role = localStorage.getItem("userRole");
+    setUserRole(role);
+  }, []);
+
   return (
     <React.Fragment>
       <div className="page-content">
         <Container fluid>
           <BreadCrumb title="Home Page" pageTitle="Home" />
-          <Row className="project-wrapper">
-            <Col xxl={8}>
-              <Widgets />
-            </Col>
-          </Row>
 
-          {/* Recharts Section */}
-          <Row>
-            <Col lg={12}>
-              <ChartJSPieChart />
-            </Col>
-          </Row>
+          {userRole === "admin" ? (
+            <>
+              <Row className="project-wrapper">
+                <Col xxl={8}>
+                  <Widgets />
+                </Col>
+              </Row>
 
-          {/* Chart.js Section */}
-          <Row>
-            <Col lg={6}>
-              <MachineCapacityChart />
-            </Col>
-            <Col lg={6}>
-              <OperatorCapacityChart />
-            </Col>
-          </Row>
+              <Row>
+                <Col lg={12}>
+                  <ChartJSPieChart />
+                </Col>
+              </Row>
 
-          <Row lg={12}>
-            <PoDailyInput />
-          </Row>
+              <Row>
+                <Col lg={6}>
+                  <MachineCapacityChart />
+                </Col>
+                <Col lg={6}>
+                  <OperatorCapacityChart />
+                </Col>
+              </Row>
+
+              <Row lg={12}>
+                <PoDailyInput />
+              </Row>
+            </>
+          ) : (
+            <Row>
+              <Col>
+                <Card className="text-center mt-5">
+                  <CardHeader>Notice</CardHeader>
+                  <CardBody>
+                    <h4>Empty Home Page</h4>
+                    <p>This page is not available for your role.</p>
+                  </CardBody>
+                </Card>
+              </Col>
+            </Row>
+          )}
         </Container>
       </div>
     </React.Fragment>
