@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import Calendar from "@fullcalendar/react";
 import resourceTimelinePlugin from "@fullcalendar/resource-timeline";
 import adaptivePlugin from "@fullcalendar/adaptive";
-import "./PageTime.css"; // Import the CSS file
+import "./PageTime.css";
 import { Loader } from "lucide-react";
 
 const processColors = {
@@ -38,8 +38,7 @@ const fetchAllocationsData = async () => {
     `${process.env.REACT_APP_BASE_URL}/api/defpartproject/all-allocations`
   );
   const data = await response.json();
-  console.log(data.data);
-  return data.data; // Assuming the response structure has a `data` field
+  return data.data;
 };
 
 const transformManufacturingData = (manufacturingData) => {
@@ -56,76 +55,60 @@ const transformManufacturingData = (manufacturingData) => {
   return processes;
 };
 
-// const transformAllocationsData = (allocationsData, processes) => {
-//   const events = {};
-//   allocationsData.forEach((project) => {
-//     project.allocations.forEach((allocation) => {
-//       allocation.allocations.forEach((alloc) => {
-//         const processCode = alloc.machineId.split("-")[0];
-//         if (!events[processCode]) {
-//           events[processCode] = [];
-//         }
-//         events[processCode].push({
-//           id: `${processCode}-${alloc.machineId}-${alloc.startDate}`,
-//           resourceId: alloc.machineId,
-//           start: alloc.startDate,
-//           end: alloc.endDate,
-//           title: `${alloc.machineId} | ${allocation.partName} | ${alloc.orderNumber} | ${alloc.operator}`,
-//           backgroundColor: processColors[processCode]?.bg || "#000000",
-//           borderColor: processColors[processCode]?.border || "#000000",
-//           textColor: "#ffffff",
-//           extendedProps: {
-//             projectName: project.projectName,
-//             part: allocation.partName,
-//             po: alloc.orderNumber,
-//             machine: alloc.machineId,
-//             operator: alloc.operator,
-//             quantity: alloc.plannedQuantity,
-//             shift: alloc.shift,
-//             plannedTime: alloc.plannedTime,
-//           },
-//         });
-//       });
-//     });
-//   });
-//   return events;
-// };
-
 const transformAllocationsData = (allocationsData, processes) => {
   const events = {};
+
   allocationsData.forEach((project) => {
     project.allocations.forEach((allocation) => {
+      const processCode = allocation.processId;
+
+      if (!processes[processCode]) {
+        console.warn(`Process ${processCode} not found in manufacturing data`);
+        return;
+      }
+
       allocation.allocations.forEach((alloc) => {
-        const processCode = alloc.machineId.split("-")[0];
+        let machineId = alloc.machineId;
+        let resourceId = machineId; // Default to original machineId
+
+        // Special handling for VMC machines
+        if (processCode === "C1" && machineId.startsWith("VMCI")) {
+          // VMC Imported - keep original ID (VMCI001)
+          resourceId = machineId;
+        } else if (processCode === "C2" && machineId.startsWith("VMCL")) {
+          // VMC Local - keep original ID (VMCL001)
+          resourceId = machineId;
+        } else if (!machineId.includes("-")) {
+          // For other non-standard formats, convert to standard format
+          const machineNumber = machineId.replace(/\D/g, "").padStart(2, "0");
+          resourceId = `${processCode}-${machineNumber}`;
+        }
+
+        // Verify machine exists in process
+        const machineExists = processes[processCode].machines.some(
+          (m) => m.id === resourceId
+        );
+
+        if (!machineExists) {
+          console.warn(
+            `Machine ${resourceId} not found in process ${processCode}`
+          );
+          return;
+        }
+
         if (!events[processCode]) {
           events[processCode] = [];
         }
 
-        let startDate = new Date(alloc.startDate);
-        let endDate = new Date(alloc.endDate);
-
-        // For year view, we need to adjust the display dates
-        const yearViewStart = new Date(startDate);
-        const yearViewEnd = new Date(endDate);
-        
-        // If the event starts after the 1st of the month, adjust the display start to the actual day
-        if (startDate.getDate() > 1) {
-          yearViewStart.setDate(startDate.getDate());
-        }
-        
-        // If the event ends before the last day of the month, adjust the display end
-        if (endDate.getDate() < new Date(endDate.getFullYear(), endDate.getMonth() + 1, 0).getDate()) {
-          yearViewEnd.setDate(endDate.getDate());
-        }
+        const startDate = new Date(alloc.startDate);
+        const endDate = new Date(alloc.endDate);
 
         events[processCode].push({
-          id: `${processCode}-${alloc.machineId}-${alloc.startDate}`,
-          resourceId: alloc.machineId,
-          start: startDate.toISOString(),
-          end: endDate.toISOString(),
-          displayStart: yearViewStart.toISOString(),  // For year view display
-          displayEnd: yearViewEnd.toISOString(),      // For year view display
-          title: `${alloc.machineId} | ${allocation.partName} | ${alloc.orderNumber} | ${alloc.operator}`,
+          id: `${processCode}-${resourceId}-${alloc.startDate}`,
+          resourceId: resourceId,
+          start: startDate,
+          end: endDate,
+          title: `${resourceId} | ${allocation.partName} | ${alloc.orderNumber} | ${alloc.operator}`,
           backgroundColor: processColors[processCode]?.bg || "#000000",
           borderColor: processColors[processCode]?.border || "#000000",
           textColor: "#ffffff",
@@ -133,7 +116,7 @@ const transformAllocationsData = (allocationsData, processes) => {
             projectName: project.projectName,
             part: allocation.partName,
             po: alloc.orderNumber,
-            machine: alloc.machineId,
+            machine: resourceId,
             operator: alloc.operator,
             quantity: alloc.plannedQuantity,
             shift: alloc.shift,
@@ -143,11 +126,12 @@ const transformAllocationsData = (allocationsData, processes) => {
       });
     });
   });
+
   return events;
 };
 
 const TimePage = () => {
-  const [selectedProcess, setSelectedProcess] = useState("C1");
+  const [selectedProcess, setSelectedProcess] = useState(null);
   const [processes, setProcesses] = useState({});
   const [machines, setMachines] = useState({});
   const [events, setEvents] = useState({});
@@ -158,14 +142,19 @@ const TimePage = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const manufacturingData = await fetchManufacturingData();
-        const allocationsData = await fetchAllocationsData();
+        const [manufacturingData, allocationsData] = await Promise.all([
+          fetchManufacturingData(),
+          fetchAllocationsData(),
+        ]);
 
         const processesData = transformManufacturingData(manufacturingData);
         const eventsData = transformAllocationsData(
           allocationsData,
           processesData
         );
+
+        console.log("Processes data:", processesData);
+        console.log("Events data:", eventsData);
 
         setProcesses(processesData);
         setMachines(
@@ -176,9 +165,19 @@ const TimePage = () => {
         );
         setEvents(eventsData);
 
-        // Set default selected process to the first one if available
+        // Set default selected process to one with allocations
         if (Object.keys(processesData).length > 0) {
-          setSelectedProcess(Object.keys(processesData)[0]);
+          // Find processes with actual allocations
+          const processesWithAllocations = Object.keys(processesData).filter(
+            (code) => eventsData[code] && eventsData[code].length > 0
+          );
+
+          // Prefer C2 (VMC Local) if available, otherwise first process with allocations
+          const defaultProcess = processesWithAllocations.includes("C2")
+            ? "C2"
+            : processesWithAllocations[0] || Object.keys(processesData)[0];
+
+          setSelectedProcess(defaultProcess);
         }
 
         setLoading(false);
@@ -217,7 +216,26 @@ const TimePage = () => {
       </div>
     );
   }
-  
+
+  if (!selectedProcess) {
+    return (
+      <div className="timeline-container">
+        <div className="error-container">No processes available to display</div>
+      </div>
+    );
+  }
+
+  const resources = machines[selectedProcess] || [];
+  const validEvents = (events[selectedProcess] || []).filter((event) =>
+    resources.some((res) => res.id === event.resourceId)
+  );
+
+  if (resources.length === 0) {
+    console.warn(`No machines found for process ${selectedProcess}`);
+  }
+  if (validEvents.length === 0) {
+    console.warn(`No valid events found for process ${selectedProcess}`);
+  }
 
   return (
     <div className="timeline-container">
@@ -238,114 +256,102 @@ const TimePage = () => {
         </div>
       </div>
       <div className="calendar-container">
-        {selectedProcess && (
-          <Calendar
-            plugins={[resourceTimelinePlugin, adaptivePlugin]}
-            initialView="resourceTimelineMonth"
-            schedulerLicenseKey="CC-Attribution-NonCommercial-NoDerivatives"
-            buttonText={{
-              prev: "<", // Single left arrow
-              next: ">", // Single right arrow
-              today: "Today",
-            }}
-            headerToolbar={{
-              left: "prev today next",
-              center: "title",
-              right:
-                "resourceTimelineDay,resourceTimelineWeek,resourceTimelineMonth,resourceTimelineYear",
-            }}
-            resources={machines[selectedProcess] || []}
-            events={events[selectedProcess] || []}
-            resourceAreaWidth="150px"
-            height="auto"
-            contentHeight="auto"
-            aspectRatio={2.5}
-            slotMinWidth={100}
-            resourceAreaHeaderContent="Machine"
-            initialDate={new Date().toISOString().split("T")[0]}
-            views={{
-              resourceTimelineDay: {
-                duration: { days: 1 },
-                buttonText: "1D",
-                slotDuration: "02:00:00",
-                slotLabelFormat: {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                  hour12: false,
-                },
+        <Calendar
+          plugins={[resourceTimelinePlugin, adaptivePlugin]}
+          initialView="resourceTimelineMonth"
+          schedulerLicenseKey="CC-Attribution-NonCommercial-NoDerivatives"
+          buttonText={{
+            prev: "<",
+            next: ">",
+            today: "Today",
+          }}
+          headerToolbar={{
+            left: "prev today next",
+            center: "title",
+            right:
+              "resourceTimelineDay,resourceTimelineWeek,resourceTimelineMonth,resourceTimelineYear",
+          }}
+          resources={resources}
+          events={validEvents}
+          resourceAreaWidth="150px"
+          height="auto"
+          contentHeight="auto"
+          aspectRatio={2.5}
+          slotMinWidth={100}
+          resourceAreaHeaderContent="Machine"
+          initialDate={new Date().toISOString().split("T")[0]}
+          views={{
+            resourceTimelineDay: {
+              duration: { days: 1 },
+              buttonText: "1D",
+              slotDuration: "02:00:00",
+              slotLabelFormat: {
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: false,
               },
-              resourceTimelineWeek: {
-                duration: { weeks: 1 },
-                buttonText: "1W",
-                slotDuration: { days: 1 },
-                slotLabelFormat: [{ weekday: "short", day: "numeric" }],
-              },
-              resourceTimelineMonth: {
-                duration: { months: 1 },
-                buttonText: "1M",
-                slotDuration: { days: 1 },
-                slotLabelFormat: [{ day: "numeric" }],
-              },
-              // resourceTimelineYear: {
-              //   duration: { years: 1 },
-              //   buttonText: "1Y",
-              //   slotDuration: { months: 1 },
-              //   slotLabelFormat: [{ month: "short" }],
-              // },
-              resourceTimelineYear: {
-                duration: { years: 1 },
-                buttonText: "1Y",
-                slotDuration: { months: 1 },
-                slotLabelFormat: [{ month: "short" }],
-                eventDataTransform: function(eventData) {
-                  // For year view, use displayStart and displayEnd if they exist
-                  if (eventData.displayStart && eventData.displayEnd) {
-                    return {
-                      ...eventData,
-                      start: eventData.displayStart,
-                      end: eventData.displayEnd
-                    };
-                  }
-                  return eventData;
+            },
+            resourceTimelineWeek: {
+              duration: { weeks: 1 },
+              buttonText: "1W",
+              slotDuration: { days: 1 },
+              slotLabelFormat: [{ weekday: "short", day: "numeric" }],
+            },
+            resourceTimelineMonth: {
+              duration: { months: 1 },
+              buttonText: "1M",
+              slotDuration: { days: 1 },
+              slotLabelFormat: [{ day: "numeric" }],
+            },
+            resourceTimelineYear: {
+              duration: { years: 1 },
+              buttonText: "1Y",
+              slotDuration: { months: 1 },
+              slotLabelFormat: [{ month: "short" }],
+              eventDataTransform: function (eventData) {
+                if (eventData.displayStart && eventData.displayEnd) {
+                  return {
+                    ...eventData,
+                    start: eventData.displayStart,
+                    end: eventData.displayEnd,
+                  };
                 }
+                return eventData;
+              },
+            },
+          }}
+          eventContent={(arg) => {
+            const props = arg.event.extendedProps;
+            const divElement = document.createElement("div");
+            divElement.className = "timeline-event";
+            divElement.style.height = "24px";
+            divElement.innerText = `${props.machine} | ${props.part} | ${props.projectName} | ${props.operator}`;
+
+            return { domNodes: [divElement] };
+          }}
+          eventDidMount={(info) => {
+            const event = info.event;
+            const props = event.extendedProps;
+
+            info.el.style.height = "24px";
+
+            const tooltipContent = `
+              Project: ${props.projectName || "N/A"}
+              Machine: ${props.machine || "N/A"}
+              Part: ${props.part || "N/A"}
+              Operator: ${props.operator || "N/A"}
+              Quantity: ${props.quantity || "N/A"}
+              Shift: ${props.shift || "N/A"}
+              Planned Time: ${
+                props.plannedTime ? `${props.plannedTime} minutes` : "N/A"
               }
-            }}
-            eventContent={(arg) => {
-              const props = arg.event.extendedProps;
-              const divElement = document.createElement("div");
-              divElement.className = "timeline-event";
-              divElement.style.height = "24px";
-              divElement.innerText = `${props.machine} | ${props.part} | ${props.projectName} | ${props.operator}`;
+              Start: ${event.start ? event.start.toLocaleDateString() : "N/A"}
+              End: ${event.end ? event.end.toLocaleDateString() : "N/A"}
+            `;
 
-              return { domNodes: [divElement] };
-            }}
-            eventDidMount={(info) => {
-              const event = info.event;
-              const props = event.extendedProps;
-
-              // Set the element height
-              info.el.style.height = "24px";
-
-              // Create tooltip content
-              const tooltipContent = `
-                Project: ${props.projectName || "N/A"}
-                Machine: ${props.machine || "N/A"}
-                Part: ${props.part || "N/A"}
-                Operator: ${props.operator || "N/A"}
-                Quantity: ${props.quantity || "N/A"}
-                Shift: ${props.shift || "N/A"}
-                Planned Time: ${
-                  props.plannedTime ? `${props.plannedTime} minutes` : "N/A"
-                }
-                Start: ${event.start ? event.start.toLocaleDateString() : "N/A"}
-                End: ${event.end ? event.end.toLocaleDateString() : "N/A"}
-              `;
-
-              // Set the title attribute for the tooltip
-              info.el.setAttribute("title", tooltipContent);
-            }}
-          />
-        )}
+            info.el.setAttribute("title", tooltipContent);
+          }}
+        />
       </div>
     </div>
   );
