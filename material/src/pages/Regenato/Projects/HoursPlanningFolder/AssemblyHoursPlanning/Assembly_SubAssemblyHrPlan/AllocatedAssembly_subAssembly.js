@@ -406,6 +406,58 @@ export const AllocatedAssembly_subAssembly = ({
     );
   };
 
+  // Update the getWorkingDaysDifference function
+  const getWorkingDaysDifference = (startDate, endDate, holidays = []) => {
+    let diff = 0;
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    // Determine direction of comparison
+    const direction = start < end ? 1 : -1;
+    let current = new Date(start);
+
+    while (direction > 0 ? current <= end : current >= end) {
+      const day = current.getDay();
+      const isHoliday = holidays.some((holiday) =>
+        isSameDay(new Date(holiday), current)
+      );
+
+      // Only count if it's a working day (not Sunday and not holiday)
+      if (day !== 0 && !isHoliday) {
+        diff += direction;
+      }
+      current.setDate(current.getDate() + direction);
+    }
+
+    return diff;
+  };
+
+  // Update the isWorkingDayFrontend function
+  const isWorkingDayFrontend = (date, holidays = []) => {
+    const localDate = new Date(date);
+    const day = localDate.getDay(); // 0 = Sunday
+    const dateStr = localDate.toLocaleDateString("en-CA"); // YYYY-MM-DD
+
+    const isSunday = day === 0;
+    const isHoliday = holidays.some(
+      (holiday) => new Date(holiday).toLocaleDateString("en-CA") === dateStr
+    );
+
+    if (isSunday || isHoliday) {
+      return "highlighted-date";
+    }
+
+    return undefined;
+  };
+
+  function isSameDay(date1, date2) {
+    return (
+      date1.getFullYear() === date2.getFullYear() &&
+      date1.getMonth() === date2.getMonth() &&
+      date1.getDate() === date2.getDate()
+    );
+  }
+
   return (
     <div style={{ width: "100%" }}>
       <Container fluid className="mt-4">
@@ -571,6 +623,40 @@ export const AllocatedAssembly_subAssembly = ({
                         )}
                   </span>
                 </Col>
+
+                {process.env.NODE_ENV === "development" && (
+                  <div
+                    style={{
+                      marginTop: "20px",
+                      padding: "15px",
+                      borderRadius: "4px",
+                      display: "flex",
+                    }}
+                  >
+                    <div>
+                      <p>
+                        <span style={{ fontWeight: "bold" }}>
+                          Tentative Days:
+                        </span>{" "}
+                        {actulEndDateData.actualEndDate
+                          ? getWorkingDaysDifference(
+                              new Date(selectedSection.data[0].endDate),
+                              new Date(actulEndDateData.actualEndDate),
+                              highlightDates
+                            )
+                          : "N/A"}
+                      </p>
+                      <p>
+                        <strong>Total Produced:</strong>{" "}
+                        {existingDailyTracking.reduce(
+                          (sum, task) => sum + task.produced,
+                          0
+                        )}{" "}
+                        / {selectedSection.data[0].plannedQty}
+                      </p>
+                    </div>
+                  </div>
+                )}
               </Row>
 
               <div
@@ -695,13 +781,11 @@ export const AllocatedAssembly_subAssembly = ({
               <div>
                 <DatePicker
                   selected={
-                    dailyTracking[0].date
-                      ? new Date(dailyTracking[0].date)
-                      : new Date() // Default to current date
+                    dailyTracking[0].date ? new Date(dailyTracking[0].date) : ""
                   }
-                  onChange={(date) =>
-                    handleDailyTrackingChange(0, "date", date)
-                  }
+                  onChange={(date) => {
+                    handleDailyTrackingChange(0, "date", date);
+                  }}
                   dateFormat="dd-MM-yyyy"
                   className="form-control-date"
                   placeholderText="DD-MM-YYYY"
@@ -725,19 +809,17 @@ export const AllocatedAssembly_subAssembly = ({
                       ? new Date(selectedSection.data[0].endDate)
                       : null;
 
-                    // Block if holiday, Sunday, or after actual end date
-                    if (maxAllowedDate && date > maxAllowedDate) {
-                      return false;
-                    }
-
-                    return !isHoliday && !isSunday;
+                    return (
+                      !isHoliday &&
+                      !isSunday &&
+                      (!maxAllowedDate || date <= maxAllowedDate)
+                    );
                   }}
                   dayClassName={(date) => {
                     const isHighlighted = highlightDates.some(
                       (d) => d.toDateString() === date.toDateString()
                     );
                     const isSunday = date.getDay() === 0;
-
                     if (isHighlighted || isSunday) {
                       return "highlighted-date";
                     }
