@@ -93,46 +93,7 @@ export const EventScheduler = () => {
     // Set modal open state
     setModal(true);
   };
-  // const handleCreateEvent = () => {
-  //   if (eventName && startDate && endDate) {
-  //     const startDateUTC = moment(startDate).utc().toISOString();
-  //     const endDateUTC = moment(endDate).utc().toISOString();
-
-  //     const newEvent = {
-  //       eventName,
-  //       startDate: startDateUTC,
-  //       endDate: endDateUTC,
-  //     };
-
-  //     axios
-  //       .post(
-  //         `${process.env.REACT_APP_BASE_URL}/api/eventScheduler/events`,
-  //         newEvent
-  //       )
-  //       .then((response) => {
-  //         setEvents([
-  //           ...events,
-  //           {
-  //             title: response.data.eventName,
-  //             start: moment.utc(response.data.startDate).local().toDate(),
-  //             end: moment.utc(response.data.endDate).local().toDate(),
-  //             id: response.data._id,
-  //           },
-  //         ]);
-  //         setModal(false);
-  //         setEventName("");
-  //         setStartDate("");
-  //         setEndDate("");
-  //         toast.success("Event created successfully!");
-  //       })
-  //       .catch((err) => {
-  //         toast.error("Failed to create event");
-  //         console.log(err);
-  //       });
-  //   } else {
-  //     toast.error("Please fill all fields");
-  //   }
-  // };
+ 
   const handleCreateEvent = () => {
     if (eventName && startDate && endDate) {
       // Convert the selected dates to UTC without changing the actual date
