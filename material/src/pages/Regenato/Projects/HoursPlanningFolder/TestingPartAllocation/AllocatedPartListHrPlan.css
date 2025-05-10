@@ -4,7 +4,7 @@
   border-radius: 50% !important;
 }
 
-.form-control-date{
+.form-control-date {
   width: 26rem !important;
   padding: 2%;
   border-radius: 5px;
@@ -16,7 +16,7 @@
 .vertical-lines td {
   border-left: 2px solid #dee2e6;
   border-right: 2px solid #dee2e6;
-  border-top: 2px solid #dee2e6;  /* Horizontal lines - top */
+  border-top: 2px solid #dee2e6; /* Horizontal lines - top */
   border-bottom: 2px solid #dee2e6; /* Horizontal lines - bottom */
 }
 
@@ -29,5 +29,17 @@
 /* Header styling */
 .vertical-lines thead {
   background-color: #a00e0e; /* Dark header color */
-  color: rgb(0, 0, 0); 
+  color: rgb(0, 0, 0);
+}
+
+/* .highlighted-date {
+  color: #ccc !important;
+  background-color: #f8f9fa !important;
+  cursor: not-allowed !important;
+} */
+
+.react-datepicker__day--highlighted {
+  color: #ccc !important;
+  background-color: #f8f9fa !important;
+  cursor: not-allowed !important;
 }

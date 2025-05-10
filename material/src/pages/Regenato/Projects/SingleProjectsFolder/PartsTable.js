@@ -154,11 +154,6 @@ const PartsTable = React.memo(
       return { text: "Allocated", class: "badge bg-dark text-white" };
     };
 
-    // const handlePartsChange = useCallback((event, newValue) => {
-    //   setSelectedParts(newValue);
-    //   setSelectedPartIds(new Set(newValue.map((part) => part.id)));
-    // }, []);
-
     const handlePartsChange = useCallback((event, newValue) => {
       setSelectedParts(newValue);
       setSelectedPartIds(new Set(newValue.map((part) => part.id)));

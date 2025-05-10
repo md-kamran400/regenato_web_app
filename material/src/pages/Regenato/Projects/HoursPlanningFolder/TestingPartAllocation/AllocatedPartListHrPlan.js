@@ -48,6 +48,18 @@ export const AllocatedPartListHrPlan = ({
   const [isDateBlocked, setIsDateBlocked] = useState(false);
   const [highlightDates, setHighlightDates] = useState([]);
 
+  const [disableDates, setDisableDates] = useState([]);
+
+  useEffect(() => {
+    const disableDatesArray = [];
+    if (highlightDates.length > 0) {
+      highlightDates.forEach((dateString) => {
+        disableDatesArray.push(new Date(dateString));
+      });
+    }
+    setDisableDates(disableDatesArray);
+  }, [highlightDates]);
+
   useEffect(() => {
     const fetchHighlightDates = async () => {
       try {
@@ -406,6 +418,58 @@ export const AllocatedPartListHrPlan = ({
     );
   };
 
+  // Update the getWorkingDaysDifference function
+  const getWorkingDaysDifference = (startDate, endDate, holidays = []) => {
+    let diff = 0;
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    // Determine direction of comparison
+    const direction = start < end ? 1 : -1;
+    let current = new Date(start);
+
+    while (direction > 0 ? current <= end : current >= end) {
+      const day = current.getDay();
+      const isHoliday = holidays.some((holiday) =>
+        isSameDay(new Date(holiday), current)
+      );
+
+      // Only count if it's a working day (not Sunday and not holiday)
+      if (day !== 0 && !isHoliday) {
+        diff += direction;
+      }
+      current.setDate(current.getDate() + direction);
+    }
+
+    return diff;
+  };
+
+  // Update the isWorkingDayFrontend function
+  const isWorkingDayFrontend = (date, holidays = []) => {
+    const localDate = new Date(date);
+    const day = localDate.getDay(); // 0 = Sunday
+    const dateStr = localDate.toLocaleDateString("en-CA"); // YYYY-MM-DD
+
+    const isSunday = day === 0;
+    const isHoliday = holidays.some(
+      (holiday) => new Date(holiday).toLocaleDateString("en-CA") === dateStr
+    );
+
+    if (isSunday || isHoliday) {
+      return "highlighted-date";
+    }
+
+    return undefined;
+  };
+
+  function isSameDay(date1, date2) {
+    return (
+      date1.getFullYear() === date2.getFullYear() &&
+      date1.getMonth() === date2.getMonth() &&
+      date1.getDate() === date2.getDate()
+    );
+  }
+
   return (
     <div style={{ width: "100%" }}>
       <Container fluid className="mt-4">
@@ -481,17 +545,25 @@ export const AllocatedPartListHrPlan = ({
             </div>
           ))
         )}
-        <CardBody className="d-flex justify-content-end align-items-center">
-          {userRole === "admin" && (
-            <Button
-              color="danger"
-              onClick={() => setDeleteConfirmationModal(true)}
-              disabled={sections.length === 0}
-            >
-              Cancel Allocation
-            </Button>
-          )}
-        </CardBody>
+        <div className="d-flex justify-content-end">
+          <CardBody className="d-flex justify-content-end align-items-center">
+            {userRole === "admin" && (
+              <Button
+                color="danger"
+                onClick={() => setDeleteConfirmationModal(true)}
+                disabled={sections.length === 0}
+              >
+                Cancel Allocation
+              </Button>
+            )}
+          </CardBody>
+
+          <CardBody className="d-flex justify-content-start align-items-center">
+            {userRole === "admin" && (
+              <Button color="success">Complete Allocation</Button>
+            )}
+          </CardBody>
+        </div>
       </Container>
 
       {/* Modal for Updating Daily Task */}
@@ -552,16 +624,25 @@ export const AllocatedPartListHrPlan = ({
                     style={{
                       fontWeight: "bold",
                       color: (() => {
-                        const actualEndDate = actulEndDateData.actualEndDate
-                          ? moment(actulEndDateData.actualEndDate)
-                          : null;
-                        const endDate = moment(selectedSection.data[0].endDate);
+                        if (!actulEndDateData.actualEndDate) return "black";
 
-                        if (!actualEndDate) return "black"; // Default case
-                        if (actualEndDate.isSame(endDate, "day"))
-                          return "black"; // Dates are equal
-                        if (actualEndDate.isAfter(endDate, "day")) return "red"; // Delayed
-                        return "green"; // Completed early
+                        const actualEndDate = new Date(
+                          actulEndDateData.actualEndDate
+                        );
+                        const plannedEndDate = new Date(
+                          selectedSection.data[0].endDate
+                        );
+
+                        // Compare dates directly (not working days)
+                        if (
+                          actualEndDate.getTime() === plannedEndDate.getTime()
+                        ) {
+                          return "black";
+                        } else if (actualEndDate > plannedEndDate) {
+                          return "red"; // Delayed
+                        } else {
+                          return "green"; // Completed early
+                        }
                       })(),
                     }}
                   >
@@ -574,6 +655,40 @@ export const AllocatedPartListHrPlan = ({
                         )}
                   </span>
                 </Col>
+
+                {process.env.NODE_ENV === "development" && (
+                  <div
+                    style={{
+                      marginTop: "20px",
+                      padding: "15px",
+                      borderRadius: "4px",
+                      display: "flex",
+                    }}
+                  >
+                    <div>
+                      <p>
+                        <span style={{ fontWeight: "bold" }}>
+                          Tentative Days:
+                        </span>{" "}
+                        {actulEndDateData.actualEndDate
+                          ? getWorkingDaysDifference(
+                              new Date(selectedSection.data[0].endDate),
+                              new Date(actulEndDateData.actualEndDate),
+                              highlightDates
+                            )
+                          : "N/A"}
+                      </p>
+                      <p>
+                        <strong>Total Produced:</strong>{" "}
+                        {existingDailyTracking.reduce(
+                          (sum, task) => sum + task.produced,
+                          0
+                        )}{" "}
+                        / {selectedSection.data[0].plannedQty}
+                      </p>
+                    </div>
+                  </div>
+                )}
               </Row>
 
               <div
@@ -697,19 +812,10 @@ export const AllocatedPartListHrPlan = ({
               <div>
                 <DatePicker
                   selected={
-                    dailyTracking[0].date
-                      ? new Date(dailyTracking[0].date)
-                      : new Date() // default
+                    dailyTracking[0].date ? new Date(dailyTracking[0].date) : ""
                   }
                   onChange={(date) => {
                     handleDailyTrackingChange(0, "date", date);
-                  }}
-                  onCalendarClose={() => {
-                    // When the calendar closes, if no date was selected manually, set today's date
-                    if (!dailyTracking[0].date) {
-                      const today = new Date();
-                      handleDailyTrackingChange(0, "date", today);
-                    }
                   }}
                   dateFormat="dd-MM-yyyy"
                   className="form-control-date"
