@@ -36,6 +36,7 @@ export const PartListHrPlan = ({
   partListItemId,
   partManufacturingVariables,
   partsCodeId,
+  onUpdateAllocaitonStatus
 }) => {
   const userRole = localStorage.getItem("userRole");
   const [machineOptions, setMachineOptions] = useState({});
@@ -1438,6 +1439,7 @@ export const PartListHrPlan = ({
             partID={partID}
             partListItemId={partListItemId}
             onDeleteSuccess={handleDeleteSuccess}
+            onUpdateAllocaitonStatus={onUpdateAllocaitonStatus}
           />
         )}
         {activeTab === "actual" && !isDataAllocated && (

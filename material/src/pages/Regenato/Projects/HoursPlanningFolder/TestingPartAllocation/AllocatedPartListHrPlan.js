@@ -23,6 +23,7 @@ export const AllocatedPartListHrPlan = ({
   partID,
   partListItemId,
   onDeleteSuccess,
+  onUpdateAllocaitonStatus
 }) => {
   const userRole = localStorage.getItem("userRole");
   const [sections, setSections] = useState([]);
@@ -303,98 +304,191 @@ export const AllocatedPartListHrPlan = ({
     return totalQuantity - totalProduced;
   };
 
-  const submitDailyTracking = async () => {
-    setIsUpdating(true); // Set updating state to true
-    try {
-      if (!selectedSection || !selectedSection.data.length) {
-        toast.error("No allocation selected.");
-        return;
-      }
+//   const submitDailyTracking = async () => {
+//   setIsUpdating(true);
+//   try {
+//     if (!selectedSection || !selectedSection.data.length) {
+//       toast.error("No allocation selected.");
+//       return;
+//     }
 
-      const allocationId = selectedSection.allocationId;
-      const trackingId = selectedSection.data[0]?.trackingId;
+//     const allocationId = selectedSection.allocationId;
+//     const trackingId = selectedSection.data[0]?.trackingId;
 
-      if (!allocationId || !trackingId) {
-        toast.error("Allocation or Tracking ID is missing.");
-        console.error("Missing allocationId or trackingId:", {
-          allocationId,
-          trackingId,
-        });
-        return;
-      }
+//     if (!allocationId || !trackingId) {
+//       toast.error("Allocation or Tracking ID is missing.");
+//       console.error("Missing allocationId or trackingId:", {
+//         allocationId,
+//         trackingId,
+//       });
+//       return;
+//     }
 
-      // Validate each daily tracking entry
-      const isValid = dailyTracking.every((task) => {
-        const isValidTask =
-          task.date &&
-          !isNaN(new Date(task.date)) &&
-          !isNaN(Number(task.planned)) &&
-          !isNaN(Number(task.produced)) &&
-          task.dailyStatus;
+//     // Validate each daily tracking entry
+//     const isValid = dailyTracking.every((task) => {
+//       const isValidTask =
+//         task.date &&
+//         !isNaN(new Date(task.date)) &&
+//         !isNaN(Number(task.planned)) &&
+//         !isNaN(Number(task.produced)) &&
+//         task.dailyStatus;
 
-        if (!isValidTask) {
-          console.error("Invalid Task:", task);
-        }
+//       if (!isValidTask) {
+//         console.error("Invalid Task:", task);
+//       }
 
-        return isValidTask;
-      });
+//       return isValidTask;
+//     });
 
-      if (!isValid) {
-        toast.error("Invalid daily tracking data. Please check all fields.");
-        return;
-      }
+//     if (!isValid) {
+//       toast.error("Invalid daily tracking data. Please check all fields.");
+//       return;
+//     }
 
-      // Post each daily tracking entry individually
-      for (const task of dailyTracking) {
-        const formattedTask = {
+//     // Post each daily tracking entry individually
+//     for (const task of dailyTracking) {
+//       const formattedTask = {
+//         date: task.date,
+//         planned: Number(task.planned),
+//         produced: Number(task.produced),
+//         dailyStatus: task.dailyStatus,
+//         operator: task.operator,
+//       };
+
+//       const response = await axios.post(
+//         `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/allocations/${allocationId}/allocations/${trackingId}/dailyTracking`,
+//         formattedTask
+//       );
+
+//       // Update local state with the returned data
+//       if (response.data.data) {
+//         const { status, actualEndDate } = response.data.data;
+        
+//         // Update the parent component's state if needed
+//         // This assumes you have a way to update the parent component
+//         // You might need to pass a callback prop or use a state management solution
+//         if (onStatusUpdate) {
+//           onStatusUpdate({
+//             partListItemId,
+//             status,
+//             actualEndDate
+//           });
+//         }
+//       }
+//     }
+
+//     toast.success("Daily Tracking Updated Successfully!");
+
+//     // Fetch the updated data
+//     const updatedResponse = await axios.get(
+//       `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/allocations/${allocationId}/allocations/${trackingId}/dailyTracking`
+//     );
+
+//     setExistingDailyTracking(updatedResponse.data.dailyTracking || []);
+//     setactulEndDateData(updatedResponse.data);
+//     onUpdateAllocaitonStatus()
+//     // Reset the form
+//     setDailyTracking([{
+//       date: "",
+//       planned: Number(selectedSection.data[0].dailyPlannedQty) || 0,
+//       produced: 0,
+//       dailyStatus: "On Track",
+//       operator: selectedSection.data[0].operator || "",
+//     }]);
+
+//     closeAddRowModal();
+//   } catch (error) {
+//     toast.error("Failed to update daily tracking.");
+//     console.error("Error updating daily tracking:", error.response?.data || error);
+//   } finally {
+//     setIsUpdating(false);
+//   }
+// };
+
+
+const submitDailyTracking = async () => {
+  setIsUpdating(true);
+  try {
+    if (!selectedSection || !selectedSection.data.length) {
+      toast.error("No allocation selected.");
+      return;
+    }
+
+    const allocationId = selectedSection.allocationId;
+    const trackingId = selectedSection.data[0]?.trackingId;
+
+    if (!allocationId || !trackingId) {
+      toast.error("Allocation or Tracking ID is missing.");
+      return;
+    }
+
+    // Validate each daily tracking entry
+    const isValid = dailyTracking.every((task) => {
+      return (
+        task.date &&
+        !isNaN(new Date(task.date)) &&
+        !isNaN(Number(task.planned)) &&
+        !isNaN(Number(task.produced)) &&
+        task.dailyStatus
+      );
+    });
+
+    if (!isValid) {
+      toast.error("Invalid daily tracking data. Please check all fields.");
+      return;
+    }
+
+    // Post each daily tracking entry individually
+    for (const task of dailyTracking) {
+      const response = await axios.post(
+        `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/allocations/${allocationId}/allocations/${trackingId}/dailyTracking`,
+        {
           date: task.date,
           planned: Number(task.planned),
           produced: Number(task.produced),
-          dailyStatus: task.dailyStatus,
           operator: task.operator,
-        };
-
-        const response = await axios.post(
-          `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/allocations/${allocationId}/allocations/${trackingId}/dailyTracking`,
-          formattedTask // Send the task in the required format
-        );
-      }
-
-      toast.success("Daily Tracking Updated Successfully!");
-
-      // Fetch the updated daily tracking data
-      const updatedResponse = await axios.get(
-        `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/allocations/${allocationId}/allocations/${trackingId}/dailyTracking`
+          dailyStatus: task.dailyStatus
+        }
       );
-      setExistingDailyTracking(updatedResponse.data.dailyTracking || []);
-
-      // Update the actualEndDateData state with the fetched data
-      setactulEndDateData(updatedResponse.data);
-
-      // Reset the dailyTracking state to its initial value
-      setDailyTracking([
-        {
-          date: "",
-          planned: Number(selectedSection.data[0].dailyPlannedQty) || 0,
-          produced: 0,
-          dailyStatus: "On Track",
-          operator: selectedSection.data[0].operator || "",
-        },
-      ]);
-
-      // Close the add row modal
-      closeAddRowModal();
-    } catch (error) {
-      toast.error("Failed to update daily tracking.");
-      console.error(
-        "Error updating daily tracking:",
-        error.response?.data || error
-      );
-    } finally {
-      setIsUpdating(false); // Set updating state to false
+      onUpdateAllocaitonStatus(response.data);
+      console.log(response.data)
+      // // Update the parent component's state if needed
+      // if (response.data.data) {
+      //   const { status, actualEndDate } = response.data.data;
+      //   // Call the update function passed from parent
+      //   if (onUpdateAllocaitonStatus) {
+      //     onUpdateAllocaitonStatus();
+      //   }
+      // }
     }
-  };
 
+    toast.success("Daily Tracking Updated Successfully!");
+
+    // Fetch the updated data
+    const updatedResponse = await axios.get(
+      `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/allocations/${allocationId}/allocations/${trackingId}/dailyTracking`
+    );
+
+    setExistingDailyTracking(updatedResponse.data.dailyTracking || []);
+    setactulEndDateData(updatedResponse.data);
+    
+    // Reset the form
+    setDailyTracking([{
+      date: "",
+      planned: Number(selectedSection.data[0].dailyPlannedQty) || 0,
+      produced: 0,
+      dailyStatus: "On Track",
+      operator: selectedSection.data[0].operator || "",
+    }]);
+
+    closeAddRowModal();
+  } catch (error) {
+    toast.error("Failed to update daily tracking.");
+    console.error("Error updating daily tracking:", error);
+  } finally {
+    setIsUpdating(false);
+  }
+};
   const closeDailyTaskModal = () => {
     setDailyTaskModal(false);
     setDailyTracking([
@@ -558,11 +652,11 @@ export const AllocatedPartListHrPlan = ({
             )}
           </CardBody>
 
-          <CardBody className="d-flex justify-content-start align-items-center">
+          {/* <CardBody className="d-flex justify-content-start align-items-center">
             {userRole === "admin" && (
               <Button color="success">Complete Allocation</Button>
             )}
-          </CardBody>
+          </CardBody> */}
         </div>
       </Container>
 

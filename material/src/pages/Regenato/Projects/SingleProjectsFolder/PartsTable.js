@@ -106,8 +106,7 @@ const PartsTable = React.memo(
     const [open, setOpen] = useState(false);
 
     // fetching
-    useEffect(() => {
-      const fetchPartsListItems = async () => {
+    const fetchPartsListItems = async () => {
         try {
           const response = await fetch(
             // `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/partsLists/${partsList._id}/items`
@@ -124,7 +123,7 @@ const PartsTable = React.memo(
           // You might want to handle the error, e.g., show an error message to the user
         }
       };
-
+    useEffect(() => {
       fetchPartsListItems();
     }, [_id, partsList, partsListItemsUpdated]);
 
@@ -132,27 +131,27 @@ const PartsTable = React.memo(
       setPartsListItemsUpdated(false);
     }, [partsListItemsUpdated]);
 
-    const getStatus = (allocations) => {
-      if (!allocations || allocations.length === 0)
-        return {
-          text: "Not Allocated",
-          class: "badge bg-info text-white",
-        };
-      const allocation = allocations[0].allocations[0];
-      if (!allocation)
-        return { text: "Not Allocated", class: "badge bg-info text-white" };
+    // const getStatus = (allocations) => {
+    //   if (!allocations || allocations.length === 0)
+    //     return {
+    //       text: "Not Allocated",
+    //       class: "badge bg-info text-white",
+    //     };
+    //   const allocation = allocations[0].allocations[0];
+    //   if (!allocation)
+    //     return { text: "Not Allocated", class: "badge bg-info text-white" };
 
-      const actualEndDate = new Date(allocation.actualEndDate);
-      const endDate = new Date(allocation.endDate);
+    //   const actualEndDate = new Date(allocation.actualEndDate);
+    //   const endDate = new Date(allocation.endDate);
 
-      if (actualEndDate.getTime() === endDate.getTime())
-        return { text: "On Track", class: "badge bg-primary text-white" };
-      if (actualEndDate > endDate)
-        return { text: "Delayed", class: "badge bg-danger text-white" };
-      if (actualEndDate < endDate)
-        return { text: "Ahead", class: "badge bg-success-subtle text-success" };
-      return { text: "Allocated", class: "badge bg-dark text-white" };
-    };
+    //   if (actualEndDate.getTime() === endDate.getTime())
+    //     return { text: "On Track", class: "badge bg-primary text-white" };
+    //   if (actualEndDate > endDate)
+    //     return { text: "Delayed", class: "badge bg-danger text-white" };
+    //   if (actualEndDate < endDate)
+    //     return { text: "Ahead", class: "badge bg-success-subtle text-success" };
+    //   return { text: "Allocated", class: "badge bg-dark text-white" };
+    // };
 
     const handlePartsChange = useCallback((event, newValue) => {
       setSelectedParts(newValue);
@@ -335,6 +334,7 @@ const PartsTable = React.memo(
         );
         const data = await response.json();
         setPartsDisplay(data.partsListItems || []);
+        // console.log(data.partsListItems)
       } catch (error) {
         setError(error.message);
       } finally {
@@ -610,7 +610,7 @@ const PartsTable = React.memo(
           }}
         >
           {userRole === "admin" && (
-           <Button
+            <Button
               color="success"
               className="add-btn"
               onClick={toggleAddModal}
@@ -618,7 +618,6 @@ const PartsTable = React.memo(
               <i className="ri-add-line align-bottom me-1"></i> Add Part
             </Button>
           )}
-           
         </div>
 
         <Col
@@ -685,233 +684,216 @@ const PartsTable = React.memo(
                         </tr>
                       </thead>
                       <tbody>
-                        {partsListItems
-                          ?.filter((item) => {
-                            if (statusFilter === "all") return true;
-                            const status = getStatus(item.allocations);
-                            return status.text === statusFilter;
-                          })
-                          .map((item) => {
-                            const status = getStatus(item.allocations);
-                            return (
-                              <React.Fragment key={item._id}>
-                                <tr>
-                                  <td
-                                    onClick={() =>
-                                      handleRowClickParts(
-                                        item._id,
-                                        item.partName
-                                      )
-                                    }
-                                    className={
-                                      expandedRowId === item._id
-                                        ? "expanded"
-                                        : ""
-                                    }
+                        {partsListItems.map((item) => {
+                          return (
+                            <React.Fragment key={item._id}>
+                              <tr>
+                                <td
+                                  onClick={() =>
+                                    handleRowClickParts(item._id, item.partName)
+                                  }
+                                  className={
+                                    expandedRowId === item._id ? "expanded" : ""
+                                  }
+                                  style={{
+                                    cursor: "pointer",
+                                    color: "#64B5F6",
+                                  }}
+                                >
+                                  {item.partName} ({item.partsCodeId || ""})
+                                  {item.codeName || ""}
+                                </td>
+
+                                <td>
+                                  <span className={`badge ${item.statusClass}`}>
+                                    {item.status}
+                                  </span>
+                                </td>
+                                <td>{Math.round(item.costPerUnit || 0)}</td>
+                                <td>{formatTime(item.timePerUnit || 0)}</td>
+                                <td>
+                                  <div
                                     style={{
-                                      cursor: "pointer",
-                                      color: "#64B5F6",
+                                      display: "flex",
+                                      justifyContent: "space-between",
+                                      width: "80%",
                                     }}
                                   >
-                                    {item.partName} ({item.partsCodeId || ""})
-                                    {item.codeName || ""}
-                                  </td>
-                                  {/* <td>{getStatus(item.allocations)}</td> */}
-                                  <td>
-                                    <span
-                                      className={
-                                        getStatus(item.allocations).class
-                                      }
+                                    {parseInt(item.quantity || 0)}
+                                    <button
+                                      className="btn btn-sm btn-success edit-item-btn "
+                                      onClick={() => handleEditQuantity(item)}
                                     >
-                                      {getStatus(item.allocations).text}
-                                    </span>
-                                  </td>
-                                  <td>{Math.round(item.costPerUnit || 0)}</td>
-                                  <td>{formatTime(item.timePerUnit || 0)}</td>
-                                  <td>
-                                    <div
+                                      <FaEdit />
+                                    </button>
+                                  </div>
+                                </td>
+
+                                <td>
+                                  {Math.ceil(
+                                    parseFloat(item.costPerUnit || 0) *
+                                      parseInt(item.quantity || 0)
+                                  )}
+                                </td>
+                                <td>
+                                  {formatTime(
+                                    parseFloat(item.timePerUnit || 0) *
+                                      parseInt(item.quantity || 0)
+                                  )}
+                                </td>
+                                <td className="action-cell">
+                                  <div className="action-buttons">
+                                    <span
                                       style={{
-                                        display: "flex",
-                                        justifyContent: "space-between",
-                                        width: "80%",
+                                        color: "blue",
+                                        cursor: "pointer",
+                                        marginRight: "2px",
                                       }}
                                     >
-                                      {parseInt(item.quantity || 0)}
-                                      <button
-                                        className="btn btn-sm btn-success edit-item-btn "
-                                        onClick={() => handleEditQuantity(item)}
-                                      >
-                                        <FaEdit />
-                                      </button>
-                                    </div>
-                                  </td>
+                                      <FiSettings
+                                        size={20}
+                                        onClick={() => toggleModal(item)}
+                                        className={`settings-icon ${
+                                          modalOpenId === item._id
+                                            ? "rotate"
+                                            : ""
+                                        }`}
+                                      />
+                                    </span>
+                                    <span
+                                      style={{
+                                        color: "red",
+                                        cursor: "pointer",
+                                        marginLeft: "3px",
+                                      }}
+                                    >
+                                      <MdOutlineDelete
+                                        size={25}
+                                        onClick={() => toggleDeleteModal(item)}
+                                      />
+                                    </span>
+                                  </div>
+                                </td>
+                              </tr>
 
-                                  <td>
-                                    {Math.ceil(
-                                      parseFloat(item.costPerUnit || 0) *
-                                        parseInt(item.quantity || 0)
-                                    )}
-                                  </td>
-                                  <td>
-                                    {formatTime(
-                                      parseFloat(item.timePerUnit || 0) *
-                                        parseInt(item.quantity || 0)
-                                    )}
-                                  </td>
-                                  <td className="action-cell">
-                                    <div className="action-buttons">
-                                      <span
-                                        style={{
-                                          color: "blue",
-                                          cursor: "pointer",
-                                          marginRight: "2px",
-                                        }}
-                                      >
-                                        <FiSettings
-                                          size={20}
-                                          onClick={() => toggleModal(item)}
-                                          className={`settings-icon ${
-                                            modalOpenId === item._id
-                                              ? "rotate"
-                                              : ""
-                                          }`}
-                                        />
-                                      </span>
-                                      <span
-                                        style={{
-                                          color: "red",
-                                          cursor: "pointer",
-                                          marginLeft: "3px",
-                                        }}
-                                      >
-                                        <MdOutlineDelete
-                                          size={25}
-                                          onClick={() =>
-                                            toggleDeleteModal(item)
-                                          }
-                                        />
-                                      </span>
-                                    </div>
+                              {expandedRowId === item._id && (
+                                <tr>
+                                  <td colSpan="8">
+                                    <PartListHrPlan
+                                      partName={item.partName}
+                                      partsCodeId={item.partsCodeId}
+                                      partId={item.id}
+                                      manufacturingVariables={
+                                        item.manufacturingVariables || []
+                                      }
+                                      quantity={item.quantity}
+                                      porjectID={_id}
+                                      partID={partsListID}
+                                      partListItemId={item._id}
+                                      partManufacturingVariables={
+                                        item.manufacturingVariables
+                                      } // Add this line
+                                      onUpdateAllocaitonStatus={fetchPartsListItems}
+                                    />
                                   </td>
                                 </tr>
-
-                                {expandedRowId === item._id && (
-                                  <tr>
-                                    <td colSpan="8">
-                                      <PartListHrPlan
-                                        partName={item.partName}
-                                        partsCodeId={item.partsCodeId}
-                                        partId={item.id}
-                                        manufacturingVariables={
-                                          item.manufacturingVariables || []
-                                        }
-                                        quantity={item.quantity}
-                                        porjectID={_id}
-                                        partID={partsListID}
-                                        partListItemId={item._id}
-                                        partManufacturingVariables={
-                                          item.manufacturingVariables
-                                        } // Add this line
-                                      />
-                                    </td>
-                                  </tr>
-                                )}
-                                {modalOpenId === item._id && (
-                                  <Modal
-                                    isOpen={true}
+                              )}
+                              {modalOpenId === item._id && (
+                                <Modal
+                                  isOpen={true}
+                                  toggle={() => setModalOpenId(null)}
+                                  style={{ maxWidth: "80%" }}
+                                >
+                                  <ModalHeader
                                     toggle={() => setModalOpenId(null)}
-                                    style={{ maxWidth: "80%" }}
                                   >
-                                    <ModalHeader
-                                      toggle={() => setModalOpenId(null)}
+                                    <h5
+                                      className="mb-3 d-flex align-items-center"
+                                      style={{
+                                        fontWeight: "bold",
+                                        color: "#333",
+                                      }}
                                     >
-                                      <h5
-                                        className="mb-3 d-flex align-items-center"
+                                      <FiSettings
                                         style={{
+                                          fontSize: "1.2rem",
+                                          marginRight: "10px",
+                                          color: "#2563eb",
                                           fontWeight: "bold",
-                                          color: "#333",
                                         }}
-                                      >
-                                        <FiSettings
-                                          style={{
-                                            fontSize: "1.2rem",
-                                            marginRight: "10px",
-                                            color: "#2563eb",
-                                            fontWeight: "bold",
-                                          }}
+                                      />
+                                      {item.partName}
+                                    </h5>
+                                  </ModalHeader>
+                                  <ModalBody>
+                                    <div>
+                                      <div style={{ marginBottom: "20px" }}>
+                                        <RawMaterial
+                                          partName={item.partName}
+                                          rmVariables={item.rmVariables}
+                                          projectId={_id}
+                                          partId={partsList._id}
+                                          itemId={item._id}
+                                          source="partList"
+                                          rawMatarialsUpdate={onUpdatePrts}
+                                          quantity={item.quantity}
                                         />
-                                        {item.partName}
-                                      </h5>
-                                    </ModalHeader>
-                                    <ModalBody>
-                                      <div>
-                                        <div style={{ marginBottom: "20px" }}>
-                                          <RawMaterial
-                                            partName={item.partName}
-                                            rmVariables={item.rmVariables}
-                                            projectId={_id}
-                                            partId={partsList._id}
-                                            itemId={item._id}
-                                            source="partList"
-                                            rawMatarialsUpdate={onUpdatePrts}
-                                            quantity={item.quantity}
-                                          />
-                                        </div>
-
-                                        <div style={{ marginBottom: "20px" }}>
-                                          <Manufacturing
-                                            partName={item.partName}
-                                            manufacturingVariables={
-                                              item.manufacturingVariables || []
-                                            }
-                                            projectId={_id}
-                                            partId={partsList._id}
-                                            itemId={item._id}
-                                            onUpdateVariable={
-                                              updateManufacturingVariable
-                                            }
-                                            source="partList"
-                                            manufatcuringUpdate={onUpdatePrts}
-                                            quantity={item.quantity}
-                                          />
-                                        </div>
-
-                                        <div style={{ marginBottom: "20px" }}>
-                                          <Shipment
-                                            partName={item.partName}
-                                            projectId={_id}
-                                            partId={partsList._id}
-                                            itemId={item._id}
-                                            source="partList"
-                                            shipmentUpdate={onUpdatePrts}
-                                            shipmentVariables={
-                                              item.shipmentVariables || []
-                                            }
-                                            quantity={item.quantity}
-                                          />
-                                        </div>
-
-                                        <div>
-                                          <Overheads
-                                            partName={item.partName}
-                                            overheadsAndProfits={
-                                              item.overheadsAndProfits || []
-                                            }
-                                            projectId={_id}
-                                            partId={partsList._id}
-                                            itemId={item._id}
-                                            source="partList"
-                                            overHeadsUpdate={onUpdatePrts}
-                                            quantity={item.quantity}
-                                          />
-                                        </div>
                                       </div>
-                                    </ModalBody>
-                                  </Modal>
-                                )}
-                              </React.Fragment>
-                            );
-                          })}
+
+                                      <div style={{ marginBottom: "20px" }}>
+                                        <Manufacturing
+                                          partName={item.partName}
+                                          manufacturingVariables={
+                                            item.manufacturingVariables || []
+                                          }
+                                          projectId={_id}
+                                          partId={partsList._id}
+                                          itemId={item._id}
+                                          onUpdateVariable={
+                                            updateManufacturingVariable
+                                          }
+                                          source="partList"
+                                          manufatcuringUpdate={onUpdatePrts}
+                                          quantity={item.quantity}
+                                        />
+                                      </div>
+
+                                      <div style={{ marginBottom: "20px" }}>
+                                        <Shipment
+                                          partName={item.partName}
+                                          projectId={_id}
+                                          partId={partsList._id}
+                                          itemId={item._id}
+                                          source="partList"
+                                          shipmentUpdate={onUpdatePrts}
+                                          shipmentVariables={
+                                            item.shipmentVariables || []
+                                          }
+                                          quantity={item.quantity}
+                                        />
+                                      </div>
+
+                                      <div>
+                                        <Overheads
+                                          partName={item.partName}
+                                          overheadsAndProfits={
+                                            item.overheadsAndProfits || []
+                                          }
+                                          projectId={_id}
+                                          partId={partsList._id}
+                                          itemId={item._id}
+                                          source="partList"
+                                          overHeadsUpdate={onUpdatePrts}
+                                          quantity={item.quantity}
+                                        />
+                                      </div>
+                                    </div>
+                                  </ModalBody>
+                                </Modal>
+                              )}
+                            </React.Fragment>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
