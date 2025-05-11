@@ -350,8 +350,20 @@ partproject.post(
 
       // Push each part item to partsListItems
       itemsToAdd.forEach((item) => {
-        partsList.partsListItems.push({
-          partsCodeId: item.partsCodeId, // ✅ this is your updated field
+        // partsList.partsListItems.push({
+        //   partsCodeId: item.partsCodeId, 
+        //   partName: item.partName,
+        //   codeName: item.codeName || "",
+        //   costPerUnit: Number(item.costPerUnit || 0),
+        //   timePerUnit: Number(item.timePerUnit || 0),
+        //   quantity: Number(item.quantity || 0),
+        //   rmVariables: item.rmVariables || [],
+        //   manufacturingVariables: item.manufacturingVariables || [],
+        //   shipmentVariables: item.shipmentVariables || [],
+        //   overheadsAndProfits: item.overheadsAndProfits || [],
+        // });
+         const newItem = {
+          partsCodeId: item.partsCodeId,
           partName: item.partName,
           codeName: item.codeName || "",
           costPerUnit: Number(item.costPerUnit || 0),
@@ -361,8 +373,19 @@ partproject.post(
           manufacturingVariables: item.manufacturingVariables || [],
           shipmentVariables: item.shipmentVariables || [],
           overheadsAndProfits: item.overheadsAndProfits || [],
-        });
+        };
       });
+
+              // Create temporary item to compute status
+        const tempItem = new project.partsLists.create({ partsListItems: [newItem] }).partsListItems[0];
+        const status = tempItem.calculateStatus();
+
+        partsList.partsListItems.push({
+          ...newItem,
+          status: status.text,
+          statusClass: status.class,
+        });
+      
 
       await project.save();
 
@@ -433,41 +456,26 @@ partproject.put(
   }
 );
 
-//get the partlist item like base,ram
 partproject.get(
   "/projects/:projectId/partsLists/:listId/items",
   async (req, res) => {
     try {
       const { projectId, listId } = req.params;
-
-      // Validate project ID
-      if (!mongoose.Types.ObjectId.isValid(projectId)) {
-        return res
-          .status(400)
-          .json({ status: "error", message: "Invalid project ID format" });
-      }
-
-      // Find the project by ID
       const project = await PartListProjectModel.findById(projectId);
+      
       if (!project) {
-        return res
-          .status(404)
-          .json({ status: "error", message: "Project not found" });
+        return res.status(404).json({ status: "error", message: "Project not found" });
       }
 
-      // Find the parts list by ID
       const partsList = project.partsLists.id(listId);
       if (!partsList) {
-        return res
-          .status(404)
-          .json({ status: "error", message: "Parts list not found" });
+        return res.status(404).json({ status: "error", message: "Parts list not found" });
       }
 
-      // Send the parts list items
       res.status(200).json({
         status: "success",
         message: "Parts list items retrieved successfully",
-        data: partsList.partsListItems,
+        data: partsList.partsListItems
       });
     } catch (error) {
       res.status(500).json({ status: "error", message: error.message });
@@ -2874,12 +2882,20 @@ partproject.post(
 
       allocation.actualEndDate = finalEndDate;
 
-      await project.save();
+      // After updating the daily tracking
+        const updatedPart = updatedProject.partsLists.id(partsListId).partsListItems.id(partListItemId);
+        const status = updatedPart.calculateStatus();
 
-      res.status(201).json({
-        message: "Daily tracking added successfully",
-        allocation,
-      });
+        // Update virtual fields (they won't be saved to DB but will be included in response)
+        updatedPart.status = status.text;
+        updatedPart.statusClass = status.class;
+
+        await updatedProject.save();
+
+        res.status(200).json({
+          message: "Daily tracking updated successfully",
+          data: updatedPart.toObject() // This will include the virtuals
+        });
     } catch (error) {
       console.error(error);
       res.status(500).json({ error: "Server error" });

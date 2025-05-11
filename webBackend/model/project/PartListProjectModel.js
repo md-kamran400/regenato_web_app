@@ -14,8 +14,8 @@ const AllocationPlanningSchema = new mongoose.Schema(
       required: true,
     },
     partsCodeId: {
-     type: String,
-     required: true,
+      type: String,
+      required: true,
     },
     allocations: [
       {
@@ -114,7 +114,14 @@ const partSchema = new mongoose.Schema({
   costPerUnit: Number,
   timePerUnit: Number,
   quantity: Number,
-  allocationStatus: String,
+  status: {
+    type: String,
+    default: "Not Allocated",
+  },
+  statusClass: {
+    type: String,
+    default: "badge bg-info text-black",
+  },
   rmVariables: [
     {
       name: String,
@@ -174,23 +181,145 @@ const AssemblyListSchema = new mongoose.Schema({
   subAssemblies: [SubAssemblyListSchema],
 });
 
-const partprojectSchema = new mongoose.Schema({
-  projectName: String,
-  costPerUnit: Number,
-  timePerUnit: Number,
-  stockPoQty: Number,
-  projectType: String,
-  partsLists: [partsListSchema],
-  subAssemblyListFirst: [SubAssemblyListSchema],
-  assemblyList: [AssemblyListSchema],
-  machineHours: {
-    type: Object,
-    default: {},
-  },
+const partprojectSchema = new mongoose.Schema(
+  {
+    projectName: String,
+    costPerUnit: Number,
+    timePerUnit: Number,
+    stockPoQty: Number,
+    projectType: String,
+    partsLists: [partsListSchema],
+    subAssemblyListFirst: [SubAssemblyListSchema],
+    assemblyList: [AssemblyListSchema],
+    machineHours: {
+      type: Object,
+      default: {},
+    },
 
-  //for time traking
-  createdAt: { type: Date, default: Date.now },
-  updatedAt: { type: Date, default: Date.now },
+    //for time traking
+    createdAt: { type: Date, default: Date.now },
+    updatedAt: { type: Date, default: Date.now },
+  },
+  {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
+  }
+);
+
+partSchema.methods.calculateStatus = function () {
+  if (!this.allocations || this.allocations.length === 0) {
+    return {
+      text: "Not Allocated",
+      class: "badge bg-info text-white",
+    };
+  }
+
+  const process = this.allocations[0];
+  if (!process || !process.allocations || process.allocations.length === 0) {
+    return {
+      text: "Not Allocated",
+      class: "badge bg-info text-white",
+    };
+  }
+
+  const allocation = process.allocations[0];
+  if (!allocation) {
+    return {
+      text: "Not Allocated",
+      class: "badge bg-info text-white",
+    };
+  }
+
+  // If there's daily tracking data
+  if (allocation.dailyTracking && allocation.dailyTracking.length > 0) {
+    const currentDate = new Date();
+    const endDate = new Date(allocation.endDate);
+    const actualEndDate = allocation.actualEndDate
+      ? new Date(allocation.actualEndDate)
+      : null;
+
+    // If actual end date exists
+    if (actualEndDate) {
+      if (actualEndDate.getTime() === endDate.getTime()) {
+        return {
+          text: "On Track",
+          class: "badge bg-primary text-white",
+        };
+      }
+      if (actualEndDate > endDate) {
+        return {
+          text: "Delayed",
+          class: "badge bg-danger text-white",
+        };
+      }
+      if (actualEndDate < endDate) {
+        return {
+          text: "Ahead",
+          class: "badge bg-success-subtle text-success",
+        };
+      }
+    }
+
+    // If no actual end date but tracking exists
+    const totalPlanned = allocation.plannedQuantity;
+    const totalProduced = allocation.dailyTracking.reduce(
+      (sum, entry) => sum + entry.produced,
+      0
+    );
+
+    if (totalProduced >= totalPlanned) {
+      return {
+        text: "Completed",
+        class: "badge bg-success text-white",
+      };
+    }
+
+    if (currentDate > endDate) {
+      return {
+        text: "Delayed",
+        class: "badge bg-danger text-white",
+      };
+    }
+
+    return {
+      text: "In Progress",
+      class: "badge bg-warning text-white",
+    };
+  }
+
+  // If allocated but no tracking data yet
+  const currentDate = new Date();
+  const startDate = new Date(allocation.startDate);
+  const endDate = new Date(allocation.endDate);
+
+  if (currentDate < startDate) {
+    return {
+      text: "Scheduled",
+      class: "badge bg-secondary text-white",
+    };
+  }
+
+  if (currentDate > endDate) {
+    return {
+      text: "Delayed",
+      class: "badge bg-danger text-white",
+    };
+  }
+
+  return {
+    text: "Allocated",
+    class: "badge bg-dark text-white",
+  };
+};
+
+// Add pre-save hook to update status before saving
+partSchema.pre('save', function(next) {
+  const status = this.calculateStatus();
+  this.status = status.text;
+  this.statusClass = status.class;
+  next();
 });
+
 const PartListProjectModel = mongoose.model("PartProject", partprojectSchema);
 module.exports = PartListProjectModel;
