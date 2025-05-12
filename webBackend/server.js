@@ -134,6 +134,8 @@ const shiftRoutes = require("./routes/variableRoutes/shifts.routes");
 const eventRoutes = require("./routes/variableRoutes/eventScheduler");
 const { PartsExcelRoutes } = require("./routes/partsRoutes/partsExcel.routes");
 const { inchargeVariableRouter } = require("./routes/variableRoutes/incharge.route");
+const subAssemblyproject = require("./routes/defaultSubAssembly");
+const assemblyListProject = require("./routes/defaultassembly");
 
 // MongoDB connection
 const connect = async () => {
@@ -160,7 +162,16 @@ app.use("/api/inchargeVariable", inchargeVariableRouter);
 app.use("/api/eventScheduler", eventRoutes);
 app.use("/api/parts", PartsExcelRoutes);
 app.use("/api/projects", ProjectRouter);
+
+// this is for parts and project
 app.use("/api/defpartproject", partproject);
+
+// this is for only subAssebmly came from defaultsubAssembly
+app.use("/api/defpartproject", subAssemblyproject)
+
+// this is for assemblylist and came from the defaultassebmly.js
+app.use("/api/defpartproject", assemblyListProject)
+
 app.use("/api/subAssembly", subAssemblyRoutes);
 app.use("/api/assmebly", AssemblyRoutes);
 app.use("/api/userManagement", UserRoute);
