@@ -105,24 +105,33 @@ const PartsTable = React.memo(
 
     const [open, setOpen] = useState(false);
 
-    // fetching
+    
     const fetchPartsListItems = async () => {
-        try {
-          const response = await fetch(
-            // `${process.env.REACT_APP_BASE_URL}/api/projects/${_id}/partsLists/${partsList._id}/items`
-            `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${_id}/partsLists/${partsList._id}/items`
-          );
-          if (!response.ok) {
-            throw new Error("Network response was not ok");
-          }
-          const data = await response.json();
-          setPartsListsItems(data.data);
-          console.log("items data of parts lists", data);
-        } catch (error) {
-          console.error("Error fetching parts list items:", error);
-          // You might want to handle the error, e.g., show an error message to the user
+      try {
+        const response = await fetch(
+          `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${_id}/partsLists/${partsList._id}/items`
+        );
+        if (!response.ok) {
+          throw new Error("Network response was not ok");
         }
-      };
+        const data = await response.json();
+
+        // Update parts list items with proper status
+        const updatedItems = data.data.map((item) => {
+          const status = item.status || "Not Allocated";
+          const statusClass = item.statusClass || "badge bg-info text-white";
+          return {
+            ...item,
+            status,
+            statusClass,
+          };
+        });
+
+        setPartsListsItems(updatedItems);
+      } catch (error) {
+        console.error("Error fetching parts list items:", error);
+      }
+    };
     useEffect(() => {
       fetchPartsListItems();
     }, [_id, partsList, partsListItemsUpdated]);
@@ -589,6 +598,62 @@ const PartsTable = React.memo(
       return `${totalMinutes} m`;
     };
 
+    const getStatusDisplay = (item) => {
+      // First check if the item has a status from the API
+      if (item.status === "Completed") {
+        return {
+          text: "Completed",
+          class: "badge bg-success text-white",
+        };
+      }
+
+      if (!item.allocations || item.allocations.length === 0) {
+        return {
+          text: "Not Allocated",
+          class: "badge bg-info text-white",
+        };
+      }
+
+      const process = item.allocations[0];
+      if (!process.allocations || process.allocations.length === 0) {
+        return {
+          text: "Not Allocated",
+          class: "badge bg-info text-white",
+        };
+      }
+
+      const allocation = process.allocations[0];
+
+      // If there's daily tracking data
+      if (allocation.dailyTracking && allocation.dailyTracking.length > 0) {
+        const lastTracking =
+          allocation.dailyTracking[allocation.dailyTracking.length - 1];
+
+        if (lastTracking.dailyStatus === "Delayed") {
+          return {
+            text: "Delayed",
+            class: "badge bg-danger text-white",
+          };
+        } else if (lastTracking.dailyStatus === "Ahead") {
+          return {
+            text: "Ahead",
+            class: "badge bg-success-subtle text-success",
+          };
+        } else if (lastTracking.dailyStatus === "On Track") {
+          return {
+            text: "On Track",
+            class: "badge bg-primary text-white",
+          };
+        }
+      }
+
+      // Fallback to the status stored in the item
+      return {
+        text: item.status || "Not Allocated",
+        class: item.statusClass || "badge bg-info text-white",
+      };
+    };
+
     return (
       <>
         {isLoading && (
@@ -684,7 +749,7 @@ const PartsTable = React.memo(
                         </tr>
                       </thead>
                       <tbody>
-                        {partsListItems.map((item) => {
+                        {partsListItems?.map((item) => {
                           return (
                             <React.Fragment key={item._id}>
                               <tr>
@@ -704,10 +769,20 @@ const PartsTable = React.memo(
                                   {item.codeName || ""}
                                 </td>
 
-                                <td>
-                                  <span className={`badge ${item.statusClass}`}>
-                                    {item.status}
+                                {/* <td>
+                                  <span className={`badge ${item.statusClass || 'bg-info text-white'}`}>
+                                    {item.status || 'Not Allocated'}
                                   </span>
+                                </td> */}
+                                <td>
+                                  {(() => {
+                                    const status = getStatusDisplay(item);
+                                    return (
+                                      <span className={`badge ${status.class}`}>
+                                        {status.text}
+                                      </span>
+                                    );
+                                  })()}
                                 </td>
                                 <td>{Math.round(item.costPerUnit || 0)}</td>
                                 <td>{formatTime(item.timePerUnit || 0)}</td>
@@ -793,7 +868,9 @@ const PartsTable = React.memo(
                                       partManufacturingVariables={
                                         item.manufacturingVariables
                                       } // Add this line
-                                      onUpdateAllocaitonStatus={fetchPartsListItems}
+                                      onUpdateAllocaitonStatus={() => {
+                                        fetchPartsListItems(); // Refresh the data
+                                      }}
                                     />
                                   </td>
                                 </tr>

@@ -36,6 +36,7 @@ export const SubAssemblyHrPlan = ({
   partListItemId,
   partManufacturingVariables,
   partsCodeId,
+  onUpdateAllocaitonStatus
 }) => {
   const userRole = localStorage.getItem("userRole");
   const [machineOptions, setMachineOptions] = useState({});
@@ -1231,23 +1232,7 @@ export const SubAssemblyHrPlan = ({
               (shift) => shift.name === row.shift
             );
 
-            // groupedAllocations[key].allocations.push({
-            //   splitNumber,
-            //   AllocationPartType: "Part",
-            //   plannedQuantity: row.plannedQuantity,
-            //   startDate: new Date(row.startDate).toISOString(),
-            //   startTime: row.startTime || "08:00 AM",
-            //   endDate: new Date(row.endDate).toISOString(),
-            //   machineId: row.machineId,
-            //   shift: row.shift,
-            //   plannedTime: row.plannedQtyTime,
-            //   operator:
-            //     operators.find((op) => op._id === row.operatorId)?.name ||
-            //     "Unknown",
-            //   shiftTotalTime: selectedShift ? selectedShift.TotalHours : 0,
-            //   perMachinetotalTime: Math.ceil(man.hours * 60),
-            //   processId: man.categoryId, //Add processId to each allocation as well
-            // });
+            
 
             groupedAllocations[key].allocations.push({
               splitNumber,
@@ -1306,6 +1291,11 @@ export const SubAssemblyHrPlan = ({
         toast.success("Allocations successfully added!");
         setIsDataAllocated(true);
         setActiveTab("planned");
+
+        // Force refresh of parts list items
+      if (onUpdateAllocaitonStatus) {
+        onUpdateAllocaitonStatus(response.data);
+      }
       } else {
         toast.error("Failed to add allocations.");
       }
@@ -1438,6 +1428,7 @@ export const SubAssemblyHrPlan = ({
             subAssemblyListFirstId={subAssemblyListFirstId}
             partListItemId={partListItemId}
             onDeleteSuccess={handleDeleteSuccess}
+            onUpdateAllocaitonStatus={onUpdateAllocaitonStatus}
           />
         )}
         {activeTab === "actual" && !isDataAllocated && (
