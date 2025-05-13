@@ -122,6 +122,10 @@ const partSchema = new mongoose.Schema({
     type: String,
     default: "badge bg-info text-black",
   },
+  isManuallyCompleted: {
+    type: Boolean,
+    default: false
+  },
   rmVariables: [
     {
       name: String,
@@ -207,7 +211,16 @@ const partprojectSchema = new mongoose.Schema(
   }
 );
 
-partSchema.methods.calculateStatus = function () {
+partSchema.methods.calculateStatus = function() {
+   // If manually completed, always return completed status
+  if (this.isManuallyCompleted) {
+    return {
+      text: "Completed",
+      class: "badge bg-success text-white",
+    };
+  }
+
+
   if (!this.allocations || this.allocations.length === 0) {
     return {
       text: "Not Allocated",
@@ -235,50 +248,63 @@ partSchema.methods.calculateStatus = function () {
   if (allocation.dailyTracking && allocation.dailyTracking.length > 0) {
     const currentDate = new Date();
     const endDate = new Date(allocation.endDate);
-    const actualEndDate = allocation.actualEndDate
-      ? new Date(allocation.actualEndDate)
+    const actualEndDate = allocation.actualEndDate 
+      ? new Date(allocation.actualEndDate) 
       : null;
 
-    // If actual end date exists
-    if (actualEndDate) {
-      if (actualEndDate.getTime() === endDate.getTime()) {
-        return {
-          text: "On Track",
-          class: "badge bg-primary text-white",
-        };
-      }
-      if (actualEndDate > endDate) {
-        return {
-          text: "Delayed",
-          class: "badge bg-danger text-white",
-        };
-      }
-      if (actualEndDate < endDate) {
-        return {
-          text: "Ahead",
-          class: "badge bg-success-subtle text-success",
-        };
-      }
-    }
-
-    // If no actual end date but tracking exists
-    const totalPlanned = allocation.plannedQuantity;
+    // Calculate total produced quantity
     const totalProduced = allocation.dailyTracking.reduce(
-      (sum, entry) => sum + entry.produced,
+      (sum, entry) => sum + entry.produced, 
       0
     );
 
-    if (totalProduced >= totalPlanned) {
+    // If production is completed
+    if (totalProduced >= allocation.plannedQuantity) {
+      if (actualEndDate) {
+        if (actualEndDate.getTime() === endDate.getTime()) {
+          return {
+            text: "On Track",
+            class: "badge bg-primary text-white",
+          };
+        }
+        if (actualEndDate > endDate) {
+          return {
+            text: "Delayed",
+            class: "badge bg-danger text-white",
+          };
+        }
+        if (actualEndDate < endDate) {
+          return {
+            text: "Ahead",
+            class: "badge bg-success-subtle text-success",
+          };
+        }
+      }
       return {
         text: "Completed",
         class: "badge bg-success text-white",
       };
     }
 
+    // If current date is past end date but not completed
     if (currentDate > endDate) {
       return {
         text: "Delayed",
         class: "badge bg-danger text-white",
+      };
+    }
+
+    // Check daily status from tracking
+    const lastTracking = allocation.dailyTracking[allocation.dailyTracking.length - 1];
+    if (lastTracking.dailyStatus === "Delayed") {
+      return {
+        text: "Delayed",
+        class: "badge bg-danger text-white",
+      };
+    } else if (lastTracking.dailyStatus === "Ahead") {
+      return {
+        text: "Ahead",
+        class: "badge bg-success-subtle text-success",
       };
     }
 
@@ -295,7 +321,7 @@ partSchema.methods.calculateStatus = function () {
 
   if (currentDate < startDate) {
     return {
-      text: "Scheduled",
+      text: "Allocated",
       class: "badge bg-secondary text-white",
     };
   }
@@ -314,7 +340,19 @@ partSchema.methods.calculateStatus = function () {
 };
 
 // Add pre-save hook to update status before saving
+// partSchema.pre('save', function(next) {
+//   const status = this.calculateStatus();
+//   this.status = status.text;
+//   this.statusClass = status.class;
+//   next();
+// });
+
 partSchema.pre('save', function(next) {
+  // Skip status calculation if flag is set
+  if (this._skipStatusCalculation) {
+    return next();
+  }
+
   const status = this.calculateStatus();
   this.status = status.text;
   this.statusClass = status.class;

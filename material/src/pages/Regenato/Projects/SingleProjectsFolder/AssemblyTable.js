@@ -230,25 +230,63 @@ const AssemblyTable = React.memo(
     // }, [_id, existingAssemblyMultyPartsLists]);
 
     const getStatus = (allocations) => {
-      if (!allocations || allocations.length === 0)
+      // nothing to commit 
+    };
+
+    const getStatusDisplay = (item) => {
+      // First check if the item has a status from the API
+      if (item.status === "Completed") {
+        return {
+          text: "Completed",
+          class: "badge bg-success text-white",
+        };
+      }
+
+      if (!item.allocations || item.allocations.length === 0) {
         return {
           text: "Not Allocated",
           class: "badge bg-info text-white",
         };
-      const allocation = allocations[0].allocations[0];
-      if (!allocation)
-        return { text: "Not Allocated", class: "badge bg-info text-white" };
+      }
 
-      const actualEndDate = new Date(allocation.actualEndDate);
-      const endDate = new Date(allocation.endDate);
+      const process = item.allocations[0];
+      if (!process.allocations || process.allocations.length === 0) {
+        return {
+          text: "Not Allocated",
+          class: "badge bg-info text-white",
+        };
+      }
 
-      if (actualEndDate.getTime() === endDate.getTime())
-        return { text: "On Track", class: "badge bg-primary text-white" };
-      if (actualEndDate > endDate)
-        return { text: "Delayed", class: "badge bg-danger text-white" };
-      if (actualEndDate < endDate)
-        return { text: "Ahead", class: "badge bg-success text-white" };
-      return { text: "Allocated", class: "badge bg-dark text-white" };
+      const allocation = process.allocations[0];
+
+      // If there's daily tracking data
+      if (allocation.dailyTracking && allocation.dailyTracking.length > 0) {
+        const lastTracking =
+          allocation.dailyTracking[allocation.dailyTracking.length - 1];
+
+        if (lastTracking.dailyStatus === "Delayed") {
+          return {
+            text: "Delayed",
+            class: "badge bg-danger text-white",
+          };
+        } else if (lastTracking.dailyStatus === "Ahead") {
+          return {
+            text: "Ahead",
+            class: "badge bg-success-subtle text-success",
+          };
+        } else if (lastTracking.dailyStatus === "On Track") {
+          return {
+            text: "On Track",
+            class: "badge bg-primary text-white",
+          };
+        }
+      }
+
+      // Fallback to the status stored in the item
+      return {
+        text: item.status || "Not Allocated",
+        class: item.statusClass || "badge bg-info text-white",
+      };
     };
 
     // Add this useEffect to fetch the lists when the component mounts
@@ -918,14 +956,8 @@ const AssemblyTable = React.memo(
                           </td>
                         </tr>
                       ) : (
-                        assemblypartsList.partsListItems
-                          ?.filter((item) => {
-                            if (statusFilter === "all") return true;
-                            const statusInfo = getStatus(item.allocations);
-                            return statusInfo.text === statusFilter;
-                          })
-                          .map((item) => {
-                            const statusInfo = getStatus(item.allocations);
+                        assemblypartsList.partsListItems?.map((item) => {
+                            // const statusInfo = getStatus(item.allocations);
                             return (
                               <React.Fragment key={item._id}>
                                 <tr
@@ -947,14 +979,15 @@ const AssemblyTable = React.memo(
                                     {item.codeName || ""}
                                   </td>
                                   <td>
-                                    <span
-                                      className={
-                                        getStatus(item.allocations).class
-                                      }
-                                    >
-                                      {getStatus(item.allocations).text}
-                                    </span>
-                                  </td>
+                                  {(() => {
+                                    const status = getStatusDisplay(item);
+                                    return (
+                                      <span className={`badge ${status.class}`}>
+                                        {status.text}
+                                      </span>
+                                    );
+                                  })()}
+                                </td>
                                   <td>
                                     {Math.round(
                                       parseFloat(item.costPerUnit || 0)

@@ -23,7 +23,7 @@ export const AllocatedPartListHrPlan = ({
   partID,
   partListItemId,
   onDeleteSuccess,
-  onUpdateAllocaitonStatus
+  onUpdateAllocaitonStatus,
 }) => {
   const userRole = localStorage.getItem("userRole");
   const [sections, setSections] = useState([]);
@@ -41,7 +41,9 @@ export const AllocatedPartListHrPlan = ({
       operator: "",
     },
   ]);
-
+  const [completeConfirmationModal, setCompleteConfirmationModal] =
+    useState(false);
+  const [completingAllocation, setCompletingAllocation] = useState(false);
   const [existingDailyTracking, setExistingDailyTracking] = useState([]);
   const [actulEndDateData, setactulEndDateData] = useState([]);
   const [addRowModal, setAddRowModal] = useState(false);
@@ -125,6 +127,7 @@ export const AllocatedPartListHrPlan = ({
   };
 
   useEffect(() => {
+    // Update the fetchAllocations function to properly calculate dailyPlannedQty
     const fetchAllocations = async () => {
       setLoading(true);
       setError(null);
@@ -140,36 +143,34 @@ export const AllocatedPartListHrPlan = ({
             allocationId: item._id,
             title: item.processName,
             data: item.allocations.map((allocation) => {
+              // Ensure we have valid values for calculation
+              const shiftTotalTime = allocation.shiftTotalTime || 510; // Default to 8.5 hours in minutes if not set
+              const perMachinetotalTime = allocation.perMachinetotalTime || 1; // Prevent division by zero
+              const plannedQuantity = allocation.plannedQuantity || 0;
+
               // Calculate daily planned quantity
-              const shiftTotalTime = allocation.shiftTotalTime; // Total working time per day in minutes
-              const perMachinetotalTime = allocation.perMachinetotalTime; // Time required to produce one part
-              const plannedQuantity = allocation.plannedQuantity; // Total planned quantity
-
-              // Calculate total time required to produce all parts
-              const totalTimeRequired = plannedQuantity * perMachinetotalTime;
-
-              // If total time required is less than or equal to shift time, dailyPlannedQty = plannedQuantity
-              // Otherwise, calculate based on shift time
-              const dailyPlannedQty =
-                totalTimeRequired <= shiftTotalTime
-                  ? plannedQuantity
-                  : Math.floor(shiftTotalTime / perMachinetotalTime);
+              let dailyPlannedQty;
+              if (perMachinetotalTime <= 0) {
+                dailyPlannedQty = plannedQuantity; // Fallback if invalid time per unit
+              } else {
+                const totalTimeRequired = plannedQuantity * perMachinetotalTime;
+                dailyPlannedQty =
+                  totalTimeRequired <= shiftTotalTime
+                    ? plannedQuantity // Can complete in one day
+                    : Math.floor(shiftTotalTime / perMachinetotalTime); // Daily capacity
+              }
 
               return {
                 trackingId: allocation._id,
                 plannedQty: allocation.plannedQuantity,
-                // startDate: new Date(allocation.startDate).toLocaleDateString(), //start date
-                // endDate: new Date(allocation.endDate).toLocaleDateString(),
-                startDate: moment(allocation.startDate).format("DD MMM YYYY"), // Updated
-                endDate: moment(allocation.endDate).format("DD MMM YYYY"), // Updated
+                startDate: moment(allocation.startDate).format("DD MMM YYYY"),
+                endDate: moment(allocation.endDate).format("DD MMM YYYY"),
                 machineId: allocation.machineId,
                 shift: allocation.shift,
                 plannedTime: `${allocation.plannedTime} min`,
                 operator: allocation.operator,
                 actualEndDate: allocation.actualEndDate || allocation.endDate,
-                // ? new Date(allocation.actualEndDate).toLocaleDateString()
-                // : "N/A",
-                dailyPlannedQty: dailyPlannedQty, // Updated calculation
+                dailyPlannedQty: dailyPlannedQty, // Use the calculated value
                 shiftTotalTime: allocation.shiftTotalTime,
                 perMachinetotalTime: allocation.perMachinetotalTime,
               };
@@ -196,6 +197,7 @@ export const AllocatedPartListHrPlan = ({
         toast.success("Allocation successfully canceled!");
         setSections([]);
         onDeleteSuccess();
+        onUpdateAllocaitonStatus();
       }
     } catch (error) {
       toast.error("Failed to cancel allocation.");
@@ -304,191 +306,87 @@ export const AllocatedPartListHrPlan = ({
     return totalQuantity - totalProduced;
   };
 
-//   const submitDailyTracking = async () => {
-//   setIsUpdating(true);
-//   try {
-//     if (!selectedSection || !selectedSection.data.length) {
-//       toast.error("No allocation selected.");
-//       return;
-//     }
+  
+  const submitDailyTracking = async () => {
+    setIsUpdating(true);
+    try {
+      if (!selectedSection || !selectedSection.data.length) {
+        toast.error("No allocation selected.");
+        return;
+      }
 
-//     const allocationId = selectedSection.allocationId;
-//     const trackingId = selectedSection.data[0]?.trackingId;
+      const allocationId = selectedSection.allocationId;
+      const trackingId = selectedSection.data[0]?.trackingId;
 
-//     if (!allocationId || !trackingId) {
-//       toast.error("Allocation or Tracking ID is missing.");
-//       console.error("Missing allocationId or trackingId:", {
-//         allocationId,
-//         trackingId,
-//       });
-//       return;
-//     }
+      if (!allocationId || !trackingId) {
+        toast.error("Allocation or Tracking ID is missing.");
+        return;
+      }
 
-//     // Validate each daily tracking entry
-//     const isValid = dailyTracking.every((task) => {
-//       const isValidTask =
-//         task.date &&
-//         !isNaN(new Date(task.date)) &&
-//         !isNaN(Number(task.planned)) &&
-//         !isNaN(Number(task.produced)) &&
-//         task.dailyStatus;
+      // Calculate daily planned quantity here as well to ensure consistency
+      const shiftTotalTime = selectedSection.data[0].shiftTotalTime || 510;
+      const perMachinetotalTime =
+        selectedSection.data[0].perMachinetotalTime || 1;
+      const plannedQuantity = selectedSection.data[0].plannedQty || 0;
 
-//       if (!isValidTask) {
-//         console.error("Invalid Task:", task);
-//       }
+      let calculatedDailyPlannedQty;
+      if (perMachinetotalTime <= 0) {
+        calculatedDailyPlannedQty = plannedQuantity;
+      } else {
+        const totalTimeRequired = plannedQuantity * perMachinetotalTime;
+        calculatedDailyPlannedQty =
+          totalTimeRequired <= shiftTotalTime
+            ? plannedQuantity
+            : Math.floor(shiftTotalTime / perMachinetotalTime);
+      }
 
-//       return isValidTask;
-//     });
+      // Create the tracking data with the calculated daily planned quantity
+      const trackingData = {
+        ...dailyTracking[0],
+        planned: calculatedDailyPlannedQty,
+      };
 
-//     if (!isValid) {
-//       toast.error("Invalid daily tracking data. Please check all fields.");
-//       return;
-//     }
-
-//     // Post each daily tracking entry individually
-//     for (const task of dailyTracking) {
-//       const formattedTask = {
-//         date: task.date,
-//         planned: Number(task.planned),
-//         produced: Number(task.produced),
-//         dailyStatus: task.dailyStatus,
-//         operator: task.operator,
-//       };
-
-//       const response = await axios.post(
-//         `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/allocations/${allocationId}/allocations/${trackingId}/dailyTracking`,
-//         formattedTask
-//       );
-
-//       // Update local state with the returned data
-//       if (response.data.data) {
-//         const { status, actualEndDate } = response.data.data;
-        
-//         // Update the parent component's state if needed
-//         // This assumes you have a way to update the parent component
-//         // You might need to pass a callback prop or use a state management solution
-//         if (onStatusUpdate) {
-//           onStatusUpdate({
-//             partListItemId,
-//             status,
-//             actualEndDate
-//           });
-//         }
-//       }
-//     }
-
-//     toast.success("Daily Tracking Updated Successfully!");
-
-//     // Fetch the updated data
-//     const updatedResponse = await axios.get(
-//       `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/allocations/${allocationId}/allocations/${trackingId}/dailyTracking`
-//     );
-
-//     setExistingDailyTracking(updatedResponse.data.dailyTracking || []);
-//     setactulEndDateData(updatedResponse.data);
-//     onUpdateAllocaitonStatus()
-//     // Reset the form
-//     setDailyTracking([{
-//       date: "",
-//       planned: Number(selectedSection.data[0].dailyPlannedQty) || 0,
-//       produced: 0,
-//       dailyStatus: "On Track",
-//       operator: selectedSection.data[0].operator || "",
-//     }]);
-
-//     closeAddRowModal();
-//   } catch (error) {
-//     toast.error("Failed to update daily tracking.");
-//     console.error("Error updating daily tracking:", error.response?.data || error);
-//   } finally {
-//     setIsUpdating(false);
-//   }
-// };
-
-
-const submitDailyTracking = async () => {
-  setIsUpdating(true);
-  try {
-    if (!selectedSection || !selectedSection.data.length) {
-      toast.error("No allocation selected.");
-      return;
-    }
-
-    const allocationId = selectedSection.allocationId;
-    const trackingId = selectedSection.data[0]?.trackingId;
-
-    if (!allocationId || !trackingId) {
-      toast.error("Allocation or Tracking ID is missing.");
-      return;
-    }
-
-    // Validate each daily tracking entry
-    const isValid = dailyTracking.every((task) => {
-      return (
-        task.date &&
-        !isNaN(new Date(task.date)) &&
-        !isNaN(Number(task.planned)) &&
-        !isNaN(Number(task.produced)) &&
-        task.dailyStatus
-      );
-    });
-
-    if (!isValid) {
-      toast.error("Invalid daily tracking data. Please check all fields.");
-      return;
-    }
-
-    // Post each daily tracking entry individually
-    for (const task of dailyTracking) {
+      // Post the daily tracking data
       const response = await axios.post(
         `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/allocations/${allocationId}/allocations/${trackingId}/dailyTracking`,
-        {
-          date: task.date,
-          planned: Number(task.planned),
-          produced: Number(task.produced),
-          operator: task.operator,
-          dailyStatus: task.dailyStatus
-        }
+        trackingData
       );
-      onUpdateAllocaitonStatus(response.data);
-      console.log(response.data)
-      // // Update the parent component's state if needed
-      // if (response.data.data) {
-      //   const { status, actualEndDate } = response.data.data;
-      //   // Call the update function passed from parent
-      //   if (onUpdateAllocaitonStatus) {
-      //     onUpdateAllocaitonStatus();
-      //   }
-      // }
+
+      // Rest of the function remains the same...
+      if (onUpdateAllocaitonStatus) {
+        onUpdateAllocaitonStatus(response.data);
+      }
+
+      toast.success("Daily Tracking Updated Successfully!");
+
+      // Fetch updated data
+      const updatedResponse = await axios.get(
+        `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/allocations/${allocationId}/allocations/${trackingId}/dailyTracking`
+      );
+
+      setExistingDailyTracking(updatedResponse.data.dailyTracking || []);
+      setactulEndDateData(updatedResponse.data);
+
+      // Reset the form
+      setDailyTracking([
+        {
+          date: "",
+          planned: calculatedDailyPlannedQty, // Use the calculated value here
+          produced: 0,
+          dailyStatus: "On Track",
+          operator: selectedSection.data[0].operator || "",
+        },
+      ]);
+
+      closeAddRowModal();
+    } catch (error) {
+      toast.error("Failed to update daily tracking.");
+      console.error("Error updating daily tracking:", error);
+    } finally {
+      setIsUpdating(false);
     }
+  };
 
-    toast.success("Daily Tracking Updated Successfully!");
-
-    // Fetch the updated data
-    const updatedResponse = await axios.get(
-      `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/allocations/${allocationId}/allocations/${trackingId}/dailyTracking`
-    );
-
-    setExistingDailyTracking(updatedResponse.data.dailyTracking || []);
-    setactulEndDateData(updatedResponse.data);
-    
-    // Reset the form
-    setDailyTracking([{
-      date: "",
-      planned: Number(selectedSection.data[0].dailyPlannedQty) || 0,
-      produced: 0,
-      dailyStatus: "On Track",
-      operator: selectedSection.data[0].operator || "",
-    }]);
-
-    closeAddRowModal();
-  } catch (error) {
-    toast.error("Failed to update daily tracking.");
-    console.error("Error updating daily tracking:", error);
-  } finally {
-    setIsUpdating(false);
-  }
-};
   const closeDailyTaskModal = () => {
     setDailyTaskModal(false);
     setDailyTracking([
@@ -563,6 +461,55 @@ const submitDailyTracking = async () => {
       date1.getDate() === date2.getDate()
     );
   }
+
+  // Add this function to handle completing the allocation
+  //'/projects/:projectId/partsLists/:listId/items/:itemId/complete'
+  //'/projects/:projectId/subAssemblyListFirst/:listId/items/:itemId/complete'
+const handleCompleteAllocation = async () => {
+  setCompletingAllocation(true);
+  try {
+    const response = await axios.put(
+      `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/items/${partListItemId}/complete`,
+      {
+        forceStatus: true // Add this flag to ensure status is set
+      }
+    );
+    
+    if (response.status === 200) {
+      toast.success("Allocation marked as completed!");
+      // onUpdateAllocaitonStatus(response.data)
+      // Verify the status in the response
+      if (response.data.data.status === "Completed") {
+        if (onUpdateAllocaitonStatus) {
+          onUpdateAllocaitonStatus();
+        }
+      } else {
+        toast.warning("Status wasn't updated as expected. Please refresh the page.");
+      }
+    }
+  } catch (error) {
+    toast.error("Failed to complete allocation.");
+    console.error("Error completing allocation:", error);
+  } finally {
+    setCompletingAllocation(false);
+    setCompleteConfirmationModal(false);
+  }
+};
+
+  // Add this function to check if all processes are completed
+  const isAllocationCompleted = () => {
+    if (sections.length === 0) return false;
+
+    return sections.every((section) => {
+      return section.data.every((row) => {
+        const totalProduced = existingDailyTracking.reduce(
+          (sum, task) => sum + task.produced,
+          0
+        );
+        return totalProduced >= row.plannedQty;
+      });
+    });
+  };
 
   return (
     <div style={{ width: "100%" }}>
@@ -642,13 +589,23 @@ const submitDailyTracking = async () => {
         <div className="d-flex justify-content-end">
           <CardBody className="d-flex justify-content-end align-items-center">
             {userRole === "admin" && (
-              <Button
-                color="danger"
-                onClick={() => setDeleteConfirmationModal(true)}
-                disabled={sections.length === 0}
-              >
-                Cancel Allocation
-              </Button>
+              <>
+                 <Button
+                  color="success"
+                  onClick={() => setCompleteConfirmationModal(true)}
+                  disabled={sections.length === 0 || !isAllocationCompleted()}
+                  style={{ marginRight: '10px' }}
+                >
+                  Complete Allocation
+                </Button>
+                <Button
+                  color="danger"
+                  onClick={() => setDeleteConfirmationModal(true)}
+                  disabled={sections.length === 0}
+                >
+                  Cancel Allocation
+                </Button>
+              </>
             )}
           </CardBody>
 
@@ -1057,6 +1014,37 @@ const submitDailyTracking = async () => {
           </Button>
         </ModalFooter>
       </Modal>
+
+      {/*// Add this modal to the existing modal section in the return statement*/}
+          
+      <Modal
+        isOpen={completeConfirmationModal}
+        toggle={() => setCompleteConfirmationModal(false)}
+      >
+        <ModalHeader toggle={() => setCompleteConfirmationModal(false)}>
+          Confirm Completion
+        </ModalHeader>
+        <ModalBody>
+          Are you sure you want to mark this allocation as completed? This action cannot be undone.
+        </ModalBody>
+        <ModalFooter>
+          <Button 
+            color="success" 
+            onClick={handleCompleteAllocation}
+            disabled={completingAllocation}
+          >
+            {completingAllocation ? "Completing..." : "Complete"}
+          </Button>
+          <Button
+            color="secondary"
+            onClick={() => setCompleteConfirmationModal(false)}
+            disabled={completingAllocation}
+          >
+            Cancel
+          </Button>
+        </ModalFooter>
+      </Modal>
+
     </div>
   );
 };
