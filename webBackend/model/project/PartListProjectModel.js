@@ -335,17 +335,10 @@ partSchema.methods.calculateStatus = function() {
 
   return {
     text: "Allocated",
-    class: "badge bg-dark text-white",
+    class: "badge bg-secondary text-white",
   };
 };
 
-// Add pre-save hook to update status before saving
-// partSchema.pre('save', function(next) {
-//   const status = this.calculateStatus();
-//   this.status = status.text;
-//   this.statusClass = status.class;
-//   next();
-// });
 
 partSchema.pre('save', function(next) {
   // Skip status calculation if flag is set

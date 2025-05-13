@@ -37,6 +37,7 @@ export const Assembly_SubAssemblyHoursPlanning = ({
   partListItemId,
   partManufacturingVariables,
   partsCodeId,
+  onUpdateAllocaitonStatus
 }) => {
   const userRole = localStorage.getItem("userRole");
   const [machineOptions, setMachineOptions] = useState({});
@@ -1367,6 +1368,9 @@ export const Assembly_SubAssemblyHoursPlanning = ({
         toast.success("Allocations successfully added!");
         setIsDataAllocated(true); // This should disable the buttons
         setActiveTab("planned"); // Force switch to planned tab after allocation
+        if (onUpdateAllocaitonStatus) {
+        onUpdateAllocaitonStatus(response.data);
+      }
       } else {
         toast.error("Failed to add allocations.");
       }
@@ -1498,6 +1502,7 @@ export const Assembly_SubAssemblyHoursPlanning = ({
             subAssembliesId={subAssembliesId}
             partListItemId={partListItemId}
             onDeleteSuccess={handleDeleteSuccess}
+            onUpdateAllocaitonStatus={onUpdateAllocaitonStatus}
           />
         )}
         {activeTab === "actual" && !isDataAllocated && (

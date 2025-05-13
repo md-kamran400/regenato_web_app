@@ -127,7 +127,7 @@ const OperatorCapacityChart = () => {
             }}
           />
           <Tooltip />
-          {/* <Legend /> */}
+          <Legend />
           <Bar
             dataKey="available"
             stackId="a"
