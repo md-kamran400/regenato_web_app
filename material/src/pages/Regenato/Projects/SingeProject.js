@@ -990,64 +990,7 @@ const SingeProject = () => {
         </ModalBody>
       </Modal>
 
-      {/* modle for assembly */}
-      {/* Modal for assembly */}
-      {/* <Modal isOpen={modalAddassembly} toggle={toggleAddModalAssembly}>
-        <ModalHeader toggle={toggleAddModalAssembly}>
-          Add Assembly List
-        </ModalHeader>
-        <ModalBody>
-          <Autocomplete
-            options={allAssmebly}
-            getOptionLabel={(option) => option.AssemblyName || ""}
-            onChange={handleNameChangeassmebly}
-            value={
-              allAssmebly.find(
-                (item) => item.AssemblyName === AssemblyName
-              ) || null
-            }
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                label="Select Sub Assembly"
-                variant="outlined"
-                required
-              />
-            )}
-          />
-
-          <Autocomplete
-            className="mt-3"
-            options={allAssmebly}
-            getOptionLabel={(option) => option.AssemblyNumber || ""}
-            onChange={handleNumberassmebly}
-            value={
-              allAssmebly.find(
-                (item) => item.AssemblyNumber === AssemblyNumber
-              ) || null
-            }
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                label="Select Sub Assembly Id"
-                variant="outlined"
-                required
-              />
-            )}
-          />
-        </ModalBody>
-        <ModalFooter>
-          <Button color="primary" onClick={handleAddAssembly}>
-            Add
-          </Button>
-          <Button
-            color="secondary"
-            onClick={toggleAddModalAssembly}
-          >
-            Cancel
-          </Button>
-        </ModalFooter>
-      </Modal> */}
+     
 
       <Modal isOpen={modalAddassembly} toggle={toggleAddModalAssembly}>
         <ModalHeader toggle={toggleAddModalAssembly}>
@@ -1096,7 +1039,6 @@ const SingeProject = () => {
       <Modal
         isOpen={modalAddSubAssembly}
         toggle={() => setModalAddSubAssembly(false)}
-        style={{border:'2px solid'}}
       >
         <ModalHeader toggle={() => setModalAddSubAssembly(false)}>
           Add Sub Assembly
@@ -1131,7 +1073,7 @@ const SingeProject = () => {
         </ModalBody>
         <ModalFooter>
           <Button color="primary" onClick={handleAddSubAssembly}>
-            Addqqqqqqqqqqqq
+            Add
           </Button>
           <Button
             color="secondary"

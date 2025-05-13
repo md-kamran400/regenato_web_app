@@ -178,7 +178,7 @@ export const AllocatedSubAssemblyPlan = ({
     fetchAllocations();
   }, [porjectID, subAssemblyListFirstId, partListItemId]);
 
-  console.log(sections);
+  // console.log(sections);
 
   const handleCancelAllocation = async () => {
     try {

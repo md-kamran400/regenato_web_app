@@ -23,6 +23,7 @@ export const AllocatedAssemblyPartList = ({
   AssemblyListId,
   partListItemId,
   onDeleteSuccess,
+  onUpdateAllocaitonStatus,
 }) => {
   const userRole = localStorage.getItem("userRole");
   const [sections, setSections] = useState([]);
@@ -40,7 +41,9 @@ export const AllocatedAssemblyPartList = ({
       operator: "",
     },
   ]);
-
+  const [completeConfirmationModal, setCompleteConfirmationModal] =
+    useState(false);
+  const [completingAllocation, setCompletingAllocation] = useState(false);
   const [existingDailyTracking, setExistingDailyTracking] = useState([]);
   const [actulEndDateData, setactulEndDateData] = useState([]);
   const [addRowModal, setAddRowModal] = useState(false);
@@ -181,6 +184,7 @@ export const AllocatedAssemblyPartList = ({
         toast.success("Allocation successfully canceled!");
         setSections([]);
         onDeleteSuccess();
+        onUpdateAllocaitonStatus();
       }
     } catch (error) {
       toast.error("Failed to cancel allocation.");
@@ -345,6 +349,10 @@ export const AllocatedAssemblyPartList = ({
           `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/assemblyList/${AssemblyListId}/partsListItems/${partListItemId}/allocations/${allocationId}/allocations/${trackingId}/dailyTracking`,
           formattedTask // Send the task in the required format
         );
+        // Rest of the function remains the same...
+        if (onUpdateAllocaitonStatus) {
+          onUpdateAllocaitonStatus(response.data);
+        }
       }
 
       toast.success("Daily Tracking Updated Successfully!");
@@ -457,6 +465,56 @@ export const AllocatedAssemblyPartList = ({
     );
   }
 
+  ///projects/:projectId/assemblyList/:listId/items/:itemId/complete
+
+  const handleCompleteAllocation = async () => {
+    setCompletingAllocation(true);
+    try {
+      const response = await axios.put(
+        `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/assemblyList/${AssemblyListId}/items/${partListItemId}/complete`,
+        {
+          forceStatus: true, // Add this flag to ensure status is set
+        }
+      );
+
+      if (response.status === 200) {
+        toast.success("Allocation marked as completed!");
+        // onUpdateAllocaitonStatus(response.data)
+        // Verify the status in the response
+        if (response.data.data.status === "Completed") {
+          if (onUpdateAllocaitonStatus) {
+            onUpdateAllocaitonStatus();
+          }
+        } else {
+          toast.warning(
+            "Status wasn't updated as expected. Please refresh the page."
+          );
+        }
+      }
+    } catch (error) {
+      toast.error("Failed to complete allocation.");
+      console.error("Error completing allocation:", error);
+    } finally {
+      setCompletingAllocation(false);
+      setCompleteConfirmationModal(false);
+    }
+  };
+
+  // Add this function to check if all processes are completed
+  const isAllocationCompleted = () => {
+    if (sections.length === 0) return false;
+
+    return sections.every((section) => {
+      return section.data.every((row) => {
+        const totalProduced = existingDailyTracking.reduce(
+          (sum, task) => sum + task.produced,
+          0
+        );
+        return totalProduced >= row.plannedQty;
+      });
+    });
+  };
+
   return (
     <div style={{ width: "100%" }}>
       <Container fluid className="mt-4">
@@ -534,13 +592,23 @@ export const AllocatedAssemblyPartList = ({
         )}
         <CardBody className="d-flex justify-content-end align-items-center">
           {userRole === "admin" && (
-            <Button
-              color="danger"
-              onClick={() => setDeleteConfirmationModal(true)}
-              disabled={sections.length === 0}
-            >
-              Cancel Allocation
-            </Button>
+            <>
+              <Button
+                color="success"
+                onClick={() => setCompleteConfirmationModal(true)}
+                disabled={sections.length === 0 || !isAllocationCompleted()}
+                style={{ marginRight: "10px" }}
+              >
+                Complete Allocation
+              </Button>
+              <Button
+                color="danger"
+                onClick={() => setDeleteConfirmationModal(true)}
+                disabled={sections.length === 0}
+              >
+                Cancel Allocation
+              </Button>
+            </>
           )}
         </CardBody>
       </Container>
@@ -927,6 +995,35 @@ export const AllocatedAssemblyPartList = ({
             disabled={isUpdating}
           >
             {isUpdating ? "Updating..." : "Update"}
+          </Button>
+        </ModalFooter>
+      </Modal>
+
+      <Modal
+        isOpen={completeConfirmationModal}
+        toggle={() => setCompleteConfirmationModal(false)}
+      >
+        <ModalHeader toggle={() => setCompleteConfirmationModal(false)}>
+          Confirm Completion
+        </ModalHeader>
+        <ModalBody>
+          Are you sure you want to mark this allocation as completed? This
+          action cannot be undone.
+        </ModalBody>
+        <ModalFooter>
+          <Button
+            color="success"
+            onClick={handleCompleteAllocation}
+            disabled={completingAllocation}
+          >
+            {completingAllocation ? "Completing..." : "Complete"}
+          </Button>
+          <Button
+            color="secondary"
+            onClick={() => setCompleteConfirmationModal(false)}
+            disabled={completingAllocation}
+          >
+            Cancel
           </Button>
         </ModalFooter>
       </Modal>
