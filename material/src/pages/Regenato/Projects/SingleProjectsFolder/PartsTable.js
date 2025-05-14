@@ -105,7 +105,6 @@ const PartsTable = React.memo(
 
     const [open, setOpen] = useState(false);
 
-    
     const fetchPartsListItems = async () => {
       try {
         const response = await fetch(
@@ -139,28 +138,6 @@ const PartsTable = React.memo(
     useEffect(() => {
       setPartsListItemsUpdated(false);
     }, [partsListItemsUpdated]);
-
-    // const getStatus = (allocations) => {
-    //   if (!allocations || allocations.length === 0)
-    //     return {
-    //       text: "Not Allocated",
-    //       class: "badge bg-info text-white",
-    //     };
-    //   const allocation = allocations[0].allocations[0];
-    //   if (!allocation)
-    //     return { text: "Not Allocated", class: "badge bg-info text-white" };
-
-    //   const actualEndDate = new Date(allocation.actualEndDate);
-    //   const endDate = new Date(allocation.endDate);
-
-    //   if (actualEndDate.getTime() === endDate.getTime())
-    //     return { text: "On Track", class: "badge bg-primary text-white" };
-    //   if (actualEndDate > endDate)
-    //     return { text: "Delayed", class: "badge bg-danger text-white" };
-    //   if (actualEndDate < endDate)
-    //     return { text: "Ahead", class: "badge bg-success-subtle text-success" };
-    //   return { text: "Allocated", class: "badge bg-dark text-white" };
-    // };
 
     const handlePartsChange = useCallback((event, newValue) => {
       setSelectedParts(newValue);
@@ -654,6 +631,14 @@ const PartsTable = React.memo(
       };
     };
 
+    const filteredPartsListItems =
+      statusFilter === "all"
+        ? partsListItems
+        : partsListItems.filter((item) => {
+            const status = getStatusDisplay(item);
+            return status.text === statusFilter;
+          });
+
     return (
       <>
         {isLoading && (
@@ -725,6 +710,7 @@ const PartsTable = React.memo(
               <option value="Delayed">Delayed</option>
               <option value="Ahead">Ahead</option>
               <option value="Allocated">Allocated</option>
+              <option value="Completed">Completed</option> {/* ✅ New Option */}
             </Input>
           </div>
 
@@ -749,7 +735,7 @@ const PartsTable = React.memo(
                         </tr>
                       </thead>
                       <tbody>
-                        {partsListItems?.map((item) => {
+                        {filteredPartsListItems?.map((item) => {
                           return (
                             <React.Fragment key={item._id}>
                               <tr>

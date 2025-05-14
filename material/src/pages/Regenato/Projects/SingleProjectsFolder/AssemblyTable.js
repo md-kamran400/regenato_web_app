@@ -828,6 +828,15 @@ const AssemblyTable = React.memo(
       };
     };
 
+        const filteredAssemblyStatus =
+      statusFilter === "all"
+        ? assemblypartsList.partsListItems
+        : assemblypartsList.partsListItems.filter((item) => {
+            const status = getStatusDisplay(item);
+            return status.text === statusFilter;
+          });
+
+
     return (
       <Col
         lg={12}
@@ -936,6 +945,7 @@ const AssemblyTable = React.memo(
                     <option value="Delayed">Delayed</option>
                     <option value="Ahead">Ahead</option>
                     <option value="Allocated">Allocated</option>
+                    <option value="Completed">Completed</option> 
                   </Input>
                 </div>
 
@@ -970,7 +980,7 @@ const AssemblyTable = React.memo(
                           </td>
                         </tr>
                       ) : (
-                        assemblypartsList.partsListItems?.map((item) => {
+                        filteredAssemblyStatus?.map((item) => {
                           return (
                             <React.Fragment key={item._id}>
                               <tr

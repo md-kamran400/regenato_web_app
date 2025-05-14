@@ -1,5 +1,5 @@
 // react imports
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback,useMemo, Suspense } from "react";
 import { useSelector, useDispatch } from "react-redux";
 
 import OutlinedInput from "@mui/material/OutlinedInput";
@@ -83,7 +83,9 @@ import "./projectForProjects.css";
 import { Puff } from "react-loader-spinner";
 
 // component import
-import DeleteModal from "../../../Components/Common/DeleteModal";
+const DeleteModal = React.lazy(() =>
+  import("../../../Components/Common/DeleteModal")
+);
 import PaginatedList from "../Pagination/PaginatedList";
 import { FaEdit, FaSort } from "react-icons/fa";
 
@@ -160,34 +162,6 @@ const List = () => {
   useEffect(() => {
     fetchManufacturingData();
   }, [fetchManufacturingData]);
-
-  // const handleDuplicateProject = async (item) => {
-  //   if (!itemToDuplicate) return;
-  //   try {
-  //     const response = await fetch(
-  //       `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${item._id}/duplicate`,
-  //       {
-  //         method: "POST",
-  //         headers: {
-  //           "Content-Type": "application/json",
-  //         },
-  //       }
-  //     );
-  //     if (!response.ok) {
-  //       throw new Error("Failed to duplicate project");
-  //     }
-  //     const duplicatedProject = await response.json();
-  //     setprojectListsData((prevData) => [...prevData, duplicatedProject]);
-  //     toast.success("Project duplicated successfully!");
-  //   } catch (error) {
-  //     toast.error(`Error duplicating project: ${error.message}`);
-  //   } finally {
-  //     setModalDuplicate(false);
-  //     setItemToDuplicate(null);
-  //   }
-  // };
-
-  //filter
 
   const handleDuplicateConfirm = async () => {
     if (!itemToDuplicate) return;
@@ -271,53 +245,44 @@ const List = () => {
     setModal_NaemEdit(!modal_NaemEdit);
   };
 
-  // const fetchData = useCallback(async () => {
-  //   setIsLoading(true);
-  //   setError(null);
-  //   try {
-  //     const response = await fetch(
-  //       `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects?filterType=${filterType}`
-  //     );
-  //     if (!response.ok) {
-  //       throw new Error("Failed to fetch projects");
-  //     }
-  //     const data = await response.json();
-  //     setprojectListsData(data);
-  //     if (initialLoad) {
-  //       setFilterType(""); // Set filter to empty string on initial load
-  //       setInitialLoad(false);
-  //     }
-  //   } catch (err) {
-  //     setError(err.message);
-  //   } finally {
-  //     setIsLoading(false);
-  //   }
-  // }, [filterType]);
-
   // In List.js, modify the fetchData function to ensure it's always fresh
+  // Replace the current fetchData with this optimized version
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch(
-        `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects?filterType=${filterType}`
-      );
-      if (!response.ok) {
-        throw new Error("Failed to fetch projects");
+      // Fetch projects and manufacturing data in parallel
+      const [projectsRes, manufacturingRes] = await Promise.all([
+        fetch(
+          `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects?filterType=${filterType}`
+        ),
+        fetch(`${process.env.REACT_APP_BASE_URL}/api/manufacturing`),
+      ]);
+
+      if (!projectsRes.ok || !manufacturingRes.ok) {
+        throw new Error("Failed to fetch data");
       }
-      const data = await response.json();
-      // Ensure calculations are done for each project
-      const projectsWithCalculations = await Promise.all(
-        data.map(async (project) => {
-          const projectResponse = await fetch(
+
+      const [projects, manufacturing] = await Promise.all([
+        projectsRes.json(),
+        manufacturingRes.json(),
+      ]);
+
+      // Only fetch details for visible items (first page)
+      const visibleProjects = projects.slice(0, itemsPerPage);
+      const projectsWithDetails = await Promise.all(
+        visibleProjects.map((project) =>
+          fetch(
             `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${project._id}`
-          );
-          return projectResponse.json();
-        })
+          ).then((res) => res.json())
+        )
       );
-      setprojectListsData(projectsWithCalculations);
+
+      setprojectListsData(projectsWithDetails);
+      setManufacturingData(manufacturing);
+
       if (initialLoad) {
-        setFilterType(""); // Set filter to empty string on initial load
+        setFilterType("");
         setInitialLoad(false);
       }
     } catch (err) {
@@ -325,7 +290,7 @@ const List = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [filterType]);
+  }, [filterType, initialLoad]);
 
   useEffect(() => {
     fetchData();
@@ -607,194 +572,192 @@ const List = () => {
     }
   };
 
-  // const getStatus = (project) => {
-  //   let status = "On Track";
-  //   let statusColor = "primary";
-
-  //   const checkAllocations = (list) => {
-  //     // Check if list exists and is an array
-  //     if (!Array.isArray(list)) return;
-
-  //     list.forEach((partsList) => {
-  //       // Check if partsList and partsListItems exist
-  //       if (!partsList || !Array.isArray(partsList.partsListItems)) return;
-
-  //       partsList.partsListItems.forEach((item) => {
-  //         // Check if item and allocations exist
-  //         if (!item || !Array.isArray(item.allocations)) return;
-
-  //         item.allocations.forEach((allocationGroup) => {
-  //           // Check if allocationGroup and allocations exist
-  //           if (!allocationGroup || !Array.isArray(allocationGroup.allocations))
-  //             return;
-
-  //           allocationGroup.allocations.forEach((allocation) => {
-  //             if (allocation?.actualEndDate && allocation?.endDate) {
-  //               const actualEnd = new Date(allocation.actualEndDate);
-  //               const plannedEnd = new Date(allocation.endDate);
-
-  //               if (actualEnd > plannedEnd) {
-  //                 status = "Delayed";
-  //                 statusColor = "danger";
-  //               } else if (actualEnd < plannedEnd) {
-  //                 status = "Ahead";
-  //                 statusColor = "success";
-  //               }
-  //             }
-  //           });
-  //         });
-  //       });
-  //     });
-  //   };
-
-  //   // Check each list with proper null checks
-  //   if (project.partsLists) checkAllocations(project.partsLists);
-  //   if (project.subAssemblyListFirst)
-  //     checkAllocations(project.subAssemblyListFirst);
-  //   if (project.assemblyList) checkAllocations(project.assemblyList);
-
-  //   return <Badge color={statusColor}>{status}</Badge>;
-  // };
-
-  const getStatus = (project) => {
-    // Default state - Not Allocated
-    let status = "Not Allocated";
-    let statusColor = "secondary";
-  
-    // Check if any parts exist in the project
-    const hasPartsItems = project.partsLists?.some(
-      (list) => list.partsListItems && list.partsListItems.length > 0
-    );
-    const hasSubAssemblyItems = project.subAssemblyListFirst?.some(
-      (list) => list.partsListItems && list.partsListItems.length > 0
-    );
-    const hasAssemblyItems = project.assemblyList?.some(
-      (list) => list.partsListItems && list.partsListItems.length > 0
-    );
-  
-    // If no parts exist at all, return Not Allocated
-    if (!hasPartsItems && !hasSubAssemblyItems && !hasAssemblyItems) {
-      return <Badge color={statusColor}>{status}</Badge>;
-    }
-  
-    // Helper function to check if any allocations exist in a parts list item
-    const hasAllocations = (partsListItem) => {
-      return (
-        partsListItem.allocations && 
-        Array.isArray(partsListItem.allocations) &&
-        partsListItem.allocations.length > 0
+  const getStatus = useCallback(
+    (project) => {
+      // First check if project has any parts at all
+      const hasPartsItems = project.partsLists?.some(
+        (list) => list.partsListItems && list.partsListItems.length > 0
       );
-    };
-  
-    // Check if any parts have allocations
-    const hasAnyAllocations =
-      project.partsLists?.some((list) =>
-        list.partsListItems?.some(hasAllocations)
-      ) ||
-      project.subAssemblyListFirst?.some((list) =>
-        list.partsListItems?.some(hasAllocations)
-      ) ||
-      project.assemblyList?.some((list) =>
-        list.partsListItems?.some(hasAllocations)
+      const hasSubAssemblyItems = project.subAssemblyListFirst?.some(
+        (list) => list.partsListItems && list.partsListItems.length > 0
       );
-  
-    // If no allocations exist but parts exist, return "Not Allocated"
-    if (!hasAnyAllocations) {
-      return <Badge color={statusColor}>{status}</Badge>;
-    }
-  
-    // If we have allocations but no tracking data, return "Allocated"
-    status = "Allocated";
-    statusColor = "info";
-  
-    // Helper function to check tracking status
-    const checkTrackingStatus = (partsListItem) => {
-      if (!partsListItem.allocations) return;
-  
-      partsListItem.allocations.forEach((allocationGroup) => {
-        if (!allocationGroup.allocations) return;
-  
-        allocationGroup.allocations.forEach((allocation) => {
-          if (allocation.actualEndDate && allocation.endDate) {
-            const actualEnd = new Date(allocation.actualEndDate);
-            const plannedEnd = new Date(allocation.endDate);
-  
-            if (actualEnd > plannedEnd) {
-              status = "Delayed";
-              statusColor = "danger";
-            } else if (actualEnd < plannedEnd && status !== "Delayed") {
-              status = "Ahead";
-              statusColor = "success";
-            } else if (status === "Allocated") {
-              status = "On Track";
-              statusColor = "primary";
+      const hasAssemblyItems = project.assemblyList?.some(
+        (list) => list.partsListItems && list.partsListItems.length > 0
+      );
+
+      // If no parts exist at all, return Not Allocated
+      if (!hasPartsItems && !hasSubAssemblyItems && !hasAssemblyItems) {
+        return <Badge color="secondary">Not Allocated</Badge>;
+      }
+
+      // Now check if all parts are completed
+      const allPartsCompleted = checkAllPartsCompleted(project);
+      if (allPartsCompleted) {
+        return <Badge color="success">Completed</Badge>;
+      }
+
+      // Default state - Not Allocated
+      let status = "Not Allocated";
+      let statusColor = "secondary";
+
+      // Helper function to check if any allocations exist in a parts list item
+      const hasAllocations = (partsListItem) => {
+        return (
+          partsListItem.allocations &&
+          Array.isArray(partsListItem.allocations) &&
+          partsListItem.allocations.length > 0
+        );
+      };
+
+      // Check if any parts have allocations
+      const hasAnyAllocations =
+        project.partsLists?.some((list) =>
+          list.partsListItems?.some(hasAllocations)
+        ) ||
+        project.subAssemblyListFirst?.some((list) =>
+          list.partsListItems?.some(hasAllocations)
+        ) ||
+        project.assemblyList?.some((list) =>
+          list.partsListItems?.some(hasAllocations)
+        );
+
+      // If no allocations exist but parts exist, return "Not Allocated"
+      if (!hasAnyAllocations) {
+        return <Badge color={statusColor}>{status}</Badge>;
+      }
+
+      // If we have allocations but no tracking data, return "Allocated"
+      status = "Allocated";
+      statusColor = "info";
+
+      // Rest of the tracking status logic remains the same...
+      // Helper function to check tracking status
+      const checkTrackingStatus = (partsListItem) => {
+        if (!partsListItem.allocations) return;
+
+        partsListItem.allocations.forEach((allocationGroup) => {
+          if (!allocationGroup.allocations) return;
+
+          allocationGroup.allocations.forEach((allocation) => {
+            if (allocation.actualEndDate && allocation.endDate) {
+              const actualEnd = new Date(allocation.actualEndDate);
+              const plannedEnd = new Date(allocation.endDate);
+
+              if (actualEnd > plannedEnd) {
+                status = "Delayed";
+                statusColor = "danger";
+              } else if (actualEnd < plannedEnd && status !== "Delayed") {
+                status = "Ahead";
+                statusColor = "success";
+              } else if (status === "Allocated") {
+                status = "On Track";
+                statusColor = "primary";
+              }
+            } else if (
+              allocation.dailyTracking &&
+              allocation.dailyTracking.length > 0
+            ) {
+              // If we have tracking but no actualEndDate yet, check daily progress
+              const totalProduced = allocation.dailyTracking.reduce(
+                (sum, track) => sum + (track.produced || 0),
+                0
+              );
+              const totalPlanned = allocation.dailyTracking.reduce(
+                (sum, track) => sum + (track.planned || 0),
+                0
+              );
+
+              if (totalProduced < totalPlanned) {
+                status = "Delayed";
+                statusColor = "danger";
+              } else if (totalProduced > totalPlanned && status !== "Delayed") {
+                status = "Ahead";
+                statusColor = "success";
+              } else if (status === "Allocated") {
+                status = "On Track";
+                statusColor = "primary";
+              }
             }
-          } else if (allocation.dailyTracking && allocation.dailyTracking.length > 0) {
-            // If we have tracking but no actualEndDate yet, check daily progress
-            const totalProduced = allocation.dailyTracking.reduce(
-              (sum, track) => sum + (track.produced || 0), 0
-            );
-            const totalPlanned = allocation.dailyTracking.reduce(
-              (sum, track) => sum + (track.planned || 0), 0
-            );
-  
-            if (totalProduced < totalPlanned) {
-              status = "Delayed";
-              statusColor = "danger";
-            } else if (totalProduced > totalPlanned && status !== "Delayed") {
-              status = "Ahead";
-              statusColor = "success";
-            } else if (status === "Allocated") {
-              status = "On Track";
-              statusColor = "primary";
-            }
-          }
+          });
         });
+      };
+
+      // Check tracking status in all parts lists
+      project.partsLists?.forEach((list) => {
+        list.partsListItems?.forEach(checkTrackingStatus);
       });
-    };
-  
-    // Check tracking status in all parts lists
-    project.partsLists?.forEach((list) => {
-      list.partsListItems?.forEach(checkTrackingStatus);
-    });
-  
-    project.subAssemblyListFirst?.forEach((list) => {
-      list.partsListItems?.forEach(checkTrackingStatus);
-    });
-  
-    project.assemblyList?.forEach((list) => {
-      list.partsListItems?.forEach(checkTrackingStatus);
-    });
-  
-    return <Badge color={statusColor}>{status}</Badge>;
+
+      project.subAssemblyListFirst?.forEach((list) => {
+        list.partsListItems?.forEach(checkTrackingStatus);
+      });
+
+      project.assemblyList?.forEach((list) => {
+        list.partsListItems?.forEach(checkTrackingStatus);
+      });
+
+      return <Badge color={statusColor}>{status}</Badge>;
+    },
+    [manufacturingData]
+  );
+
+  // Modified helper function to check if all parts in a project are completed
+  const checkAllPartsCompleted = (project) => {
+    // If no parts exist at all, return false (we already checked this case earlier)
+    const hasParts =
+      (project.partsLists && project.partsLists.length > 0) ||
+      (project.subAssemblyListFirst &&
+        project.subAssemblyListFirst.length > 0) ||
+      (project.assemblyList && project.assemblyList.length > 0);
+
+    if (!hasParts) return false;
+
+    // Check partsLists
+    const partsListsCompleted =
+      project.partsLists?.every((list) =>
+        list.partsListItems?.every(
+          (item) => item.status === "Completed" || item.isManuallyCompleted
+        )
+      ) ?? true; // If no partsLists, consider them "completed"
+
+    // Check subAssemblyListFirst
+    const subAssembliesCompleted =
+      project.subAssemblyListFirst?.every((list) =>
+        list.partsListItems?.every(
+          (item) => item.status === "Completed" || item.isManuallyCompleted
+        )
+      ) ?? true;
+
+    // Check assemblyList and their subAssemblies
+    const assembliesCompleted =
+      project.assemblyList?.every((assembly) => {
+        const mainItemsCompleted =
+          assembly.partsListItems?.every(
+            (item) => item.status === "Completed" || item.isManuallyCompleted
+          ) ?? true;
+
+        const subAssembliesCompleted =
+          assembly.subAssemblies?.every((sub) =>
+            sub.partsListItems?.every(
+              (item) => item.status === "Completed" || item.isManuallyCompleted
+            )
+          ) ?? true;
+
+        return mainItemsCompleted && subAssembliesCompleted;
+      }) ?? true;
+
+    return partsListsCompleted && subAssembliesCompleted && assembliesCompleted;
   };
+
+  const totalSum = useMemo(
+    () => calculateTotalSum(),
+    [paginatedData, manufacturingData]
+  );
 
   const getMachineHours = (project, machineName) => {
     return project.machineHours && project.machineHours[machineName]
       ? project.machineHours[machineName]
       : 0;
   };
-
-  // const formatTime = (time) => {
-  //   if (time === 0) {
-  //     return 0;
-  //   }
-
-  //   let result = "";
-
-  //   const hours = Math.floor(time);
-  //   const minutes = Math.round((time - hours) * 60);
-
-  //   if (hours > 0) {
-  //     result += `${hours}h `;
-  //   }
-
-  //   if (minutes > 0 || (hours === 0 && minutes !== 0)) {
-  //     result += `${minutes}m`;
-  //   }
-
-  //   return result.trim();
-  // };
 
   const formatTime = (time) => {
     if (time === "-" || isNaN(time)) {
@@ -809,14 +772,32 @@ const List = () => {
     return `${totalMinutes} m`;
   };
 
+
+  const getMachineHoursCells = useCallback(
+  (item) =>
+    manufacturingData.map((machine) => {
+      const hours =
+        item.machineHours && item.machineHours[machine.name]
+          ? item.machineHours[machine.name]
+          : 0;
+      return (
+        <td key={machine._id}>{formatTime(hours)}</td>
+      );
+    }),
+  [manufacturingData, formatTime]
+);
+
+
   return (
     <React.Fragment>
       <ToastContainer closeButton={false} />
-      <DeleteModal
-        show={deleteModal}
-        onDeleteClick={() => handleDeleteProjectList()}
-        onCloseClick={() => setDeleteModal(false)}
-      />
+      <Suspense fallback={<div>Loading...</div>}>
+        <DeleteModal
+          show={deleteModal}
+          onDeleteClick={() => handleDeleteProjectList()}
+          onCloseClick={() => setDeleteModal(false)}
+        />
+      </Suspense>
       <Row className="g-4 mb-3">
         <div className="col-sm-auto">
           {userRole === "admin" && (
@@ -911,7 +892,9 @@ const List = () => {
                       }}
                     >
                       <Link to={`/projectSection/${item._id}`}>
-                        {item.projectName}
+                        {typeof item.projectName === "object"
+                          ? item.projectName.text
+                          : item.projectName}
                       </Link>
                     </td>
                     <td>
@@ -923,15 +906,8 @@ const List = () => {
                     <td>{Math.ceil(item.costPerUnit)}</td>
                     <td>{formatTime(item.timePerUnit)}</td>
                     <td>{getStatus(item)}</td>
-                    {manufacturingData.map((machine) => (
-                      <td key={machine._id}>
-                        {formatTime(
-                          item.machineHours && item.machineHours[machine.name]
-                            ? item.machineHours[machine.name]
-                            : 0
-                        )}
-                      </td>
-                    ))}
+                    {getMachineHoursCells(item)}
+
                     <td className="sticky-col">
                       <UncontrolledDropdown direction="start">
                         <DropdownToggle

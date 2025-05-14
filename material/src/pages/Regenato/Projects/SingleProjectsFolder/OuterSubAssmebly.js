@@ -607,6 +607,14 @@ const OuterSubAssmebly = React.memo(
       };
     };
 
+    const filteredsubAssembly =
+  statusFilter === "all"
+    ? subAssemblyItemsUpdated
+    : subAssemblyItemsUpdated.filter((item) => {
+        const status = getStatusDisplay(item);
+        return status.text === statusFilter;
+      });
+
     return (
       <>
         {isLoading && (
@@ -732,6 +740,7 @@ const OuterSubAssmebly = React.memo(
                       <option value="Delayed">Delayed</option>
                       <option value="Ahead">Ahead</option>
                       <option value="Allocated">Allocated</option>
+                      <option value="Completed">Completed</option>
                     </Input>
                   </div>
 
@@ -752,7 +761,7 @@ const OuterSubAssmebly = React.memo(
                         </tr>
                       </thead>
                       <tbody>
-                        {subAssemblyItemsUpdated?.map((item) => {
+                        {filteredsubAssembly?.map((item) => {
                           return (
                             <React.Fragment key={item._id}>
                               <tr

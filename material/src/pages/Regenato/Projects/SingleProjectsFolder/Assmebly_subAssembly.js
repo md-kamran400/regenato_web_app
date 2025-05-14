@@ -433,6 +433,14 @@ const Assmebly_subAssembly = ({
     };
   };
 
+   const filteredSubAssemblyStatus =
+      statusFilter === "all"
+        ? subAssembly.partsListItems
+        : subAssembly.partsListItems.filter((item) => {
+            const status = getStatusDisplay(item);
+            return status.text === statusFilter;
+          });
+
   return (
     <>
       <div style={{ padding: "1.5rem" }}>
@@ -541,6 +549,7 @@ const Assmebly_subAssembly = ({
                       <option value="Delayed">Delayed</option>
                       <option value="Ahead">Ahead</option>
                       <option value="Allocated">Allocated</option>
+                      <option value="Completed">Completed</option>
                     </Input>
                   </div>
 
@@ -575,8 +584,7 @@ const Assmebly_subAssembly = ({
                             </td>
                           </tr>
                         ) : (
-                          subAssembly.partsListItems &&
-                          subAssembly.partsListItems?.map((item) => {
+                          filteredSubAssemblyStatus?.map((item) => {
                             return (
                               <React.Fragment key={item._id}>
                                 <tr

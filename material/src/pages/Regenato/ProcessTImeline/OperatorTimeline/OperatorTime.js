@@ -4,7 +4,7 @@ import resourceTimelinePlugin from "@fullcalendar/resource-timeline";
 import adaptivePlugin from "@fullcalendar/adaptive";
 import "./OperatorTime.css";
 import { Loader } from "lucide-react";
-
+ 
 const operatorColors = {
   O1: { bg: "#3B82F6", border: "#2563EB" },
   O2: { bg: "#10B981", border: "#059669" },
@@ -22,7 +22,7 @@ const operatorColors = {
   O14: { bg: "#9333EA", border: "#7E22CE" },
   O15: { bg: "#4F46E5", border: "#4338CA" },
 };
-
+ 
 const fetchOperatorsData = async () => {
   const response = await fetch(
     `${process.env.REACT_APP_BASE_URL}/api/userVariable`
@@ -30,7 +30,7 @@ const fetchOperatorsData = async () => {
   const data = await response.json();
   return data;
 };
-
+ 
 const fetchAllocationsData = async () => {
   const response = await fetch(
     `${process.env.REACT_APP_BASE_URL}/api/defpartproject/all-allocations`
@@ -38,7 +38,7 @@ const fetchAllocationsData = async () => {
   const data = await response.json();
   return data.data;
 };
-
+ 
 const fetchManufacturingData = async () => {
   const response = await fetch(
     `${process.env.REACT_APP_BASE_URL}/api/manufacturing`
@@ -46,7 +46,7 @@ const fetchManufacturingData = async () => {
   const data = await response.json();
   return data;
 };
-
+ 
 const transformManufacturingData = (manufacturingData) => {
   const processes = {};
   manufacturingData.forEach((process) => {
@@ -57,7 +57,7 @@ const transformManufacturingData = (manufacturingData) => {
   });
   return processes;
 };
-
+ 
 const transformOperatorsData = (operatorsData) => {
   const operators = {};
   operatorsData.forEach((operator) => {
@@ -70,17 +70,37 @@ const transformOperatorsData = (operatorsData) => {
   });
   return operators;
 };
-
-const transformAllocationsData = (allocationsData) => {
+ 
+const transformAllocationsData = (allocationsData, operatorsMap) => {
   const events = [];
-
+ 
   allocationsData.forEach((project) => {
-    project.allocations.forEach((allocation) => {
-      allocation.allocations.forEach((alloc) => {
-        const operatorId = alloc.operator.split(" - ")[0];
+    project.allocations?.forEach((allocation) => {
+      allocation.allocations?.forEach((alloc) => {
+        if (!alloc.operator) return;
+ 
+        const operatorRaw = alloc.operator.trim();
+        let operatorId = operatorRaw;
+ 
+        // Try to extract ID from "O3 - Abdul"
+        if (operatorRaw.includes(" - ")) {
+          operatorId = operatorRaw.split(" - ")[0];
+        } else {
+          // Otherwise, try to find matching operator name from operators list
+          const match = Object.values(operatorsMap).find(
+            (op) => op.title === operatorRaw
+          );
+          if (match) {
+            operatorId = match.id;
+          } else {
+            // Fallback: use operatorRaw as ID
+            operatorId = operatorRaw.replace(/\s+/g, "_"); // e.g. "Ajay Singh" => "Ajay_Singh"
+          }
+        }
+ 
         const startDate = new Date(alloc.startDate);
         const endDate = new Date(alloc.endDate);
-
+ 
         events.push({
           id: `${operatorId}-${allocation.processId}-${alloc.machineId}-${alloc.startDate}`,
           resourceId: operatorId,
@@ -105,10 +125,13 @@ const transformAllocationsData = (allocationsData) => {
       });
     });
   });
-
+ 
   return events;
 };
-
+ 
+ 
+ 
+ 
 const OperatorTime = () => {
   const [operators, setOperators] = useState({});
   const [processes, setProcesses] = useState({});
@@ -117,7 +140,7 @@ const OperatorTime = () => {
   const [filteredEvents, setFilteredEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
+ 
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -128,19 +151,20 @@ const OperatorTime = () => {
             fetchAllocationsData(),
             fetchManufacturingData(),
           ]);
-
+ 
         const operatorsTransformed = transformOperatorsData(operatorsData);
         const processesTransformed =
           transformManufacturingData(manufacturingData);
-        const eventsTransformed = transformAllocationsData(allocationsData);
-
+          const eventsTransformed = transformAllocationsData(allocationsData, operatorsTransformed);
+ 
+ 
         setOperators(operatorsTransformed);
         setProcesses(processesTransformed);
         setAllEvents(eventsTransformed);
-
+ 
         // Set default selected process to "All" initially
         setSelectedProcess("all");
-
+ 
         setLoading(false);
       } catch (err) {
         console.error("Error fetching data:", err);
@@ -150,10 +174,10 @@ const OperatorTime = () => {
         setLoading(false);
       }
     };
-
+ 
     fetchData();
   }, []);
-
+ 
   useEffect(() => {
     if (selectedProcess === "all") {
       // Show all events when "All" is selected
@@ -166,11 +190,11 @@ const OperatorTime = () => {
       setFilteredEvents(eventsForProcess);
     }
   }, [selectedProcess, allEvents]);
-
+ 
   const handleProcessChange = (processId) => {
     setSelectedProcess(processId);
   };
-
+ 
   if (loading) {
     return (
       <div className="timeline-container">
@@ -182,7 +206,7 @@ const OperatorTime = () => {
       </div>
     );
   }
-
+ 
   if (error) {
     return (
       <div className="timeline-container">
@@ -190,7 +214,7 @@ const OperatorTime = () => {
       </div>
     );
   }
-
+ 
   if (
     Object.keys(operators).length === 0 ||
     Object.keys(processes).length === 0
@@ -201,13 +225,14 @@ const OperatorTime = () => {
       </div>
     );
   }
-
+ 
   // Create resources for all operators
   const resources = Object.values(operators).map((operator) => ({
     id: operator.id,
     title: `${operator.title} (${operator.id})`,
   }));
-
+ 
+ 
   return (
     <div className="timeline-container">
       <div className="process-header">
@@ -311,15 +336,15 @@ const OperatorTime = () => {
             divElement.className = "timeline-event";
             divElement.style.height = "24px";
             divElement.innerText = `${props.machine} | ${props.part} | ${props.projectName}`;
-
+ 
             return { domNodes: [divElement] };
           }}
           eventDidMount={(info) => {
             const event = info.event;
             const props = event.extendedProps;
-
+ 
             info.el.style.height = "24px";
-
+ 
             const tooltipContent = `
               Project: ${props.projectName || "N/A"}
               Operator: ${props.operator || "N/A"}
@@ -334,7 +359,7 @@ const OperatorTime = () => {
               Start: ${event.start ? event.start.toLocaleDateString() : "N/A"}
               End: ${event.end ? event.end.toLocaleDateString() : "N/A"}
             `;
-
+ 
             info.el.setAttribute("title", tooltipContent);
           }}
         />
@@ -342,5 +367,5 @@ const OperatorTime = () => {
     </div>
   );
 };
-
+ 
 export default OperatorTime;

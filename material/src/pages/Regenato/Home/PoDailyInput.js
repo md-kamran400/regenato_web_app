@@ -81,7 +81,7 @@ const PoDailyInput = () => {
       case "On Track":
         return <Badge color="success">{status}</Badge>;
       case "Delayed":
-        return <Badge color="danger">{status}</Badge>;
+        return <Badge color="success">{status}</Badge>;
       case "Completed":
         return <Badge color="info">{status}</Badge>;
       default:

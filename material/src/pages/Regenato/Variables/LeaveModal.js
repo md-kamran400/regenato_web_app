@@ -170,8 +170,21 @@ const LeaveModal = ({ isOpen, toggle, userId, userName, onLeaveSubmit }) => {
             ) : (
               leaveData.map((leave, index) => (
                 <tr key={index}>
-                  <td>{new Date(leave.startDate).toLocaleDateString()}</td>
-                  <td>{new Date(leave.endDate).toLocaleDateString()}</td>
+                  <td>
+                    {new Date(leave.startDate).toLocaleDateString("en-GB", {
+                      day: "2-digit",
+                      month: "long",
+                      year: "numeric",
+                    })}
+                  </td>
+                  <td>
+                    {new Date(leave.endDate).toLocaleDateString("en-GB", {
+                      day: "2-digit",
+                      month: "long",
+                      year: "numeric",
+                    })}
+                  </td>
+
                   <td>{leave.reason}</td>
                   <td>
                     <Button
