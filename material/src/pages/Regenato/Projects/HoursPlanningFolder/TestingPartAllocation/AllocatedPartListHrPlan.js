@@ -306,7 +306,6 @@ export const AllocatedPartListHrPlan = ({
     return totalQuantity - totalProduced;
   };
 
-  
   const submitDailyTracking = async () => {
     setIsUpdating(true);
     try {
@@ -314,21 +313,19 @@ export const AllocatedPartListHrPlan = ({
         toast.error("No allocation selected.");
         return;
       }
-
+  
       const allocationId = selectedSection.allocationId;
       const trackingId = selectedSection.data[0]?.trackingId;
-
+  
       if (!allocationId || !trackingId) {
         toast.error("Allocation or Tracking ID is missing.");
         return;
       }
-
-      // Calculate daily planned quantity here as well to ensure consistency
+  
       const shiftTotalTime = selectedSection.data[0].shiftTotalTime || 510;
-      const perMachinetotalTime =
-        selectedSection.data[0].perMachinetotalTime || 1;
+      const perMachinetotalTime = selectedSection.data[0].perMachinetotalTime || 1;
       const plannedQuantity = selectedSection.data[0].plannedQty || 0;
-
+  
       let calculatedDailyPlannedQty;
       if (perMachinetotalTime <= 0) {
         calculatedDailyPlannedQty = plannedQuantity;
@@ -339,45 +336,65 @@ export const AllocatedPartListHrPlan = ({
             ? plannedQuantity
             : Math.floor(shiftTotalTime / perMachinetotalTime);
       }
-
-      // Create the tracking data with the calculated daily planned quantity
+  
       const trackingData = {
         ...dailyTracking[0],
         planned: calculatedDailyPlannedQty,
+        dailyStatus:
+          dailyTracking[0].produced < calculatedDailyPlannedQty
+            ? "Delayed"
+            : dailyTracking[0].produced > calculatedDailyPlannedQty
+              ? "Ahead"
+              : "On Track",
       };
-
-      // Post the daily tracking data
+  
       const response = await axios.post(
         `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/allocations/${allocationId}/allocations/${trackingId}/dailyTracking`,
         trackingData
       );
-
-      // Rest of the function remains the same...
+  
       if (onUpdateAllocaitonStatus) {
         onUpdateAllocaitonStatus(response.data);
       }
-
+  
       toast.success("Daily Tracking Updated Successfully!");
-
-      // Fetch updated data
+  
       const updatedResponse = await axios.get(
         `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/allocations/${allocationId}/allocations/${trackingId}/dailyTracking`
       );
-
+  
       setExistingDailyTracking(updatedResponse.data.dailyTracking || []);
       setactulEndDateData(updatedResponse.data);
-
-      // Reset the form
+  
+      // ✅ FIX: Update actual end date in modal UI
+      const updatedActualEndDate = updatedResponse.data.actualEndDate;
+      if (updatedActualEndDate) {
+        setSelectedSection((prevSection) => {
+          if (!prevSection || !prevSection.data || !prevSection.data[0]) return prevSection;
+  
+          const updatedData = [...prevSection.data];
+          updatedData[0] = {
+            ...updatedData[0],
+            actualEndDate: updatedActualEndDate,
+          };
+  
+          return {
+            ...prevSection,
+            data: updatedData,
+          };
+        });
+      }
+  
       setDailyTracking([
         {
           date: "",
-          planned: calculatedDailyPlannedQty, // Use the calculated value here
+          planned: calculatedDailyPlannedQty,
           produced: 0,
           dailyStatus: "On Track",
           operator: selectedSection.data[0].operator || "",
         },
       ]);
-
+  
       closeAddRowModal();
     } catch (error) {
       toast.error("Failed to update daily tracking.");
@@ -386,7 +403,8 @@ export const AllocatedPartListHrPlan = ({
       setIsUpdating(false);
     }
   };
-
+  
+  
   const closeDailyTaskModal = () => {
     setDailyTaskModal(false);
     setDailyTracking([
@@ -465,36 +483,38 @@ export const AllocatedPartListHrPlan = ({
   // Add this function to handle completing the allocation
   //'/projects/:projectId/partsLists/:listId/items/:itemId/complete'
   //'/projects/:projectId/subAssemblyListFirst/:listId/items/:itemId/complete'
-const handleCompleteAllocation = async () => {
-  setCompletingAllocation(true);
-  try {
-    const response = await axios.put(
-      `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/items/${partListItemId}/complete`,
-      {
-        forceStatus: true // Add this flag to ensure status is set
-      }
-    );
-    
-    if (response.status === 200) {
-      toast.success("Allocation marked as completed!");
-      // onUpdateAllocaitonStatus(response.data)
-      // Verify the status in the response
-      if (response.data.data.status === "Completed") {
-        if (onUpdateAllocaitonStatus) {
-          onUpdateAllocaitonStatus();
+  const handleCompleteAllocation = async () => {
+    setCompletingAllocation(true);
+    try {
+      const response = await axios.put(
+        `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/items/${partListItemId}/complete`,
+        {
+          forceStatus: true, // Add this flag to ensure status is set
         }
-      } else {
-        toast.warning("Status wasn't updated as expected. Please refresh the page.");
+      );
+
+      if (response.status === 200) {
+        toast.success("Allocation marked as completed!");
+        // onUpdateAllocaitonStatus(response.data)
+        // Verify the status in the response
+        if (response.data.data.status === "Completed") {
+          if (onUpdateAllocaitonStatus) {
+            onUpdateAllocaitonStatus();
+          }
+        } else {
+          toast.warning(
+            "Status wasn't updated as expected. Please refresh the page."
+          );
+        }
       }
+    } catch (error) {
+      toast.error("Failed to complete allocation.");
+      console.error("Error completing allocation:", error);
+    } finally {
+      setCompletingAllocation(false);
+      setCompleteConfirmationModal(false);
     }
-  } catch (error) {
-    toast.error("Failed to complete allocation.");
-    console.error("Error completing allocation:", error);
-  } finally {
-    setCompletingAllocation(false);
-    setCompleteConfirmationModal(false);
-  }
-};
+  };
 
   // Add this function to check if all processes are completed
   const isAllocationCompleted = () => {
@@ -590,11 +610,11 @@ const handleCompleteAllocation = async () => {
           <CardBody className="d-flex justify-content-end align-items-center">
             {userRole === "admin" && (
               <>
-                 <Button
+                <Button
                   color="success"
                   onClick={() => setCompleteConfirmationModal(true)}
                   disabled={sections.length === 0 || !isAllocationCompleted()}
-                  style={{ marginRight: '10px' }}
+                  style={{ marginRight: "10px" }}
                 >
                   Complete Allocation
                 </Button>
@@ -707,39 +727,53 @@ const handleCompleteAllocation = async () => {
                   </span>
                 </Col>
 
-                {process.env.NODE_ENV === "development" && (
-                  <div
-                    style={{
-                      marginTop: "20px",
-                      padding: "15px",
-                      borderRadius: "4px",
-                      display: "flex",
-                    }}
-                  >
-                    <div>
-                      <p>
-                        <span style={{ fontWeight: "bold" }}>
-                          Tentative Days:
-                        </span>{" "}
-                        {actulEndDateData.actualEndDate
-                          ? getWorkingDaysDifference(
+                {/* {process.env.NODE_ENV === "development" && ( */}
+                <div
+                  style={{
+                    marginTop: "20px",
+                    padding: "15px",
+                    borderRadius: "4px",
+                    display: "flex",
+                  }}
+                >
+                  <div>
+                    <p>
+                      <span style={{ fontWeight: "bold" }}>
+                        Tentative Days:
+                      </span>{" "}
+                      {actulEndDateData.actualEndDate ? (
+                        <span
+                          className={
+                            getWorkingDaysDifference(
                               new Date(selectedSection.data[0].endDate),
                               new Date(actulEndDateData.actualEndDate),
                               highlightDates
-                            )
-                          : "N/A"}
-                      </p>
-                      <p>
-                        <strong>Total Produced:</strong>{" "}
-                        {existingDailyTracking.reduce(
-                          (sum, task) => sum + task.produced,
-                          0
-                        )}{" "}
-                        / {selectedSection.data[0].plannedQty}
-                      </p>
-                    </div>
+                            ) < 0
+                              ? "danger" // Red for negative numbers
+                              : "success" // Green for positive numbers
+                          }
+                        >
+                          {getWorkingDaysDifference(
+                            new Date(selectedSection.data[0].endDate),
+                            new Date(actulEndDateData.actualEndDate),
+                            highlightDates
+                          )}
+                        </span>
+                      ) : (
+                        "N/A"
+                      )}
+                    </p>
+                    <p>
+                      <strong>Total Produced:</strong>{" "}
+                      {existingDailyTracking.reduce(
+                        (sum, task) => sum + task.produced,
+                        0
+                      )}{" "}
+                      / {selectedSection.data[0].plannedQty}
+                    </p>
                   </div>
-                )}
+                </div>
+                {/* )} */}
               </Row>
 
               <div
@@ -1016,7 +1050,7 @@ const handleCompleteAllocation = async () => {
       </Modal>
 
       {/*// Add this modal to the existing modal section in the return statement*/}
-          
+
       <Modal
         isOpen={completeConfirmationModal}
         toggle={() => setCompleteConfirmationModal(false)}
@@ -1025,11 +1059,12 @@ const handleCompleteAllocation = async () => {
           Confirm Completion
         </ModalHeader>
         <ModalBody>
-          Are you sure you want to mark this allocation as completed? This action cannot be undone.
+          Are you sure you want to mark this allocation as completed? This
+          action cannot be undone.
         </ModalBody>
         <ModalFooter>
-          <Button 
-            color="success" 
+          <Button
+            color="success"
             onClick={handleCompleteAllocation}
             disabled={completingAllocation}
           >
@@ -1044,7 +1079,6 @@ const handleCompleteAllocation = async () => {
           </Button>
         </ModalFooter>
       </Modal>
-
     </div>
   );
 };
