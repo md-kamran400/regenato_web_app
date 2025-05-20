@@ -143,6 +143,7 @@ const partSchema = new mongoose.Schema({
       times: String,
       hourlyRate: Number,
       totalRate: Number,
+      allocationDay: Number, // <-- Added
     },
   ],
   shipmentVariables: [
