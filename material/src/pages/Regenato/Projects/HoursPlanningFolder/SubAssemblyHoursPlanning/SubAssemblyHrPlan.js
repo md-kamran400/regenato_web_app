@@ -456,7 +456,7 @@ export const SubAssemblyHrPlan = ({
         {
           plannedQuantity: isAutoSchedule ? quantity : "",
           plannedQtyTime: isAutoSchedule
-            ? calculatePlannedMinutes(quantity * man.hours)
+            ? calculatePlannedMinutes(quantity * man.hours, man.name, man.categoryId)
             : "",
           startDate: "",
           startTime: "",
@@ -491,7 +491,9 @@ export const SubAssemblyHrPlan = ({
         plannedQuantity: newQuantity,
         plannedQtyTime: newQuantity
           ? calculatePlannedMinutes(
-              newQuantity * manufacturingVariables[index].hours
+              newQuantity * manufacturingVariables[index].hours,
+              manufacturingVariables[index].name,
+              manufacturingVariables[index].categoryId
             )
           : "",
       };
@@ -601,7 +603,7 @@ export const SubAssemblyHrPlan = ({
         {
           plannedQuantity: isAutoSchedule ? quantity : "",
           plannedQtyTime: isAutoSchedule
-            ? calculatePlannedMinutes(quantity * man.hours)
+            ? calculatePlannedMinutes(quantity * man.hours, man.name, man.categoryId)
             : "",
           startDate: "",
           startTime: "",
@@ -617,8 +619,13 @@ export const SubAssemblyHrPlan = ({
     setRows(initialRows);
   }, [manufacturingVariables, quantity, isAutoSchedule]);
 
-  const calculatePlannedMinutes = (hours) => {
-    return Math.ceil(hours * 60);
+  const calculatePlannedMinutes = (hours, processName, categoryId) => {
+    const processInfo = getProcessSpecialDayInfo(processName, categoryId);
+    
+    if (processInfo?.isSpecialday) {
+      return processInfo.SpecialDayTotalMinutes;
+    }
+    return Math.round(hours * 60);
   };
 
   const calculateEndDate = (startDate, plannedMinutes, shift) => {
@@ -795,7 +802,9 @@ export const SubAssemblyHrPlan = ({
                 startDate,
                 row.plannedQtyTime,
                 shift,
-                firstAvailableMachine
+                firstAvailableMachine,
+                index,
+                rowIndex
               );
             } else {
               const { startDate: calcStart, endDate: calcEnd } =
@@ -956,7 +965,9 @@ export const SubAssemblyHrPlan = ({
     startDate,
     plannedMinutes,
     shift,
-    machine
+    machine,
+    processIndex,
+    rowIndex
   ) => {
     if (!startDate || !plannedMinutes) return "";
 
@@ -967,6 +978,15 @@ export const SubAssemblyHrPlan = ({
     let remainingMinutes = plannedMinutes;
     let currentDate = new Date(parsedDate);
     let totalDowntimeAdded = 0;
+
+    // Get process info for special day check
+    const processInfo = manufacturingVariables[processIndex];
+    const specialDayInfo = getProcessSpecialDayInfo(processInfo.name, processInfo.categoryId);
+    
+    // If it's a special day process, use the special day minutes
+    if (specialDayInfo?.isSpecialday) {
+      remainingMinutes = specialDayInfo.SpecialDayTotalMinutes;
+    }
 
     if (machine) {
       const downtimeInfo = isMachineOnDowntimeDuringPeriod(
@@ -981,7 +1001,6 @@ export const SubAssemblyHrPlan = ({
         currentDate = getNextWorkingDay(currentDate);
       }
     }
-    console.log(remainingMinutes);
 
     while (remainingMinutes > 0) {
       while (
@@ -1014,15 +1033,6 @@ export const SubAssemblyHrPlan = ({
 
       remainingMinutes -= minutesToDeduct;
 
-      console.log({
-        workingMinutesPerDay,
-        availableMinutes,
-        minutesToDeduct,
-        remainingMinutes,
-        currentDate,
-        dailyDowntimeMinutes,
-      });
-
       if (remainingMinutes > 0) {
         currentDate.setDate(currentDate.getDate() + 1);
       }
@@ -1052,7 +1062,9 @@ export const SubAssemblyHrPlan = ({
           machineId: "",
           shift: "",
           plannedQtyTime: calculatePlannedMinutes(
-            currentRemaining * manufacturingVariables[index].hours
+            currentRemaining * manufacturingVariables[index].hours,
+            manufacturingVariables[index].name,
+            manufacturingVariables[index].categoryId
           ),
           operatorId: "",
           processName: manufacturingVariables[index].name,
@@ -1107,7 +1119,9 @@ export const SubAssemblyHrPlan = ({
           machineId: "",
           shift: "Shift A",
           plannedQtyTime: calculatePlannedMinutes(
-            quantity * manufacturingVariables[index].hours
+            quantity * manufacturingVariables[index].hours,
+            manufacturingVariables[index].name,
+            manufacturingVariables[index].categoryId
           ),
           operatorId: "",
           processName: manufacturingVariables[index].name,
@@ -1477,6 +1491,13 @@ export const SubAssemblyHrPlan = ({
     });
   };
 
+  const getProcessSpecialDayInfo = (processName, categoryId) => {
+    const processInfo = partManufacturingVariables?.find(
+      (mv) => mv.name === processName && mv.categoryId === categoryId
+    );
+    return processInfo || null;
+  };
+
   return (
     <div style={{ width: "100%", margin: "auto" }}>
       <Card>
@@ -1646,7 +1667,9 @@ export const SubAssemblyHrPlan = ({
                                       plannedQuantity: safeValue,
                                       plannedQtyTime: calculatePlannedMinutes(
                                         (safeValue || 0) *
-                                          manufacturingVariables[index].hours
+                                          manufacturingVariables[index].hours,
+                                        manufacturingVariables[index].name,
+                                        manufacturingVariables[index].categoryId
                                       ),
                                     };
 
@@ -1811,7 +1834,9 @@ export const SubAssemblyHrPlan = ({
                                       shiftOptions.find(
                                         (s) => s.name === row.shift
                                       ),
-                                      machine
+                                      machine,
+                                      index,
+                                      rowIndex
                                     )
                                   );
                                   return availability.available
@@ -2018,7 +2043,9 @@ export const SubAssemblyHrPlan = ({
                                         updatedRows[rowIndex].startDate,
                                         updatedRows[rowIndex].plannedQtyTime,
                                         shift,
-                                        newValue
+                                        newValue,
+                                        index,
+                                        rowIndex
                                       );
 
                                     const downtimeInfo =
