@@ -66,6 +66,8 @@ const ManufacturingVariable = ({
     hours: "",
     hourlyRate: "",
     totalRate: "",
+    isSpecialday: false, // Add this
+    SpecialDayTotalMinutes: 0, // Add this
   });
 
   // Toggles for modals
@@ -103,6 +105,8 @@ const ManufacturingVariable = ({
       hours: "",
       hourlyRate: "",
       totalRate: "",
+      isSpecialday: false, // Add this
+      SpecialDayTotalMinutes: 0,
     });
 
     setModalList(!modal_add); // Open the modal
@@ -167,6 +171,8 @@ const ManufacturingVariable = ({
       setFormData({
         ...item,
         hours: hours.toFixed(2),
+        isSpecialday: item.isSpecialday || false, // Add this
+        SpecialDayTotalMinutes: item.SpecialDayTotalMinutes || 0, // Add this
       });
       setSelectedOptionEdit(selectedOption);
       setInputValueEdit(inputValue);
@@ -178,6 +184,8 @@ const ManufacturingVariable = ({
         hours: "",
         hourlyRate: "",
         totalRate: "",
+        isSpecialday: false, // Add this
+        SpecialDayTotalMinutes: 0, // Add this
       });
       setEditId(null);
     }
@@ -263,13 +271,15 @@ const ManufacturingVariable = ({
   const handleAutocompleteChange = (event, newValue) => {
     setSelectedManufacuturingVariable(newValue);
     if (newValue) {
-      setSubMachineOptions(newValue.subCategories || []); // Populate sub-machine options
+      setSubMachineOptions(newValue.subCategories || []);
       setFormData((prevFormData) => ({
         ...prevFormData,
         categoryId: newValue.categoryId,
         name: newValue.name,
-        hourlyRate: newValue.hourlyrate, // Main category's hourlyrate (if applicable)
-        SubMachineName: "", // Reset when main category changes
+        hourlyRate: newValue.hourlyrate,
+        SubMachineName: "",
+        isSpecialday: newValue.isSpecialday || false, // Add this
+        SpecialDayTotalMinutes: newValue.SpecialDayTotalMinutes || 0, // Add this
         totalRate:
           (newValue.hourlyrate || 0) * (parseFloat(prevFormData.hours) || 0),
       }));
@@ -277,7 +287,6 @@ const ManufacturingVariable = ({
       setSubMachineOptions([]);
     }
   };
-
   // Add handler for sub-machine selection
   const handleSubMachineChange = (event, newValue) => {
     if (newValue) {
@@ -499,17 +508,19 @@ const ManufacturingVariable = ({
     setPosting(true);
     setError(null);
 
-    // Check if the category ID already exists
-    const existingCategory = manufacturingData.find(
-      (item) => item.categoryId === formData.categoryId
-    );
-
-    if (existingCategory) {
-      toast.error("Category ID already exists");
-      setPosting(false);
-      return;
-    }
-
+    // Prepare the payload with proper type conversion
+    const payload = {
+      categoryId: formData.categoryId,
+      name: formData.name,
+      SubMachineName: formData.SubMachineName || "",
+      times: formData.times || `${formData.hours} hr`,
+      hours: Number(formData.hours),
+      hourlyRate: Number(formData.hourlyRate),
+      totalRate: Number(formData.totalRate),
+      isSpecialday: Boolean(formData.isSpecialday), // Ensure boolean type
+      SpecialDayTotalMinutes: formData.isSpecialday ? Number(Math.round(formData.hours*60)) : 0,
+    };
+    console.log(payload);
     try {
       const response = await fetch(
         `${process.env.REACT_APP_BASE_URL}/api/parts/${partDetails._id}/manufacturingVariables`,
@@ -518,27 +529,38 @@ const ManufacturingVariable = ({
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify(formData),
+          body: JSON.stringify(payload),
         }
       );
 
-      if (response.ok) {
-        await fetchManufacturingData();
-        setFormData({
-          categoryId: "",
-          name: "",
-          times: "",
-          hours: 0,
-          hourlyRate: 0,
-          totalRate: 0,
-        });
-        toast.success("Records Added Successfully");
-        setModalList(false); // Close the static add modal
-      } else {
-        throw new Error("Network response was not ok");
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
+
+      const result = await response.json();
+
+      // Refresh the data after successful submission
+      await fetchManufacturingData();
+
+      // Reset form
+      setFormData({
+        categoryId: "",
+        name: "",
+        SubMachineName: "",
+        times: "",
+        hours: "",
+        hourlyRate: "",
+        totalRate: "",
+        isSpecialday: false,
+        SpecialDayTotalMinutes: 0,
+      });
+
+      toast.success("Manufacturing variable added successfully!");
+      setModalList(false);
     } catch (error) {
+      console.error("Error submitting form:", error);
       setError(error.message);
+      toast.error(`Error: ${error.message}`);
     } finally {
       setPosting(false);
     }
@@ -593,6 +615,8 @@ const ManufacturingVariable = ({
           body: JSON.stringify({
             ...formData,
             totalRate: formData.hourlyRate * formData.hours, // Recalculate totalRate here
+            isSpecialday: e.target.checked,
+            SpecialDayTotalMinutes: e.target.checked ? formData.SpecialDayTotalMinutes : 0,
           }),
         }
       );
@@ -740,6 +764,7 @@ const ManufacturingVariable = ({
                 <th>Minutes (M)</th>
                 <th>Hourly Rate (INR)</th>
                 <th>Total Rate</th>
+                <th>Batch Process</th>
                 <th>Action</th>
                 <th>Reorder</th>
               </tr>
@@ -758,6 +783,7 @@ const ManufacturingVariable = ({
                   <td>{formatTime(item.hours)}</td>
                   <td>{item.hourlyRate}</td>
                   <td>{Math.round(item.totalRate)}</td>
+                  <td>{item.isSpecialday ? "YES" : "NO"}</td>
                   <td>
                     <div className="d-flex gap-2">
                       <button
@@ -781,6 +807,7 @@ const ManufacturingVariable = ({
                       </button>
                     </div>
                   </td>
+
                   <td>
                     <div className="d-flex gap-1">
                       <button
@@ -849,7 +876,7 @@ const ManufacturingVariable = ({
             {subMachineOptions.length > 0 && (
               <div className="mb-3">
                 <label htmlFor="subMachine" className="form-label">
-                Specify Machine
+                  Specify Machine
                 </label>
                 <Autocomplete
                   options={subMachineOptions}
@@ -941,6 +968,47 @@ const ManufacturingVariable = ({
                 />
               </div>
             </div>
+            {/* isSpecialday checkbox */}
+            <div className="mb-3 form-check">
+              <input
+                type="checkbox"
+                className="form-check-input"
+                id="isSpecialday"
+                checked={formData.isSpecialday || false}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    isSpecialday: e.target.checked
+                  })
+                }
+              />
+              <label className="form-check-label" htmlFor="isSpecialday">
+                Batch Process
+              </label>
+            </div>
+
+            {/* Conditional SpecialDayTotalMinutes input */}
+            {/* {formData.isSpecialday && (
+              <div className="mb-3">
+                <label htmlFor="SpecialDayTotalMinutes" className="form-label">
+                  Total Days
+                </label>
+                <input
+                  type="number"
+                  className="form-control"
+                  id="SpecialDayTotalMinutes"
+                  min="0"
+                  value={formData.SpecialDayTotalMinutes}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      SpecialDayTotalMinutes: e.target.value,
+                    })
+                  }
+                  required={formData.isSpecialday}
+                />
+              </div>
+            )} */}
             <ModalFooter>
               <Button type="submit" color="primary" disabled={posting}>
                 Add
@@ -1172,6 +1240,48 @@ const ManufacturingVariable = ({
                 required
               />
             </div>
+            {/* isSpecialday checkbox */}
+            <div className="mb-3 form-check">
+              <input
+                type="checkbox"
+                className="form-check-input"
+                id="isSpecialday"
+                checked={formData.isSpecialday || false}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    isSpecialday: e.target.checked,
+                    SpecialDayTotalMinutes: e.target.checked ? formData.SpecialDayTotalMinutes : 0,
+                  })
+                }
+              />
+              <label className="form-check-label" htmlFor="isSpecialday">
+                Special Day Calculation
+              </label>
+            </div>
+
+            {/* Conditional SpecialDayTotalMinutes input */}
+            {/* {formData.isSpecialday && (
+              <div className="mb-3">
+                <label htmlFor="SpecialDayTotalMinutes" className="form-label">
+                  Total Days
+                </label>
+                <input
+                  type="number"
+                  className="form-control"
+                  id="SpecialDayTotalMinutes"
+                  min="0"
+                  value={formData.SpecialDayTotalMinutes}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      SpecialDayTotalMinutes: e.target.value,
+                    })
+                  }
+                  required={formData.isSpecialday}
+                />
+              </div>
+            )} */}
             <ModalFooter>
               <Button type="submit" color="primary" disabled={posting}>
                 Update
