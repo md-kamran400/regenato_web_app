@@ -36,7 +36,7 @@ export const AssemblyPartListHoursPlan = ({
   partListItemId,
   partManufacturingVariables,
   partsCodeId,
-  onUpdateAllocaitonStatus
+  onUpdateAllocaitonStatus,
 }) => {
   const userRole = localStorage.getItem("userRole");
   const [machineOptions, setMachineOptions] = useState({});
@@ -581,30 +581,6 @@ export const AssemblyPartListHoursPlan = ({
     fetchOperators();
   }, []);
 
-  useEffect(() => {
-    const fetchShifts = async () => {
-      try {
-        const response = await fetch(
-          `${process.env.REACT_APP_BASE_URL}/api/shiftVariable`
-        );
-        const data = await response.json();
-        if (response.ok) {
-          const formattedShifts = data.map((shift) => ({
-            name: shift.name,
-            _id: shift._id,
-            startTime: shift.StartTime, // Include start time
-            TotalHours: parseFloat(shift.TotalHours) * 60,
-          }));
-          setShiftOptions(formattedShifts);
-        }
-      } catch (error) {
-        console.error("Error fetching shifts:", error);
-      }
-    };
-
-    fetchShifts();
-  }, []);
-
   const getFilteredMachines = (man, machines) => {
     // Find if this process has a SubMachineName defined
     const processData = partManufacturingVariables?.find(
@@ -977,7 +953,7 @@ export const AssemblyPartListHoursPlan = ({
               startDate: formatDateUTC(startDate),
               endDate: formatDateUTC(endDate),
               shift: shift?.name || "",
-              startTime: shift?.startTime || "",
+              startTime: shift?.startTime || "", //endTime should be here
               machineId: firstAvailableMachine
                 ? firstAvailableMachine.subcategoryId
                 : "",
@@ -1094,6 +1070,7 @@ export const AssemblyPartListHoursPlan = ({
         currentDate = getNextWorkingDay(currentDate);
       }
     }
+    console.log(remainingMinutes);
 
     // Calculate working days needed, accounting for potential daily downtimes
     while (remainingMinutes > 0) {
@@ -1129,6 +1106,15 @@ export const AssemblyPartListHoursPlan = ({
       const minutesToDeduct = Math.min(remainingMinutes, availableMinutes);
 
       remainingMinutes -= minutesToDeduct;
+
+      console.log({
+        workingMinutesPerDay,
+        availableMinutes,
+        minutesToDeduct,
+        remainingMinutes,
+        currentDate,
+        dailyDowntimeMinutes,
+      });
 
       if (remainingMinutes > 0) {
         currentDate.setDate(currentDate.getDate() + 1);
@@ -1351,10 +1337,10 @@ export const AssemblyPartListHoursPlan = ({
         toast.success("Allocations successfully added!");
         setIsDataAllocated(true); // This should disable the buttons
         setActiveTab("planned"); // Force switch to planned tab after allocation
-      // Force refresh of parts list items
-      if (onUpdateAllocaitonStatus) {
-        onUpdateAllocaitonStatus(response.data);
-      }
+        // Force refresh of parts list items
+        if (onUpdateAllocaitonStatus) {
+          onUpdateAllocaitonStatus(response.data);
+        }
       } else {
         toast.error("Failed to add allocations.");
       }
@@ -1369,81 +1355,63 @@ export const AssemblyPartListHoursPlan = ({
   };
 
   const calculateEndTime = (startTime, plannedMinutes, shift) => {
-    if (!startTime || !plannedMinutes || !shift) return "17:00"; // Default end time if data missing
-
-    try {
-      // Parse the start time (format: "HH:MM")
-      const [startHours, startMinutes] = startTime.split(":").map(Number);
-      let currentTime = new Date();
-      currentTime.setHours(startHours, startMinutes, 0, 0);
-
-      // Calculate working minutes per day (excluding breaks)
-      const workingMinutesPerDay = shift.workingMinutes || 450; // Default to 7.5 hours
-
-      // Calculate how many full days of work are needed
-      const fullDays = Math.floor(plannedMinutes / workingMinutesPerDay);
-      let remainingMinutes = plannedMinutes % workingMinutesPerDay;
-
-      // If no remaining minutes but we have full days, use full shift end time
-      if (remainingMinutes === 0 && fullDays > 0) {
-        const [shiftEndHour, shiftEndMinute] = shift.endTime
-          .split(":")
-          .map(Number);
-        return `${String(shiftEndHour).padStart(2, "0")}:${String(
-          shiftEndMinute
-        ).padStart(2, "0")}`;
-      }
-
-      // For multi-day production, we'll start at shift start time on the last day
-      if (fullDays > 0) {
-        // Reset to shift start time for the final day
-        currentTime.setHours(startHours, startMinutes, 0, 0);
-      }
-
-      // Handle breaks if they exist
-      if (shift.breakStartTime && shift.breakEndTime) {
-        const [breakStartHour, breakStartMinute] = shift.breakStartTime
-          .split(":")
-          .map(Number);
-        const [breakEndHour, breakEndMinute] = shift.breakEndTime
-          .split(":")
-          .map(Number);
-
-        const breakStart = new Date(currentTime);
-        breakStart.setHours(breakStartHour, breakStartMinute, 0, 0);
-
-        const breakEnd = new Date(currentTime);
-        breakEnd.setHours(breakEndHour, breakEndMinute, 0, 0);
-
-        // Check if remaining work crosses break time
-        const minutesUntilBreak = (breakStart - currentTime) / (1000 * 60);
-
-        if (remainingMinutes <= minutesUntilBreak) {
-          // Can finish before break
-          currentTime.setMinutes(currentTime.getMinutes() + remainingMinutes);
-        } else {
-          // Need to work after break
-          // Work until break starts
-          const workBeforeBreak = minutesUntilBreak;
-          currentTime = new Date(breakEnd);
-          remainingMinutes -= workBeforeBreak;
-          currentTime.setMinutes(currentTime.getMinutes() + remainingMinutes);
-        }
-      } else {
-        // No break information, just add the minutes directly
-        currentTime.setMinutes(currentTime.getMinutes() + remainingMinutes);
-      }
-
-      // Format back to HH:MM
-      const endHours = String(currentTime.getHours()).padStart(2, "0");
-      const endMinutes = String(currentTime.getMinutes()).padStart(2, "0");
-
-      return `${endHours}:${endMinutes}`;
-    } catch (error) {
-      console.error("Error calculating end time:", error);
-      return "17:00"; // Fallback end time
+    if (!startTime || !plannedMinutes || !shift) return "00:00";
+  
+    const [startHour, startMin] = startTime.split(":").map(Number);
+    const shiftStart = new Date();
+    shiftStart.setHours(startHour, startMin, 0, 0);
+  
+    const shiftEnd = new Date(shiftStart);
+    const [shiftEndHour, shiftEndMin] = shift.endTime.split(":").map(Number);
+    shiftEnd.setHours(shiftEndHour, shiftEndMin, 0, 0);
+  
+    const breakStart = new Date(shiftStart);
+    const breakEnd = new Date(shiftStart);
+    if (shift.breakStartTime && shift.breakEndTime) {
+      const [breakStartHour, breakStartMin] = shift.breakStartTime.split(":").map(Number);
+      const [breakEndHour, breakEndMin] = shift.breakEndTime.split(":").map(Number);
+      breakStart.setHours(breakStartHour, breakStartMin, 0, 0);
+      breakEnd.setHours(breakEndHour, breakEndMin, 0, 0);
     }
+  
+    let current = new Date(shiftStart);
+    let minutesLeft = plannedMinutes;
+  
+    const addWorkTime = (start, end) => {
+      const available = (end - start) / (1000 * 60);
+      if (minutesLeft <= available) {
+        current = new Date(start.getTime() + minutesLeft * 60 * 1000);
+        minutesLeft = 0;
+        return true;
+      } else {
+        minutesLeft -= available;
+        return false;
+      }
+    };
+  
+    // Work before break
+    if (breakStart > current && breakEnd > current) {
+      if (addWorkTime(current, breakStart)) return formatTime(current);
+      current = new Date(breakEnd);
+    }
+  
+    // Work after break until shift end
+    if (addWorkTime(current, shiftEnd)) return formatTime(current);
+  
+    // Spillover to next working day
+    const nextDay = new Date(shiftStart);
+    nextDay.setDate(nextDay.getDate() + 1);
+    nextDay.setHours(...shift.startTime.split(":").map(Number), 0, 0);
+  
+    // Final time after adding remaining work minutes on next working day
+    current = new Date(nextDay.getTime() + minutesLeft * 60 * 1000);
+  
+    return formatTime(current);
   };
+  
+  const formatTime = (date) =>
+    `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+  
 
   return (
     <div style={{ width: "100%", margin: "auto" }}>
@@ -1804,10 +1772,160 @@ export const AssemblyPartListHoursPlan = ({
                               type="time"
                               value={row.startTime}
                               onChange={(e) => {
+                                const newStartTime = e.target.value;
+                                const shift = shiftOptions.find(
+                                  (s) => s.name === row.shift
+                                );
+                                const plannedMinutes = row.plannedQtyTime;
+
+                                const calculateEndDateAndTime = (
+                                  startDateStr,
+                                  startTime,
+                                  shift,
+                                  minutes
+                                ) => {
+                                  if (
+                                    !startDateStr ||
+                                    !startTime ||
+                                    !shift ||
+                                    !minutes
+                                  )
+                                    return { endDate: "", endTime: "" };
+
+                                  const [startHour, startMin] = startTime
+                                    .split(":")
+                                    .map(Number);
+                                  const startDate = new Date(
+                                    startDateStr + "T" + startTime + ":00"
+                                  );
+
+                                  const shiftEnd = new Date(startDate);
+                                  const [shiftEndHour, shiftEndMin] =
+                                    shift.endTime.split(":").map(Number);
+                                  shiftEnd.setHours(
+                                    shiftEndHour,
+                                    shiftEndMin,
+                                    0,
+                                    0
+                                  );
+
+                                  const breakStart = new Date(startDate);
+                                  const breakEnd = new Date(startDate);
+                                  if (
+                                    shift.breakStartTime &&
+                                    shift.breakEndTime
+                                  ) {
+                                    const [breakStartHour, breakStartMin] =
+                                      shift.breakStartTime
+                                        .split(":")
+                                        .map(Number);
+                                    const [breakEndHour, breakEndMin] =
+                                      shift.breakEndTime.split(":").map(Number);
+                                    breakStart.setHours(
+                                      breakStartHour,
+                                      breakStartMin,
+                                      0,
+                                      0
+                                    );
+                                    breakEnd.setHours(
+                                      breakEndHour,
+                                      breakEndMin,
+                                      0,
+                                      0
+                                    );
+                                  }
+
+                                  let current = new Date(startDate);
+                                  let minutesLeft = minutes;
+
+                                  const addWorkTime = (start, end) => {
+                                    const available =
+                                      (end - start) / (1000 * 60);
+                                    if (minutesLeft <= available) {
+                                      current = new Date(
+                                        start.getTime() +
+                                          minutesLeft * 60 * 1000
+                                      );
+                                      minutesLeft = 0;
+                                      return true;
+                                    } else {
+                                      minutesLeft -= available;
+                                      return false;
+                                    }
+                                  };
+
+                                  // Work before break
+                                  if (
+                                    breakStart > current &&
+                                    breakEnd > current
+                                  ) {
+                                    if (addWorkTime(current, breakStart))
+                                      return {
+                                        endDate: formatDate(current),
+                                        endTime: formatTime(current),
+                                      };
+                                    current = new Date(breakEnd);
+                                  }
+
+                                  // Work after break until shift end
+                                  if (addWorkTime(current, shiftEnd))
+                                    return {
+                                      endDate: formatDate(current),
+                                      endTime: formatTime(current),
+                                    };
+
+                                  // Move to next working day 09:00
+                                  const nextDay = new Date(startDate);
+                                  nextDay.setDate(nextDay.getDate() + 1);
+                                  const [shiftStartHour, shiftStartMin] =
+                                    shift.startTime.split(":").map(Number);
+                                  nextDay.setHours(
+                                    shiftStartHour,
+                                    shiftStartMin,
+                                    0,
+                                    0
+                                  );
+
+                                  current = new Date(
+                                    nextDay.getTime() + minutesLeft * 60 * 1000
+                                  );
+
+                                  return {
+                                    endDate: formatDate(current),
+                                    endTime: formatTime(current),
+                                  };
+                                };
+
+                                const formatDate = (date) => {
+                                  return date.toISOString().split("T")[0];
+                                };
+
+                                const formatTime = (date) => {
+                                  return `${String(date.getHours()).padStart(
+                                    2,
+                                    "0"
+                                  )}:${String(date.getMinutes()).padStart(
+                                    2,
+                                    "0"
+                                  )}`;
+                                };
+
+                                const { endDate, endTime } =
+                                  calculateEndDateAndTime(
+                                    row.startDate,
+                                    newStartTime,
+                                    shift,
+                                    plannedMinutes
+                                  );
+
                                 setRows((prevRows) => {
                                   const updatedRows = [...prevRows[index]];
-                                  updatedRows[rowIndex].startTime =
-                                    e.target.value;
+                                  updatedRows[rowIndex] = {
+                                    ...updatedRows[rowIndex],
+                                    startTime: newStartTime,
+                                    endDate,
+                                    endTime,
+                                  };
                                   return { ...prevRows, [index]: updatedRows };
                                 });
                               }}
