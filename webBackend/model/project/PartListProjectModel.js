@@ -143,6 +143,8 @@ const partSchema = new mongoose.Schema({
       times: String,
       hourlyRate: Number,
       totalRate: Number,
+      isSpecialday: { type: Boolean, default: false }, // New field
+      SpecialDayTotalMinutes: { type: Number, default: 0 } // New field
     },
   ],
   shipmentVariables: [

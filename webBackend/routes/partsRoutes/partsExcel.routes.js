@@ -459,13 +459,12 @@ PartsExcelRoutes.delete("/:_id/rmVariables/:variableId", async (req, res) => {
 // start Manufacturing variable backend from here
 PartsExcelRoutes.get("/:_id/manufacturingVariables", async (req, res) => {
   try {
-    const part = await PartsModel.findById(
-      req.params._id,
-      "manufacturingVariables"
-    );
+    const part = await PartsModel.findById(req.params._id);
+    
     if (!part) {
       return res.status(404).json({ message: "Part not found" });
     }
+    
     res.status(200).json(part.manufacturingVariables);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -523,14 +522,13 @@ PartsExcelRoutes.post("/:_id/manufacturingVariables", async (req, res) => {
     const newManufacturingVariable = {
       categoryId: req.body.categoryId,
       name: req.body.name, 
-      SubMachineName: req.body.SubMachineName, //SubMachineName
+      SubMachineName: req.body.SubMachineName,
       times: req.body.times,
       hours: req.body.hours,
       hourlyRate: req.body.hourlyRate,
-      totalRate:
-        req.body.hours && req.body.hourlyRate
-          ? req.body.hours * req.body.hourlyRate
-          : req.body.totalRate,
+      totalRate: req.body.hours * req.body.hourlyRate,
+      isSpecialday: req.body.isSpecialday || false,  // Explicitly include
+      SpecialDayTotalMinutes: req.body.SpecialDayTotalMinutes || 0            // Explicitly include
     };
 
     const updatedPart = await PartsModel.findByIdAndUpdate(
@@ -543,7 +541,7 @@ PartsExcelRoutes.post("/:_id/manufacturingVariables", async (req, res) => {
       return res.status(404).json({ message: "Part not found" });
     }
 
-    res.status(201).json(updatedPart);
+    res.status(201).json(updatedPart.manufacturingVariables);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
