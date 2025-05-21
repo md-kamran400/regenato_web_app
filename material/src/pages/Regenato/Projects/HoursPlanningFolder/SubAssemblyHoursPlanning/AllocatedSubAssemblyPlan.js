@@ -114,69 +114,66 @@ export const AllocatedSubAssemblyPlan = ({
     return excludedDates;
   };
 
-  useEffect(() => {
-    const fetchAllocations = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const response = await axios.get(
-          `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/subAssemblyListFirst/${subAssemblyListFirstId}/partsListItems/${partListItemId}/allocation`
-        );
+ useEffect(() => {
+  const fetchAllocations = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await axios.get(
+        `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/subAssemblyListFirst/${subAssemblyListFirstId}/partsListItems/${partListItemId}/allocation`
+      );
 
-        if (!response.data.data || response.data.data.length === 0) {
-          setSections([]);
-        } else {
-          const formattedSections = response.data.data.map((item) => ({
-            allocationId: item._id,
-            title: item.processName,
-            categoryId: item.categoryId,
-            data: item.allocations.map((allocation) => {
-              // Calculate daily planned quantity
-              const shiftTotalTime = allocation.shiftTotalTime; // Total working time per day in minutes
-              const perMachinetotalTime = allocation.perMachinetotalTime; // Time required to produce one part
-              const plannedQuantity = allocation.plannedQuantity; // Total planned quantity
+      if (!response.data.data || response.data.data.length === 0) {
+        setSections([]);
+      } else {
+        const formattedSections = response.data.data.map((item) => ({
+          allocationId: item._id,
+          title: item.processName,
+          categoryId: item.categoryId,
+          data: item.allocations.map((allocation) => {
+            // Ensure we have valid numbers for calculation
+            const shiftTotalTime = Number(allocation.shiftTotalTime) || 510; // Default to 8.5 hours in minutes
+            const perMachinetotalTime = Number(allocation.perMachinetotalTime) || 1; // Prevent division by zero
+            const plannedQuantity = Number(allocation.plannedQuantity) || 0;
 
-              // Calculate total time required to produce all parts
+            // Calculate daily planned quantity with safeguards
+            let dailyPlannedQty;
+            if (perMachinetotalTime <= 0) {
+              dailyPlannedQty = plannedQuantity; // Fallback if invalid time per unit
+            } else {
               const totalTimeRequired = plannedQuantity * perMachinetotalTime;
+              dailyPlannedQty = totalTimeRequired <= shiftTotalTime
+                ? plannedQuantity
+                : Math.floor(shiftTotalTime / perMachinetotalTime);
+            }
 
-              // If total time required is less than or equal to shift time, dailyPlannedQty = plannedQuantity
-              // Otherwise, calculate based on shift time
-              const dailyPlannedQty =
-                totalTimeRequired <= shiftTotalTime
-                  ? plannedQuantity
-                  : Math.floor(shiftTotalTime / perMachinetotalTime);
-
-              return {
-                trackingId: allocation._id,
-                plannedQty: allocation.plannedQuantity,
-                // startDate: new Date(allocation.startDate).toLocaleDateString(), //start date
-                // endDate: new Date(allocation.endDate).toLocaleDateString(),
-                startDate: moment(allocation.startDate).format("DD MMM YYYY"), // Updated
-                endDate: moment(allocation.endDate).format("DD MMM YYYY"), // Updated
-                machineId: allocation.machineId,
-                shift: allocation.shift,
-                plannedTime: `${allocation.plannedTime} min`,
-                operator: allocation.operator,
-                actualEndDate: allocation.actualEndDate || allocation.endDate,
-                // ? new Date(allocation.actualEndDate).toLocaleDateString()
-                // : "N/A",
-                dailyPlannedQty: dailyPlannedQty, // Updated calculation
-                shiftTotalTime: allocation.shiftTotalTime,
-                perMachinetotalTime: allocation.perMachinetotalTime,
-              };
-            }),
-          }));
-          setSections(formattedSections);
-        }
-      } catch (error) {
-        setError("Failed to fetch allocations. Please try again later.");
-        console.error("Error fetching allocations:", error);
+            return {
+              trackingId: allocation._id,
+              plannedQty: plannedQuantity,
+              startDate: moment(allocation.startDate).format("DD MMM YYYY"),
+              endDate: moment(allocation.endDate).format("DD MMM YYYY"),
+              machineId: allocation.machineId,
+              shift: allocation.shift,
+              plannedTime: `${allocation.plannedTime} min`,
+              operator: allocation.operator,
+              actualEndDate: allocation.actualEndDate || allocation.endDate,
+              dailyPlannedQty: dailyPlannedQty,
+              shiftTotalTime: shiftTotalTime,
+              perMachinetotalTime: perMachinetotalTime,
+            };
+          }),
+        }));
+        setSections(formattedSections);
       }
-      setLoading(false);
-    };
+    } catch (error) {
+      setError("Failed to fetch allocations. Please try again later.");
+      console.error("Error fetching allocations:", error);
+    }
+    setLoading(false);
+  };
 
-    fetchAllocations();
-  }, [porjectID, subAssemblyListFirstId, partListItemId]);
+  fetchAllocations();
+}, [porjectID, subAssemblyListFirstId, partListItemId]);
 
   // console.log(sections);
 

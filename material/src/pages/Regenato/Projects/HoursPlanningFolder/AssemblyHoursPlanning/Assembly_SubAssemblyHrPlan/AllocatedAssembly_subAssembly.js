@@ -127,38 +127,26 @@ export const AllocatedAssembly_subAssembly = ({
         if (!response.data.data || response.data.data.length === 0) {
           setSections([]);
         } else {
-          const formattedSections = response.data.data.map((item) => ({
+            const formattedSections = response.data.data.map((item) => ({
             allocationId: item._id,
             title: item.processName,
             data: item.allocations.map((allocation) => {
-              // Calculate daily planned quantity
-              const shiftTotalTime = allocation.shiftTotalTime; // Total working time per day in minutes
-              const perMachinetotalTime = allocation.perMachinetotalTime; // Time required to produce one part
-              const plannedQuantity = allocation.plannedQuantity; // Total planned quantity
-
-              // Calculate total time required to produce all parts
-              const totalTimeRequired = plannedQuantity * perMachinetotalTime;
-
-              // If total time required is less than or equal to shift time, dailyPlannedQty = plannedQuantity
-              // Otherwise, calculate based on shift time
-              const dailyPlannedQty =
-                totalTimeRequired <= shiftTotalTime
-                  ? plannedQuantity
-                  : Math.floor(shiftTotalTime / perMachinetotalTime);
+              // Calculate daily planned quantity - use the value from backend if available
+              const dailyPlannedQty = allocation.dailyPlannedQty 
+                ? Number(allocation.dailyPlannedQty)
+                : calculateDailyPlannedQty(allocation); // fallback to calculation if not provided
 
               return {
                 trackingId: allocation._id,
                 plannedQty: allocation.plannedQuantity,
-                startDate: moment(allocation.startDate).format("DD MMM YYYY"), // Updated
-                endDate: moment(allocation.endDate).format("DD MMM YYYY"), // Updated
+                startDate: moment(allocation.startDate).format("DD MMM YYYY"),
+                endDate: moment(allocation.endDate).format("DD MMM YYYY"),
                 machineId: allocation.machineId,
                 shift: allocation.shift,
                 plannedTime: `${allocation.plannedTime} min`,
                 operator: allocation.operator,
                 actualEndDate: allocation.actualEndDate || allocation.endDate,
-                // ? new Date(allocation.actualEndDate).toLocaleDateString()
-                // : "N/A",
-                dailyPlannedQty: dailyPlannedQty, // Updated calculation
+                dailyPlannedQty: dailyPlannedQty, // Use the properly parsed number
                 shiftTotalTime: allocation.shiftTotalTime,
                 perMachinetotalTime: allocation.perMachinetotalTime,
               };
