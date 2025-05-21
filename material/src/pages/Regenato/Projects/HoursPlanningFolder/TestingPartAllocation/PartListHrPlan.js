@@ -148,10 +148,20 @@ export const PartListHrPlan = ({
         );
         if (response.data && response.data.data) {
           const operatorAllocations = {};
-
+          const machineAllocations = {};
           response.data.data.forEach((project) => {
             project.allocations.forEach((process) => {
               process.allocations.forEach((alloc) => {
+                // Process machine allocations
+                if (alloc.machineId) {
+                  if (!machineAllocations[alloc.machineId]) {
+                    machineAllocations[alloc.machineId] = [];
+                  }
+                  machineAllocations[alloc.machineId].push({
+                    startDate: new Date(alloc.startDate),
+                    endDate: new Date(alloc.endDate),
+                  });
+                }
                 // Process operator allocations using operatorId instead of name
                 if (alloc.operator) {
                   const operator = operators.find(
@@ -173,7 +183,7 @@ export const PartListHrPlan = ({
               });
             });
           });
-
+          setAllocatedMachines(machineAllocations);
           setOperatorAllocations(operatorAllocations);
         }
       } catch (error) {
@@ -184,13 +194,18 @@ export const PartListHrPlan = ({
   }, [operators]); // Add operators as dependency
 
   const isMachineAvailable = (machineId, startDate, endDate) => {
-    if (!allocatedMachines[machineId])
-      return { available: true, status: "Available" };
+    if (!allocatedMachines[machineId]) {
+      return {
+        available: true,
+        status: "Available",
+        conflictingAllocation: null,
+      };
+    }
 
     const parsedStart = new Date(startDate);
     const parsedEnd = new Date(endDate);
 
-    const isOccupied = allocatedMachines[machineId].some(
+    const conflictingAllocation = allocatedMachines[machineId].find(
       (alloc) =>
         (parsedStart >= alloc.startDate && parsedStart <= alloc.endDate) ||
         (parsedEnd >= alloc.startDate && parsedEnd <= alloc.endDate) ||
@@ -198,8 +213,9 @@ export const PartListHrPlan = ({
     );
 
     return {
-      available: !isOccupied,
-      status: isOccupied ? "Occupied" : "Available",
+      available: !conflictingAllocation,
+      status: conflictingAllocation ? "Occupied" : "Available",
+      conflictingAllocation: conflictingAllocation || null,
     };
   };
 
@@ -265,13 +281,15 @@ export const PartListHrPlan = ({
   };
 
   const getMachineStatus = (machine, startDate, endDate) => {
-    if (!machine)
+    if (!machine) {
       return {
         status: "Unknown",
         isDowntime: false,
         isAllocated: false,
         isOccupiedWithDowntime: false,
+        conflictingAllocation: null,
       };
+    }
 
     const downtimeInfo = isMachineOnDowntimeDuringPeriod(
       machine,
@@ -297,6 +315,7 @@ export const PartListHrPlan = ({
         downtimeMinutes: downtimeInfo.downtimeMinutes,
         downtimeReason: downtimeInfo.downtimeReason,
         downtimeEnd: downtimeInfo.downtimeEnd,
+        conflictingAllocation: availabilityInfo.conflictingAllocation,
       };
     }
 
@@ -309,6 +328,7 @@ export const PartListHrPlan = ({
         downtimeMinutes: downtimeInfo.downtimeMinutes,
         downtimeReason: downtimeInfo.downtimeReason,
         downtimeEnd: downtimeInfo.downtimeEnd,
+        conflictingAllocation: null,
       };
     }
 
@@ -319,6 +339,7 @@ export const PartListHrPlan = ({
         isAllocated: true,
         isOccupiedWithDowntime: false,
         downtimeMinutes: 0,
+        conflictingAllocation: availabilityInfo.conflictingAllocation,
       };
     }
 
@@ -328,6 +349,7 @@ export const PartListHrPlan = ({
       isAllocated: false,
       isOccupiedWithDowntime: false,
       downtimeMinutes: 0,
+      conflictingAllocation: null,
     };
   };
 
@@ -733,10 +755,20 @@ export const PartListHrPlan = ({
             let daysAddedForDowntime = 0;
 
             firstAvailableMachine = machineList.find((machine) => {
+              const shift = shiftOptions.length > 0 ? shiftOptions[0] : null;
+              const endDateEstimate = calculateEndDateWithDowntime(
+                currentDate,
+                row.plannedQtyTime,
+                shift,
+                machine,
+                index,
+                rowIndex
+              );
+
               const availability = isMachineAvailable(
                 machine.subcategoryId,
                 currentDate,
-                null
+                endDateEstimate
               );
 
               if (!availability.available) return false;
@@ -842,7 +874,7 @@ export const PartListHrPlan = ({
             const availableOperators = operators.filter((operator) => {
               const isOnLeave = isOperatorOnLeave(operator, startDate, endDate);
               const { available } = isOperatorAvailable(
-                `${operator.categoryId} - ${operator.name}`,
+                operator._id,
                 startDate,
                 endDate
               );
@@ -2234,7 +2266,27 @@ export const PartListHrPlan = ({
                                               )}
                                             </>
                                           ) : status.isAllocated ? (
-                                            "Occupied - Not Available"
+                                            <>
+                                              <div>
+                                                Occupied - Not Available
+                                              </div>
+                                              {status.conflictingAllocation && (
+                                                <div>
+                                                  Occupied from{" "}
+                                                  {formatDate(
+                                                    new Date(
+                                                      status.conflictingAllocation.startDate
+                                                    )
+                                                  )}{" "}
+                                                  to{" "}
+                                                  {formatDate(
+                                                    new Date(
+                                                      status.conflictingAllocation.endDate
+                                                    )
+                                                  )}
+                                                </div>
+                                              )}
+                                            </>
                                           ) : (
                                             "Available"
                                           )}
@@ -2305,236 +2357,303 @@ export const PartListHrPlan = ({
                             />
                           </td>
 
-                         <Autocomplete
-  sx={{
-    width: 150,
-    margin: "auto",
-    "& .MuiOutlinedInput-root": {
-      padding: "6px !important",
-      fontSize: "0.875rem",
-    },
-  }}
-  componentsProps={{
-    paper: {
-      sx: {
-        width: 380,
-        boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.15)",
-        borderRadius: "8px",
-        marginTop: "4px",
-      },
-    },
-  }}
-  options={operators}
-  value={operators.find((op) => op._id === row.operatorId) || null}
-  getOptionLabel={(option) => {
-    // Handle case where option might be null
-    if (!option) return "";
-    
-    const isOnLeave = isOperatorOnLeave(option, row.startDate, row.endDate);
-    const { status } = isOperatorAvailable(
-      option._id,
-      row.startDate,
-      row.endDate
-    );
-    return `${option.name}${
-      isOnLeave
-        ? " (On Leave)"
-        : status === "Occupied"
-        ? " (Occupied)"
-        : ""
-    }`;
-  }}
-  renderOption={(props, option) => {
-    const isOnLeave = isOperatorOnLeave(option, row.startDate, row.endDate);
-    const { status, allocation } = isOperatorAvailable(
-      option._id,
-      row.startDate,
-      row.endDate
-    );
-    const isDisabled = status === "Occupied" || isOnLeave;
+                          <td>
+                            <Autocomplete
+                              sx={{
+                                width: 150,
+                                margin: "auto",
+                                "& .MuiOutlinedInput-root": {
+                                  padding: "6px !important",
+                                  fontSize: "0.875rem",
+                                },
+                              }}
+                              componentsProps={{
+                                paper: {
+                                  sx: {
+                                    width: 380,
+                                    boxShadow:
+                                      "0px 4px 20px rgba(0, 0, 0, 0.15)",
+                                    borderRadius: "8px",
+                                    marginTop: "4px",
+                                  },
+                                },
+                              }}
+                              options={operators}
+                              value={
+                                operators.find(
+                                  (op) => op._id === row.operatorId
+                                ) || null
+                              }
+                              getOptionLabel={(option) => {
+                                // Handle case where option might be null
+                                if (!option) return "";
 
-    return (
-      <li
-        {...props}
-        style={{
-          padding: "10px 16px",
-          backgroundColor: isOnLeave
-            ? "#fff0f0"
-            : status === "Occupied"
-            ? "#fff9e6"
-            : "white",
-          color: isDisabled ? "#999" : "#212529",
-          cursor: isDisabled ? "not-allowed" : "pointer",
-          opacity: isDisabled ? 0.7 : 1,
-          pointerEvents: isDisabled ? "none" : "auto",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center" }}>
-          <div
-            style={{
-              width: 24,
-              height: 24,
-              borderRadius: "50%",
-              backgroundColor: isOnLeave
-                ? "#ff6b6b"
-                : status === "Occupied"
-                ? "#ffc107"
-                : "#28a745",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              marginRight: 12,
-              flexShrink: 0,
-            }}
-          >
-            <span style={{ color: "white", fontSize: 12 }}>
-              {isOnLeave ? "✈" : status === "Occupied" ? "⏳" : "👤"}
-            </span>
-          </div>
-          <div style={{ flexGrow: 1 }}>
-            <div style={{ fontWeight: 500 }}>
-              {option.name}
-              <span
-                style={{
-                  marginLeft: 8,
-                  fontSize: "0.75rem",
-                  color: isOnLeave
-                    ? "#ff6b6b"
-                    : status === "Occupied"
-                    ? "#ffc107"
-                    : "#28a745",
-                }}
-              >
-                {isOnLeave
-                  ? "On Leave"
-                  : status === "Occupied"
-                  ? "Occupied"
-                  : "Available"}
-              </span>
-            </div>
-            {isOnLeave && option.leavePeriod?.[0] && (
-              <div
-                style={{
-                  fontSize: "0.75rem",
-                  color: "#666",
-                  marginTop: 4,
-                }}
-              >
-                {formatDate(new Date(option.leavePeriod[0].startDate))} -{" "}
-                {formatDate(new Date(option.leavePeriod[0].endDate))}
-              </div>
-            )}
-            {status === "Occupied" && allocation && (
-              <div
-                style={{
-                  fontSize: "0.75rem",
-                  color: "#666",
-                  marginTop: 4,
-                }}
-              >
-                Occupied from {formatDate(new Date(allocation.startDate))} to{" "}
-                {formatDate(new Date(allocation.endDate))}
-              </div>
-            )}
-          </div>
-        </div>
-      </li>
-    );
-  }}
-  onChange={(event, newValue) => {
-    if (!hasStartDate || !newValue) return;
+                                const isOnLeave = isOperatorOnLeave(
+                                  option,
+                                  row.startDate,
+                                  row.endDate
+                                );
+                                const { status } = isOperatorAvailable(
+                                  option._id,
+                                  row.startDate,
+                                  row.endDate
+                                );
+                                return `${option.name}${
+                                  isOnLeave
+                                    ? " (On Leave)"
+                                    : status === "Occupied"
+                                    ? " (Occupied)"
+                                    : ""
+                                }`;
+                              }}
+                              renderOption={(props, option) => {
+                                const isOnLeave = isOperatorOnLeave(
+                                  option,
+                                  row.startDate,
+                                  row.endDate
+                                );
+                                const { status, allocation } =
+                                  isOperatorAvailable(
+                                    option._id,
+                                    row.startDate,
+                                    row.endDate
+                                  );
+                                const isDisabled =
+                                  status === "Occupied" || isOnLeave;
 
-    const isOnLeave = isOperatorOnLeave(newValue, row.startDate, row.endDate);
-    const { available, status } = isOperatorAvailable(
-      newValue._id,
-      row.startDate,
-      row.endDate
-    );
+                                return (
+                                  <li
+                                    {...props}
+                                    style={{
+                                      padding: "10px 16px",
+                                      backgroundColor: isOnLeave
+                                        ? "#fff0f0"
+                                        : status === "Occupied"
+                                        ? "#fff9e6"
+                                        : "white",
+                                      color: isDisabled ? "#999" : "#212529",
+                                      cursor: isDisabled
+                                        ? "not-allowed"
+                                        : "pointer",
+                                      opacity: isDisabled ? 0.7 : 1,
+                                      pointerEvents: isDisabled
+                                        ? "none"
+                                        : "auto",
+                                    }}
+                                  >
+                                    <div
+                                      style={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                      }}
+                                    >
+                                      <div
+                                        style={{
+                                          width: 24,
+                                          height: 24,
+                                          borderRadius: "50%",
+                                          backgroundColor: isOnLeave
+                                            ? "#ff6b6b"
+                                            : status === "Occupied"
+                                            ? "#ffc107"
+                                            : "#28a745",
+                                          display: "flex",
+                                          alignItems: "center",
+                                          justifyContent: "center",
+                                          marginRight: 12,
+                                          flexShrink: 0,
+                                        }}
+                                      >
+                                        <span
+                                          style={{
+                                            color: "white",
+                                            fontSize: 12,
+                                          }}
+                                        >
+                                          {isOnLeave
+                                            ? "✈"
+                                            : status === "Occupied"
+                                            ? "⏳"
+                                            : "👤"}
+                                        </span>
+                                      </div>
+                                      <div style={{ flexGrow: 1 }}>
+                                        <div style={{ fontWeight: 500 }}>
+                                          {option.name}
+                                          <span
+                                            style={{
+                                              marginLeft: 8,
+                                              fontSize: "0.75rem",
+                                              color: isOnLeave
+                                                ? "#ff6b6b"
+                                                : status === "Occupied"
+                                                ? "#ffc107"
+                                                : "#28a745",
+                                            }}
+                                          >
+                                            {isOnLeave
+                                              ? "On Leave"
+                                              : status === "Occupied"
+                                              ? "Occupied"
+                                              : "Available"}
+                                          </span>
+                                        </div>
+                                        {isOnLeave &&
+                                          option.leavePeriod?.[0] && (
+                                            <div
+                                              style={{
+                                                fontSize: "0.75rem",
+                                                color: "#666",
+                                                marginTop: 4,
+                                              }}
+                                            >
+                                              {formatDate(
+                                                new Date(
+                                                  option.leavePeriod[0].startDate
+                                                )
+                                              )}{" "}
+                                              -{" "}
+                                              {formatDate(
+                                                new Date(
+                                                  option.leavePeriod[0].endDate
+                                                )
+                                              )}
+                                            </div>
+                                          )}
+                                        {status === "Occupied" &&
+                                          allocation && (
+                                            <div
+                                              style={{
+                                                fontSize: "0.75rem",
+                                                color: "#666",
+                                                marginTop: 4,
+                                              }}
+                                            >
+                                              Occupied from{" "}
+                                              {formatDate(
+                                                new Date(allocation.startDate)
+                                              )}{" "}
+                                              to{" "}
+                                              {formatDate(
+                                                new Date(allocation.endDate)
+                                              )}
+                                            </div>
+                                          )}
+                                      </div>
+                                    </div>
+                                  </li>
+                                );
+                              }}
+                              onChange={(event, newValue) => {
+                                if (!hasStartDate || !newValue) return;
 
-    if (status === "Occupied") {
-      event.preventDefault();
-      toast.error(
-        `${newValue.name} is already occupied during the selected dates`
-      );
-      return;
-    }
+                                const isOnLeave = isOperatorOnLeave(
+                                  newValue,
+                                  row.startDate,
+                                  row.endDate
+                                );
+                                const { available, status } =
+                                  isOperatorAvailable(
+                                    newValue._id,
+                                    row.startDate,
+                                    row.endDate
+                                  );
 
-    if (isOnLeave) {
-      toast.error(
-        `${newValue.name} is on leave during the selected dates`
-      );
-      return;
-    }
+                                if (status === "Occupied") {
+                                  event.preventDefault();
+                                  toast.error(
+                                    `${newValue.name} is already occupied during the selected dates`
+                                  );
+                                  return;
+                                }
 
-    const isAlreadySelected = rows[index].some(
-      (r, idx) =>
-        idx !== rowIndex &&
-        r.operatorId === newValue._id
-    );
+                                if (isOnLeave) {
+                                  toast.error(
+                                    `${newValue.name} is on leave during the selected dates`
+                                  );
+                                  return;
+                                }
 
-    if (isAlreadySelected) {
-      toast.error(
-        `${newValue.name} is already assigned to another row in this process`
-      );
-      return;
-    }
+                                const isAlreadySelected = rows[index].some(
+                                  (r, idx) =>
+                                    idx !== rowIndex &&
+                                    r.operatorId === newValue._id
+                                );
 
-    setRows((prevRows) => ({
-      ...prevRows,
-      [index]: prevRows[index].map((r, idx) => {
-        if (idx === rowIndex) {
-          return {
-            ...r,
-            operatorId: newValue._id,
-          };
-        }
-        return r;
-      }),
-    }));
-  }}
-  renderInput={(params) => (
-    <TextField
-      {...params}
-      label="Select Operator"
-      variant="outlined"
-      size="small"
-      placeholder="Search operators..."
-      InputProps={{
-        ...params.InputProps,
-        startAdornment: (
-          <>
-            {row.operatorId && (
-              <div
-                style={{
-                  width: 12,
-                  height: 12,
-                  borderRadius: "50%",
-                  backgroundColor: "#28a745",
-                  marginRight: 8,
-                }}
-              />
-            )}
-            {params.InputProps.startAdornment}
-          </>
-        ),
-      }}
-    />
-  )}
-  noOptionsText={
-    <div style={{ padding: 12, color: "#666", textAlign: "center" }}>
-      {operators.length === 0
-        ? "No operators available"
-        : "No matching operators found"}
-    </div>
-  }
-  disabled={!hasStartDate}
-  filterOptions={(options, state) => {
-    return options.filter((option) =>
-      option.name.toLowerCase().includes(state.inputValue.toLowerCase())
-    );
-  }}
-  isOptionEqualToValue={(option, value) => option._id === value._id}
-/>
+                                if (isAlreadySelected) {
+                                  toast.error(
+                                    `${newValue.name} is already assigned to another row in this process`
+                                  );
+                                  return;
+                                }
+
+                                setRows((prevRows) => ({
+                                  ...prevRows,
+                                  [index]: prevRows[index].map((r, idx) => {
+                                    if (idx === rowIndex) {
+                                      return {
+                                        ...r,
+                                        operatorId: newValue._id,
+                                      };
+                                    }
+                                    return r;
+                                  }),
+                                }));
+                              }}
+                              renderInput={(params) => (
+                                <TextField
+                                  {...params}
+                                  label="Select Operator"
+                                  variant="outlined"
+                                  size="small"
+                                  placeholder="Search operators..."
+                                  InputProps={{
+                                    ...params.InputProps,
+                                    startAdornment: (
+                                      <>
+                                        {row.operatorId && (
+                                          <div
+                                            style={{
+                                              width: 12,
+                                              height: 12,
+                                              borderRadius: "50%",
+                                              backgroundColor: "#28a745",
+                                              marginRight: 8,
+                                            }}
+                                          />
+                                        )}
+                                        {params.InputProps.startAdornment}
+                                      </>
+                                    ),
+                                  }}
+                                />
+                              )}
+                              noOptionsText={
+                                <div
+                                  style={{
+                                    padding: 12,
+                                    color: "#666",
+                                    textAlign: "center",
+                                  }}
+                                >
+                                  {operators.length === 0
+                                    ? "No operators available"
+                                    : "No matching operators found"}
+                                </div>
+                              }
+                              disabled={!hasStartDate}
+                              filterOptions={(options, state) => {
+                                return options.filter((option) =>
+                                  option.name
+                                    .toLowerCase()
+                                    .includes(state.inputValue.toLowerCase())
+                                );
+                              }}
+                              isOptionEqualToValue={(option, value) =>
+                                option._id === value._id
+                              }
+                            />
+                          </td>
 
                           <td>
                             <span
