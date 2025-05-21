@@ -6,6 +6,7 @@ const PartListProjectModel = require("../model/project/PartListProjectModel");
 const ManufacturingModel = require("../model/manufacturingmodel");
 const axios = require("axios");
 const InchargeVariableModal = require("../model/inchargeVariable");
+const baseUrl = process.env.BASE_URL || "http://0.0.0.0:4040";
 
 // for assmebly
 assemblyListProject.get(
@@ -1300,14 +1301,13 @@ assemblyListProject.delete(
   }
 );
 
-
 assemblyListProject.post(
   "/projects/:projectId/assemblyList/:assemblyListId/partsListItems/:partListItemId/allocations/:processId/allocations/:allocationId/dailyTracking",
   async (req, res) => {
     try {
       const {
         projectId,
-        partsListId,
+        assemblyListId,
         partListItemId,
         processId,
         allocationId,
@@ -1321,27 +1321,34 @@ assemblyListProject.post(
       }
 
       const project = await PartListProjectModel.findById(projectId);
-      if (!project) return res.status(404).json({ error: "Project not found" });
+      if (!project) {
+        return res.status(404).json({ error: "Project not found" });
+      }
 
-      const partsList = project.assemblyList.id(partsListId);
-      if (!partsList)
-        return res.status(404).json({ error: "Parts List not found" });
+      const assemblyList = project.assemblyList.id(assemblyListId);
+      if (!assemblyList) {
+        return res.status(404).json({ error: "Assembly List not found" });
+      }
 
-      const partItem = partsList.partsListItems.id(partListItemId);
-      if (!partItem)
+      const partItem = assemblyList.partsListItems.id(partListItemId);
+      if (!partItem) {
         return res.status(404).json({ error: "Part List Item not found" });
+      }
 
       const process = partItem.allocations.id(processId);
-      if (!process) return res.status(404).json({ error: "Process not found" });
+      if (!process) {
+        return res.status(404).json({ error: "Process not found" });
+      }
 
       const allocation = process.allocations.id(allocationId);
-      if (!allocation)
+      if (!allocation) {
         return res.status(404).json({ error: "Allocation not found" });
+      }
 
-      // Calculate daily planned quantity
-      const dailyPlannedQty = Math.floor(
-        allocation.shiftTotalTime / allocation.perMachinetotalTime
-      );
+      // SAFE CALCULATION OF dailyPlannedQty
+      const shiftTime = Number(allocation.shiftTotalTime) || 510; // Default to 8.5 hours in minutes (510 minutes)
+      const timePerUnit = Number(allocation.perMachinetotalTime) || 1; // Prevent division by zero
+      const dailyPlannedQty = Math.floor(shiftTime / timePerUnit);
       allocation.dailyPlannedQty = dailyPlannedQty;
 
       // Add or update daily tracking
@@ -1349,22 +1356,18 @@ assemblyListProject.post(
         (e) => new Date(e.date).toISOString() === new Date(date).toISOString()
       );
 
+      const newEntry = {
+        date,
+        planned: planned || dailyPlannedQty,
+        produced,
+        operator: operator || allocation.operator,
+        dailyStatus: dailyStatus || (produced >= (planned || dailyPlannedQty)) ? "On Track" : "Delayed",
+      };
+
       if (existingEntryIndex >= 0) {
-        allocation.dailyTracking[existingEntryIndex] = {
-          date,
-          planned,
-          produced,
-          operator,
-          dailyStatus,
-        };
+        allocation.dailyTracking[existingEntryIndex] = newEntry;
       } else {
-        allocation.dailyTracking.push({
-          date,
-          planned,
-          produced,
-          operator,
-          dailyStatus,
-        });
+        allocation.dailyTracking.push(newEntry);
       }
 
       // Sort tracking entries by date
@@ -1372,119 +1375,30 @@ assemblyListProject.post(
         (a, b) => new Date(a.date) - new Date(b.date)
       );
 
-      // Fetch holidays
-      const holidaysResponse = await axios.get(
-        `${process.env.BASE_URL}/api/eventScheduler/events`
-      );
-      const holidays = holidaysResponse.data
-        .filter((event) => event.eventName === "HOLIDAY")
-        .flatMap((event) => {
-          const start = new Date(event.startDate);
-          const end = new Date(event.endDate);
-          let current = new Date(start);
-          const dates = [];
-          while (current <= end) {
-            dates.push(new Date(current));
-            current.setDate(current.getDate() + 1);
-          }
-          return dates;
-        });
-
-      const isWorkingDay = (date) => {
-        const dateObj = new Date(date);
-        if (dateObj.getDay() === 0) return false; // Sunday
-        const dateStr = dateObj.toISOString().split("T")[0];
-        return !holidays.some(
-          (holiday) => new Date(holiday).toISOString().split("T")[0] === dateStr
-        );
-      };
-
-      // Production quantities
+      // Calculate actual end date
       const totalQuantity = allocation.plannedQuantity;
       const totalProduced = allocation.dailyTracking.reduce(
         (sum, entry) => sum + entry.produced,
         0
       );
 
-      let currentDate;
+      let actualEndDate;
       if (totalProduced >= totalQuantity) {
-        // Production completed - find the last production date
-        const lastProductionEntry = allocation.dailyTracking
-          .slice()
-          .reverse()
-          .find(entry => entry.produced > 0);
-        
-        if (lastProductionEntry) {
-          currentDate = new Date(lastProductionEntry.date);
-        }
+        // Find the last production date
+        const productionEntries = allocation.dailyTracking.filter(e => e.produced > 0);
+        actualEndDate = productionEntries.length > 0 
+          ? new Date(productionEntries[productionEntries.length - 1].date)
+          : new Date();
       } else {
-        // Production not yet completed - calculate remaining work
-        const remainingQuantity = totalQuantity - totalProduced;
-        const remainingDaysNeeded = Math.ceil(
-          remainingQuantity / dailyPlannedQty
-        );
-
-        // Start from the last production date or allocation start date
-        currentDate = allocation.dailyTracking.length > 0
-          ? new Date(
-              allocation.dailyTracking[allocation.dailyTracking.length - 1].date
-            )
-          : new Date(allocation.startDate);
-
-        let workingDaysAdded = 0;
-        let daysAdded = 0;
-
-        // Move forward to find the projected end date
-        while (workingDaysAdded < remainingDaysNeeded) {
-          currentDate.setDate(currentDate.getDate() + 1);
-          daysAdded++;
-          if (isWorkingDay(currentDate)) {
-            workingDaysAdded++;
-          }
-        }
-
-        // If production is ahead of schedule, we need to move backward
-        if (totalProduced > (allocation.dailyTracking.length * dailyPlannedQty)) {
-          const extraProduction = totalProduced - (allocation.dailyTracking.length * dailyPlannedQty);
-          const daysSaved = Math.floor(extraProduction / dailyPlannedQty);
-          
-          console.log(`Production is ahead by ${extraProduction} units, saving ${daysSaved} working days`);
-          
-          let workingDaysSubtracted = 0;
-          let sundaysSkipped = 0;
-          let holidaysSkipped = 0;
-          currentDate = new Date(allocation.endDate); // Start from planned end date
-          
-          console.log(`Starting backward calculation from ${currentDate.toISOString().split('T')[0]}`);
-          
-          // Move backward to find the new end date, skipping non-working days
-          while (workingDaysSubtracted < daysSaved && currentDate >= new Date(allocation.startDate)) {
-            currentDate.setDate(currentDate.getDate() - 1);
-            
-            if (currentDate.getDay() === 0) {
-              sundaysSkipped++;
-              console.log(`Skipping Sunday: ${currentDate.toISOString().split('T')[0]}`);
-              continue;
-            }
-            
-            if (isWorkingDay(currentDate)) {
-              workingDaysSubtracted++;
-              console.log(`Counting working day: ${currentDate.toISOString().split('T')[0]} (${workingDaysSubtracted}/${daysSaved})`);
-            } else {
-              holidaysSkipped++;
-              console.log(`Skipping holiday: ${currentDate.toISOString().split('T')[0]}`);
-            }
-          }
-          
-          console.log(`Finished backward calculation:`);
-          console.log(`- Total Sundays skipped: ${sundaysSkipped}`);
-          console.log(`- Total Holidays skipped: ${holidaysSkipped}`);
-          console.log(`- New calculated end date: ${currentDate.toISOString().split('T')[0]}`);
-        }
+        // Use planned end date if not completed
+        actualEndDate = allocation.endDate;
       }
 
-      allocation.actualEndDate = currentDate;
+      allocation.actualEndDate = actualEndDate;
 
+      // Mark the document as modified to ensure saving
+      partItem.markModified('allocations');
+      
       await project.save();
 
       res.status(201).json({
@@ -1495,7 +1409,7 @@ assemblyListProject.post(
           dailyPlannedQty,
           totalProduced,
           remainingQuantity: Math.max(0, totalQuantity - totalProduced),
-          actualEndDate: currentDate.toISOString().split("T")[0],
+          actualEndDate: actualEndDate.toISOString().split("T")[0],
         },
       });
     } catch (error) {
@@ -1507,7 +1421,6 @@ assemblyListProject.post(
     }
   }
 );
-
 
 assemblyListProject.get(
   "/projects/:projectId/assemblyList/:partsListId/partsListItems/:partListItemId/allocations/:processId/allocations/:allocationId/dailyTracking",

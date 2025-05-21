@@ -6,6 +6,7 @@ const PartListProjectModel = require("../model/project/PartListProjectModel");
 const ManufacturingModel = require("../model/manufacturingmodel");
 const axios = require("axios");
 const InchargeVariableModal = require("../model/inchargeVariable");
+const baseUrl = process.env.BASE_URL || "http://0.0.0.0:4040";
 
 subAssemblyproject.get(
   "/projects/:projectId/subAssemblyListFirst",
@@ -141,7 +142,6 @@ subAssemblyproject.post(
     }
   }
 );
-
 
 
 subAssemblyproject.delete(
@@ -976,15 +976,13 @@ subAssemblyproject.delete(
   }
 );
 
-
-
 subAssemblyproject.post(
   "/projects/:projectId/subAssemblyListFirst/:subAssemblyListFirstId/partsListItems/:partListItemId/allocations/:processId/allocations/:allocationId/dailyTracking",
   async (req, res) => {
     try {
       const {
         projectId,
-        partsListId,
+        subAssemblyListFirstId,
         partListItemId,
         processId,
         allocationId,
@@ -1000,11 +998,11 @@ subAssemblyproject.post(
       const project = await PartListProjectModel.findById(projectId);
       if (!project) return res.status(404).json({ error: "Project not found" });
 
-      const partsList = project.subAssemblyListFirst.id(partsListId);
-      if (!partsList)
-        return res.status(404).json({ error: "Parts List not found" });
+      const subAssemblyList = project.subAssemblyListFirst.id(subAssemblyListFirstId);
+      if (!subAssemblyList)
+        return res.status(404).json({ error: "Sub Assembly List not found" });
 
-      const partItem = partsList.partsListItems.id(partListItemId);
+      const partItem = subAssemblyList.partsListItems.id(partListItemId);
       if (!partItem)
         return res.status(404).json({ error: "Part List Item not found" });
 
@@ -1015,10 +1013,22 @@ subAssemblyproject.post(
       if (!allocation)
         return res.status(404).json({ error: "Allocation not found" });
 
-      // Calculate daily planned quantity
-      const dailyPlannedQty = Math.floor(
-        allocation.shiftTotalTime / allocation.perMachinetotalTime
-      );
+      // Validate and calculate daily planned quantity with proper safeguards
+      const shiftTotalTime = allocation.shiftTotalTime || 510; // Default to 8.5 hours in minutes (510 minutes)
+      const perMachinetotalTime = allocation.perMachinetotalTime || 1; // Prevent division by zero
+      const plannedQuantity = allocation.plannedQuantity || 0;
+
+      let dailyPlannedQty;
+      if (perMachinetotalTime <= 0) {
+        // If invalid time per unit, fallback to planned quantity
+        dailyPlannedQty = plannedQuantity;
+      } else {
+        // Calculate based on shift time and time per unit
+        dailyPlannedQty = Math.floor(shiftTotalTime / perMachinetotalTime);
+      }
+
+      // Ensure we have at least 1 as minimum value
+      dailyPlannedQty = Math.max(1, dailyPlannedQty);
       allocation.dailyPlannedQty = dailyPlannedQty;
 
       // Add or update daily tracking
@@ -1026,22 +1036,20 @@ subAssemblyproject.post(
         (e) => new Date(e.date).toISOString() === new Date(date).toISOString()
       );
 
+      const trackingEntry = {
+        date,
+        planned: dailyPlannedQty, // Use the calculated value
+        produced: Number(produced),
+        operator,
+        dailyStatus: dailyStatus || 
+          (produced > dailyPlannedQty ? "Ahead" : 
+           produced < dailyPlannedQty ? "Delayed" : "On Track")
+      };
+
       if (existingEntryIndex >= 0) {
-        allocation.dailyTracking[existingEntryIndex] = {
-          date,
-          planned,
-          produced,
-          operator,
-          dailyStatus,
-        };
+        allocation.dailyTracking[existingEntryIndex] = trackingEntry;
       } else {
-        allocation.dailyTracking.push({
-          date,
-          planned,
-          produced,
-          operator,
-          dailyStatus,
-        });
+        allocation.dailyTracking.push(trackingEntry);
       }
 
       // Sort tracking entries by date
@@ -1051,7 +1059,7 @@ subAssemblyproject.post(
 
       // Fetch holidays
       const holidaysResponse = await axios.get(
-        `${process.env.BASE_URL}/api/eventScheduler/events`
+        `${baseUrl}/api/eventScheduler/events`
       );
       const holidays = holidaysResponse.data
         .filter((event) => event.eventName === "HOLIDAY")
@@ -1072,114 +1080,80 @@ subAssemblyproject.post(
         if (dateObj.getDay() === 0) return false; // Sunday
         const dateStr = dateObj.toISOString().split("T")[0];
         return !holidays.some(
-          (holiday) => new Date(holiday).toISOString().split("T")[0] === dateStr
+          (holiday) =>
+            new Date(holiday).toISOString().split("T")[0] === dateStr
         );
       };
 
-      // Production quantities
-      const totalQuantity = allocation.plannedQuantity;
+      // Calculate production progress
       const totalProduced = allocation.dailyTracking.reduce(
         (sum, entry) => sum + entry.produced,
         0
       );
+      const remainingQuantity = Math.max(0, plannedQuantity - totalProduced);
 
-      let currentDate;
-      if (totalProduced >= totalQuantity) {
+      // Calculate actual end date
+      let currentDate = new Date();
+      if (totalProduced >= plannedQuantity) {
         // Production completed - find the last production date
         const lastProductionEntry = allocation.dailyTracking
           .slice()
           .reverse()
           .find(entry => entry.produced > 0);
         
-        if (lastProductionEntry) {
-          currentDate = new Date(lastProductionEntry.date);
-        }
+        currentDate = lastProductionEntry ? new Date(lastProductionEntry.date) : new Date();
       } else {
         // Production not yet completed - calculate remaining work
-        const remainingQuantity = totalQuantity - totalProduced;
-        const remainingDaysNeeded = Math.ceil(
-          remainingQuantity / dailyPlannedQty
-        );
-
-        // Start from the last production date or allocation start date
+        let workingDaysNeeded = Math.ceil(remainingQuantity / dailyPlannedQty);
+        let addedDays = 0;
+        
+        // Start from last production date or allocation start date
         currentDate = allocation.dailyTracking.length > 0
-          ? new Date(
-              allocation.dailyTracking[allocation.dailyTracking.length - 1].date
-            )
+          ? new Date(allocation.dailyTracking[allocation.dailyTracking.length - 1].date)
           : new Date(allocation.startDate);
 
-        let workingDaysAdded = 0;
-        let daysAdded = 0;
-
-        // Move forward to find the projected end date
-        while (workingDaysAdded < remainingDaysNeeded) {
+        while (addedDays < workingDaysNeeded) {
           currentDate.setDate(currentDate.getDate() + 1);
-          daysAdded++;
           if (isWorkingDay(currentDate)) {
-            workingDaysAdded++;
+            addedDays++;
           }
-        }
-
-        // If production is ahead of schedule, we need to move backward
-        if (totalProduced > (allocation.dailyTracking.length * dailyPlannedQty)) {
-          const extraProduction = totalProduced - (allocation.dailyTracking.length * dailyPlannedQty);
-          const daysSaved = Math.floor(extraProduction / dailyPlannedQty);
-          
-          console.log(`Production is ahead by ${extraProduction} units, saving ${daysSaved} working days`);
-          
-          let workingDaysSubtracted = 0;
-          let sundaysSkipped = 0;
-          let holidaysSkipped = 0;
-          currentDate = new Date(allocation.endDate); // Start from planned end date
-          
-          console.log(`Starting backward calculation from ${currentDate.toISOString().split('T')[0]}`);
-          
-          // Move backward to find the new end date, skipping non-working days
-          while (workingDaysSubtracted < daysSaved && currentDate >= new Date(allocation.startDate)) {
-            currentDate.setDate(currentDate.getDate() - 1);
-            
-            if (currentDate.getDay() === 0) {
-              sundaysSkipped++;
-              console.log(`Skipping Sunday: ${currentDate.toISOString().split('T')[0]}`);
-              continue;
-            }
-            
-            if (isWorkingDay(currentDate)) {
-              workingDaysSubtracted++;
-              console.log(`Counting working day: ${currentDate.toISOString().split('T')[0]} (${workingDaysSubtracted}/${daysSaved})`);
-            } else {
-              holidaysSkipped++;
-              console.log(`Skipping holiday: ${currentDate.toISOString().split('T')[0]}`);
-            }
-          }
-          
-          console.log(`Finished backward calculation:`);
-          console.log(`- Total Sundays skipped: ${sundaysSkipped}`);
-          console.log(`- Total Holidays skipped: ${holidaysSkipped}`);
-          console.log(`- New calculated end date: ${currentDate.toISOString().split('T')[0]}`);
         }
       }
 
       allocation.actualEndDate = currentDate;
 
-      await project.save();
+      // Save with validation
+      try {
+        await project.save();
+      } catch (saveError) {
+        console.error("Validation error on save:", saveError);
+        return res.status(400).json({
+          error: "Validation failed",
+          details: saveError.message,
+          allocation: {
+            shiftTotalTime: allocation.shiftTotalTime,
+            perMachinetotalTime: allocation.perMachinetotalTime,
+            dailyPlannedQty: allocation.dailyPlannedQty
+          }
+        });
+      }
 
       res.status(201).json({
         message: "Daily tracking updated successfully",
-        allocation,
-        calculationDetails: {
-          totalQuantity,
+        data: {
           dailyPlannedQty,
           totalProduced,
-          remainingQuantity: Math.max(0, totalQuantity - totalProduced),
+          remainingQuantity,
           actualEndDate: currentDate.toISOString().split("T")[0],
         },
+        allocation
       });
     } catch (error) {
       console.error("Error in daily tracking:", error);
       res.status(500).json({
         error: "Server error",
         details: error.message,
+        stack: process.env.NODE_ENV === "development" ? error.stack : undefined
       });
     }
   }
