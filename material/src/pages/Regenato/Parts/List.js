@@ -182,69 +182,34 @@ const List = () => {
     setModalDuplicate(!modal_duplicate);
   };
 
-  // const fetchData = useCallback(async () => {
-  //   setLoading(true);
-  //   setError(null);
-  //   try {
-  //     const response = await fetch(
-  //       `${process.env.REACT_APP_BASE_URL}/api/parts?filterType=${filterType}`
-  //     );
-  //     if (!response.ok) {
-  //       throw new Error("Failed to fetch parts");
-  //     }
-  //     const data = await response.json();
-  //     setListData(data);
-  //     if (initialLoad) {
-  //       setFilterType(""); // Set filter to empty string on initial load
-  //       setInitialLoad(false);
-  //     }
-  //   } catch (err) {
-  //     setError(err.message);
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // }, [filterType]);
-
-  const fetchData = useCallback(
-    async (forceRefresh = false) => {
-      setLoading(true);
-      setError(null);
-
-      // Check if data is available in sessionStorage and not forcing refresh
-      const cachedData =
-        !forceRefresh && sessionStorage.getItem("cachedPartsData");
-
-      if (cachedData) {
-        setListData(JSON.parse(cachedData));
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const response = await fetch(
-          `${process.env.REACT_APP_BASE_URL}/api/parts?filterType=${filterType}`
-        );
-        if (!response.ok) {
-          throw new Error("Failed to fetch parts");
-        }
-        const data = await response.json();
-        setListData(data);
-
-        // Store data in sessionStorage
-        sessionStorage.setItem("cachedPartsData", JSON.stringify(data));
-
-        if (initialLoad) {
-          setFilterType(""); // Set filter to empty string on initial load
-          setInitialLoad(false);
-        }
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [filterType]
-  );
+ const fetchData = useCallback(async (forceRefresh = false) => {
+  setLoading(true);
+  setError(null);
+  try {
+    // Clear cache if forceRefresh is true
+    if (forceRefresh) {
+      sessionStorage.removeItem("cachedPartsData");
+    }
+    
+    const response = await fetch(
+      `${process.env.REACT_APP_BASE_URL}/api/parts?filterType=${filterType}`
+    );
+    if (!response.ok) {
+      throw new Error("Failed to fetch parts");
+    }
+    const data = await response.json();
+    setListData(data);
+    
+    if (initialLoad) {
+      setFilterType(""); // Set filter to empty string on initial load
+      setInitialLoad(false);
+    }
+  } catch (err) {
+    setError(err.message);
+  } finally {
+    setLoading(false);
+  }
+}, [filterType, initialLoad]);
 
   useEffect(() => {
     fetchData();
@@ -390,8 +355,10 @@ const List = () => {
         throw new Error("Failed to add part");
       }
 
-      // If the request is successful, refresh the list data
-      await fetchData();
+     // Force refresh the data
+    sessionStorage.removeItem("cachedPartsData");
+    await fetchData(true);
+
 
       // Reset form fields
       setNewPartId("");
@@ -444,7 +411,9 @@ const List = () => {
       );
 
       if (response.ok) {
-        await fetchData(); // Refetch the data to update the table
+         // Force refresh the data
+      sessionStorage.removeItem("cachedPartsData");
+      await fetchData(true);
         toast.success("Records updated successfully!");
         toggleEditModal();
       } else {
@@ -497,8 +466,9 @@ const List = () => {
       const result = await response.json();
       console.log("Duplicate Part Created:", result);
 
-      // Refresh the parts list and close the modal
-      await fetchData();
+       // Force refresh the data
+      sessionStorage.removeItem("cachedPartsData");
+      await fetchData(true);
       setModalDuplicate(false);
 
       toast.success("Duplicate part created successfully!");
@@ -508,30 +478,6 @@ const List = () => {
     }
   };
 
-  // const handleDelete = async (_id) => {
-  //   setPosting(true);
-  //   setError(null);
-  //   try {
-  //     const response = await fetch(
-  //       `${process.env.REACT_APP_BASE_URL}/api/parts/${_id}`,
-  //       {
-  //         method: "DELETE",
-  //       }
-  //     );
-  //     if (!response.ok) {
-  //       throw new Error("Network response was not ok");
-  //     }
-  //     await fetchData(); // Refetch the data to update the table
-  //     toast.success("Records Deleted Successfully");
-  //     tog_delete(); // Close the modal
-  //   } catch (error) {
-  //     setError(error.message);
-  //   } finally {
-  //     setPosting(false);
-  //   }
-  // };
-
-  // Modify your handleDelete function to clear cache
   const handleDelete = async (_id) => {
     setPosting(true);
     setError(null);
@@ -562,6 +508,8 @@ const List = () => {
       // Clear the selection when component unmounts
       localStorage.removeItem("selectedPartId");
       setSelectedPartId(null);
+       // Clear cache when component unmounts
+    sessionStorage.removeItem("cachedPartsData");
     };
   }, []);
   
@@ -581,35 +529,6 @@ const List = () => {
       localStorage.setItem("selectedPartId", id);
     }
   }, [selectedPartId, clearSelection]);
-
-  // const formatTime = (time) => {
-  //   if (time === 0) {
-  //     return 0;
-  //   }
-
-  //   let result = "";
-
-  //   const hours = Math.floor(time);
-  //   const minutes = Math.round((time - hours) * 60);
-
-  //   if (hours >= 24) {
-  //     const days = Math.floor(hours / 24);
-  //     const remainingHours = hours % 24;
-
-  //     if (days > 0) result += `${days}d `;
-  //     if (remainingHours > 0) result += `${remainingHours}h `;
-  //     if (minutes > 0) result += `${minutes}m`;
-
-  //     return result.trim();
-  //   }
-
-  //   if (hours > 0) result += `${hours}h `;
-  //   if (minutes > 0) result += `${minutes}m`;
-
-  //   return result.trim();
-  // };
-
-  // exel file drag drop
 
   const formatTime = (time) => {
     if (time === 0) {

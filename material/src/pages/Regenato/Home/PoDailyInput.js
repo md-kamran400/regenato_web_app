@@ -57,7 +57,7 @@ const PoDailyInput = () => {
         });
       });
     });
-    return totalCost.toLocaleString("en-IN");
+    return Math.round(totalCost).toLocaleString("en-IN");
   };
 
   const calculateTotalHours = (project) => {
@@ -143,7 +143,7 @@ const PoDailyInput = () => {
                   <td>{project.projectName}</td>
                   <td>{new Date(project.createdAt).toLocaleDateString()}</td>
                   <td>{project.projectType}</td>
-                  <td>{calculateTotalCost(project)}</td>
+                  <td>{(calculateTotalCost(project))}</td>
                   <td>{calculateTotalHours(project)}</td>
                   <td>
                     {hasTracking ? (

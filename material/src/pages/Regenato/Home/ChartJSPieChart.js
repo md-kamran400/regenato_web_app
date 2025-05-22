@@ -52,16 +52,7 @@ const ChartJSPieChart = () => {
 
   // Enhanced getStatus function with completed status logic
   const getStatus = (project) => {
-    // First check if all parts are completed
-    if (checkAllPartsCompleted(project)) {
-      return { status: "Completed", statusColor: "success" };
-    }
-
-    // Default state - Not Allocated
-    let status = "Not Allocated";
-    let statusColor = "secondary";
-
-    // Check if any parts exist in the project
+    // First check if project has any parts at all
     const hasPartsItems = project.partsLists?.some(
       (list) => list.partsListItems && list.partsListItems.length > 0
     );
@@ -74,11 +65,111 @@ const ChartJSPieChart = () => {
 
     // If no parts exist at all, return Not Allocated
     if (!hasPartsItems && !hasSubAssemblyItems && !hasAssemblyItems) {
+      return { status: "Not Allocated", statusColor: "secondary" };
+    }
+
+    // Now check if all parts are completed
+    if (checkAllPartsCompleted(project)) {
+      return { status: "Completed", statusColor: "success" };
+    }
+
+    // Default state - Not Allocated
+    let status = "Not Allocated";
+    let statusColor = "secondary";
+
+    // Helper function to check if any allocations exist in a parts list item
+    const hasAllocations = (partsListItem) => {
+      return (
+        partsListItem.allocations &&
+        Array.isArray(partsListItem.allocations) &&
+        partsListItem.allocations.length > 0
+      );
+    };
+
+    // Check if any parts have allocations
+    const hasAnyAllocations =
+      project.partsLists?.some((list) =>
+        list.partsListItems?.some(hasAllocations)
+      ) ||
+      project.subAssemblyListFirst?.some((list) =>
+        list.partsListItems?.some(hasAllocations)
+      ) ||
+      project.assemblyList?.some((list) =>
+        list.partsListItems?.some(hasAllocations)
+      );
+
+    // If no allocations exist but parts exist, return "Not Allocated"
+    if (!hasAnyAllocations) {
       return { status, statusColor };
     }
 
-    // ... rest of the existing getStatus function remains the same ...
-    // (keep all the allocation and tracking status logic)
+    // If we have allocations but no tracking data, return "Allocated"
+    status = "Allocated";
+    statusColor = "info";
+
+    // Helper function to check tracking status
+    const checkTrackingStatus = (partsListItem) => {
+      if (!partsListItem.allocations) return;
+
+      partsListItem.allocations.forEach((allocationGroup) => {
+        if (!allocationGroup.allocations) return;
+
+        allocationGroup.allocations.forEach((allocation) => {
+          if (allocation.actualEndDate && allocation.endDate) {
+            const actualEnd = new Date(allocation.actualEndDate);
+            const plannedEnd = new Date(allocation.endDate);
+
+            if (actualEnd > plannedEnd) {
+              status = "Delayed";
+              statusColor = "danger";
+            } else if (actualEnd < plannedEnd && status !== "Delayed") {
+              status = "Ahead";
+              statusColor = "success";
+            } else if (status === "Allocated") {
+              status = "On Track";
+              statusColor = "primary";
+            }
+          } else if (
+            allocation.dailyTracking &&
+            allocation.dailyTracking.length > 0
+          ) {
+            // If we have tracking but no actualEndDate yet, check daily progress
+            const totalProduced = allocation.dailyTracking.reduce(
+              (sum, track) => sum + (track.produced || 0),
+              0
+            );
+            const totalPlanned = allocation.dailyTracking.reduce(
+              (sum, track) => sum + (track.planned || 0),
+              0
+            );
+
+            if (totalProduced < totalPlanned) {
+              status = "Delayed";
+              statusColor = "danger";
+            } else if (totalProduced > totalPlanned && status !== "Delayed") {
+              status = "Ahead";
+              statusColor = "success";
+            } else if (status === "Allocated") {
+              status = "On Track";
+              statusColor = "primary";
+            }
+          }
+        });
+      });
+    };
+
+    // Check tracking status in all parts lists
+    project.partsLists?.forEach((list) => {
+      list.partsListItems?.forEach(checkTrackingStatus);
+    });
+
+    project.subAssemblyListFirst?.forEach((list) => {
+      list.partsListItems?.forEach(checkTrackingStatus);
+    });
+
+    project.assemblyList?.forEach((list) => {
+      list.partsListItems?.forEach(checkTrackingStatus);
+    });
 
     return { status, statusColor };
   };
@@ -91,7 +182,7 @@ const ChartJSPieChart = () => {
         list.partsListItems?.every(
           (item) => item.status === "Completed" || item.isManuallyCompleted
         )
-      ) ?? true; // If no partsLists, consider them "completed"
+      ) ?? true;
 
     // Check subAssemblyListFirst
     const subAssembliesCompleted =
