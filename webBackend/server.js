@@ -193,6 +193,67 @@ app.get("/api/holidays", async (req, res) => {
 // ✅ CRON JOB - Auto Daily Tracking
 // ===============================
 
+// cron.schedule('59 23 * * *', async () => {
+//   console.log("Running Daily Auto-Tracking Check...");
+
+//   try {
+//     const today = new Date();
+//     const todayDateStr = today.toISOString().split("T")[0]; // YYYY-MM-DD
+
+//     const allProjects = await PartListProjectModel.find();
+
+//     for (const project of allProjects) {
+//       let projectModified = false;
+
+//       for (const partsList of project.partsLists) {
+//         for (const partItem of partsList.partsListItems) {
+//           for (const process of partItem.allocations) {
+//             for (const allocation of process.allocations) {
+//               const startDate = new Date(allocation.startDate);
+//               const endDate = new Date(allocation.endDate);
+
+//               if (today >= startDate && today <= endDate) {
+//                 const exists = allocation.dailyTracking.some(entry => {
+//                   const entryDateStr = new Date(entry.date).toISOString().split("T")[0];
+//                   return entryDateStr === todayDateStr;
+//                 });
+
+//                 if (!exists) {
+//                   console.log(`Auto adding tracking for Allocation: ${allocation._id}`);
+
+//                   allocation.dailyTracking.push({
+//                     date: today,
+//                     planned: allocation.dailyPlannedQty || 0,
+//                     produced: 0,
+//                     operator: "Auto-Generated",
+//                     dailyStatus: "Pending",
+//                   });
+//                   projectModified = true;
+//                 }
+//               }
+//             }
+//           }
+//         }
+//       }
+
+//       // Save only if modifications done
+//       if (projectModified) {
+//         await project.save();
+//         console.log(`Project ${project._id} updated with auto-tracking`);
+//       }
+//     }
+
+//     console.log("Daily Auto-Tracking Completed ✅");
+
+//   } catch (error) {
+//     console.error("Error in Auto Daily Tracking Cron:", error);
+//   }
+// });
+
+// ===============================
+// ✅ CRON JOB - Auto Daily Tracking
+// ===============================
+
 cron.schedule('59 23 * * *', async () => {
   console.log("Running Daily Auto-Tracking Check...");
 
@@ -205,8 +266,9 @@ cron.schedule('59 23 * * *', async () => {
     for (const project of allProjects) {
       let projectModified = false;
 
-      for (const partsList of project.partsLists) {
-        for (const partItem of partsList.partsListItems) {
+      // Function to process parts items (reusable for all three types)
+      const processPartsItems = (partsItems) => {
+        for (const partItem of partsItems) {
           for (const process of partItem.allocations) {
             for (const allocation of process.allocations) {
               const startDate = new Date(allocation.startDate);
@@ -226,12 +288,42 @@ cron.schedule('59 23 * * *', async () => {
                     planned: allocation.dailyPlannedQty || 0,
                     produced: 0,
                     operator: "Auto-Generated",
-                    dailyStatus: "Pending",
+                    dailyStatus: "Delayed", // Set default status to Delayed as requested
                   });
-                  projectModified = true;
+                  return true; // Indicates modification was made
                 }
               }
             }
+          }
+        }
+        return false; // No modifications made
+      };
+
+      // Process partsLists
+      for (const partsList of project.partsLists) {
+        if (processPartsItems(partsList.partsListItems)) {
+          projectModified = true;
+        }
+      }
+
+      // Process subAssemblyListFirst
+      for (const subAssembly of project.subAssemblyListFirst) {
+        if (processPartsItems(subAssembly.partsListItems)) {
+          projectModified = true;
+        }
+      }
+
+      // Process assemblyList
+      for (const assembly of project.assemblyList) {
+        // Process assembly's direct parts
+        if (processPartsItems(assembly.partsListItems)) {
+          projectModified = true;
+        }
+        
+        // Process assembly's subAssemblies parts
+        for (const subAssembly of assembly.subAssemblies) {
+          if (processPartsItems(subAssembly.partsListItems)) {
+            projectModified = true;
           }
         }
       }
