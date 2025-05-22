@@ -192,6 +192,7 @@ app.get("/api/holidays", async (req, res) => {
 // ===============================
 // ✅ CRON JOB - Auto Daily Tracking
 // ===============================
+
 cron.schedule('59 23 * * *', async () => {
   console.log("Running Daily Auto-Tracking Check...");
 
