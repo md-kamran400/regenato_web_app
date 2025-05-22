@@ -23,7 +23,6 @@ import { toast } from "react-toastify";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { isSameDay, parseISO, getDay, isSameMonth } from "date-fns";
-
 import { AllocatedSubAssemblyPlan } from "./AllocatedSubAssemblyPlan";
 
 export const SubAssemblyHrPlan = ({
@@ -37,7 +36,6 @@ export const SubAssemblyHrPlan = ({
   partsCodeId,
   onUpdateAllocaitonStatus,
 }) => {
-  console.log(partManufacturingVariables)
   const userRole = localStorage.getItem("userRole");
   const [machineOptions, setMachineOptions] = useState({});
   const [isConfirmationModalOpen, setIsConfirmationModalOpen] = useState(false);
@@ -60,8 +58,6 @@ export const SubAssemblyHrPlan = ({
   const [isDataAllocated, setIsDataAllocated] = useState(false);
   const [allocatedMachines, setAllocatedMachines] = useState({});
   const [operatorAllocations, setOperatorAllocations] = useState({});
-
-  console.log(partManufacturingVariables);
 
   useEffect(() => {
     fetch(`${process.env.REACT_APP_BASE_URL}/api/eventScheduler/events`)
@@ -151,12 +147,12 @@ export const SubAssemblyHrPlan = ({
           `${process.env.REACT_APP_BASE_URL}/api/defpartproject/all-allocations`
         );
         if (response.data && response.data.data) {
-          const machineAllocations = {};
           const operatorAllocations = {};
-
+          const machineAllocations = {};
           response.data.data.forEach((project) => {
             project.allocations.forEach((process) => {
               process.allocations.forEach((alloc) => {
+                // Process machine allocations
                 if (alloc.machineId) {
                   if (!machineAllocations[alloc.machineId]) {
                     machineAllocations[alloc.machineId] = [];
@@ -164,22 +160,36 @@ export const SubAssemblyHrPlan = ({
                   machineAllocations[alloc.machineId].push({
                     startDate: new Date(alloc.startDate),
                     endDate: new Date(alloc.endDate),
+                    projectName: project.projectName,
+                    partName: process.partName,
+                    processName: process.processName,
+                    operator: alloc.operator,
                   });
                 }
-
+                // Process operator allocations using operatorId instead of name
                 if (alloc.operator) {
-                  if (!operatorAllocations[alloc.operator]) {
-                    operatorAllocations[alloc.operator] = [];
+                  const operator = operators.find(
+                    (op) =>
+                      op.name === alloc.operator ||
+                      `${op.categoryId} - ${op.name}` === alloc.operator
+                  );
+                  if (operator) {
+                    const operatorId = operator._id;
+                    if (!operatorAllocations[operatorId]) {
+                      operatorAllocations[operatorId] = [];
+                    }
+                    operatorAllocations[operatorId].push({
+                      startDate: new Date(alloc.startDate),
+                      endDate: new Date(alloc.endDate),
+                      projectName: project.projectName,
+                      partName: process.partName,
+                      processName: process.processName,
+                    });
                   }
-                  operatorAllocations[alloc.operator].push({
-                    startDate: new Date(alloc.startDate),
-                    endDate: new Date(alloc.endDate),
-                  });
                 }
               });
             });
           });
-
           setAllocatedMachines(machineAllocations);
           setOperatorAllocations(operatorAllocations);
         }
@@ -188,25 +198,35 @@ export const SubAssemblyHrPlan = ({
       }
     };
     fetchAllocations();
-  }, []);
+  }, [operators]); // Add operators as dependency
 
   const isMachineAvailable = (machineId, startDate, endDate) => {
-    if (!allocatedMachines[machineId])
-      return { available: true, status: "Available" };
+    if (!allocatedMachines[machineId]) {
+      return {
+        available: true,
+        status: "Available",
+        conflictingAllocation: null,
+      };
+    }
 
     const parsedStart = new Date(startDate);
     const parsedEnd = new Date(endDate);
 
-    const isOccupied = allocatedMachines[machineId].some(
-      (alloc) =>
-        (parsedStart >= alloc.startDate && parsedStart <= alloc.endDate) ||
-        (parsedEnd >= alloc.startDate && parsedEnd <= alloc.endDate) ||
-        (parsedStart <= alloc.startDate && parsedEnd >= alloc.endDate)
-    );
+    const conflictingAllocation = allocatedMachines[machineId].find((alloc) => {
+      const allocStart = new Date(alloc.startDate);
+      const allocEnd = new Date(alloc.endDate);
+
+      return (
+        (parsedStart >= allocStart && parsedStart <= allocEnd) ||
+        (parsedEnd >= allocStart && parsedEnd <= allocEnd) ||
+        (parsedStart <= allocStart && parsedEnd >= allocEnd)
+      );
+    });
 
     return {
-      available: !isOccupied,
-      status: isOccupied ? "Occupied" : "Available",
+      available: !conflictingAllocation,
+      status: conflictingAllocation ? "Occupied" : "Available",
+      conflictingAllocation: conflictingAllocation || null,
     };
   };
 
@@ -272,13 +292,15 @@ export const SubAssemblyHrPlan = ({
   };
 
   const getMachineStatus = (machine, startDate, endDate) => {
-    if (!machine)
+    if (!machine) {
       return {
         status: "Unknown",
         isDowntime: false,
         isAllocated: false,
         isOccupiedWithDowntime: false,
+        conflictingAllocation: null,
       };
+    }
 
     const downtimeInfo = isMachineOnDowntimeDuringPeriod(
       machine,
@@ -304,6 +326,7 @@ export const SubAssemblyHrPlan = ({
         downtimeMinutes: downtimeInfo.downtimeMinutes,
         downtimeReason: downtimeInfo.downtimeReason,
         downtimeEnd: downtimeInfo.downtimeEnd,
+        conflictingAllocation: availabilityInfo.conflictingAllocation,
       };
     }
 
@@ -316,6 +339,7 @@ export const SubAssemblyHrPlan = ({
         downtimeMinutes: downtimeInfo.downtimeMinutes,
         downtimeReason: downtimeInfo.downtimeReason,
         downtimeEnd: downtimeInfo.downtimeEnd,
+        conflictingAllocation: null,
       };
     }
 
@@ -326,6 +350,7 @@ export const SubAssemblyHrPlan = ({
         isAllocated: true,
         isOccupiedWithDowntime: false,
         downtimeMinutes: 0,
+        conflictingAllocation: availabilityInfo.conflictingAllocation,
       };
     }
 
@@ -335,6 +360,7 @@ export const SubAssemblyHrPlan = ({
       isAllocated: false,
       isOccupiedWithDowntime: false,
       downtimeMinutes: 0,
+      conflictingAllocation: null,
     };
   };
 
@@ -347,20 +373,23 @@ export const SubAssemblyHrPlan = ({
     return `${minutes}m`;
   };
 
-  const isOperatorAvailable = (operatorName, startDate, endDate) => {
-    if (!startDate || !endDate)
+  const isOperatorAvailable = (operatorId, startDate, endDate) => {
+    if (!startDate || !endDate) {
       return {
         available: true,
         status: "Available",
         allocation: null,
       };
+    }
 
+    // Convert dates to Date objects if they aren't already
     const parsedStart = new Date(startDate);
     const parsedEnd = new Date(endDate);
 
+    // Check if operator has any allocations
     if (
-      !operatorAllocations[operatorName] ||
-      operatorAllocations[operatorName].length === 0
+      !operatorAllocations[operatorId] ||
+      operatorAllocations[operatorId].length === 0
     ) {
       return {
         available: true,
@@ -369,7 +398,8 @@ export const SubAssemblyHrPlan = ({
       };
     }
 
-    const conflictingAllocation = operatorAllocations[operatorName].find(
+    // Find conflicting allocation
+    const conflictingAllocation = operatorAllocations[operatorId].find(
       (alloc) => {
         const allocStart = new Date(alloc.startDate);
         const allocEnd = new Date(alloc.endDate);
@@ -409,8 +439,6 @@ export const SubAssemblyHrPlan = ({
       );
     });
   };
-
-  console.log(operators);
 
   const isHighlightedOrDisabled = (date) => {
     return (
@@ -456,7 +484,11 @@ export const SubAssemblyHrPlan = ({
         {
           plannedQuantity: isAutoSchedule ? quantity : "",
           plannedQtyTime: isAutoSchedule
-            ? calculatePlannedMinutes(quantity * man.hours, man.name, man.categoryId)
+            ? calculatePlannedMinutes(
+                quantity * man.hours,
+                man.name,
+                man.categoryId
+              )
             : "",
           startDate: "",
           startTime: "",
@@ -595,15 +627,17 @@ export const SubAssemblyHrPlan = ({
     fetchMachines();
   }, [manufacturingVariables, partManufacturingVariables]);
 
-  console.log("Machine Options:", machineOptions);
-
   useEffect(() => {
     const initialRows = manufacturingVariables.reduce((acc, man, index) => {
       acc[index] = [
         {
           plannedQuantity: isAutoSchedule ? quantity : "",
           plannedQtyTime: isAutoSchedule
-            ? calculatePlannedMinutes(quantity * man.hours, man.name, man.categoryId)
+            ? calculatePlannedMinutes(
+                quantity * man.hours,
+                man.name,
+                man.categoryId
+              )
             : "",
           startDate: "",
           startTime: "",
@@ -621,7 +655,7 @@ export const SubAssemblyHrPlan = ({
 
   const calculatePlannedMinutes = (hours, processName, categoryId) => {
     const processInfo = getProcessSpecialDayInfo(processName, categoryId);
-    
+
     if (processInfo?.isSpecialday) {
       return processInfo.SpecialDayTotalMinutes;
     }
@@ -732,10 +766,20 @@ export const SubAssemblyHrPlan = ({
             let daysAddedForDowntime = 0;
 
             firstAvailableMachine = machineList.find((machine) => {
+              const shift = shiftOptions.length > 0 ? shiftOptions[0] : null;
+              const endDateEstimate = calculateEndDateWithDowntime(
+                currentDate,
+                row.plannedQtyTime,
+                shift,
+                machine,
+                index,
+                rowIndex
+              );
+
               const availability = isMachineAvailable(
                 machine.subcategoryId,
                 currentDate,
-                null
+                endDateEstimate
               );
 
               if (!availability.available) return false;
@@ -821,12 +865,17 @@ export const SubAssemblyHrPlan = ({
             let startTime = shift?.startTime || "09:00";
             if (processIndex > 0 && previousEndTime) {
               // Add gap minutes to previous end time
-              const [prevHours, prevMinutes] = previousEndTime.split(":").map(Number);
-              const totalMinutes = prevHours * 60 + prevMinutes + processGapMinutes;
+              const [prevHours, prevMinutes] = previousEndTime
+                .split(":")
+                .map(Number);
+              const totalMinutes =
+                prevHours * 60 + prevMinutes + processGapMinutes;
               const newHours = Math.floor(totalMinutes / 60);
               const newMinutes = totalMinutes % 60;
-              startTime = `${String(newHours).padStart(2, "0")}:${String(newMinutes).padStart(2, "0")}`;
-              
+              startTime = `${String(newHours).padStart(2, "0")}:${String(
+                newMinutes
+              ).padStart(2, "0")}`;
+
               // Use the same date as previous process end date if possible
               if (previousEndDate) {
                 startDate = new Date(previousEndDate);
@@ -836,7 +885,7 @@ export const SubAssemblyHrPlan = ({
             const availableOperators = operators.filter((operator) => {
               const isOnLeave = isOperatorOnLeave(operator, startDate, endDate);
               const { available } = isOperatorAvailable(
-                `${operator.categoryId} - ${operator.name}`,
+                operator._id,
                 startDate,
                 endDate
               );
@@ -845,7 +894,11 @@ export const SubAssemblyHrPlan = ({
             const firstOperator = availableOperators[0];
 
             // Calculate end time based on start time and planned minutes
-            const endTime = calculateEndTime(startTime, row.plannedQtyTime, shift);
+            const endTime = calculateEndTime(
+              startTime,
+              row.plannedQtyTime,
+              shift
+            );
             previousEndTime = endTime;
             previousEndDate = endDate;
 
@@ -877,16 +930,21 @@ export const SubAssemblyHrPlan = ({
         // For non-auto schedule, calculate start time based on previous process
         let startTime = shift?.startTime || "09:00";
         let startDate = nextWorkingDay;
-        
+
         if (index > 0) {
           const previousProcess = newRows[index - 1]?.[0];
           if (previousProcess?.endTime) {
-            const [prevHours, prevMinutes] = previousProcess.endTime.split(":").map(Number);
-            const totalMinutes = prevHours * 60 + prevMinutes + processGapMinutes;
+            const [prevHours, prevMinutes] = previousProcess.endTime
+              .split(":")
+              .map(Number);
+            const totalMinutes =
+              prevHours * 60 + prevMinutes + processGapMinutes;
             const newHours = Math.floor(totalMinutes / 60);
             const newMinutes = totalMinutes % 60;
-            startTime = `${String(newHours).padStart(2, "0")}:${String(newMinutes).padStart(2, "0")}`;
-            
+            startTime = `${String(newHours).padStart(2, "0")}:${String(
+              newMinutes
+            ).padStart(2, "0")}`;
+
             // Use the same date as previous process end date
             if (previousProcess.endDate) {
               startDate = new Date(previousProcess.endDate);
@@ -981,8 +1039,11 @@ export const SubAssemblyHrPlan = ({
 
     // Get process info for special day check
     const processInfo = manufacturingVariables[processIndex];
-    const specialDayInfo = getProcessSpecialDayInfo(processInfo.name, processInfo.categoryId);
-    
+    const specialDayInfo = getProcessSpecialDayInfo(
+      processInfo.name,
+      processInfo.categoryId
+    );
+
     // If it's a special day process, use the special day minutes
     if (specialDayInfo?.isSpecialday) {
       remainingMinutes = specialDayInfo.SpecialDayTotalMinutes;
@@ -1350,10 +1411,10 @@ export const SubAssemblyHrPlan = ({
 
   const handleTimeChange = (index, rowIndex, newStartTime) => {
     const row = rows[index][rowIndex];
-    const shift = shiftOptions.find(s => s.name === row.shift);
-  
+    const shift = shiftOptions.find((s) => s.name === row.shift);
+
     if (!shift || !row.startDate || !row.plannedQtyTime) {
-      setRows(prevRows => {
+      setRows((prevRows) => {
         const updatedRows = [...prevRows[index]];
         updatedRows[rowIndex] = {
           ...updatedRows[rowIndex],
@@ -1366,19 +1427,23 @@ export const SubAssemblyHrPlan = ({
       });
       return;
     }
-  
+
     // Parse shift times
-    const [shiftStartHour, shiftStartMin] = shift.startTime.split(":").map(Number);
+    const [shiftStartHour, shiftStartMin] = shift.startTime
+      .split(":")
+      .map(Number);
     const [shiftEndHour, shiftEndMin] = shift.endTime.split(":").map(Number);
     const [startHour, startMin] = newStartTime.split(":").map(Number);
-  
+
     // Check if selected time is within shift boundaries
     const selectedTime = startHour * 60 + startMin;
     const shiftStartMinutes = shiftStartHour * 60 + shiftStartMin;
     const shiftEndMinutes = shiftEndHour * 60 + shiftEndMin;
-  
+
     if (selectedTime < shiftStartMinutes || selectedTime > shiftEndMinutes) {
-      toast.error(`Please select a time between ${shift.startTime} and ${shift.endTime}`);
+      toast.error(
+        `Please select a time between ${shift.startTime} and ${shift.endTime}`
+      );
       return;
     }
 
@@ -1386,68 +1451,84 @@ export const SubAssemblyHrPlan = ({
     if (index > 0) {
       const previousProcess = rows[index - 1]?.[0];
       if (previousProcess?.endTime) {
-        const [prevHours, prevMinutes] = previousProcess.endTime.split(":").map(Number);
+        const [prevHours, prevMinutes] = previousProcess.endTime
+          .split(":")
+          .map(Number);
         const prevTotalMinutes = prevHours * 60 + prevMinutes;
         const newTotalMinutes = startHour * 60 + startMin;
-        
+
         if (newTotalMinutes < prevTotalMinutes + processGapMinutes) {
-          toast.error(`Start time must be at least ${processGapMinutes} minutes after the previous process end time (${previousProcess.endTime})`);
+          toast.error(
+            `Start time must be at least ${processGapMinutes} minutes after the previous process end time (${previousProcess.endTime})`
+          );
           return;
         }
       }
     }
-  
+
     const startDate = new Date(row.startDate);
     startDate.setHours(startHour, startMin, 0, 0);
-  
+
     let current = new Date(startDate);
     let minutesLeft = row.plannedQtyTime;
     let currentDay = new Date(startDate);
     let endTime = "";
     let endDate = new Date(startDate);
-  
+
     const calculateWorkMinutes = (start, end) => {
       if (start >= end) return 0;
       return Math.floor((end - start) / (1000 * 60));
     };
-  
+
     // Handle break time if exists
     let breakStart = null;
     let breakEnd = null;
     if (shift.breakStartTime && shift.breakEndTime) {
-      const [breakStartHour, breakStartMin] = shift.breakStartTime.split(":").map(Number);
-      const [breakEndHour, breakEndMin] = shift.breakEndTime.split(":").map(Number);
-      
+      const [breakStartHour, breakStartMin] = shift.breakStartTime
+        .split(":")
+        .map(Number);
+      const [breakEndHour, breakEndMin] = shift.breakEndTime
+        .split(":")
+        .map(Number);
+
       breakStart = new Date(startDate);
       breakStart.setHours(breakStartHour, breakStartMin, 0, 0);
-      
+
       breakEnd = new Date(startDate);
       breakEnd.setHours(breakEndHour, breakEndMin, 0, 0);
     }
-  
+
     // Calculate end time considering shift boundaries
     while (minutesLeft > 0) {
       const shiftEnd = new Date(current);
       shiftEnd.setHours(shiftEndHour, shiftEndMin, 0, 0);
-  
+
       // If we're in break time, skip to after break
-      if (breakStart && breakEnd && current >= breakStart && current < breakEnd) {
+      if (
+        breakStart &&
+        breakEnd &&
+        current >= breakStart &&
+        current < breakEnd
+      ) {
         current = new Date(breakEnd);
         continue;
       }
-  
+
       // Calculate available minutes until next break or shift end
-      let availableUntil = breakStart && current < breakStart ? breakStart : shiftEnd;
+      let availableUntil =
+        breakStart && current < breakStart ? breakStart : shiftEnd;
       const availableMinutes = calculateWorkMinutes(current, availableUntil);
-  
+
       if (minutesLeft <= availableMinutes) {
-        endTime = formatTime(new Date(current.getTime() + minutesLeft * 60 * 1000));
+        endTime = formatTime(
+          new Date(current.getTime() + minutesLeft * 60 * 1000)
+        );
         endDate = new Date(currentDay);
         minutesLeft = 0;
       } else {
         minutesLeft -= availableMinutes;
         current = new Date(availableUntil);
-        
+
         // Only move to next day if we've reached shift end
         if (current >= shiftEnd) {
           currentDay.setDate(currentDay.getDate() + 1);
@@ -1457,8 +1538,8 @@ export const SubAssemblyHrPlan = ({
         }
       }
     }
-  
-    setRows(prevRows => {
+
+    setRows((prevRows) => {
       const updatedRows = [...prevRows[index]];
       updatedRows[rowIndex] = {
         ...updatedRows[rowIndex],
@@ -1473,10 +1554,14 @@ export const SubAssemblyHrPlan = ({
         const nextProcess = prevRows[nextProcessIndex]?.[0];
         if (nextProcess) {
           const [endHours, endMinutes] = endTime.split(":").map(Number);
-          const nextStartTotalMinutes = endHours * 60 + endMinutes + processGapMinutes;
+          const nextStartTotalMinutes =
+            endHours * 60 + endMinutes + processGapMinutes;
           const nextStartHours = Math.floor(nextStartTotalMinutes / 60);
           const nextStartMinutes = nextStartTotalMinutes % 60;
-          const nextStartTime = `${String(nextStartHours).padStart(2, "0")}:${String(nextStartMinutes).padStart(2, "0")}`;
+          const nextStartTime = `${String(nextStartHours).padStart(
+            2,
+            "0"
+          )}:${String(nextStartMinutes).padStart(2, "0")}`;
 
           // Set the next process start date to be the same as current process end date
           prevRows[nextProcessIndex][0] = {
@@ -1523,8 +1608,12 @@ export const SubAssemblyHrPlan = ({
 
           {userRole === "admin" && !isDataAllocated && (
             <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <span style={{ fontSize: "14px", color: "#495057" }}>Next Process Interval (minutes):</span>
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "8px" }}
+              >
+                <span style={{ fontSize: "14px", color: "#495057" }}>
+                  Next Process Interval (minutes):
+                </span>
                 <Input
                   type="number"
                   min="1"
@@ -1855,9 +1944,27 @@ export const SubAssemblyHrPlan = ({
                             <Input
                               type="time"
                               value={row.startTime}
-                              min={row.shift ? shiftOptions.find(s => s.name === row.shift)?.startTime : "00:00"}
-                              max={row.shift ? shiftOptions.find(s => s.name === row.shift)?.endTime : "23:59"}
-                              onChange={(e) => handleTimeChange(index, rowIndex, e.target.value)}
+                              min={
+                                row.shift
+                                  ? shiftOptions.find(
+                                      (s) => s.name === row.shift
+                                    )?.startTime
+                                  : "00:00"
+                              }
+                              max={
+                                row.shift
+                                  ? shiftOptions.find(
+                                      (s) => s.name === row.shift
+                                    )?.endTime
+                                  : "23:59"
+                              }
+                              onChange={(e) =>
+                                handleTimeChange(
+                                  index,
+                                  rowIndex,
+                                  e.target.value
+                                )
+                              }
                             />
                           </td>
                           <td style={{ width: "180px" }}>
@@ -2170,7 +2277,27 @@ export const SubAssemblyHrPlan = ({
                                               )}
                                             </>
                                           ) : status.isAllocated ? (
-                                            "Occupied - Not Available"
+                                            <>
+                                              <div>
+                                                Occupied - Not Available
+                                              </div>
+                                              {status.conflictingAllocation && (
+                                                <div>
+                                                  Occupied from{" "}
+                                                  {formatDate(
+                                                    new Date(
+                                                      status.conflictingAllocation.startDate
+                                                    )
+                                                  )}{" "}
+                                                  to{" "}
+                                                  {formatDate(
+                                                    new Date(
+                                                      status.conflictingAllocation.endDate
+                                                    )
+                                                  )}
+                                                </div>
+                                              )}
+                                            </>
                                           ) : (
                                             "Available"
                                           )}
@@ -2250,11 +2377,6 @@ export const SubAssemblyHrPlan = ({
                                   padding: "6px !important",
                                   fontSize: "0.875rem",
                                 },
-                                "& .MuiAutocomplete-option[aria-disabled='true']":
-                                  {
-                                    opacity: 0.5,
-                                    cursor: "not-allowed",
-                                  },
                               }}
                               componentsProps={{
                                 paper: {
@@ -2274,13 +2396,16 @@ export const SubAssemblyHrPlan = ({
                                 ) || null
                               }
                               getOptionLabel={(option) => {
+                                // Handle case where option might be null
+                                if (!option) return "";
+
                                 const isOnLeave = isOperatorOnLeave(
                                   option,
                                   row.startDate,
                                   row.endDate
                                 );
                                 const { status } = isOperatorAvailable(
-                                  `${option.categoryId} - ${option.name}`,
+                                  option._id,
                                   row.startDate,
                                   row.endDate
                                 );
@@ -2293,7 +2418,6 @@ export const SubAssemblyHrPlan = ({
                                 }`;
                               }}
                               renderOption={(props, option) => {
-                                const operatorName = `${option.categoryId} - ${option.name}`;
                                 const isOnLeave = isOperatorOnLeave(
                                   option,
                                   row.startDate,
@@ -2301,11 +2425,12 @@ export const SubAssemblyHrPlan = ({
                                 );
                                 const { status, allocation } =
                                   isOperatorAvailable(
-                                    operatorName,
+                                    option._id,
                                     row.startDate,
                                     row.endDate
                                   );
-                                const isDisabled = status === "Occupied";
+                                const isDisabled =
+                                  status === "Occupied" || isOnLeave;
 
                                 return (
                                   <li
@@ -2365,7 +2490,7 @@ export const SubAssemblyHrPlan = ({
                                       </div>
                                       <div style={{ flexGrow: 1 }}>
                                         <div style={{ fontWeight: 500 }}>
-                                          {operatorName}
+                                          {option.name}
                                           <span
                                             style={{
                                               marginLeft: 8,
@@ -2433,7 +2558,6 @@ export const SubAssemblyHrPlan = ({
                               onChange={(event, newValue) => {
                                 if (!hasStartDate || !newValue) return;
 
-                                const operatorName = `${newValue.categoryId} - ${newValue.name}`;
                                 const isOnLeave = isOperatorOnLeave(
                                   newValue,
                                   row.startDate,
@@ -2441,7 +2565,7 @@ export const SubAssemblyHrPlan = ({
                                 );
                                 const { available, status } =
                                   isOperatorAvailable(
-                                    operatorName,
+                                    newValue._id,
                                     row.startDate,
                                     row.endDate
                                   );
@@ -2523,7 +2647,9 @@ export const SubAssemblyHrPlan = ({
                                     textAlign: "center",
                                   }}
                                 >
-                                  No operators available
+                                  {operators.length === 0
+                                    ? "No operators available"
+                                    : "No matching operators found"}
                                 </div>
                               }
                               disabled={!hasStartDate}

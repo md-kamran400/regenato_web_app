@@ -23,7 +23,6 @@ import { toast } from "react-toastify";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { isSameDay, parseISO, getDay, isSameMonth } from "date-fns";
-
 import { AllocatedAssemblyPartList } from "./AllocatedAssemblyPartList";
 
 export const AssemblyPartListHoursPlan = ({
@@ -60,7 +59,6 @@ export const AssemblyPartListHoursPlan = ({
   const [isDataAllocated, setIsDataAllocated] = useState(false);
   const [allocatedMachines, setAllocatedMachines] = useState({});
   const [operatorAllocations, setOperatorAllocations] = useState({});
-
 
   useEffect(() => {
     fetch(`${process.env.REACT_APP_BASE_URL}/api/eventScheduler/events`)
@@ -150,12 +148,12 @@ export const AssemblyPartListHoursPlan = ({
           `${process.env.REACT_APP_BASE_URL}/api/defpartproject/all-allocations`
         );
         if (response.data && response.data.data) {
-          const machineAllocations = {};
           const operatorAllocations = {};
-
+          const machineAllocations = {};
           response.data.data.forEach((project) => {
             project.allocations.forEach((process) => {
               process.allocations.forEach((alloc) => {
+                // Process machine allocations
                 if (alloc.machineId) {
                   if (!machineAllocations[alloc.machineId]) {
                     machineAllocations[alloc.machineId] = [];
@@ -163,22 +161,36 @@ export const AssemblyPartListHoursPlan = ({
                   machineAllocations[alloc.machineId].push({
                     startDate: new Date(alloc.startDate),
                     endDate: new Date(alloc.endDate),
+                    projectName: project.projectName,
+                    partName: process.partName,
+                    processName: process.processName,
+                    operator: alloc.operator,
                   });
                 }
-
+                // Process operator allocations using operatorId instead of name
                 if (alloc.operator) {
-                  if (!operatorAllocations[alloc.operator]) {
-                    operatorAllocations[alloc.operator] = [];
+                  const operator = operators.find(
+                    (op) =>
+                      op.name === alloc.operator ||
+                      `${op.categoryId} - ${op.name}` === alloc.operator
+                  );
+                  if (operator) {
+                    const operatorId = operator._id;
+                    if (!operatorAllocations[operatorId]) {
+                      operatorAllocations[operatorId] = [];
+                    }
+                    operatorAllocations[operatorId].push({
+                      startDate: new Date(alloc.startDate),
+                      endDate: new Date(alloc.endDate),
+                      projectName: project.projectName,
+                      partName: process.partName,
+                      processName: process.processName,
+                    });
                   }
-                  operatorAllocations[alloc.operator].push({
-                    startDate: new Date(alloc.startDate),
-                    endDate: new Date(alloc.endDate),
-                  });
                 }
               });
             });
           });
-
           setAllocatedMachines(machineAllocations);
           setOperatorAllocations(operatorAllocations);
         }
@@ -187,25 +199,35 @@ export const AssemblyPartListHoursPlan = ({
       }
     };
     fetchAllocations();
-  }, []);
+  }, [operators]); // Add operators as dependency
 
   const isMachineAvailable = (machineId, startDate, endDate) => {
-    if (!allocatedMachines[machineId])
-      return { available: true, status: "Available" };
+    if (!allocatedMachines[machineId]) {
+      return {
+        available: true,
+        status: "Available",
+        conflictingAllocation: null,
+      };
+    }
 
     const parsedStart = new Date(startDate);
     const parsedEnd = new Date(endDate);
 
-    const isOccupied = allocatedMachines[machineId].some(
-      (alloc) =>
-        (parsedStart >= alloc.startDate && parsedStart <= alloc.endDate) ||
-        (parsedEnd >= alloc.startDate && parsedEnd <= alloc.endDate) ||
-        (parsedStart <= alloc.startDate && parsedEnd >= alloc.endDate)
-    );
+    const conflictingAllocation = allocatedMachines[machineId].find((alloc) => {
+      const allocStart = new Date(alloc.startDate);
+      const allocEnd = new Date(alloc.endDate);
+
+      return (
+        (parsedStart >= allocStart && parsedStart <= allocEnd) ||
+        (parsedEnd >= allocStart && parsedEnd <= allocEnd) ||
+        (parsedStart <= allocStart && parsedEnd >= allocEnd)
+      );
+    });
 
     return {
-      available: !isOccupied,
-      status: isOccupied ? "Occupied" : "Available",
+      available: !conflictingAllocation,
+      status: conflictingAllocation ? "Occupied" : "Available",
+      conflictingAllocation: conflictingAllocation || null,
     };
   };
 
@@ -271,13 +293,15 @@ export const AssemblyPartListHoursPlan = ({
   };
 
   const getMachineStatus = (machine, startDate, endDate) => {
-    if (!machine)
+    if (!machine) {
       return {
         status: "Unknown",
         isDowntime: false,
         isAllocated: false,
         isOccupiedWithDowntime: false,
+        conflictingAllocation: null,
       };
+    }
 
     const downtimeInfo = isMachineOnDowntimeDuringPeriod(
       machine,
@@ -303,6 +327,7 @@ export const AssemblyPartListHoursPlan = ({
         downtimeMinutes: downtimeInfo.downtimeMinutes,
         downtimeReason: downtimeInfo.downtimeReason,
         downtimeEnd: downtimeInfo.downtimeEnd,
+        conflictingAllocation: availabilityInfo.conflictingAllocation,
       };
     }
 
@@ -315,6 +340,7 @@ export const AssemblyPartListHoursPlan = ({
         downtimeMinutes: downtimeInfo.downtimeMinutes,
         downtimeReason: downtimeInfo.downtimeReason,
         downtimeEnd: downtimeInfo.downtimeEnd,
+        conflictingAllocation: null,
       };
     }
 
@@ -325,6 +351,7 @@ export const AssemblyPartListHoursPlan = ({
         isAllocated: true,
         isOccupiedWithDowntime: false,
         downtimeMinutes: 0,
+        conflictingAllocation: availabilityInfo.conflictingAllocation,
       };
     }
 
@@ -334,6 +361,7 @@ export const AssemblyPartListHoursPlan = ({
       isAllocated: false,
       isOccupiedWithDowntime: false,
       downtimeMinutes: 0,
+      conflictingAllocation: null,
     };
   };
 
@@ -346,20 +374,23 @@ export const AssemblyPartListHoursPlan = ({
     return `${minutes}m`;
   };
 
-  const isOperatorAvailable = (operatorName, startDate, endDate) => {
-    if (!startDate || !endDate)
+  const isOperatorAvailable = (operatorId, startDate, endDate) => {
+    if (!startDate || !endDate) {
       return {
         available: true,
         status: "Available",
         allocation: null,
       };
+    }
 
+    // Convert dates to Date objects if they aren't already
     const parsedStart = new Date(startDate);
     const parsedEnd = new Date(endDate);
 
+    // Check if operator has any allocations
     if (
-      !operatorAllocations[operatorName] ||
-      operatorAllocations[operatorName].length === 0
+      !operatorAllocations[operatorId] ||
+      operatorAllocations[operatorId].length === 0
     ) {
       return {
         available: true,
@@ -368,7 +399,8 @@ export const AssemblyPartListHoursPlan = ({
       };
     }
 
-    const conflictingAllocation = operatorAllocations[operatorName].find(
+    // Find conflicting allocation
+    const conflictingAllocation = operatorAllocations[operatorId].find(
       (alloc) => {
         const allocStart = new Date(alloc.startDate);
         const allocEnd = new Date(alloc.endDate);
@@ -596,8 +628,6 @@ export const AssemblyPartListHoursPlan = ({
     fetchMachines();
   }, [manufacturingVariables, partManufacturingVariables]);
 
-  console.log("Machine Options:", machineOptions);
-
   useEffect(() => {
     const initialRows = manufacturingVariables.reduce((acc, man, index) => {
       acc[index] = [
@@ -737,10 +767,20 @@ export const AssemblyPartListHoursPlan = ({
             let daysAddedForDowntime = 0;
 
             firstAvailableMachine = machineList.find((machine) => {
+              const shift = shiftOptions.length > 0 ? shiftOptions[0] : null;
+              const endDateEstimate = calculateEndDateWithDowntime(
+                currentDate,
+                row.plannedQtyTime,
+                shift,
+                machine,
+                index,
+                rowIndex
+              );
+
               const availability = isMachineAvailable(
                 machine.subcategoryId,
                 currentDate,
-                null
+                endDateEstimate
               );
 
               if (!availability.available) return false;
@@ -846,7 +886,7 @@ export const AssemblyPartListHoursPlan = ({
             const availableOperators = operators.filter((operator) => {
               const isOnLeave = isOperatorOnLeave(operator, startDate, endDate);
               const { available } = isOperatorAvailable(
-                `${operator.categoryId} - ${operator.name}`,
+                operator._id,
                 startDate,
                 endDate
               );
@@ -2238,7 +2278,27 @@ export const AssemblyPartListHoursPlan = ({
                                               )}
                                             </>
                                           ) : status.isAllocated ? (
-                                            "Occupied - Not Available"
+                                            <>
+                                              <div>
+                                                Occupied - Not Available
+                                              </div>
+                                              {status.conflictingAllocation && (
+                                                <div>
+                                                  Occupied from{" "}
+                                                  {formatDate(
+                                                    new Date(
+                                                      status.conflictingAllocation.startDate
+                                                    )
+                                                  )}{" "}
+                                                  to{" "}
+                                                  {formatDate(
+                                                    new Date(
+                                                      status.conflictingAllocation.endDate
+                                                    )
+                                                  )}
+                                                </div>
+                                              )}
+                                            </>
                                           ) : (
                                             "Available"
                                           )}
@@ -2318,11 +2378,6 @@ export const AssemblyPartListHoursPlan = ({
                                   padding: "6px !important",
                                   fontSize: "0.875rem",
                                 },
-                                "& .MuiAutocomplete-option[aria-disabled='true']":
-                                  {
-                                    opacity: 0.5,
-                                    cursor: "not-allowed",
-                                  },
                               }}
                               componentsProps={{
                                 paper: {
@@ -2342,13 +2397,16 @@ export const AssemblyPartListHoursPlan = ({
                                 ) || null
                               }
                               getOptionLabel={(option) => {
+                                // Handle case where option might be null
+                                if (!option) return "";
+
                                 const isOnLeave = isOperatorOnLeave(
                                   option,
                                   row.startDate,
                                   row.endDate
                                 );
                                 const { status } = isOperatorAvailable(
-                                  `${option.categoryId} - ${option.name}`,
+                                  option._id,
                                   row.startDate,
                                   row.endDate
                                 );
@@ -2361,7 +2419,6 @@ export const AssemblyPartListHoursPlan = ({
                                 }`;
                               }}
                               renderOption={(props, option) => {
-                                const operatorName = `${option.categoryId} - ${option.name}`;
                                 const isOnLeave = isOperatorOnLeave(
                                   option,
                                   row.startDate,
@@ -2369,11 +2426,12 @@ export const AssemblyPartListHoursPlan = ({
                                 );
                                 const { status, allocation } =
                                   isOperatorAvailable(
-                                    operatorName,
+                                    option._id,
                                     row.startDate,
                                     row.endDate
                                   );
-                                const isDisabled = status === "Occupied";
+                                const isDisabled =
+                                  status === "Occupied" || isOnLeave;
 
                                 return (
                                   <li
@@ -2433,7 +2491,7 @@ export const AssemblyPartListHoursPlan = ({
                                       </div>
                                       <div style={{ flexGrow: 1 }}>
                                         <div style={{ fontWeight: 500 }}>
-                                          {operatorName}
+                                          {option.name}
                                           <span
                                             style={{
                                               marginLeft: 8,
@@ -2501,7 +2559,6 @@ export const AssemblyPartListHoursPlan = ({
                               onChange={(event, newValue) => {
                                 if (!hasStartDate || !newValue) return;
 
-                                const operatorName = `${newValue.categoryId} - ${newValue.name}`;
                                 const isOnLeave = isOperatorOnLeave(
                                   newValue,
                                   row.startDate,
@@ -2509,7 +2566,7 @@ export const AssemblyPartListHoursPlan = ({
                                 );
                                 const { available, status } =
                                   isOperatorAvailable(
-                                    operatorName,
+                                    newValue._id,
                                     row.startDate,
                                     row.endDate
                                   );
@@ -2591,7 +2648,9 @@ export const AssemblyPartListHoursPlan = ({
                                     textAlign: "center",
                                   }}
                                 >
-                                  No operators available
+                                  {operators.length === 0
+                                    ? "No operators available"
+                                    : "No matching operators found"}
                                 </div>
                               }
                               disabled={!hasStartDate}

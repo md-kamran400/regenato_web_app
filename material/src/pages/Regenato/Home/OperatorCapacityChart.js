@@ -47,17 +47,15 @@ const OperatorCapacityChart = () => {
           // Count total operators for this category
           const totalOperators = categoryOperators.length;
 
-          // Find all operator IDs for this category
-          const operatorIds = categoryOperators.map(
-            (op) => `${op.categoryId} - ${op.name}`
-          );
+          // Find all operator names for this category
+          const operatorNames = categoryOperators.map((op) => op.name);
 
           // Count occupied operators for this category
           const occupiedOperators = new Set();
           allocationsRes.data.forEach((project) => {
             project.allocations.forEach((allocation) => {
               allocation.allocations.forEach((machineAlloc) => {
-                if (operatorIds.includes(machineAlloc.operator)) {
+                if (operatorNames.includes(machineAlloc.operator)) {
                   occupiedOperators.add(machineAlloc.operator);
                 }
               });

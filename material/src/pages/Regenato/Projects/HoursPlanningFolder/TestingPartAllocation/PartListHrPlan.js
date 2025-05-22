@@ -160,6 +160,10 @@ export const PartListHrPlan = ({
                   machineAllocations[alloc.machineId].push({
                     startDate: new Date(alloc.startDate),
                     endDate: new Date(alloc.endDate),
+                    projectName: project.projectName,
+                    partName: process.partName,
+                    processName: process.processName,
+                    operator: alloc.operator,
                   });
                 }
                 // Process operator allocations using operatorId instead of name
@@ -177,6 +181,9 @@ export const PartListHrPlan = ({
                     operatorAllocations[operatorId].push({
                       startDate: new Date(alloc.startDate),
                       endDate: new Date(alloc.endDate),
+                      projectName: project.projectName,
+                      partName: process.partName,
+                      processName: process.processName,
                     });
                   }
                 }
@@ -206,10 +213,16 @@ export const PartListHrPlan = ({
     const parsedEnd = new Date(endDate);
 
     const conflictingAllocation = allocatedMachines[machineId].find(
-      (alloc) =>
-        (parsedStart >= alloc.startDate && parsedStart <= alloc.endDate) ||
-        (parsedEnd >= alloc.startDate && parsedEnd <= alloc.endDate) ||
-        (parsedStart <= alloc.startDate && parsedEnd >= alloc.endDate)
+      (alloc) => {
+        const allocStart = new Date(alloc.startDate);
+        const allocEnd = new Date(alloc.endDate);
+
+        return (
+          (parsedStart >= allocStart && parsedStart <= allocEnd) ||
+          (parsedEnd >= allocStart && parsedEnd <= allocEnd) ||
+          (parsedStart <= allocStart && parsedEnd >= allocEnd)
+        );
+      }
     );
 
     return {
@@ -2174,12 +2187,9 @@ export const PartListHrPlan = ({
                                   allocatedMachines
                                 );
 
-                                const isDisabled =
-                                  status.isAllocated && !status.isDowntime;
+                                const isDisabled = status.isAllocated && !status.isDowntime;
                                 const downtimeEnd = status.downtimeEnd
-                                  ? new Date(
-                                      status.downtimeEnd
-                                    ).toLocaleDateString()
+                                  ? new Date(status.downtimeEnd).toLocaleDateString()
                                   : null;
 
                                 return (
