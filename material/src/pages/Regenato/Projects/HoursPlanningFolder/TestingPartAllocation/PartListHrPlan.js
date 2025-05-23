@@ -758,6 +758,7 @@ export const PartListHrPlan = ({
         let currentDate = new Date(nextWorkingDay);
         let previousEndTime = null;
         let previousEndDate = null;
+        let usedOperators = new Set(); // Track used operators
 
         manufacturingVariables.forEach((man, processIndex) => {
           const shift = shiftOptions.length > 0 ? shiftOptions[0] : null;
@@ -884,6 +885,7 @@ export const PartListHrPlan = ({
               }
             }
 
+            // Find available operators that haven't been used yet
             const availableOperators = operators.filter((operator) => {
               const isOnLeave = isOperatorOnLeave(operator, startDate, endDate);
               const { available } = isOperatorAvailable(
@@ -891,9 +893,14 @@ export const PartListHrPlan = ({
                 startDate,
                 endDate
               );
-              return !isOnLeave && available;
+              return !isOnLeave && available && !usedOperators.has(operator._id);
             });
-            const firstOperator = availableOperators[0];
+
+            // Select the first available operator
+            const selectedOperator = availableOperators[0];
+            if (selectedOperator) {
+              usedOperators.add(selectedOperator._id);
+            }
 
             // Calculate end time based on start time and planned minutes
             const endTime = calculateEndTime(
@@ -918,7 +925,7 @@ export const PartListHrPlan = ({
               machineId: firstAvailableMachine
                 ? firstAvailableMachine.subcategoryId
                 : "",
-              operatorId: firstOperator ? firstOperator._id : "",
+              operatorId: selectedOperator ? selectedOperator._id : "",
             };
           });
         });
@@ -1647,6 +1654,7 @@ export const PartListHrPlan = ({
             partListItemId={partListItemId}
             onDeleteSuccess={handleDeleteSuccess}
             onUpdateAllocaitonStatus={onUpdateAllocaitonStatus}
+            partManufacturingVariables={partManufacturingVariables}
           />
         )}
         {activeTab === "actual" && !isDataAllocated && (

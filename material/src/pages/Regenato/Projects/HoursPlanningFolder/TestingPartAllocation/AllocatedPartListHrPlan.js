@@ -24,6 +24,7 @@ export const AllocatedPartListHrPlan = ({
   partListItemId,
   onDeleteSuccess,
   onUpdateAllocaitonStatus,
+  partManufacturingVariables,
 }) => {
   const userRole = localStorage.getItem("userRole");
   const [sections, setSections] = useState([]);
@@ -43,7 +44,9 @@ export const AllocatedPartListHrPlan = ({
   ]);
   const [completeConfirmationModal, setCompleteConfirmationModal] =
     useState(false);
+  const [completeProcess, setCompleteProcess] = useState(false);
   const [completingAllocation, setCompletingAllocation] = useState(false);
+  const [completingprocess, setCompletingprocess] = useState(false);
   const [existingDailyTracking, setExistingDailyTracking] = useState([]);
   const [actulEndDateData, setactulEndDateData] = useState([]);
   const [addRowModal, setAddRowModal] = useState(false);
@@ -139,43 +142,51 @@ export const AllocatedPartListHrPlan = ({
         if (!response.data.data || response.data.data.length === 0) {
           setSections([]);
         } else {
-          const formattedSections = response.data.data.map((item) => ({
-            allocationId: item._id,
-            title: item.processName,
-            data: item.allocations.map((allocation) => {
-              // Ensure we have valid values for calculation
-              const shiftTotalTime = allocation.shiftTotalTime || 510; // Default to 8.5 hours in minutes if not set
-              const perMachinetotalTime = allocation.perMachinetotalTime || 1; // Prevent division by zero
-              const plannedQuantity = allocation.plannedQuantity || 0;
+          const formattedSections = response.data.data.map((item) => {
+            // Find if this process is a special day process
+            const processInfo = partManufacturingVariables?.find(
+              (mv) => mv.categoryId === item.processId
+            );
 
-              // Calculate daily planned quantity
-              let dailyPlannedQty;
-              if (perMachinetotalTime <= 0) {
-                dailyPlannedQty = plannedQuantity; // Fallback if invalid time per unit
-              } else {
-                const totalTimeRequired = plannedQuantity * perMachinetotalTime;
-                dailyPlannedQty =
-                  totalTimeRequired <= shiftTotalTime
-                    ? plannedQuantity // Can complete in one day
-                    : Math.floor(shiftTotalTime / perMachinetotalTime); // Daily capacity
-              }
+            return {
+              allocationId: item._id,
+              title: item.processName,
+              isSpecialDay: processInfo?.isSpecialday || false,
+              data: item.allocations.map((allocation) => {
+                // Ensure we have valid values for calculation
+                const shiftTotalTime = allocation.shiftTotalTime || 510; // Default to 8.5 hours in minutes if not set
+                const perMachinetotalTime = allocation.perMachinetotalTime || 1; // Prevent division by zero
+                const plannedQuantity = allocation.plannedQuantity || 0;
 
-              return {
-                trackingId: allocation._id,
-                plannedQty: allocation.plannedQuantity,
-                startDate: moment(allocation.startDate).format("DD MMM YYYY"),
-                endDate: moment(allocation.endDate).format("DD MMM YYYY"),
-                machineId: allocation.machineId,
-                shift: allocation.shift,
-                plannedTime: `${allocation.plannedTime} min`,
-                operator: allocation.operator,
-                actualEndDate: allocation.actualEndDate || allocation.endDate,
-                dailyPlannedQty: dailyPlannedQty, // Use the calculated value
-                shiftTotalTime: allocation.shiftTotalTime,
-                perMachinetotalTime: allocation.perMachinetotalTime,
-              };
-            }),
-          }));
+                // Calculate daily planned quantity
+                let dailyPlannedQty;
+                if (perMachinetotalTime <= 0) {
+                  dailyPlannedQty = plannedQuantity; // Fallback if invalid time per unit
+                } else {
+                  const totalTimeRequired = plannedQuantity * perMachinetotalTime;
+                  dailyPlannedQty =
+                    totalTimeRequired <= shiftTotalTime
+                      ? plannedQuantity // Can complete in one day
+                      : Math.floor(shiftTotalTime / perMachinetotalTime); // Daily capacity
+                }
+
+                return {
+                  trackingId: allocation._id,
+                  plannedQty: allocation.plannedQuantity,
+                  startDate: moment(allocation.startDate).format("DD MMM YYYY"),
+                  endDate: moment(allocation.endDate).format("DD MMM YYYY"),
+                  machineId: allocation.machineId,
+                  shift: allocation.shift,
+                  plannedTime: `${allocation.plannedTime} min`,
+                  operator: allocation.operator,
+                  actualEndDate: allocation.actualEndDate || allocation.endDate,
+                  dailyPlannedQty: dailyPlannedQty, // Use the calculated value
+                  shiftTotalTime: allocation.shiftTotalTime,
+                  perMachinetotalTime: allocation.perMachinetotalTime,
+                };
+              }),
+            };
+          });
           setSections(formattedSections);
         }
       } catch (error) {
@@ -186,7 +197,7 @@ export const AllocatedPartListHrPlan = ({
     };
 
     fetchAllocations();
-  }, [porjectID, partID, partListItemId]);
+  }, [porjectID, partID, partListItemId, partManufacturingVariables]);
 
   const handleCancelAllocation = async () => {
     try {
@@ -313,19 +324,20 @@ export const AllocatedPartListHrPlan = ({
         toast.error("No allocation selected.");
         return;
       }
-  
+
       const allocationId = selectedSection.allocationId;
       const trackingId = selectedSection.data[0]?.trackingId;
-  
+
       if (!allocationId || !trackingId) {
         toast.error("Allocation or Tracking ID is missing.");
         return;
       }
-  
+
       const shiftTotalTime = selectedSection.data[0].shiftTotalTime || 510;
-      const perMachinetotalTime = selectedSection.data[0].perMachinetotalTime || 1;
+      const perMachinetotalTime =
+        selectedSection.data[0].perMachinetotalTime || 1;
       const plannedQuantity = selectedSection.data[0].plannedQty || 0;
-  
+
       let calculatedDailyPlannedQty;
       if (perMachinetotalTime <= 0) {
         calculatedDailyPlannedQty = plannedQuantity;
@@ -336,7 +348,7 @@ export const AllocatedPartListHrPlan = ({
             ? plannedQuantity
             : Math.floor(shiftTotalTime / perMachinetotalTime);
       }
-  
+
       const trackingData = {
         ...dailyTracking[0],
         planned: calculatedDailyPlannedQty,
@@ -344,47 +356,48 @@ export const AllocatedPartListHrPlan = ({
           dailyTracking[0].produced < calculatedDailyPlannedQty
             ? "Delayed"
             : dailyTracking[0].produced > calculatedDailyPlannedQty
-              ? "Ahead"
-              : "On Track",
+            ? "Ahead"
+            : "On Track",
       };
-  
+
       const response = await axios.post(
         `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/allocations/${allocationId}/allocations/${trackingId}/dailyTracking`,
         trackingData
       );
-  
+
       if (onUpdateAllocaitonStatus) {
         onUpdateAllocaitonStatus(response.data);
       }
-  
+
       toast.success("Daily Tracking Updated Successfully!");
-  
+
       const updatedResponse = await axios.get(
         `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/allocations/${allocationId}/allocations/${trackingId}/dailyTracking`
       );
-  
+
       setExistingDailyTracking(updatedResponse.data.dailyTracking || []);
       setactulEndDateData(updatedResponse.data);
-  
+
       // ✅ FIX: Update actual end date in modal UI
       const updatedActualEndDate = updatedResponse.data.actualEndDate;
       if (updatedActualEndDate) {
         setSelectedSection((prevSection) => {
-          if (!prevSection || !prevSection.data || !prevSection.data[0]) return prevSection;
-  
+          if (!prevSection || !prevSection.data || !prevSection.data[0])
+            return prevSection;
+
           const updatedData = [...prevSection.data];
           updatedData[0] = {
             ...updatedData[0],
             actualEndDate: updatedActualEndDate,
           };
-  
+
           return {
             ...prevSection,
             data: updatedData,
           };
         });
       }
-  
+
       setDailyTracking([
         {
           date: "",
@@ -394,7 +407,7 @@ export const AllocatedPartListHrPlan = ({
           operator: selectedSection.data[0].operator || "",
         },
       ]);
-  
+
       closeAddRowModal();
     } catch (error) {
       toast.error("Failed to update daily tracking.");
@@ -403,8 +416,7 @@ export const AllocatedPartListHrPlan = ({
       setIsUpdating(false);
     }
   };
-  
-  
+
   const closeDailyTaskModal = () => {
     setDailyTaskModal(false);
     setDailyTracking([
@@ -487,7 +499,7 @@ export const AllocatedPartListHrPlan = ({
     setCompletingAllocation(true);
     try {
       const response = await axios.put(
-        `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/items/${partListItemId}/complete`,
+        `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/items/${partListItemId}/complete-allocatoin`,
         {
           forceStatus: true, // Add this flag to ensure status is set
         }
@@ -529,6 +541,39 @@ export const AllocatedPartListHrPlan = ({
         return totalProduced >= row.plannedQty;
       });
     });
+  };
+
+  // Add this function to handle completing the allocation
+  const handleCompleteProcess = async () => {
+    setCompletingprocess(true);
+    try {
+      if (!selectedSection) {
+        toast.error("No process selected for completion");
+        return;
+      }
+  
+      const response = await axios.put(
+        `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/items/${partListItemId}/complete-process`,
+        {
+          processId: selectedSection.allocationId,
+          trackingId: selectedSection.data[0]?.trackingId,
+        }
+      );
+  
+      if (response.status === 200) {
+        toast.success("Process marked as completed!");
+        if (onUpdateAllocaitonStatus) {
+          onUpdateAllocaitonStatus();
+        }
+      }
+    } catch (error) {
+      toast.error("Failed to complete process.");
+      console.error("Error completing process:", error);
+    } finally {
+      setCompletingprocess(false);
+      setCompleteProcess(false);
+      setSelectedSection(null);
+    }
   };
 
   return (
@@ -591,12 +636,33 @@ export const AllocatedPartListHrPlan = ({
                         <td>{row.plannedTime}</td>
                         <td>{row.operator}</td>
                         <td>
-                          <Button
-                            color="primary"
-                            onClick={() => openModal(section, row)} // Pass the row data
-                          >
-                            Update Input
-                          </Button>
+                          {(() => {
+                            if (section.isSpecialDay) {
+                              return (
+                                <Button
+                                  color="success"
+                                  onClick={() => {
+                                    setSelectedSection({
+                                      ...section,
+                                      data: [row],
+                                    });
+                                    setCompleteProcess(true);
+                                  }}
+                                >
+                                  Complete Process
+                                </Button>
+                              );
+                            }
+                            
+                            return (
+                              <Button
+                                color="primary"
+                                onClick={() => openModal(section, row)}
+                              >
+                                Update Input
+                              </Button>
+                            );
+                          })()}
                         </td>
                       </tr>
                     ))}
@@ -1074,6 +1140,73 @@ export const AllocatedPartListHrPlan = ({
             color="secondary"
             onClick={() => setCompleteConfirmationModal(false)}
             disabled={completingAllocation}
+          >
+            Cancel
+          </Button>
+        </ModalFooter>
+      </Modal>
+
+      {/* Update the completion confirmation modal */}
+      <Modal
+        isOpen={completeProcess}
+        toggle={() => setCompleteProcess(false)}
+        key={`complete-process-modal-${selectedSection?.allocationId}-${selectedSection?.data[0]?.trackingId}`}
+      >
+        <ModalHeader toggle={() => setCompleteProcess(false)}>
+          Confirm Process Completion
+        </ModalHeader>
+        <ModalBody>
+          {selectedSection && (
+            <>
+              <p>Are you sure you want to mark this process as completed?</p>
+              <div className="process-details">
+                <p>
+                  <strong>Process:</strong> {selectedSection.title}
+                </p>
+                <p>
+                  <strong>Machine ID:</strong>{" "}
+                  {selectedSection.data[0]?.machineId}
+                </p>
+                <p>
+                  <strong>Start Date:</strong>{" "}
+                  {moment(selectedSection.data[0]?.startDate).format(
+                    "DD MMM YYYY"
+                  )}
+                </p>
+                <p>
+                  <strong>End Date:</strong>{" "}
+                  {moment(selectedSection.data[0]?.endDate).format(
+                    "DD MMM YYYY"
+                  )}
+                </p>
+                {selectedSection.data[0]?.SpecialDayTotalMinutes && (
+                  <p>
+                    <strong>Special Day Duration:</strong>{" "}
+                    {selectedSection.data[0].SpecialDayTotalMinutes} minutes
+                  </p>
+                )}
+                {selectedSection.data[0]?.plannedQty && (
+                  <p>
+                    <strong>Planned Quantity:</strong>{" "}
+                    {selectedSection.data[0].plannedQty}
+                  </p>
+                )}
+              </div>
+            </>
+          )}
+        </ModalBody>
+        <ModalFooter>
+          <Button
+            color="success"
+            onClick={handleCompleteProcess}
+            disabled={completingprocess}
+          >
+            {completingprocess ? "Completing..." : "Complete"}
+          </Button>
+          <Button
+            color="secondary"
+            onClick={() => setCompleteProcess(false)}
+            disabled={completingprocess}
           >
             Cancel
           </Button>
