@@ -74,6 +74,10 @@ const AllocationPlanningSchema = new mongoose.Schema(
         actualEndDate: {
           type: Date, // Add this field for actual end date
         },
+        isProcessCompleted: {
+          type: Boolean,
+          default: false
+        },
         dailyTracking: [
           {
             date: {

@@ -482,15 +482,18 @@ export const PartListHrPlan = ({
 
   useEffect(() => {
     const initialRows = manufacturingVariables.reduce((acc, man, index) => {
+      const processInfo = getProcessSpecialDayInfo(man.name, man.categoryId);
       acc[index] = [
         {
           plannedQuantity: isAutoSchedule ? quantity : "",
           plannedQtyTime: isAutoSchedule
-            ? calculatePlannedMinutes(
-                quantity * man.hours,
-                man.name,
-                man.categoryId
-              )
+            ? processInfo?.isSpecialday
+              ? processInfo.SpecialDayTotalMinutes
+              : calculatePlannedMinutes(
+                  quantity * man.hours,
+                  man.name,
+                  man.categoryId
+                )
             : "",
           startDate: "",
           startTime: "",
@@ -501,13 +504,6 @@ export const PartListHrPlan = ({
           processName: man.name,
         },
       ];
-
-      if (!isAutoSchedule) {
-        setRemainingQuantities((prev) => ({
-          ...prev,
-          [index]: quantity,
-        }));
-      }
       return acc;
     }, {});
     setRows(initialRows);
@@ -520,16 +516,21 @@ export const PartListHrPlan = ({
       const newQuantity =
         value === "" ? "" : Math.max(0, Math.min(quantity, Number(value)));
 
+      const processInfo = getProcessSpecialDayInfo(
+        manufacturingVariables[index].name,
+        manufacturingVariables[index].categoryId
+      );
+
       processRows[rowIndex] = {
         ...processRows[rowIndex],
         plannedQuantity: newQuantity,
-        plannedQtyTime: newQuantity
-          ? calculatePlannedMinutes(
+        plannedQtyTime: processInfo?.isSpecialday
+          ? processInfo.SpecialDayTotalMinutes
+          : calculatePlannedMinutes(
               newQuantity * manufacturingVariables[index].hours,
               manufacturingVariables[index].name,
               manufacturingVariables[index].categoryId
-            )
-          : "",
+            ),
       };
 
       updatedRows[index] = processRows;
@@ -659,8 +660,10 @@ export const PartListHrPlan = ({
     const processInfo = getProcessSpecialDayInfo(processName, categoryId);
 
     if (processInfo?.isSpecialday) {
+      // For special day processes, return SpecialDayTotalMinutes directly without any multiplication
       return processInfo.SpecialDayTotalMinutes;
     }
+    // For regular processes, multiply hours by 60 to convert to minutes
     return Math.round(hours * 60);
   };
 
@@ -739,34 +742,35 @@ export const PartListHrPlan = ({
 
   const handleStartDateChange = (index, rowIndex, date) => {
     if (!date) return;
-
+  
     const adjustedDate = new Date(
       Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())
     );
-
+  
     const nextWorkingDay = getNextWorkingDay(adjustedDate);
-
+  
     if (index === 0) {
       setHasStartDate(!!nextWorkingDay);
     }
-
+  
     setRows((prevRows) => {
       const newRows = { ...prevRows };
       const currentRow = newRows[index][rowIndex];
-
+  
       if (isAutoSchedule && index === 0) {
         let currentDate = new Date(nextWorkingDay);
         let previousEndTime = null;
         let previousEndDate = null;
-
+        let usedOperators = new Set(); // Track used operators
+  
         manufacturingVariables.forEach((man, processIndex) => {
           const shift = shiftOptions.length > 0 ? shiftOptions[0] : null;
           const machineList = machineOptions[man.categoryId] || [];
-
+  
           newRows[processIndex] = newRows[processIndex].map((row) => {
             let firstAvailableMachine = null;
             let daysAddedForDowntime = 0;
-
+  
             firstAvailableMachine = machineList.find((machine) => {
               const shift = shiftOptions.length > 0 ? shiftOptions[0] : null;
               const endDateEstimate = calculateEndDateWithDowntime(
@@ -777,43 +781,43 @@ export const PartListHrPlan = ({
                 index,
                 rowIndex
               );
-
+  
               const availability = isMachineAvailable(
                 machine.subcategoryId,
                 currentDate,
                 endDateEstimate
               );
-
+  
               if (!availability.available) return false;
-
+  
               const downtimeInfo = isMachineOnDowntimeDuringPeriod(
                 machine,
                 currentDate,
                 null
               );
-
+  
               return !downtimeInfo.isDowntime;
             });
-
+  
             if (!firstAvailableMachine) {
               let earliestEndMachine = null;
               let earliestEndDate = null;
-
+  
               machineList.forEach((machine) => {
                 const availability = isMachineAvailable(
                   machine.subcategoryId,
                   currentDate,
                   null
                 );
-
+  
                 if (!availability.available) return;
-
+  
                 const downtimeInfo = isMachineOnDowntimeDuringPeriod(
                   machine,
                   currentDate,
                   null
                 );
-
+  
                 if (downtimeInfo.isDowntime && downtimeInfo.downtimeEnd) {
                   if (
                     !earliestEndDate ||
@@ -824,26 +828,26 @@ export const PartListHrPlan = ({
                   }
                 }
               });
-
+  
               firstAvailableMachine = earliestEndMachine;
             }
-
+  
             let startDate = currentDate;
             let endDate = currentDate;
-
+  
             if (firstAvailableMachine) {
               const downtimeInfo = isMachineOnDowntimeDuringPeriod(
                 firstAvailableMachine,
                 startDate,
                 null
               );
-
+  
               if (downtimeInfo.isDowntime && downtimeInfo.downtimeEnd) {
                 startDate = new Date(downtimeInfo.downtimeEnd);
                 startDate.setDate(startDate.getDate() + 1);
                 startDate = getNextWorkingDay(startDate);
               }
-
+  
               endDate = calculateEndDateWithDowntime(
                 startDate,
                 row.plannedQtyTime,
@@ -862,7 +866,7 @@ export const PartListHrPlan = ({
               startDate = new Date(calcStart);
               endDate = new Date(calcEnd);
             }
-
+  
             // Calculate start time based on previous process end time
             let startTime = shift?.startTime || "09:00";
             if (processIndex > 0 && previousEndTime) {
@@ -877,13 +881,14 @@ export const PartListHrPlan = ({
               startTime = `${String(newHours).padStart(2, "0")}:${String(
                 newMinutes
               ).padStart(2, "0")}`;
-
+  
               // Use the same date as previous process end date if possible
               if (previousEndDate) {
                 startDate = new Date(previousEndDate);
               }
             }
-
+  
+            // Find available operators that haven't been used yet
             const availableOperators = operators.filter((operator) => {
               const isOnLeave = isOperatorOnLeave(operator, startDate, endDate);
               const { available } = isOperatorAvailable(
@@ -891,10 +896,15 @@ export const PartListHrPlan = ({
                 startDate,
                 endDate
               );
-              return !isOnLeave && available;
+              return !isOnLeave && available && !usedOperators.has(operator._id);
             });
-            const firstOperator = availableOperators[0];
-
+  
+            // Select the first available operator
+            const selectedOperator = availableOperators[0];
+            if (selectedOperator) {
+              usedOperators.add(selectedOperator._id);
+            }
+  
             // Calculate end time based on start time and planned minutes
             const endTime = calculateEndTime(
               startTime,
@@ -903,11 +913,10 @@ export const PartListHrPlan = ({
             );
             previousEndTime = endTime;
             previousEndDate = endDate;
-
-            currentDate = new Date(endDate);
-            currentDate.setDate(currentDate.getDate() + 1);
-            currentDate = getNextWorkingDay(currentDate);
-
+  
+            // FIX: Don't add an extra day here - just use the calculated endDate
+            currentDate = new Date(endDate); // Remove the +1 day that was causing the issue
+  
             return {
               ...row,
               startDate: formatDateUTC(startDate),
@@ -918,11 +927,11 @@ export const PartListHrPlan = ({
               machineId: firstAvailableMachine
                 ? firstAvailableMachine.subcategoryId
                 : "",
-              operatorId: firstOperator ? firstOperator._id : "",
+              operatorId: selectedOperator ? selectedOperator._id : "",
             };
           });
         });
-
+  
         return newRows;
       } else {
         const shift = shiftOptions.find(
@@ -1065,18 +1074,24 @@ export const PartListHrPlan = ({
       }
     }
 
-    while (remainingMinutes > 0) {
+    // Calculate working days needed
+    const workingDaysNeeded = Math.ceil(remainingMinutes / workingMinutesPerDay);
+    let daysAdded = 0;
+    let endDate = new Date(currentDate);
+
+    while (daysAdded < workingDaysNeeded) {
+      // Skip weekends and event dates
       while (
-        getDay(currentDate) === 0 ||
-        eventDates.some((d) => isSameDay(d, currentDate))
+        getDay(endDate) === 0 ||
+        eventDates.some((d) => isSameDay(d, endDate))
       ) {
-        currentDate.setDate(currentDate.getDate() + 1);
+        endDate.setDate(endDate.getDate() + 1);
       }
 
-      let dailyDowntimeMinutes = 0;
+      // Check for machine downtime on this day
       if (machine) {
-        const dayStart = new Date(currentDate);
-        const dayEnd = new Date(currentDate);
+        const dayStart = new Date(endDate);
+        const dayEnd = new Date(endDate);
         dayEnd.setHours(23, 59, 59, 999);
 
         const downtimeInfo = isMachineOnDowntimeDuringPeriod(
@@ -1086,22 +1101,40 @@ export const PartListHrPlan = ({
         );
 
         if (downtimeInfo.isDowntime) {
-          dailyDowntimeMinutes = downtimeInfo.downtimeMinutes;
-          totalDowntimeAdded += dailyDowntimeMinutes;
+          totalDowntimeAdded += downtimeInfo.downtimeMinutes;
+          // Add an extra day to account for downtime
+          endDate.setDate(endDate.getDate() + 1);
+          continue;
         }
       }
 
-      const availableMinutes = workingMinutesPerDay - dailyDowntimeMinutes;
-      const minutesToDeduct = Math.min(remainingMinutes, availableMinutes);
-
-      remainingMinutes -= minutesToDeduct;
-
-      if (remainingMinutes > 0) {
-        currentDate.setDate(currentDate.getDate() + 1);
+      daysAdded++;
+      if (daysAdded < workingDaysNeeded) {
+        endDate.setDate(endDate.getDate() + 1);
       }
     }
 
-    return formatDateUTC(currentDate);
+    // Ensure we don't end on a weekend or event date
+    while (
+      getDay(endDate) === 0 ||
+      eventDates.some((d) => isSameDay(d, endDate))
+    ) {
+      endDate.setDate(endDate.getDate() + 1);
+    }
+
+    // Update the row with downtime information
+    if (totalDowntimeAdded > 0) {
+      setRows((prevRows) => {
+        const updatedRows = [...prevRows[processIndex]];
+        updatedRows[rowIndex] = {
+          ...updatedRows[rowIndex],
+          totalDowntimeAdded,
+        };
+        return { ...prevRows, [processIndex]: updatedRows };
+      });
+    }
+
+    return formatDateUTC(endDate);
   };
 
   const addRow = (index) => {
@@ -1112,6 +1145,11 @@ export const PartListHrPlan = ({
       toast.warning("No remaining quantity available for this process");
       return;
     }
+
+    const processInfo = getProcessSpecialDayInfo(
+      manufacturingVariables[index].name,
+      manufacturingVariables[index].categoryId
+    );
 
     setRows((prevRows) => ({
       ...prevRows,
@@ -1125,7 +1163,7 @@ export const PartListHrPlan = ({
           machineId: "",
           shift: "",
           plannedQtyTime: calculatePlannedMinutes(
-            currentRemaining * manufacturingVariables[index].hours,
+            processInfo?.isSpecialday ? 0 : currentRemaining * manufacturingVariables[index].hours,
             manufacturingVariables[index].name,
             manufacturingVariables[index].categoryId
           ),
@@ -1647,6 +1685,7 @@ export const PartListHrPlan = ({
             partListItemId={partListItemId}
             onDeleteSuccess={handleDeleteSuccess}
             onUpdateAllocaitonStatus={onUpdateAllocaitonStatus}
+            partManufacturingVariables={partManufacturingVariables}
           />
         )}
         {activeTab === "actual" && !isDataAllocated && (
