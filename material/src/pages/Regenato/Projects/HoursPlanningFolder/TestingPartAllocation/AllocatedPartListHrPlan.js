@@ -183,6 +183,7 @@ export const AllocatedPartListHrPlan = ({
                   dailyPlannedQty: dailyPlannedQty, // Use the calculated value
                   shiftTotalTime: allocation.shiftTotalTime,
                   perMachinetotalTime: allocation.perMachinetotalTime,
+                  isProcessCompleted: allocation.isProcessCompleted || false,
                 };
               }),
             };
@@ -562,6 +563,46 @@ export const AllocatedPartListHrPlan = ({
   
       if (response.status === 200) {
         toast.success("Process marked as completed!");
+        
+        // Close the modal first
+        setCompleteProcess(false);
+        setSelectedSection(null);
+
+        // Trigger a re-fetch of the allocations to ensure we have the latest data
+        const updatedResponse = await axios.get(
+          `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/allocation`
+        );
+
+        if (updatedResponse.data.data) {
+          const formattedSections = updatedResponse.data.data.map((item) => {
+            const processInfo = partManufacturingVariables?.find(
+              (mv) => mv.categoryId === item.processId
+            );
+
+            return {
+              allocationId: item._id,
+              title: item.processName,
+              isSpecialDay: processInfo?.isSpecialday || false,
+              data: item.allocations.map((allocation) => ({
+                trackingId: allocation._id,
+                plannedQty: allocation.plannedQuantity,
+                startDate: moment(allocation.startDate).format("DD MMM YYYY"),
+                endDate: moment(allocation.endDate).format("DD MMM YYYY"),
+                machineId: allocation.machineId,
+                shift: allocation.shift,
+                plannedTime: `${allocation.plannedTime} min`,
+                operator: allocation.operator,
+                actualEndDate: allocation.actualEndDate || allocation.endDate,
+                dailyPlannedQty: allocation.dailyPlannedQty,
+                shiftTotalTime: allocation.shiftTotalTime,
+                perMachinetotalTime: allocation.perMachinetotalTime,
+                isProcessCompleted: allocation.isProcessCompleted || false,
+              })),
+            };
+          });
+          setSections(formattedSections);
+        }
+
         if (onUpdateAllocaitonStatus) {
           onUpdateAllocaitonStatus();
         }
@@ -571,8 +612,6 @@ export const AllocatedPartListHrPlan = ({
       console.error("Error completing process:", error);
     } finally {
       setCompletingprocess(false);
-      setCompleteProcess(false);
-      setSelectedSection(null);
     }
   };
 
@@ -638,18 +677,22 @@ export const AllocatedPartListHrPlan = ({
                         <td>
                           {(() => {
                             if (section.isSpecialDay) {
+                              const isProcessCompleted = row.isProcessCompleted;
                               return (
                                 <Button
-                                  color="success"
+                                  color={isProcessCompleted ? "secondary" : "success"}
                                   onClick={() => {
-                                    setSelectedSection({
-                                      ...section,
-                                      data: [row],
-                                    });
-                                    setCompleteProcess(true);
+                                    if (!isProcessCompleted) {
+                                      setSelectedSection({
+                                        ...section,
+                                        data: [row],
+                                      });
+                                      setCompleteProcess(true);
+                                    }
                                   }}
+                                  disabled={isProcessCompleted}
                                 >
-                                  Complete Process
+                                  {isProcessCompleted ? "Completed" : "Complete Process"}
                                 </Button>
                               );
                             }
@@ -971,31 +1014,16 @@ export const AllocatedPartListHrPlan = ({
                   dateFormat="dd-MM-yyyy"
                   className="form-control-date"
                   placeholderText="DD-MM-YYYY"
-                  minDate={new Date(selectedSection?.data[0]?.startDate)}
-                  maxDate={
-                    actulEndDateData?.actualEndDate
-                      ? new Date(actulEndDateData.actualEndDate)
-                      : selectedSection?.data[0]?.endDate
-                      ? new Date(selectedSection.data[0].endDate)
-                      : null
-                  }
+                  minDate={new Date()}
+                  maxDate={new Date()}
                   filterDate={(date) => {
                     const isHoliday = highlightDates.some(
                       (d) => d.toDateString() === date.toDateString()
                     );
                     const isSunday = date.getDay() === 0;
+                    const isToday = new Date().toDateString() === date.toDateString();
 
-                    const maxAllowedDate = actulEndDateData?.actualEndDate
-                      ? new Date(actulEndDateData.actualEndDate)
-                      : selectedSection?.data[0]?.endDate
-                      ? new Date(selectedSection.data[0].endDate)
-                      : null;
-
-                    return (
-                      !isHoliday &&
-                      !isSunday &&
-                      (!maxAllowedDate || date <= maxAllowedDate)
-                    );
+                    return !isHoliday && !isSunday && isToday;
                   }}
                   dayClassName={(date) => {
                     const isHighlighted = highlightDates.some(
