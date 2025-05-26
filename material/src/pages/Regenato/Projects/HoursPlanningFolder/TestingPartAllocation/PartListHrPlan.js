@@ -766,6 +766,7 @@ export const PartListHrPlan = ({
         manufacturingVariables.forEach((man, processIndex) => {
           const shift = shiftOptions.length > 0 ? shiftOptions[0] : null;
           const machineList = machineOptions[man.categoryId] || [];
+          const processInfo = getProcessSpecialDayInfo(man.name, man.categoryId);
   
           newRows[processIndex] = newRows[processIndex].map((row) => {
             let firstAvailableMachine = null;
@@ -848,14 +849,27 @@ export const PartListHrPlan = ({
                 startDate = getNextWorkingDay(startDate);
               }
   
-              endDate = calculateEndDateWithDowntime(
-                startDate,
-                row.plannedQtyTime,
-                shift,
-                firstAvailableMachine,
-                index,
-                rowIndex
-              );
+              // Handle special day process
+              if (processInfo?.isSpecialday) {
+                // Convert minutes to days (1440 minutes = 1 day)
+                const daysNeeded = Math.ceil(row.plannedQtyTime / 1440);
+                endDate = new Date(startDate);
+                // For 1440 minutes, end date should be next day
+                if (row.plannedQtyTime === 1440) {
+                  endDate.setDate(endDate.getDate() + 1);
+                } else {
+                  endDate.setDate(endDate.getDate() + daysNeeded - 1);
+                }
+              } else {
+                endDate = calculateEndDateWithDowntime(
+                  startDate,
+                  row.plannedQtyTime,
+                  shift,
+                  firstAvailableMachine,
+                  index,
+                  rowIndex
+                );
+              }
             } else {
               const { startDate: calcStart, endDate: calcEnd } =
                 calculateStartAndEndDates(
@@ -914,8 +928,7 @@ export const PartListHrPlan = ({
             previousEndTime = endTime;
             previousEndDate = endDate;
   
-            // FIX: Don't add an extra day here - just use the calculated endDate
-            currentDate = new Date(endDate); // Remove the +1 day that was causing the issue
+            currentDate = new Date(endDate);
   
             return {
               ...row,
@@ -963,11 +976,20 @@ export const PartListHrPlan = ({
           }
         }
 
-        newRows[index][rowIndex] = {
-          ...currentRow,
-          startDate: formatDateUTC(startDate),
-          startTime: startTime,
-          endDate: calculateEndDateWithDowntime(
+        // Handle special day process
+        const processInfo = getProcessSpecialDayInfo(
+          manufacturingVariables[index].name,
+          manufacturingVariables[index].categoryId
+        );
+
+        let endDate;
+        if (processInfo?.isSpecialday) {
+          // Convert minutes to days (1440 minutes = 1 day)
+          const daysNeeded = Math.ceil(currentRow.plannedQtyTime / 1440);
+          endDate = new Date(startDate);
+          endDate.setDate(endDate.getDate() + daysNeeded - 1);
+        } else {
+          endDate = calculateEndDateWithDowntime(
             startDate,
             currentRow.plannedQtyTime,
             shift,
@@ -976,7 +998,14 @@ export const PartListHrPlan = ({
             ),
             index,
             rowIndex
-          ),
+          );
+        }
+
+        newRows[index][rowIndex] = {
+          ...currentRow,
+          startDate: formatDateUTC(startDate),
+          startTime: startTime,
+          endDate: formatDateUTC(endDate),
         };
 
         const currentMachine = machineOptions[
@@ -1039,90 +1068,89 @@ export const PartListHrPlan = ({
     rowIndex
   ) => {
     if (!startDate || !plannedMinutes) return "";
-
+  
     const parsedDate = new Date(startDate);
     if (isNaN(parsedDate.getTime())) return "";
-
-    const workingMinutesPerDay = shift?.workingMinutes || 510;
-    let remainingMinutes = plannedMinutes;
-    let currentDate = new Date(parsedDate);
-    let totalDowntimeAdded = 0;
-
-    // Get process info for special day check
+  
     const processInfo = manufacturingVariables[processIndex];
     const specialDayInfo = getProcessSpecialDayInfo(
       processInfo.name,
       processInfo.categoryId
     );
-
-    // If it's a special day process, use the special day minutes
+  
+    let currentDate = new Date(parsedDate);
+    let endDate = new Date(currentDate);
+  
+    // Special handling for special day processes
     if (specialDayInfo?.isSpecialday) {
-      remainingMinutes = specialDayInfo.SpecialDayTotalMinutes;
+      // For special day processes, we use a fixed 8-hour working day
+      const workingMinutesPerDay = 480; // 8 hours
+      
+      // If it's exactly 1440 minutes (1 day), keep it on the same day
+      if (plannedMinutes === 1440) {
+        return formatDateUTC(endDate);
+      }
+      
+      // For other durations, calculate based on 8-hour working day
+      const daysNeeded = Math.ceil(plannedMinutes / workingMinutesPerDay);
+      
+      // Add the required number of days (minus 1 since we start counting from current day)
+      endDate.setDate(endDate.getDate() + daysNeeded - 1);
+      
+      // Skip weekends and event dates
+      while (getDay(endDate) === 0 || eventDates.some((d) => isSameDay(d, endDate))) {
+        endDate.setDate(endDate.getDate() + 1);
+      }
+      
+      return formatDateUTC(endDate);
     }
-
+  
+    // Regular process logic
+    const workingMinutesPerDay = shift?.workingMinutes || 510;
+    let remainingMinutes = plannedMinutes;
+    let totalDowntimeAdded = 0;
+  
     if (machine) {
-      const downtimeInfo = isMachineOnDowntimeDuringPeriod(
-        machine,
-        currentDate,
-        null
-      );
-
+      const downtimeInfo = isMachineOnDowntimeDuringPeriod(machine, currentDate, null);
       if (downtimeInfo.isDowntime && downtimeInfo.downtimeEnd) {
         currentDate = new Date(downtimeInfo.downtimeEnd);
         currentDate.setDate(currentDate.getDate() + 1);
         currentDate = getNextWorkingDay(currentDate);
       }
     }
-
-    // Calculate working days needed
+  
     const workingDaysNeeded = Math.ceil(remainingMinutes / workingMinutesPerDay);
     let daysAdded = 0;
-    let endDate = new Date(currentDate);
-
+    endDate = new Date(currentDate);
+  
     while (daysAdded < workingDaysNeeded) {
-      // Skip weekends and event dates
-      while (
-        getDay(endDate) === 0 ||
-        eventDates.some((d) => isSameDay(d, endDate))
-      ) {
+      while (getDay(endDate) === 0 || eventDates.some((d) => isSameDay(d, endDate))) {
         endDate.setDate(endDate.getDate() + 1);
       }
-
-      // Check for machine downtime on this day
+  
       if (machine) {
         const dayStart = new Date(endDate);
         const dayEnd = new Date(endDate);
         dayEnd.setHours(23, 59, 59, 999);
-
-        const downtimeInfo = isMachineOnDowntimeDuringPeriod(
-          machine,
-          dayStart,
-          dayEnd
-        );
-
+        const downtimeInfo = isMachineOnDowntimeDuringPeriod(machine, dayStart, dayEnd);
+  
         if (downtimeInfo.isDowntime) {
           totalDowntimeAdded += downtimeInfo.downtimeMinutes;
-          // Add an extra day to account for downtime
           endDate.setDate(endDate.getDate() + 1);
           continue;
         }
       }
-
+  
       daysAdded++;
       if (daysAdded < workingDaysNeeded) {
         endDate.setDate(endDate.getDate() + 1);
       }
     }
-
-    // Ensure we don't end on a weekend or event date
-    while (
-      getDay(endDate) === 0 ||
-      eventDates.some((d) => isSameDay(d, endDate))
-    ) {
+  
+    while (getDay(endDate) === 0 || eventDates.some((d) => isSameDay(d, endDate))) {
       endDate.setDate(endDate.getDate() + 1);
     }
-
-    // Update the row with downtime information
+  
     if (totalDowntimeAdded > 0) {
       setRows((prevRows) => {
         const updatedRows = [...prevRows[processIndex]];
@@ -1133,9 +1161,10 @@ export const PartListHrPlan = ({
         return { ...prevRows, [processIndex]: updatedRows };
       });
     }
-
+  
     return formatDateUTC(endDate);
   };
+  
 
   const addRow = (index) => {
     if (!hasStartDate) return;
@@ -1371,78 +1400,107 @@ export const PartListHrPlan = ({
 
   const calculateEndTime = (startTime, plannedMinutes, shift) => {
     if (!startTime || !plannedMinutes || !shift) return "00:00";
-
+  
     const [startHour, startMin] = startTime.split(":").map(Number);
     const shiftStart = new Date();
     shiftStart.setHours(startHour, startMin, 0, 0);
-
+  
+    // Get process info to check if it's a special day
+    const processInfo = manufacturingVariables.find((mv) =>
+      mv.name === shift.processName
+    );
+    const specialDayInfo = getProcessSpecialDayInfo(
+      processInfo?.name,
+      processInfo?.categoryId
+    );
+  
+    // Special handling for special day processes
+    if (specialDayInfo?.isSpecialday) {
+      const endTime = new Date(shiftStart);
+      
+      // For special day processes, we use a fixed 8-hour working day
+      const workingMinutesPerDay = 480; // 8 hours
+      
+      // If it's exactly 1440 minutes (1 day), set end time to next day's start time
+      if (plannedMinutes === 1440) {
+        // Set end time to the same time as start time (for next day)
+        return startTime;
+      }
+      
+      // For other durations, calculate based on 8-hour working day
+      const daysNeeded = Math.ceil(plannedMinutes / workingMinutesPerDay);
+      
+      // For single day allocations
+      if (daysNeeded === 1) {
+        endTime.setMinutes(endTime.getMinutes() + plannedMinutes);
+        // Cap at 5:30 PM
+        if (endTime.getHours() > 17 || (endTime.getHours() === 17 && endTime.getMinutes() > 30)) {
+          endTime.setHours(17, 30, 0, 0);
+        }
+        return formatTime(endTime);
+      }
+      
+      // For multiple days, calculate the end time on the last day
+      const remainingMinutes = plannedMinutes % workingMinutesPerDay || workingMinutesPerDay;
+      endTime.setMinutes(endTime.getMinutes() + remainingMinutes);
+      // Cap at 5:30 PM
+      if (endTime.getHours() > 17 || (endTime.getHours() === 17 && endTime.getMinutes() > 30)) {
+        endTime.setHours(17, 30, 0, 0);
+      }
+      return formatTime(endTime);
+    }
+  
+    // Regular process logic
     const shiftEnd = new Date(shiftStart);
     const [shiftEndHour, shiftEndMin] = shift.endTime.split(":").map(Number);
     shiftEnd.setHours(shiftEndHour, shiftEndMin, 0, 0);
-
+  
     const breakStart = new Date(shiftStart);
     const breakEnd = new Date(shiftStart);
     if (shift.breakStartTime && shift.breakEndTime) {
-      const [breakStartHour, breakStartMin] = shift.breakStartTime
-        .split(":")
-        .map(Number);
-      const [breakEndHour, breakEndMin] = shift.breakEndTime
-        .split(":")
-        .map(Number);
+      const [breakStartHour, breakStartMin] = shift.breakStartTime.split(":").map(Number);
+      const [breakEndHour, breakEndMin] = shift.breakEndTime.split(":").map(Number);
       breakStart.setHours(breakStartHour, breakStartMin, 0, 0);
       breakEnd.setHours(breakEndHour, breakEndMin, 0, 0);
     }
-
+  
     let current = new Date(shiftStart);
     let minutesLeft = plannedMinutes;
-    let currentDay = new Date(current);
-    let endTime = "";
-    let endDate = new Date(current);
-
-    const calculateWorkMinutes = (start, end) => {
-      if (start >= end) return 0;
-      return Math.floor((end - start) / (1000 * 60));
-    };
-
-    // Handle break time if exists
+  
+    const calculateWorkMinutes = (start, end) =>
+      start >= end ? 0 : Math.floor((end - start) / (1000 * 60));
+  
     if (breakStart > current && breakEnd > current) {
-      const beforeBreakMinutes = calculateWorkMinutes(current, breakStart);
-      if (minutesLeft <= beforeBreakMinutes) {
-        current = new Date(current.getTime() + minutesLeft * 60 * 1000);
-        minutesLeft = 0;
-        endTime = formatTime(current);
-        return endTime;
+      const beforeBreak = calculateWorkMinutes(current, breakStart);
+      if (minutesLeft <= beforeBreak) {
+        current.setMinutes(current.getMinutes() + minutesLeft);
+        return formatTime(current);
       } else {
-        minutesLeft -= beforeBreakMinutes;
+        minutesLeft -= beforeBreak;
         current = new Date(breakEnd);
       }
     }
-
-    // Calculate remaining time in current shift
-    const remainingShiftMinutes = calculateWorkMinutes(current, shiftEnd);
-    if (minutesLeft <= remainingShiftMinutes) {
-      current = new Date(current.getTime() + minutesLeft * 60 * 1000);
-      minutesLeft = 0;
-      endTime = formatTime(current);
-      return endTime;
-    } else {
-      minutesLeft -= remainingShiftMinutes;
+  
+    const remainingShift = calculateWorkMinutes(current, shiftEnd);
+    if (minutesLeft <= remainingShift) {
+      current.setMinutes(current.getMinutes() + minutesLeft);
+      return formatTime(current);
     }
-
-    // If we still have minutes left, move to next day
-    currentDay.setDate(currentDay.getDate() + 1);
-    currentDay = getNextWorkingDay(currentDay);
-    current = new Date(currentDay);
-    current.setHours(
+  
+    minutesLeft -= remainingShift;
+  
+    // Advance to next working day recursively
+    const nextDay = getNextWorkingDay(new Date(current.setDate(current.getDate() + 1)));
+    nextDay.setHours(
       parseInt(shift.startTime.split(":")[0]),
       parseInt(shift.startTime.split(":")[1]),
       0,
       0
     );
-
-    // Recursively calculate end time for remaining minutes
-    return calculateEndTime(formatTime(current), minutesLeft, shift);
+  
+    return calculateEndTime(formatTime(nextDay), minutesLeft, shift);
   };
+  
 
   const formatTime = (date) =>
     `${String(date.getHours()).padStart(2, "0")}:${String(
