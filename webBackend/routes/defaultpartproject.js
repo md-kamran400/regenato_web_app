@@ -732,7 +732,6 @@ partproject.delete(
 
       // Find the project
       const project = await PartListProjectModel.findOne({ _id: projectId });
-
       if (!project) {
         return res.status(404).json({ message: "Project not found" });
       }
@@ -741,7 +740,6 @@ partproject.delete(
       const partsList = project.partsLists.find(
         (list) => list._id.toString() === partsListId
       );
-
       if (!partsList) {
         return res.status(404).json({ message: "Parts List not found" });
       }
@@ -750,7 +748,6 @@ partproject.delete(
       const partItem = partsList.partsListItems.find(
         (item) => item._id.toString() === partsListItemsId
       );
-
       if (!partItem) {
         return res.status(404).json({ message: "Part List Item not found" });
       }
@@ -758,15 +755,20 @@ partproject.delete(
       // Clear all allocations
       partItem.allocations = [];
 
-        // Update status
+      // Reset status to "Not Allocated"
       partItem.status = "Not Allocated";
       partItem.statusClass = "badge bg-info text-white";
+      partItem.isManuallyCompleted = false; // Also reset this flag
 
       // Save the updated project
       await project.save();
 
       res.status(200).json({
         message: "All allocations deleted successfully",
+        data: {
+          status: partItem.status,
+          statusClass: partItem.statusClass
+        }
       });
     } catch (error) {
       console.error("Error deleting allocations:", error);
@@ -1054,64 +1056,163 @@ partproject.get(
   }
 );
 
-partproject.put('/projects/:projectId/partsLists/:listId/items/:itemId/complete', async (req, res) => {
+partproject.put('/projects/:projectId/partsLists/:listId/items/:itemId/complete-allocatoin', async (req, res) => {
   try {
-    const project = await PartListProjectModel.findById(req.params.projectId);
+    const { projectId, listId, itemId } = req.params;
+    const { processId, trackingId } = req.body;
+
+    const project = await PartListProjectModel.findById(projectId);
     if (!project) {
       return res.status(404).json({ message: 'Project not found' });
     }
 
-    const partsList = project.partsLists.id(req.params.listId);
+    const partsList = project.partsLists.id(listId);
     if (!partsList) {
       return res.status(404).json({ message: 'Parts list not found' });
     }
 
-    const partsListItem = partsList.partsListItems.id(req.params.itemId);
+    const partsListItem = partsList.partsListItems.id(itemId);
     if (!partsListItem) {
       return res.status(404).json({ message: 'Parts list item not found' });
     }
 
-    // Set a flag to skip status calculation in pre-save hook
-    partsListItem._skipStatusCalculation = true;
+    // If processId and trackingId are provided, complete only that specific process
+    if (processId && trackingId) {
+      const process = partsListItem.allocations.id(processId);
+      if (!process) {
+        return res.status(404).json({ message: 'Process not found' });
+      }
 
-    // Update status directly and set a flag to prevent recalculation
-    partsListItem.status = "Completed";
-    partsListItem.statusClass = "badge bg-success text-white";
-    partsListItem.isManuallyCompleted = true; // Add this new flag
+      const allocation = process.allocations.id(trackingId);
+      if (!allocation) {
+        return res.status(404).json({ message: 'Allocation not found' });
+      }
 
-    // Mark all allocations as completed with current date
-    const now = new Date();
-    partsListItem.allocations.forEach(allocation => {
-      allocation.allocations.forEach(alloc => {
-        if (!alloc.actualEndDate) {
-          alloc.actualEndDate = now;
-        }
-        // Ensure all daily tracking entries are marked as completed
-        if (alloc.dailyTracking && alloc.dailyTracking.length > 0) {
-          alloc.dailyTracking.forEach(track => {
-            if (track.dailyStatus !== "Completed") {
+      // Mark this specific allocation as completed
+      allocation.actualEndDate = new Date();
+      if (allocation.dailyTracking && allocation.dailyTracking.length > 0) {
+        allocation.dailyTracking.forEach(track => {
+          track.dailyStatus = "Completed";
+        });
+      }
+    } else {
+      // Complete all allocations
+      partsListItem.status = "Completed";
+      partsListItem.statusClass = "badge bg-success text-white";
+      partsListItem.isManuallyCompleted = true;
+
+      const now = new Date();
+      partsListItem.allocations.forEach(allocation => {
+        allocation.allocations.forEach(alloc => {
+          if (!alloc.actualEndDate) {
+            alloc.actualEndDate = now;
+          }
+          if (alloc.dailyTracking && alloc.dailyTracking.length > 0) {
+            alloc.dailyTracking.forEach(track => {
               track.dailyStatus = "Completed";
-            }
-          });
-        }
+            });
+          }
+        });
       });
-    });
+    }
 
     await project.save();
 
-    // Return the updated document without the flag
-    const updatedItem = partsListItem.toObject();
-    delete updatedItem._skipStatusCalculation;
-
     res.status(200).json({
-      message: 'Allocation marked as completed',
-      data: updatedItem
+      message: 'Process completed successfully',
+      data: partsListItem
     });
   } catch (error) {
-    console.error('Error completing allocation:', error);
-    res.status(500).json({ message: 'Error completing allocation', error: error.message });
+    console.error('Error completing process:', error);
+    res.status(500).json({ message: 'Error completing process', error: error.message });
   }
 });
+
+
+// cretae for complete process 
+// Route to complete a specific process
+partproject.put(
+  '/projects/:projectId/partsLists/:listId/items/:itemId/complete-process',
+  async (req, res) => {
+    try {
+      const { projectId, listId, itemId } = req.params;
+      const { processId, trackingId } = req.body;
+
+      // Validate required parameters
+      if (!processId || !trackingId) {
+        return res.status(400).json({ 
+          message: 'processId and trackingId are required in request body' 
+        });
+      }
+
+      // Find the project
+      const project = await PartListProjectModel.findById(projectId);
+      if (!project) {
+        return res.status(404).json({ message: 'Project not found' });
+      }
+
+      // Find the parts list
+      const partsList = project.partsLists.id(listId);
+      if (!partsList) {
+        return res.status(404).json({ message: 'Parts list not found' });
+      }
+
+      // Find the part item
+      const partItem = partsList.partsListItems.id(itemId);
+      if (!partItem) {
+        return res.status(404).json({ message: 'Part list item not found' });
+      }
+
+      // Find the process
+      const process = partItem.allocations.id(processId);
+      if (!process) {
+        return res.status(404).json({ message: 'Process not found' });
+      }
+
+      // Find the specific allocation/tracking
+      const allocation = process.allocations.id(trackingId);
+      if (!allocation) {
+        return res.status(404).json({ message: 'Allocation not found' });
+      }
+
+      // Mark the process as completed
+      allocation.isProcessCompleted = true;
+      allocation.actualEndDate = new Date();
+
+      // Update all daily tracking entries to "Completed" status
+      if (allocation.dailyTracking && allocation.dailyTracking.length > 0) {
+        allocation.dailyTracking.forEach(track => {
+          track.dailyStatus = "Completed";
+        });
+      }
+
+      // Calculate and update the part item status
+      const status = partItem.calculateStatus();
+      partItem.status = status.text;
+      partItem.statusClass = status.class;
+
+      // Save the changes
+      await project.save();
+
+      res.status(200).json({
+        message: 'Process completed successfully',
+        data: {
+          processId: process._id,
+          trackingId: allocation._id,
+          isProcessCompleted: allocation.isProcessCompleted,
+          actualEndDate: allocation.actualEndDate,
+          partStatus: partItem.status
+        }
+      });
+    } catch (error) {
+      console.error('Error completing process:', error);
+      res.status(500).json({ 
+        message: 'Error completing process', 
+        error: error.message 
+      });
+    }
+  }
+);
 
 // ============================= end of allocation ====================================
 
