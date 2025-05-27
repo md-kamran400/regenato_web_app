@@ -480,15 +480,18 @@ export const SubAssemblyHrPlan = ({
 
   useEffect(() => {
     const initialRows = manufacturingVariables.reduce((acc, man, index) => {
+      const processInfo = getProcessSpecialDayInfo(man.name, man.categoryId);
       acc[index] = [
         {
           plannedQuantity: isAutoSchedule ? quantity : "",
           plannedQtyTime: isAutoSchedule
-            ? calculatePlannedMinutes(
-                quantity * man.hours,
-                man.name,
-                man.categoryId
-              )
+            ? processInfo?.isSpecialday
+              ? processInfo.SpecialDayTotalMinutes
+              : calculatePlannedMinutes(
+                  quantity * man.hours,
+                  man.name,
+                  man.categoryId
+                )
             : "",
           startDate: "",
           startTime: "",
@@ -499,13 +502,6 @@ export const SubAssemblyHrPlan = ({
           processName: man.name,
         },
       ];
-
-      if (!isAutoSchedule) {
-        setRemainingQuantities((prev) => ({
-          ...prev,
-          [index]: quantity,
-        }));
-      }
       return acc;
     }, {});
     setRows(initialRows);
@@ -518,16 +514,21 @@ export const SubAssemblyHrPlan = ({
       const newQuantity =
         value === "" ? "" : Math.max(0, Math.min(quantity, Number(value)));
 
+      const processInfo = getProcessSpecialDayInfo(
+        manufacturingVariables[index].name,
+        manufacturingVariables[index].categoryId
+      );
+
       processRows[rowIndex] = {
         ...processRows[rowIndex],
         plannedQuantity: newQuantity,
-        plannedQtyTime: newQuantity
-          ? calculatePlannedMinutes(
+        plannedQtyTime: processInfo?.isSpecialday
+          ? processInfo.SpecialDayTotalMinutes
+          : calculatePlannedMinutes(
               newQuantity * manufacturingVariables[index].hours,
               manufacturingVariables[index].name,
               manufacturingVariables[index].categoryId
-            )
-          : "",
+            ),
       };
 
       updatedRows[index] = processRows;
@@ -657,8 +658,10 @@ export const SubAssemblyHrPlan = ({
     const processInfo = getProcessSpecialDayInfo(processName, categoryId);
 
     if (processInfo?.isSpecialday) {
+      // For special day processes, return SpecialDayTotalMinutes directly without any multiplication
       return processInfo.SpecialDayTotalMinutes;
     }
+    // For regular processes, multiply hours by 60 to convert to minutes
     return Math.round(hours * 60);
   };
 
@@ -756,10 +759,15 @@ export const SubAssemblyHrPlan = ({
         let currentDate = new Date(nextWorkingDay);
         let previousEndTime = null;
         let previousEndDate = null;
+        let usedOperators = new Set(); // Track used operators
 
         manufacturingVariables.forEach((man, processIndex) => {
           const shift = shiftOptions.length > 0 ? shiftOptions[0] : null;
           const machineList = machineOptions[man.categoryId] || [];
+          const processInfo = getProcessSpecialDayInfo(
+            man.name,
+            man.categoryId
+          );
 
           newRows[processIndex] = newRows[processIndex].map((row) => {
             let firstAvailableMachine = null;
@@ -842,14 +850,27 @@ export const SubAssemblyHrPlan = ({
                 startDate = getNextWorkingDay(startDate);
               }
 
-              endDate = calculateEndDateWithDowntime(
-                startDate,
-                row.plannedQtyTime,
-                shift,
-                firstAvailableMachine,
-                index,
-                rowIndex
-              );
+              // Handle special day process
+              if (processInfo?.isSpecialday) {
+                // Convert minutes to days (1440 minutes = 1 day)
+                const daysNeeded = Math.ceil(row.plannedQtyTime / 1440);
+                endDate = new Date(startDate);
+                // For 1440 minutes, end date should be next day
+                if (row.plannedQtyTime === 1440) {
+                  endDate.setDate(endDate.getDate() + 1);
+                } else {
+                  endDate.setDate(endDate.getDate() + daysNeeded - 1);
+                }
+              } else {
+                endDate = calculateEndDateWithDowntime(
+                  startDate,
+                  row.plannedQtyTime,
+                  shift,
+                  firstAvailableMachine,
+                  index,
+                  rowIndex
+                );
+              }
             } else {
               const { startDate: calcStart, endDate: calcEnd } =
                 calculateStartAndEndDates(
@@ -882,6 +903,7 @@ export const SubAssemblyHrPlan = ({
               }
             }
 
+            // Find available operators that haven't been used yet
             const availableOperators = operators.filter((operator) => {
               const isOnLeave = isOperatorOnLeave(operator, startDate, endDate);
               const { available } = isOperatorAvailable(
@@ -889,9 +911,16 @@ export const SubAssemblyHrPlan = ({
                 startDate,
                 endDate
               );
-              return !isOnLeave && available;
+              return (
+                !isOnLeave && available && !usedOperators.has(operator._id)
+              );
             });
-            const firstOperator = availableOperators[0];
+
+            // Select the first available operator
+            const selectedOperator = availableOperators[0];
+            if (selectedOperator) {
+              usedOperators.add(selectedOperator._id);
+            }
 
             // Calculate end time based on start time and planned minutes
             const endTime = calculateEndTime(
@@ -903,8 +932,6 @@ export const SubAssemblyHrPlan = ({
             previousEndDate = endDate;
 
             currentDate = new Date(endDate);
-            currentDate.setDate(currentDate.getDate() + 1);
-            currentDate = getNextWorkingDay(currentDate);
 
             return {
               ...row,
@@ -916,7 +943,7 @@ export const SubAssemblyHrPlan = ({
               machineId: firstAvailableMachine
                 ? firstAvailableMachine.subcategoryId
                 : "",
-              operatorId: firstOperator ? firstOperator._id : "",
+              operatorId: selectedOperator ? selectedOperator._id : "",
             };
           });
         });
@@ -952,11 +979,20 @@ export const SubAssemblyHrPlan = ({
           }
         }
 
-        newRows[index][rowIndex] = {
-          ...currentRow,
-          startDate: formatDateUTC(startDate),
-          startTime: startTime,
-          endDate: calculateEndDateWithDowntime(
+        // Handle special day process
+        const processInfo = getProcessSpecialDayInfo(
+          manufacturingVariables[index].name,
+          manufacturingVariables[index].categoryId
+        );
+
+        let endDate;
+        if (processInfo?.isSpecialday) {
+          // Convert minutes to days (1440 minutes = 1 day)
+          const daysNeeded = Math.ceil(currentRow.plannedQtyTime / 1440);
+          endDate = new Date(startDate);
+          endDate.setDate(endDate.getDate() + daysNeeded - 1);
+        } else {
+          endDate = calculateEndDateWithDowntime(
             startDate,
             currentRow.plannedQtyTime,
             shift,
@@ -965,7 +1001,14 @@ export const SubAssemblyHrPlan = ({
             ),
             index,
             rowIndex
-          ),
+          );
+        }
+
+        newRows[index][rowIndex] = {
+          ...currentRow,
+          startDate: formatDateUTC(startDate),
+          startTime: startTime,
+          endDate: formatDateUTC(endDate),
         };
 
         const currentMachine = machineOptions[
@@ -1032,22 +1075,46 @@ export const SubAssemblyHrPlan = ({
     const parsedDate = new Date(startDate);
     if (isNaN(parsedDate.getTime())) return "";
 
-    const workingMinutesPerDay = shift?.workingMinutes || 510;
-    let remainingMinutes = plannedMinutes;
-    let currentDate = new Date(parsedDate);
-    let totalDowntimeAdded = 0;
-
-    // Get process info for special day check
     const processInfo = manufacturingVariables[processIndex];
     const specialDayInfo = getProcessSpecialDayInfo(
       processInfo.name,
       processInfo.categoryId
     );
 
-    // If it's a special day process, use the special day minutes
+    let currentDate = new Date(parsedDate);
+    let endDate = new Date(currentDate);
+
+    // Special handling for special day processes
     if (specialDayInfo?.isSpecialday) {
-      remainingMinutes = specialDayInfo.SpecialDayTotalMinutes;
+      // For special day processes, we use a fixed 8-hour working day
+      const workingMinutesPerDay = 480; // 8 hours
+
+      // If it's exactly 1440 minutes (1 day), keep it on the same day
+      if (plannedMinutes === 1440) {
+        return formatDateUTC(endDate);
+      }
+
+      // For other durations, calculate based on 8-hour working day
+      const daysNeeded = Math.ceil(plannedMinutes / workingMinutesPerDay);
+
+      // Add the required number of days (minus 1 since we start counting from current day)
+      endDate.setDate(endDate.getDate() + daysNeeded - 1);
+
+      // Skip weekends and event dates
+      while (
+        getDay(endDate) === 0 ||
+        eventDates.some((d) => isSameDay(d, endDate))
+      ) {
+        endDate.setDate(endDate.getDate() + 1);
+      }
+
+      return formatDateUTC(endDate);
     }
+
+    // Regular process logic
+    const workingMinutesPerDay = shift?.workingMinutes || 510;
+    let remainingMinutes = plannedMinutes;
+    let totalDowntimeAdded = 0;
 
     if (machine) {
       const downtimeInfo = isMachineOnDowntimeDuringPeriod(
@@ -1055,7 +1122,6 @@ export const SubAssemblyHrPlan = ({
         currentDate,
         null
       );
-
       if (downtimeInfo.isDowntime && downtimeInfo.downtimeEnd) {
         currentDate = new Date(downtimeInfo.downtimeEnd);
         currentDate.setDate(currentDate.getDate() + 1);
@@ -1063,20 +1129,24 @@ export const SubAssemblyHrPlan = ({
       }
     }
 
-    while (remainingMinutes > 0) {
+    const workingDaysNeeded = Math.ceil(
+      remainingMinutes / workingMinutesPerDay
+    );
+    let daysAdded = 0;
+    endDate = new Date(currentDate);
+
+    while (daysAdded < workingDaysNeeded) {
       while (
-        getDay(currentDate) === 0 ||
-        eventDates.some((d) => isSameDay(d, currentDate))
+        getDay(endDate) === 0 ||
+        eventDates.some((d) => isSameDay(d, endDate))
       ) {
-        currentDate.setDate(currentDate.getDate() + 1);
+        endDate.setDate(endDate.getDate() + 1);
       }
 
-      let dailyDowntimeMinutes = 0;
       if (machine) {
-        const dayStart = new Date(currentDate);
-        const dayEnd = new Date(currentDate);
+        const dayStart = new Date(endDate);
+        const dayEnd = new Date(endDate);
         dayEnd.setHours(23, 59, 59, 999);
-
         const downtimeInfo = isMachineOnDowntimeDuringPeriod(
           machine,
           dayStart,
@@ -1084,22 +1154,37 @@ export const SubAssemblyHrPlan = ({
         );
 
         if (downtimeInfo.isDowntime) {
-          dailyDowntimeMinutes = downtimeInfo.downtimeMinutes;
-          totalDowntimeAdded += dailyDowntimeMinutes;
+          totalDowntimeAdded += downtimeInfo.downtimeMinutes;
+          endDate.setDate(endDate.getDate() + 1);
+          continue;
         }
       }
 
-      const availableMinutes = workingMinutesPerDay - dailyDowntimeMinutes;
-      const minutesToDeduct = Math.min(remainingMinutes, availableMinutes);
-
-      remainingMinutes -= minutesToDeduct;
-
-      if (remainingMinutes > 0) {
-        currentDate.setDate(currentDate.getDate() + 1);
+      daysAdded++;
+      if (daysAdded < workingDaysNeeded) {
+        endDate.setDate(endDate.getDate() + 1);
       }
     }
 
-    return formatDateUTC(currentDate);
+    while (
+      getDay(endDate) === 0 ||
+      eventDates.some((d) => isSameDay(d, endDate))
+    ) {
+      endDate.setDate(endDate.getDate() + 1);
+    }
+
+    if (totalDowntimeAdded > 0) {
+      setRows((prevRows) => {
+        const updatedRows = [...prevRows[processIndex]];
+        updatedRows[rowIndex] = {
+          ...updatedRows[rowIndex],
+          totalDowntimeAdded,
+        };
+        return { ...prevRows, [processIndex]: updatedRows };
+      });
+    }
+
+    return formatDateUTC(endDate);
   };
 
   const addRow = (index) => {
@@ -1110,6 +1195,11 @@ export const SubAssemblyHrPlan = ({
       toast.warning("No remaining quantity available for this process");
       return;
     }
+
+    const processInfo = getProcessSpecialDayInfo(
+      manufacturingVariables[index].name,
+      manufacturingVariables[index].categoryId
+    );
 
     setRows((prevRows) => ({
       ...prevRows,
@@ -1123,7 +1213,9 @@ export const SubAssemblyHrPlan = ({
           machineId: "",
           shift: "",
           plannedQtyTime: calculatePlannedMinutes(
-            currentRemaining * manufacturingVariables[index].hours,
+            processInfo?.isSpecialday
+              ? 0
+              : currentRemaining * manufacturingVariables[index].hours,
             manufacturingVariables[index].name,
             manufacturingVariables[index].categoryId
           ),
@@ -1336,6 +1428,59 @@ export const SubAssemblyHrPlan = ({
     const shiftStart = new Date();
     shiftStart.setHours(startHour, startMin, 0, 0);
 
+    // Get process info to check if it's a special day
+    const processInfo = manufacturingVariables.find(
+      (mv) => mv.name === shift.processName
+    );
+    const specialDayInfo = getProcessSpecialDayInfo(
+      processInfo?.name,
+      processInfo?.categoryId
+    );
+
+    // Special handling for special day processes
+    if (specialDayInfo?.isSpecialday) {
+      const endTime = new Date(shiftStart);
+
+      // For special day processes, we use a fixed 8-hour working day
+      const workingMinutesPerDay = 480; // 8 hours
+
+      // If it's exactly 1440 minutes (1 day), set end time to next day's start time
+      if (plannedMinutes === 1440) {
+        // Set end time to the same time as start time (for next day)
+        return startTime;
+      }
+
+      // For other durations, calculate based on 8-hour working day
+      const daysNeeded = Math.ceil(plannedMinutes / workingMinutesPerDay);
+
+      // For single day allocations
+      if (daysNeeded === 1) {
+        endTime.setMinutes(endTime.getMinutes() + plannedMinutes);
+        // Cap at 5:30 PM
+        if (
+          endTime.getHours() > 17 ||
+          (endTime.getHours() === 17 && endTime.getMinutes() > 30)
+        ) {
+          endTime.setHours(17, 30, 0, 0);
+        }
+        return formatTime(endTime);
+      }
+
+      // For multiple days, calculate the end time on the last day
+      const remainingMinutes =
+        plannedMinutes % workingMinutesPerDay || workingMinutesPerDay;
+      endTime.setMinutes(endTime.getMinutes() + remainingMinutes);
+      // Cap at 5:30 PM
+      if (
+        endTime.getHours() > 17 ||
+        (endTime.getHours() === 17 && endTime.getMinutes() > 30)
+      ) {
+        endTime.setHours(17, 30, 0, 0);
+      }
+      return formatTime(endTime);
+    }
+
+    // Regular process logic
     const shiftEnd = new Date(shiftStart);
     const [shiftEndHour, shiftEndMin] = shift.endTime.split(":").map(Number);
     shiftEnd.setHours(shiftEndHour, shiftEndMin, 0, 0);
@@ -1355,53 +1500,41 @@ export const SubAssemblyHrPlan = ({
 
     let current = new Date(shiftStart);
     let minutesLeft = plannedMinutes;
-    let currentDay = new Date(current);
-    let endTime = "";
-    let endDate = new Date(current);
 
-    const calculateWorkMinutes = (start, end) => {
-      if (start >= end) return 0;
-      return Math.floor((end - start) / (1000 * 60));
-    };
+    const calculateWorkMinutes = (start, end) =>
+      start >= end ? 0 : Math.floor((end - start) / (1000 * 60));
 
-    // Handle break time if exists
     if (breakStart > current && breakEnd > current) {
-      const beforeBreakMinutes = calculateWorkMinutes(current, breakStart);
-      if (minutesLeft <= beforeBreakMinutes) {
-        current = new Date(current.getTime() + minutesLeft * 60 * 1000);
-        minutesLeft = 0;
-        endTime = formatTime(current);
-        return endTime;
+      const beforeBreak = calculateWorkMinutes(current, breakStart);
+      if (minutesLeft <= beforeBreak) {
+        current.setMinutes(current.getMinutes() + minutesLeft);
+        return formatTime(current);
       } else {
-        minutesLeft -= beforeBreakMinutes;
+        minutesLeft -= beforeBreak;
         current = new Date(breakEnd);
       }
     }
 
-    // Calculate remaining time in current shift
-    const remainingShiftMinutes = calculateWorkMinutes(current, shiftEnd);
-    if (minutesLeft <= remainingShiftMinutes) {
-      current = new Date(current.getTime() + minutesLeft * 60 * 1000);
-      minutesLeft = 0;
-      endTime = formatTime(current);
-      return endTime;
-    } else {
-      minutesLeft -= remainingShiftMinutes;
+    const remainingShift = calculateWorkMinutes(current, shiftEnd);
+    if (minutesLeft <= remainingShift) {
+      current.setMinutes(current.getMinutes() + minutesLeft);
+      return formatTime(current);
     }
 
-    // If we still have minutes left, move to next day
-    currentDay.setDate(currentDay.getDate() + 1);
-    currentDay = getNextWorkingDay(currentDay);
-    current = new Date(currentDay);
-    current.setHours(
+    minutesLeft -= remainingShift;
+
+    // Advance to next working day recursively
+    const nextDay = getNextWorkingDay(
+      new Date(current.setDate(current.getDate() + 1))
+    );
+    nextDay.setHours(
       parseInt(shift.startTime.split(":")[0]),
       parseInt(shift.startTime.split(":")[1]),
       0,
       0
     );
 
-    // Recursively calculate end time for remaining minutes
-    return calculateEndTime(formatTime(current), minutesLeft, shift);
+    return calculateEndTime(formatTime(nextDay), minutesLeft, shift);
   };
 
   const formatTime = (date) =>
@@ -1645,6 +1778,7 @@ export const SubAssemblyHrPlan = ({
             partListItemId={partListItemId}
             onDeleteSuccess={handleDeleteSuccess}
             onUpdateAllocaitonStatus={onUpdateAllocaitonStatus}
+            partManufacturingVariables={partManufacturingVariables}
           />
         )}
         {activeTab === "actual" && !isDataAllocated && (
