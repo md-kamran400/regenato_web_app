@@ -53,6 +53,7 @@ export const AllocatedPartListHrPlan = ({
   const [isUpdating, setIsUpdating] = useState(false);
   const [isDateBlocked, setIsDateBlocked] = useState(false);
   const [highlightDates, setHighlightDates] = useState([]);
+  const [allocationCompleted, setAllocationCompleted] = useState(false);
 
   const [disableDates, setDisableDates] = useState([]);
 
@@ -502,22 +503,15 @@ export const AllocatedPartListHrPlan = ({
       const response = await axios.put(
         `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/items/${partListItemId}/complete-allocatoin`,
         {
-          forceStatus: true, // Add this flag to ensure status is set
+          forceStatus: true,
         }
       );
 
       if (response.status === 200) {
         toast.success("Allocation marked as completed!");
-        // onUpdateAllocaitonStatus(response.data)
-        // Verify the status in the response
-        if (response.data.data.status === "Completed") {
-          if (onUpdateAllocaitonStatus) {
-            onUpdateAllocaitonStatus();
-          }
-        } else {
-          toast.warning(
-            "Status wasn't updated as expected. Please refresh the page."
-          );
+        setAllocationCompleted(true);
+        if (onUpdateAllocaitonStatus) {
+          onUpdateAllocaitonStatus();
         }
       }
     } catch (error) {
@@ -542,6 +536,15 @@ export const AllocatedPartListHrPlan = ({
         return totalProduced >= row.plannedQty;
       });
     });
+  };
+
+  // Add new function to check remaining quantity for a specific process
+  const hasRemainingQuantity = (section, row) => {
+    const totalProduced = existingDailyTracking.reduce(
+      (sum, task) => sum + task.produced,
+      0
+    );
+    return totalProduced < row.plannedQty;
   };
 
   // Add this function to handle completing the allocation
@@ -701,6 +704,7 @@ export const AllocatedPartListHrPlan = ({
                               <Button
                                 color="primary"
                                 onClick={() => openModal(section, row)}
+                                disabled={!hasRemainingQuantity(section, row)}
                               >
                                 Update Input
                               </Button>
@@ -722,7 +726,7 @@ export const AllocatedPartListHrPlan = ({
                 <Button
                   color="success"
                   onClick={() => setCompleteConfirmationModal(true)}
-                  disabled={sections.length === 0 || !isAllocationCompleted()}
+                  disabled={sections.length === 0 || !isAllocationCompleted() || allocationCompleted}
                   style={{ marginRight: "10px" }}
                 >
                   Complete Allocation

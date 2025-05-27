@@ -21,9 +21,13 @@ const partSchema = new mongoose.Schema({
     {
       categoryId: String,
       name: String,
+      SubMachineName: String,
       hours: Number,
+      times: String,
       hourlyRate: Number,
       totalRate: Number,
+      isSpecialday: { type: Boolean, default: false }, // New field
+      SpecialDayTotalMinutes: { type: Number, default: 0 } // New field
     },
   ],
   shipmentVariables: [
