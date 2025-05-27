@@ -1274,4 +1274,88 @@ subAssemblyproject.put('/projects/:projectId/subAssemblyListFirst/:listId/items/
     res.status(500).json({ message: 'Error completing allocation', error: error.message });
   }
 });
+
+// Route to complete a specific process
+subAssemblyproject.put(
+  '/projects/:projectId/subAssemblyListFirst/:listId/items/:itemId/complete-process',
+  async (req, res) => {
+    try {
+      const { projectId, listId, itemId } = req.params;
+      const { processId, trackingId } = req.body;
+ 
+      // Validate required parameters
+      if (!processId || !trackingId) {
+        return res.status(400).json({
+          message: 'processId and trackingId are required in request body'
+        });
+      }
+ 
+      // Find the project
+      const project = await PartListProjectModel.findById(projectId);
+      if (!project) {
+        return res.status(404).json({ message: 'Project not found' });
+      }
+ 
+      // Find the parts list
+      const partsList = project.subAssemblyListFirst.id(listId);
+      if (!partsList) {
+        return res.status(404).json({ message: 'Parts list not found' });
+      }
+ 
+      // Find the part item
+      const partItem = partsList.partsListItems.id(itemId);
+      if (!partItem) {
+        return res.status(404).json({ message: 'Part list item not found' });
+      }
+ 
+      // Find the process
+      const process = partItem.allocations.id(processId);
+      if (!process) {
+        return res.status(404).json({ message: 'Process not found' });
+      }
+ 
+      // Find the specific allocation/tracking
+      const allocation = process.allocations.id(trackingId);
+      if (!allocation) {
+        return res.status(404).json({ message: 'Allocation not found' });
+      }
+ 
+      // Mark the process as completed
+      allocation.isProcessCompleted = true;
+      allocation.actualEndDate = new Date();
+ 
+      // Update all daily tracking entries to "Completed" status
+      if (allocation.dailyTracking && allocation.dailyTracking.length > 0) {
+        allocation.dailyTracking.forEach(track => {
+          track.dailyStatus = "Completed";
+        });
+      }
+ 
+      // Calculate and update the part item status
+      const status = partItem.calculateStatus();
+      partItem.status = status.text;
+      partItem.statusClass = status.class;
+ 
+      // Save the changes
+      await project.save();
+ 
+      res.status(200).json({
+        message: 'Process completed successfully',
+        data: {
+          processId: process._id,
+          trackingId: allocation._id,
+          isProcessCompleted: allocation.isProcessCompleted,
+          actualEndDate: allocation.actualEndDate,
+          partStatus: partItem.status
+        }
+      });
+    } catch (error) {
+      console.error('Error completing process:', error);
+      res.status(500).json({
+        message: 'Error completing process',
+        error: error.message
+      });
+    }
+  }
+);
 module.exports = subAssemblyproject;
