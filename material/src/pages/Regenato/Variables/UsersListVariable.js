@@ -276,36 +276,34 @@ const UsersListVariable = () => {
                                 )}
                               </span>
                             </td>
-                            {/* <td>
-                              {item.leavePeriod &&
-                              item.leavePeriod.length > 0 ? (
-                                <span
-                                  style={{ fontWeight: "bold", color: "red" }}
-                                >
-                                  On Leave
-                                </span>
-                              ) : (
-                                <span
-                                  style={{ fontWeight: "bold", color: "green" }}
-                                >
-                                  Active
-                                </span>
-                              )}
-                            </td> */}
                             <td>
-                              {item.status === "On Leave" ? (
-                                <span
-                                  style={{ fontWeight: "bold", color: "red" }}
-                                >
-                                  On Leave
-                                </span>
-                              ) : (
-                                <span
-                                  style={{ fontWeight: "bold", color: "green" }}
-                                >
-                                  Active
-                                </span>
-                              )}
+                              {(() => {
+                                const today = new Date();
+                                today.setHours(0, 0, 0, 0);
+                                
+                                const isOnLeaveToday = item.leavePeriod?.some(leave => {
+                                  const leaveStart = new Date(leave.startDate);
+                                  const leaveEnd = new Date(leave.endDate);
+                                  leaveStart.setHours(0, 0, 0, 0);
+                                  leaveEnd.setHours(0, 0, 0, 0);
+                                  
+                                  return today >= leaveStart && today <= leaveEnd;
+                                });
+
+                                if (isOnLeaveToday) {
+                                  return (
+                                    <span style={{ fontWeight: "bold", color: "red" }}>
+                                      On Leave
+                                    </span>
+                                  );
+                                } else {
+                                  return (
+                                    <span style={{ fontWeight: "bold", color: "green" }}>
+                                      Active
+                                    </span>
+                                  );
+                                }
+                              })()}
                             </td>
 
                             <td>

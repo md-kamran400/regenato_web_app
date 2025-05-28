@@ -53,7 +53,6 @@ export const AllocatedPartListHrPlan = ({
   const [isUpdating, setIsUpdating] = useState(false);
   const [isDateBlocked, setIsDateBlocked] = useState(false);
   const [highlightDates, setHighlightDates] = useState([]);
-  const [allocationCompleted, setAllocationCompleted] = useState(false);
 
   const [disableDates, setDisableDates] = useState([]);
 
@@ -503,15 +502,22 @@ export const AllocatedPartListHrPlan = ({
       const response = await axios.put(
         `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/items/${partListItemId}/complete-allocatoin`,
         {
-          forceStatus: true,
+          forceStatus: true, // Add this flag to ensure status is set
         }
       );
 
       if (response.status === 200) {
         toast.success("Allocation marked as completed!");
-        setAllocationCompleted(true);
-        if (onUpdateAllocaitonStatus) {
-          onUpdateAllocaitonStatus();
+        // onUpdateAllocaitonStatus(response.data)
+        // Verify the status in the response
+        if (response.data.data.status === "Completed") {
+          if (onUpdateAllocaitonStatus) {
+            onUpdateAllocaitonStatus();
+          }
+        } else {
+          toast.warning(
+            "Status wasn't updated as expected. Please refresh the page."
+          );
         }
       }
     } catch (error) {
@@ -726,7 +732,7 @@ export const AllocatedPartListHrPlan = ({
                 <Button
                   color="success"
                   onClick={() => setCompleteConfirmationModal(true)}
-                  disabled={sections.length === 0 || !isAllocationCompleted() || allocationCompleted}
+                  disabled={sections.length === 0 || !isAllocationCompleted()}
                   style={{ marginRight: "10px" }}
                 >
                   Complete Allocation

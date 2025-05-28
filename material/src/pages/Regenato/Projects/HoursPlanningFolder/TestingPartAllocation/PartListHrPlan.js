@@ -388,11 +388,31 @@ export const PartListHrPlan = ({
     const parsedStart = new Date(startDate);
     const parsedEnd = new Date(endDate);
 
+    // Set hours to start of day for proper date comparison
+    parsedStart.setHours(0, 0, 0, 0);
+    parsedEnd.setHours(0, 0, 0, 0);
+
+    // Find the operator
+    const operator = operators.find(op => op._id === operatorId);
+    if (!operator) {
+      return {
+        available: true,
+        status: "Available",
+        allocation: null,
+      };
+    }
+
+    // Check if operator is on leave
+    if (isOperatorOnLeave(operator, parsedStart, parsedEnd)) {
+      return {
+        available: false,
+        status: "On Leave",
+        allocation: null,
+      };
+    }
+
     // Check if operator has any allocations
-    if (
-      !operatorAllocations[operatorId] ||
-      operatorAllocations[operatorId].length === 0
-    ) {
+    if (!operatorAllocations[operatorId] || operatorAllocations[operatorId].length === 0) {
       return {
         available: true,
         status: "Available",
@@ -401,18 +421,20 @@ export const PartListHrPlan = ({
     }
 
     // Find conflicting allocation
-    const conflictingAllocation = operatorAllocations[operatorId].find(
-      (alloc) => {
-        const allocStart = new Date(alloc.startDate);
-        const allocEnd = new Date(alloc.endDate);
+    const conflictingAllocation = operatorAllocations[operatorId].find((alloc) => {
+      const allocStart = new Date(alloc.startDate);
+      const allocEnd = new Date(alloc.endDate);
+      
+      // Set hours to start of day for proper date comparison
+      allocStart.setHours(0, 0, 0, 0);
+      allocEnd.setHours(0, 0, 0, 0);
 
-        return (
-          (parsedStart >= allocStart && parsedStart <= allocEnd) ||
-          (parsedEnd >= allocStart && parsedEnd <= allocEnd) ||
-          (parsedStart <= allocStart && parsedEnd >= allocEnd)
-        );
-      }
-    );
+      return (
+        (parsedStart >= allocStart && parsedStart <= allocEnd) ||
+        (parsedEnd >= allocStart && parsedEnd <= allocEnd) ||
+        (parsedStart <= allocStart && parsedEnd >= allocEnd)
+      );
+    });
 
     return {
       available: !conflictingAllocation,
@@ -422,17 +444,26 @@ export const PartListHrPlan = ({
   };
 
   const isOperatorOnLeave = (operator, startDate, endDate) => {
-    if (!operator.leavePeriod || operator.leavePeriod.length === 0)
+    if (!operator?.leavePeriod || operator.leavePeriod.length === 0) {
       return false;
+    }
 
     const parsedStart = startDate ? new Date(startDate) : null;
     const parsedEnd = endDate ? new Date(endDate) : null;
 
     if (!parsedStart || !parsedEnd) return false;
 
+    // Set hours to start of day for proper date comparison
+    parsedStart.setHours(0, 0, 0, 0);
+    parsedEnd.setHours(0, 0, 0, 0);
+
     return operator.leavePeriod.some((leave) => {
       const leaveStart = new Date(leave.startDate);
       const leaveEnd = new Date(leave.endDate);
+      
+      // Set hours to start of day for proper date comparison
+      leaveStart.setHours(0, 0, 0, 0);
+      leaveEnd.setHours(0, 0, 0, 0);
 
       return (
         (parsedStart >= leaveStart && parsedStart <= leaveEnd) ||
@@ -1042,7 +1073,7 @@ export const PartListHrPlan = ({
 
   const getNextWorkingDay = (date) => {
     let nextDay = new Date(date);
-    while (isHighlightedOrDisabled(nextDay)) {
+    while (getDay(nextDay) === 0 || eventDates.some((d) => isSameDay(d, nextDay))) {
       nextDay.setDate(nextDay.getDate() + 1);
     }
     return new Date(
@@ -1083,26 +1114,32 @@ export const PartListHrPlan = ({
   
     // Special handling for special day processes
     if (specialDayInfo?.isSpecialday) {
-      // For special day processes, we use a fixed 8-hour working day
-      const workingMinutesPerDay = 480; // 8 hours
+      // For special day processes, we treat each day as a full working day (1440 minutes)
+      const daysNeeded = Math.ceil(plannedMinutes / 1440);
       
-      // If it's exactly 1440 minutes (1 day), keep it on the same day
-      if (plannedMinutes === 1440) {
-        return formatDateUTC(endDate);
+      // Start with the next working day
+      let currentDay = getNextWorkingDay(new Date(currentDate));
+      let daysAdded = 0;
+      
+      // Add the required number of working days
+      while (daysAdded < daysNeeded) {
+        // Skip to next working day if current day is Sunday or event date
+        while (getDay(currentDay) === 0 || eventDates.some((d) => isSameDay(d, currentDay))) {
+          currentDay.setDate(currentDay.getDate() + 1);
+        }
+        
+        daysAdded++;
+        if (daysAdded < daysNeeded) {
+          currentDay.setDate(currentDay.getDate() + 1);
+        }
       }
       
-      // For other durations, calculate based on 8-hour working day
-      const daysNeeded = Math.ceil(plannedMinutes / workingMinutesPerDay);
-      
-      // Add the required number of days (minus 1 since we start counting from current day)
-      endDate.setDate(endDate.getDate() + daysNeeded - 1);
-      
-      // Skip weekends and event dates
-      while (getDay(endDate) === 0 || eventDates.some((d) => isSameDay(d, endDate))) {
-        endDate.setDate(endDate.getDate() + 1);
+      // Final check to ensure we're not ending on a Sunday or event date
+      while (getDay(currentDay) === 0 || eventDates.some((d) => isSameDay(d, currentDay))) {
+        currentDay.setDate(currentDay.getDate() + 1);
       }
       
-      return formatDateUTC(endDate);
+      return formatDateUTC(currentDay);
     }
   
     // Regular process logic
@@ -2289,15 +2326,24 @@ export const PartListHrPlan = ({
                                   ? new Date(status.downtimeEnd).toLocaleDateString()
                                   : null;
 
+                                // Get downtime info for the selected dates
+                                const downtimeInfo = isMachineOnDowntimeDuringPeriod(
+                                  option,
+                                  row.startDate || today,
+                                  row.endDate || tomorrow
+                                );
+
                                 return (
                                   <li
                                     {...props}
                                     style={{
                                       padding: "10px 16px",
-                                      backgroundColor: isDisabled
-                                        ? "#f8f9fa"
+                                      backgroundColor: status.isDowntime
+                                        ? "#fff0f0"
+                                        : status.isAllocated
+                                        ? "#fff9e6"
                                         : "white",
-                                      color: isDisabled ? "#6c757d" : "#212529",
+                                      color: isDisabled ? "#999" : "#212529",
                                       cursor: isDisabled
                                         ? "not-allowed"
                                         : "pointer",
@@ -2347,6 +2393,17 @@ export const PartListHrPlan = ({
                                       <div style={{ flexGrow: 1 }}>
                                         <div style={{ fontWeight: 500 }}>
                                           {option.name}
+                                          {status.isDowntime && (
+                                            <span
+                                              style={{
+                                                marginLeft: 8,
+                                                fontSize: "0.75rem",
+                                                color: "#dc3545",
+                                              }}
+                                            >
+                                              (Downtime)
+                                            </span>
+                                          )}
                                         </div>
                                         <div
                                           style={{
@@ -2357,20 +2414,23 @@ export const PartListHrPlan = ({
                                           {status.isDowntime ? (
                                             <>
                                               <div>
-                                                Downtime:{" "}
+                                                Downtime Duration:{" "}
                                                 {formatDowntime(
-                                                  status.downtimeMinutes
+                                                  downtimeInfo.downtimeMinutes
                                                 )}
                                               </div>
-                                              {status.downtimeReason && (
+                                              {downtimeInfo.downtimeReason && (
                                                 <div>
                                                   Reason:{" "}
-                                                  {status.downtimeReason}
+                                                  {downtimeInfo.downtimeReason}
                                                 </div>
                                               )}
                                               {downtimeEnd && (
                                                 <div>Until: {downtimeEnd}</div>
                                               )}
+                                              <div style={{ marginTop: "4px", color: "#dc3545" }}>
+                                                Note: Selecting this machine will extend the end date by {formatDowntime(downtimeInfo.downtimeMinutes)}
+                                              </div>
                                             </>
                                           ) : status.isAllocated ? (
                                             <>
@@ -2525,8 +2585,24 @@ export const PartListHrPlan = ({
                                     row.startDate,
                                     row.endDate
                                   );
-                                const isDisabled =
-                                  status === "Occupied" || isOnLeave;
+                                // Only disable if operator is occupied, not if on leave
+                                const isDisabled = status === "Occupied";
+
+                                // Find the relevant leave period that overlaps with the selected dates
+                                const relevantLeavePeriod = option.leavePeriod?.find(leave => {
+                                  const leaveStart = new Date(leave.startDate);
+                                  const leaveEnd = new Date(leave.endDate);
+                                  const selectedStart = row.startDate ? new Date(row.startDate) : null;
+                                  const selectedEnd = row.endDate ? new Date(row.endDate) : null;
+                                  
+                                  if (!selectedStart || !selectedEnd) return false;
+                                  
+                                  return (
+                                    (selectedStart >= leaveStart && selectedStart <= leaveEnd) ||
+                                    (selectedEnd >= leaveStart && selectedEnd <= leaveEnd) ||
+                                    (selectedStart <= leaveStart && selectedEnd >= leaveEnd)
+                                  );
+                                });
 
                                 return (
                                   <li
@@ -2605,28 +2681,17 @@ export const PartListHrPlan = ({
                                               : "Available"}
                                           </span>
                                         </div>
-                                        {isOnLeave &&
-                                          option.leavePeriod?.[0] && (
-                                            <div
-                                              style={{
-                                                fontSize: "0.75rem",
-                                                color: "#666",
-                                                marginTop: 4,
-                                              }}
-                                            >
-                                              {formatDate(
-                                                new Date(
-                                                  option.leavePeriod[0].startDate
-                                                )
-                                              )}{" "}
-                                              -{" "}
-                                              {formatDate(
-                                                new Date(
-                                                  option.leavePeriod[0].endDate
-                                                )
-                                              )}
-                                            </div>
-                                          )}
+                                        {isOnLeave && relevantLeavePeriod && (
+                                          <div
+                                            style={{
+                                              fontSize: "0.75rem",
+                                              color: "#666",
+                                              marginTop: 4,
+                                            }}
+                                          >
+                                            Leave Period: {formatDate(new Date(relevantLeavePeriod.startDate))} - {formatDate(new Date(relevantLeavePeriod.endDate))}
+                                          </div>
+                                        )}
                                         {status === "Occupied" &&
                                           allocation && (
                                             <div
@@ -2654,29 +2719,16 @@ export const PartListHrPlan = ({
                               onChange={(event, newValue) => {
                                 if (!hasStartDate || !newValue) return;
 
-                                const isOnLeave = isOperatorOnLeave(
-                                  newValue,
+                                const { status } = isOperatorAvailable(
+                                  newValue._id,
                                   row.startDate,
                                   row.endDate
                                 );
-                                const { available, status } =
-                                  isOperatorAvailable(
-                                    newValue._id,
-                                    row.startDate,
-                                    row.endDate
-                                  );
 
                                 if (status === "Occupied") {
                                   event.preventDefault();
                                   toast.error(
                                     `${newValue.name} is already occupied during the selected dates`
-                                  );
-                                  return;
-                                }
-
-                                if (isOnLeave) {
-                                  toast.error(
-                                    `${newValue.name} is on leave during the selected dates`
                                   );
                                   return;
                                 }
@@ -2692,6 +2744,18 @@ export const PartListHrPlan = ({
                                     `${newValue.name} is already assigned to another row in this process`
                                   );
                                   return;
+                                }
+
+                                // Show warning if operator is on leave
+                                const isOnLeave = isOperatorOnLeave(
+                                  newValue,
+                                  row.startDate,
+                                  row.endDate
+                                );
+                                if (isOnLeave) {
+                                  toast.warning(
+                                    `${newValue.name} is on leave during the selected dates. Please confirm if you want to proceed.`
+                                  );
                                 }
 
                                 setRows((prevRows) => ({
