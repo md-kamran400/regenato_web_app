@@ -165,6 +165,7 @@ const partSchema = new mongoose.Schema({
       totalRate: Number,
     },
   ],
+  image:{type:String},
   allocations: [AllocationPlanningSchema],
 });
 

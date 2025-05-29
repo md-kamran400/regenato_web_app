@@ -357,7 +357,8 @@ partproject.post(
           shipmentVariables: item.shipmentVariables || [],
           overheadsAndProfits: item.overheadsAndProfits || [],
           status: "Not Allocated", // default, will be overwritten
-          statusClass: "badge bg-info text-black", // default, will be overwritten
+          statusClass: "badge bg-info text-black", 
+          image: item.image || null
         };
 
         // Use Mongoose to get a subdocument instance for status calculation
