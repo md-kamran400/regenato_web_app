@@ -188,6 +188,10 @@ const PartsTable = React.memo(
           `${process.env.REACT_APP_BASE_URL}/api/parts`
         );
         const data = await response.json();
+        const partsWithImages = data.map((part) => ({
+          ...part,
+          image: part.image || null,
+        }));
         setParts(data);
       } catch (error) {
         console.error("Error fetching parts:", error);
@@ -332,6 +336,72 @@ const PartsTable = React.memo(
       PartsTableFetch();
     }, [PartsTableFetch]);
 
+    // const handleSubmit = async (event) => {
+    //   event.preventDefault();
+    //   setIsLoading(true);
+
+    //   if (selectedParts.length === 0) {
+    //     toast.error("Please select at least one part");
+    //     setIsLoading(false);
+    //     return;
+    //   }
+
+    //   try {
+    //     const payload = selectedParts.map((part) => ({
+    //       partsCodeId: part.id, // ✅ changed here
+    //       partName: part.partName,
+    //       codeName: part.codeName || "",
+    //       costPerUnit: Number(part.costPerUnit || 0),
+    //       timePerUnit: Number(part.timePerUnit || 0),
+    //       quantity: Number(quantity),
+    //       rmVariables: part.rmVariables || [],
+    //       manufacturingVariables: part.manufacturingVariables || [],
+    //       shipmentVariables: part.shipmentVariables || [],
+    //       overheadsAndProfits: part.overheadsAndProfits || [],
+    //       image: part.image || null,
+    //     }));
+
+    //     const response = await fetch(
+    //       `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${_id}/partsLists/${partsList._id}/items`,
+    //       {
+    //         method: "POST",
+    //         headers: { "Content-Type": "application/json" },
+    //         body: JSON.stringify(payload),
+    //       }
+    //     );
+
+    //     if (!response.ok) {
+    //       throw new Error("Failed to add parts");
+    //     }
+
+    //     const data = await response.json();
+
+    //     // Update local state with new parts
+    //     setPartsListsItems((prevItems) => [
+    //       ...prevItems,
+    //       ...data.data.partsListItems,
+    //     ]);
+    //     onUpdatePrts(data);
+
+    //     setModalAdd(false);
+    //     setIsLoading(false);
+    //     toast.success(`${selectedParts.length} new records added successfully`);
+
+    //     // Reset form
+    //     setSelectedParts([]);
+    //     setSelectedPartIds(new Set());
+    //     setQuantity(0);
+
+    //     // Update the partsListItemsUpdated state
+    //     setPartsListItemsUpdated(true);
+    //   } catch (error) {
+    //     console.error("Error:", error);
+    //     setError("Failed to add parts. Please try again.");
+    //     toast.error("Failed to add records. Please try again.");
+    //     setIsLoading(false);
+    //   }
+    // };
+
     const handleSubmit = async (event) => {
       event.preventDefault();
       setIsLoading(true);
@@ -344,7 +414,7 @@ const PartsTable = React.memo(
 
       try {
         const payload = selectedParts.map((part) => ({
-          partsCodeId: part.id, // ✅ changed here
+          partsCodeId: part.id,
           partName: part.partName,
           codeName: part.codeName || "",
           costPerUnit: Number(part.costPerUnit || 0),
@@ -354,6 +424,7 @@ const PartsTable = React.memo(
           manufacturingVariables: part.manufacturingVariables || [],
           shipmentVariables: part.shipmentVariables || [],
           overheadsAndProfits: part.overheadsAndProfits || [],
+          image: part.image || null, // Ensure image is included from the selected part
         }));
 
         const response = await fetch(
@@ -739,6 +810,34 @@ const PartsTable = React.memo(
                           return (
                             <React.Fragment key={item._id}>
                               <tr>
+                                {/* <td
+                                  onClick={() =>
+                                    handleRowClickParts(item._id, item.partName)
+                                  }
+                                  className={
+                                    expandedRowId === item._id ? "expanded" : ""
+                                  }
+                                  style={{
+                                    cursor: "pointer",
+                                    color: "#64B5F6",
+                                    position: "relative",
+                                  }}
+                                >
+                                  {item.partName} ({item.partsCodeId || ""})
+                                  {item.image && (
+                                    <div className="part-image-tooltip">
+                                      <img
+                                        src={`${process.env.REACT_APP_BASE_URL}${item.image}`}
+                                        alt={item.partName}
+                                        onError={(e) => {
+                                          e.target.src =
+                                            "/path/to/default/image.png";
+                                        }}
+                                      />
+                                    </div>
+                                  )}
+                                </td> */}
+
                                 <td
                                   onClick={() =>
                                     handleRowClickParts(item._id, item.partName)
@@ -749,10 +848,32 @@ const PartsTable = React.memo(
                                   style={{
                                     cursor: "pointer",
                                     color: "#64B5F6",
+                                    position: "relative",
                                   }}
                                 >
-                                  {item.partName} ({item.partsCodeId || ""})
-                                  {item.codeName || ""}
+                                  <div
+                                    className="part-name-with-image"
+                                    style={{
+                                      position: "relative",
+                                      display: "inline-block",
+                                    }}
+                                  >
+                                    {item.partName} ({item.partsCodeId || ""})
+                                    {item.codeName || ""}
+                                    {item.image && (
+                                      <div className="part-image-tooltip">
+                                        <img
+                                          src={`${process.env.REACT_APP_BASE_URL}${item.image}`}
+                                          alt={item.partName}
+                                          onError={(e) => {
+                                            e.target.src =
+                                              "/path/to/default/image.png"; // Fallback image
+                                            e.target.onerror = null; // Prevent infinite loop if fallback fails
+                                          }}
+                                        />
+                                      </div>
+                                    )}
+                                  </div>
                                 </td>
 
                                 {/* <td>
