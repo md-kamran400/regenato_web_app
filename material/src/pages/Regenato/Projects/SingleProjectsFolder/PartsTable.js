@@ -104,6 +104,7 @@ const PartsTable = React.memo(
     // console.log(updatePartsLists)
 
     const [open, setOpen] = useState(false);
+    const [imageCache, setImageCache] = useState({});
 
     const fetchPartsListItems = async () => {
       try {
@@ -134,6 +135,97 @@ const PartsTable = React.memo(
     useEffect(() => {
       fetchPartsListItems();
     }, [_id, partsList, partsListItemsUpdated]);
+
+    // Replace the fetchPartImage function with this improved version
+const fetchPartImage = useCallback(async (imagePath, itemId) => {
+  try {
+    if (!imagePath) return null;
+    
+    // Check cache first
+    if (imageCache[itemId]) {
+      return imageCache[itemId];
+    }
+
+    // Try the specific route first
+    const response = await fetch(
+      `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${_id}/partsLists/${partsList._id}/items/${itemId}/image`,
+      {
+        headers: {
+          'Cache-Control': 'no-cache', // Prevent caching issues
+        }
+      }
+    );
+
+    if (response.ok) {
+      const blob = await response.blob();
+      const imageUrl = URL.createObjectURL(blob);
+      
+      // Update cache
+      setImageCache(prev => ({
+        ...prev,
+        [itemId]: imageUrl
+      }));
+      
+      return imageUrl;
+    }
+
+    // If specific route fails, try direct path
+    const fallbackResponse = await fetch(
+      `${process.env.REACT_APP_BASE_URL}${imagePath}`,
+      {
+        headers: {
+          'Cache-Control': 'no-cache',
+        }
+      }
+    );
+
+    if (fallbackResponse.ok) {
+      const blob = await fallbackResponse.blob();
+      const imageUrl = URL.createObjectURL(blob);
+      
+      // Update cache
+      setImageCache(prev => ({
+        ...prev,
+        [itemId]: imageUrl
+      }));
+      
+      return imageUrl;
+    }
+
+    return null;
+  } catch (error) {
+    console.error("Error fetching image:", error);
+    return null;
+  }
+}, [_id, partsList._id, imageCache]);
+
+// Add this useEffect to fetch images when partsListItems changes
+useEffect(() => {
+  const fetchImages = async () => {
+    const newImageUrls = {};
+    for (const item of partsListItems) {
+      if (item.image) {
+        const url = await fetchPartImage(item.image, item._id);
+        if (url) {
+          newImageUrls[item._id] = url;
+        }
+      }
+    }
+    setImageCache(prev => ({ ...prev, ...newImageUrls }));
+  };
+
+  fetchImages();
+}, [partsListItems, fetchPartImage]);
+
+// Update the cleanup to revoke object URLs when component unmounts
+useEffect(() => {
+  return () => {
+    Object.values(imageCache).forEach(url => {
+      if (url) URL.revokeObjectURL(url);
+    });
+  };
+}, [imageCache]);
+
 
     useEffect(() => {
       setPartsListItemsUpdated(false);
@@ -839,48 +931,41 @@ const PartsTable = React.memo(
                                 </td> */}
 
                                 <td
-                                  onClick={() =>
-                                    handleRowClickParts(item._id, item.partName)
-                                  }
-                                  className={
-                                    expandedRowId === item._id ? "expanded" : ""
-                                  }
+                                  onClick={() => handleRowClickParts(item._id, item.partName)}
+                                  className={expandedRowId === item._id ? "expanded" : ""}
                                   style={{
                                     cursor: "pointer",
                                     color: "#64B5F6",
                                     position: "relative",
                                   }}
                                 >
-                                  <div
-                                    className="part-name-with-image"
-                                    style={{
-                                      position: "relative",
-                                      display: "inline-block",
-                                    }}
-                                  >
-                                    {item.partName} ({item.partsCodeId || ""})
-                                    {item.codeName || ""}
-                                    {item.image && (
-                                      <div className="part-image-tooltip">
-                                        <img
-                                          src={`${process.env.REACT_APP_BASE_URL}${item.image}`}
-                                          alt={item.partName}
-                                          onError={(e) => {
-                                            e.target.src =
-                                              "/path/to/default/image.png"; // Fallback image
-                                            e.target.onerror = null; // Prevent infinite loop if fallback fails
-                                          }}
-                                        />
-                                      </div>
-                                    )}
-                                  </div>
-                                </td>
-
-                                {/* <td>
-                                  <span className={`badge ${item.statusClass || 'bg-info text-white'}`}>
-                                    {item.status || 'Not Allocated'}
-                                  </span>
-                                </td> */}
+  <div
+    className="part-name-with-image"
+    style={{
+      position: "relative",
+      display: "inline-block",
+    }}
+  >
+    {item.partName} ({item.partsCodeId || ""})
+    {item.image && (
+      <div className="part-image-tooltip">
+        <img
+          src={imageCache[item._id] || `${process.env.REACT_APP_BASE_URL}${item.image}`}
+          alt={item.partName}
+          onError={(e) => {
+            e.target.src = "/path/to/default/image.png";
+            e.target.onerror = null; // Prevent infinite loop if default image fails
+          }}
+          style={{
+            maxWidth: '100px',
+            maxHeight: '100px',
+            display: 'block'
+          }}
+        />
+      </div>
+    )}
+  </div>
+</td>
                                 <td>
                                   {(() => {
                                     const status = getStatusDisplay(item);
