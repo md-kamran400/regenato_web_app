@@ -6,7 +6,17 @@ const PartListProjectModel = require("../model/project/PartListProjectModel");
 const ManufacturingModel = require("../model/manufacturingmodel");
 const axios = require("axios");
 const InchargeVariableModal = require("../model/inchargeVariable");
+const path = require('path');
+const fs = require('fs');
 const baseUrl = process.env.BASE_URL || "http://0.0.0.0:4040";
+
+// Define the directory for storing images
+const imageUploadDir = path.join(__dirname, "../Images");
+
+// Ensure the directory exists
+if (!fs.existsSync(imageUploadDir)) {
+  fs.mkdirSync(imageUploadDir, { recursive: true });
+}
 // ============================================PROJECT CODE START ===============================
 // Create a new project with a parts list named after the project
 partproject.post("/projects", async (req, res) => {
@@ -410,20 +420,38 @@ partproject.get("/projects/:projectId/partsLists/:listId/items/:itemId/image", a
       return res.status(404).json({ message: "Image not found" });
     }
 
-    // Ensure the path is correct and file exists
-    const imagePath = path.join(__dirname, "../../", item.image);
+    // Remove leading slash and get just the filename
+    const imageFileName = item.image.split('/').pop();
+    const imagePath = path.join(imageUploadDir, imageFileName);
+
+    console.log("Looking for image at:", imagePath);
+
     if (!fs.existsSync(imagePath)) {
-      return res.status(404).json({ message: "Image file not found" });
+      console.log("Image file not found at path:", imagePath);
+      return res.status(404).json({ 
+        message: "Image file not found",
+        path: imagePath,
+        filename: imageFileName
+      });
     }
 
+    // Determine the content type based on file extension
+    const ext = path.extname(imageFileName).toLowerCase();
+    let contentType = 'image/jpeg'; // default
+    if (ext === '.png') contentType = 'image/png';
+    else if (ext === '.gif') contentType = 'image/gif';
+    else if (ext === '.webp') contentType = 'image/webp';
+
     // Set proper headers
-    res.setHeader('Content-Type', 'image/*');
+    res.setHeader('Content-Type', contentType);
     res.setHeader('Cache-Control', 'no-cache');
     
-    res.sendFile(imagePath);
+    // Stream the file instead of sending it all at once
+    const fileStream = fs.createReadStream(imagePath);
+    fileStream.pipe(res);
   } catch (error) {
     console.error("Error serving image:", error);
-    res.status(500).json({ message: "Error serving image" });
+    res.status(500).json({ message: "Error serving image", error: error.message });
   }
 });
 
