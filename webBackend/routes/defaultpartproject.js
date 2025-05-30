@@ -6,8 +6,8 @@ const PartListProjectModel = require("../model/project/PartListProjectModel");
 const ManufacturingModel = require("../model/manufacturingmodel");
 const axios = require("axios");
 const InchargeVariableModal = require("../model/inchargeVariable");
-const path = require("path");
-const fs = require("fs");
+const path = require('path');
+const fs = require('fs');
 const baseUrl = process.env.BASE_URL || "http://0.0.0.0:4040";
 
 // Define the directory for storing images
@@ -104,48 +104,47 @@ partproject.get("/projects", async (req, res) => {
 partproject.get("/projects/:id", async (req, res) => {
   try {
     const projectId = req.params.id;
-
+ 
     if (!mongoose.Types.ObjectId.isValid(projectId)) {
       return res.status(400).json({ error: "Invalid project ID format" });
     }
-
+ 
     const project = await PartListProjectModel.findById(projectId);
     if (!project) {
       return res.status(404).json({ error: "Project not found" });
     }
-
+ 
     let totalProjectCost = 0;
     let totalProjectHours = 0;
     const machineHours = {};
-
+ 
     // Helper to accumulate cost, time, and machine hours
     const accumulateMetrics = (items) => {
       items.forEach((item) => {
         const itemTotalCost = item.costPerUnit * item.quantity;
         const itemTotalHours = item.timePerUnit * item.quantity;
-
+ 
         totalProjectCost += itemTotalCost;
         totalProjectHours += itemTotalHours;
-
+ 
         item.manufacturingVariables.forEach((machine) => {
           const machineName = machine.name;
           const totalHours = machine.hours * item.quantity;
-          machineHours[machineName] =
-            (machineHours[machineName] || 0) + totalHours;
+          machineHours[machineName] = (machineHours[machineName] || 0) + totalHours;
         });
       });
     };
-
+ 
     // partsLists
     project.partsLists?.forEach((partsList) => {
       accumulateMetrics(partsList.partsListItems);
     });
-
+ 
     // subAssemblyListFirst
     project.subAssemblyListFirst?.forEach((subAssembly) => {
       accumulateMetrics(subAssembly.partsListItems);
     });
-
+ 
     // assemblyList and its subAssemblies
     project.assemblyList?.forEach((assembly) => {
       accumulateMetrics(assembly.partsListItems);
@@ -153,14 +152,14 @@ partproject.get("/projects/:id", async (req, res) => {
         accumulateMetrics(subAssembly.partsListItems);
       });
     });
-
+ 
     // Save computed values
     project.costPerUnit = totalProjectCost;
     project.timePerUnit = totalProjectHours;
     project.machineHours = machineHours;
-
+ 
     await project.save();
-
+ 
     res.status(200).json(project);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -368,8 +367,8 @@ partproject.post(
           shipmentVariables: item.shipmentVariables || [],
           overheadsAndProfits: item.overheadsAndProfits || [],
           status: "Not Allocated", // default, will be overwritten
-          statusClass: "badge bg-info text-black",
-          image: item.image || null,
+          statusClass: "badge bg-info text-black", 
+          image: item.image || null
         };
 
         // Use Mongoose to get a subdocument instance for status calculation
@@ -402,64 +401,59 @@ partproject.post(
   }
 );
 
-partproject.get(
-  "/projects/:projectId/partsLists/:listId/items/:itemId/image",
-  async (req, res) => {
-    try {
-      const { projectId, listId, itemId } = req.params;
-      const project = await PartListProjectModel.findById(projectId);
-
-      if (!project) {
-        return res.status(404).json({ message: "Project not found" });
-      }
-
-      const partsList = project.partsLists.id(listId);
-      if (!partsList) {
-        return res.status(404).json({ message: "Parts list not found" });
-      }
-
-      const item = partsList.partsListItems.id(itemId);
-      if (!item || !item.image) {
-        return res.status(404).json({ message: "Image not found" });
-      }
-
-      // Remove leading slash and get just the filename
-      const imageFileName = item.image.split("/").pop();
-      const imagePath = path.join(imageUploadDir, imageFileName);
-
-      console.log("Looking for image at:", imagePath);
-
-      if (!fs.existsSync(imagePath)) {
-        console.log("Image file not found at path:", imagePath);
-        return res.status(404).json({
-          message: "Image file not found",
-          path: imagePath,
-          filename: imageFileName,
-        });
-      }
-
-      // Determine the content type based on file extension
-      const ext = path.extname(imageFileName).toLowerCase();
-      let contentType = "image/jpeg"; // default
-      if (ext === ".png") contentType = "image/png";
-      else if (ext === ".gif") contentType = "image/gif";
-      else if (ext === ".webp") contentType = "image/webp";
-
-      // Set proper headers
-      res.setHeader("Content-Type", contentType);
-      res.setHeader("Cache-Control", "no-cache");
-
-      // Stream the file instead of sending it all at once
-      const fileStream = fs.createReadStream(imagePath);
-      fileStream.pipe(res);
-    } catch (error) {
-      console.error("Error serving image:", error);
-      res
-        .status(500)
-        .json({ message: "Error serving image", error: error.message });
+partproject.get("/projects/:projectId/partsLists/:listId/items/:itemId/image", async (req, res) => {
+  try {
+    const { projectId, listId, itemId } = req.params;
+    const project = await PartListProjectModel.findById(projectId);
+    
+    if (!project) {
+      return res.status(404).json({ message: "Project not found" });
     }
+
+    const partsList = project.partsLists.id(listId);
+    if (!partsList) {
+      return res.status(404).json({ message: "Parts list not found" });
+    }
+
+    const item = partsList.partsListItems.id(itemId);
+    if (!item || !item.image) {
+      return res.status(404).json({ message: "Image not found" });
+    }
+
+    // Remove leading slash and get just the filename
+    const imageFileName = item.image.split('/').pop();
+    const imagePath = path.join(imageUploadDir, imageFileName);
+
+    console.log("Looking for image at:", imagePath);
+
+    if (!fs.existsSync(imagePath)) {
+      console.log("Image file not found at path:", imagePath);
+      return res.status(404).json({ 
+        message: "Image file not found",
+        path: imagePath,
+        filename: imageFileName
+      });
+    }
+
+    // Determine the content type based on file extension
+    const ext = path.extname(imageFileName).toLowerCase();
+    let contentType = 'image/jpeg'; // default
+    if (ext === '.png') contentType = 'image/png';
+    else if (ext === '.gif') contentType = 'image/gif';
+    else if (ext === '.webp') contentType = 'image/webp';
+
+    // Set proper headers
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Cache-Control', 'no-cache');
+    
+    // Stream the file instead of sending it all at once
+    const fileStream = fs.createReadStream(imagePath);
+    fileStream.pipe(res);
+  } catch (error) {
+    console.error("Error serving image:", error);
+    res.status(500).json({ message: "Error serving image", error: error.message });
   }
-);
+});
 
 //put request for quentitiy
 partproject.put(
@@ -711,6 +705,8 @@ partproject.put(
   }
 );
 
+
+
 // ============************** allocation code ****************===========================
 
 partproject.post(
@@ -753,20 +749,18 @@ partproject.post(
           processName: alloc.processName,
           processId: alloc.processId,
           partsCodeId: alloc.partsCodeId,
-          allocations: alloc.allocations.map((a) => {
+          allocations: alloc.allocations.map(a => {
             // Calculate daily planned quantity
             const shiftTotalTime = a.shiftTotalTime || 510; // Default 8.5 hours in minutes
             const perMachinetotalTime = a.perMachinetotalTime || 1; // Prevent division by zero
-            const dailyPlannedQty = Math.floor(
-              shiftTotalTime / perMachinetotalTime
-            );
-
+            const dailyPlannedQty = Math.floor(shiftTotalTime / perMachinetotalTime);
+            
             return {
               ...a,
               dailyPlannedQty: dailyPlannedQty,
-              dailyTracking: [],
-            };
-          }),
+              dailyTracking: []
+            }
+          })
         };
         partItem.allocations.push(newAllocation);
       });
@@ -784,8 +778,8 @@ partproject.post(
         data: {
           ...partItem.toObject(),
           status: status.text,
-          statusClass: status.class,
-        },
+          statusClass: status.class
+        }
       });
     } catch (error) {
       console.error("Error adding allocations:", error);
@@ -837,8 +831,8 @@ partproject.delete(
         message: "All allocations deleted successfully",
         data: {
           status: partItem.status,
-          statusClass: partItem.statusClass,
-        },
+          statusClass: partItem.statusClass
+        }
       });
     } catch (error) {
       console.error("Error deleting allocations:", error);
@@ -966,13 +960,9 @@ partproject.post(
         planned: dailyPlannedQty, // Use the calculated value
         produced: Number(produced),
         operator,
-        dailyStatus:
-          dailyStatus ||
-          (produced > dailyPlannedQty
-            ? "Ahead"
-            : produced < dailyPlannedQty
-            ? "Delayed"
-            : "On Track"),
+        dailyStatus: dailyStatus || 
+          (produced > dailyPlannedQty ? "Ahead" : 
+           produced < dailyPlannedQty ? "Delayed" : "On Track")
       };
 
       if (existingEntryIndex >= 0) {
@@ -1009,7 +999,8 @@ partproject.post(
         if (dateObj.getDay() === 0) return false; // Sunday
         const dateStr = dateObj.toISOString().split("T")[0];
         return !holidays.some(
-          (holiday) => new Date(holiday).toISOString().split("T")[0] === dateStr
+          (holiday) =>
+            new Date(holiday).toISOString().split("T")[0] === dateStr
         );
       };
 
@@ -1025,7 +1016,7 @@ partproject.post(
       if (remainingQuantity > 0) {
         let workingDaysNeeded = Math.ceil(remainingQuantity / dailyPlannedQty);
         let addedDays = 0;
-
+        
         while (addedDays < workingDaysNeeded) {
           currentDate.setDate(currentDate.getDate() + 1);
           if (isWorkingDay(currentDate)) {
@@ -1047,8 +1038,8 @@ partproject.post(
           allocation: {
             shiftTotalTime: allocation.shiftTotalTime,
             perMachinetotalTime: allocation.perMachinetotalTime,
-            dailyPlannedQty: allocation.dailyPlannedQty,
-          },
+            dailyPlannedQty: allocation.dailyPlannedQty
+          }
         });
       }
 
@@ -1058,16 +1049,16 @@ partproject.post(
           dailyPlannedQty,
           totalProduced,
           remainingQuantity,
-          actualEndDate: allocation.actualEndDate,
+          actualEndDate: allocation.actualEndDate
         },
-        allocation,
+        allocation
       });
     } catch (error) {
       console.error("Error in daily tracking:", error);
       res.status(500).json({
         error: "Server error",
         details: error.message,
-        stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
+        stack: process.env.NODE_ENV === "development" ? error.stack : undefined
       });
     }
   }
@@ -1129,87 +1120,83 @@ partproject.get(
   }
 );
 
-partproject.put(
-  "/projects/:projectId/partsLists/:listId/items/:itemId/complete-allocatoin",
-  async (req, res) => {
-    try {
-      const { projectId, listId, itemId } = req.params;
-      const { processId, trackingId } = req.body;
+partproject.put('/projects/:projectId/partsLists/:listId/items/:itemId/complete-allocatoin', async (req, res) => {
+  try {
+    const { projectId, listId, itemId } = req.params;
+    const { processId, trackingId } = req.body;
 
-      const project = await PartListProjectModel.findById(projectId);
-      if (!project) {
-        return res.status(404).json({ message: "Project not found" });
+    const project = await PartListProjectModel.findById(projectId);
+    if (!project) {
+      return res.status(404).json({ message: 'Project not found' });
+    }
+
+    const partsList = project.partsLists.id(listId);
+    if (!partsList) {
+      return res.status(404).json({ message: 'Parts list not found' });
+    }
+
+    const partsListItem = partsList.partsListItems.id(itemId);
+    if (!partsListItem) {
+      return res.status(404).json({ message: 'Parts list item not found' });
+    }
+
+    // If processId and trackingId are provided, complete only that specific process
+    if (processId && trackingId) {
+      const process = partsListItem.allocations.id(processId);
+      if (!process) {
+        return res.status(404).json({ message: 'Process not found' });
       }
 
-      const partsList = project.partsLists.id(listId);
-      if (!partsList) {
-        return res.status(404).json({ message: "Parts list not found" });
+      const allocation = process.allocations.id(trackingId);
+      if (!allocation) {
+        return res.status(404).json({ message: 'Allocation not found' });
       }
 
-      const partsListItem = partsList.partsListItems.id(itemId);
-      if (!partsListItem) {
-        return res.status(404).json({ message: "Parts list item not found" });
-      }
-
-      // If processId and trackingId are provided, complete only that specific process
-      if (processId && trackingId) {
-        const process = partsListItem.allocations.id(processId);
-        if (!process) {
-          return res.status(404).json({ message: "Process not found" });
-        }
-
-        const allocation = process.allocations.id(trackingId);
-        if (!allocation) {
-          return res.status(404).json({ message: "Allocation not found" });
-        }
-
-        // Mark this specific allocation as completed
-        allocation.actualEndDate = new Date();
-        if (allocation.dailyTracking && allocation.dailyTracking.length > 0) {
-          allocation.dailyTracking.forEach((track) => {
-            track.dailyStatus = "Completed";
-          });
-        }
-      } else {
-        // Complete all allocations
-        partsListItem.status = "Completed";
-        partsListItem.statusClass = "badge bg-success text-white";
-        partsListItem.isManuallyCompleted = true;
-
-        const now = new Date();
-        partsListItem.allocations.forEach((allocation) => {
-          allocation.allocations.forEach((alloc) => {
-            if (!alloc.actualEndDate) {
-              alloc.actualEndDate = now;
-            }
-            if (alloc.dailyTracking && alloc.dailyTracking.length > 0) {
-              alloc.dailyTracking.forEach((track) => {
-                track.dailyStatus = "Completed";
-              });
-            }
-          });
+      // Mark this specific allocation as completed
+      allocation.actualEndDate = new Date();
+      if (allocation.dailyTracking && allocation.dailyTracking.length > 0) {
+        allocation.dailyTracking.forEach(track => {
+          track.dailyStatus = "Completed";
         });
       }
+    } else {
+      // Complete all allocations
+      partsListItem.status = "Completed";
+      partsListItem.statusClass = "badge bg-success text-white";
+      partsListItem.isManuallyCompleted = true;
 
-      await project.save();
-
-      res.status(200).json({
-        message: "Process completed successfully",
-        data: partsListItem,
+      const now = new Date();
+      partsListItem.allocations.forEach(allocation => {
+        allocation.allocations.forEach(alloc => {
+          if (!alloc.actualEndDate) {
+            alloc.actualEndDate = now;
+          }
+          if (alloc.dailyTracking && alloc.dailyTracking.length > 0) {
+            alloc.dailyTracking.forEach(track => {
+              track.dailyStatus = "Completed";
+            });
+          }
+        });
       });
-    } catch (error) {
-      console.error("Error completing process:", error);
-      res
-        .status(500)
-        .json({ message: "Error completing process", error: error.message });
     }
-  }
-);
 
-// cretae for complete process
+    await project.save();
+
+    res.status(200).json({
+      message: 'Process completed successfully',
+      data: partsListItem
+    });
+  } catch (error) {
+    console.error('Error completing process:', error);
+    res.status(500).json({ message: 'Error completing process', error: error.message });
+  }
+});
+
+
+// cretae for complete process 
 // Route to complete a specific process
 partproject.put(
-  "/projects/:projectId/partsLists/:listId/items/:itemId/complete-process",
+  '/projects/:projectId/partsLists/:listId/items/:itemId/complete-process',
   async (req, res) => {
     try {
       const { projectId, listId, itemId } = req.params;
@@ -1217,39 +1204,39 @@ partproject.put(
 
       // Validate required parameters
       if (!processId || !trackingId) {
-        return res.status(400).json({
-          message: "processId and trackingId are required in request body",
+        return res.status(400).json({ 
+          message: 'processId and trackingId are required in request body' 
         });
       }
 
       // Find the project
       const project = await PartListProjectModel.findById(projectId);
       if (!project) {
-        return res.status(404).json({ message: "Project not found" });
+        return res.status(404).json({ message: 'Project not found' });
       }
 
       // Find the parts list
       const partsList = project.partsLists.id(listId);
       if (!partsList) {
-        return res.status(404).json({ message: "Parts list not found" });
+        return res.status(404).json({ message: 'Parts list not found' });
       }
 
       // Find the part item
       const partItem = partsList.partsListItems.id(itemId);
       if (!partItem) {
-        return res.status(404).json({ message: "Part list item not found" });
+        return res.status(404).json({ message: 'Part list item not found' });
       }
 
       // Find the process
       const process = partItem.allocations.id(processId);
       if (!process) {
-        return res.status(404).json({ message: "Process not found" });
+        return res.status(404).json({ message: 'Process not found' });
       }
 
       // Find the specific allocation/tracking
       const allocation = process.allocations.id(trackingId);
       if (!allocation) {
-        return res.status(404).json({ message: "Allocation not found" });
+        return res.status(404).json({ message: 'Allocation not found' });
       }
 
       // Mark the process as completed
@@ -1258,7 +1245,7 @@ partproject.put(
 
       // Update all daily tracking entries to "Completed" status
       if (allocation.dailyTracking && allocation.dailyTracking.length > 0) {
-        allocation.dailyTracking.forEach((track) => {
+        allocation.dailyTracking.forEach(track => {
           track.dailyStatus = "Completed";
         });
       }
@@ -1272,20 +1259,20 @@ partproject.put(
       await project.save();
 
       res.status(200).json({
-        message: "Process completed successfully",
+        message: 'Process completed successfully',
         data: {
           processId: process._id,
           trackingId: allocation._id,
           isProcessCompleted: allocation.isProcessCompleted,
           actualEndDate: allocation.actualEndDate,
-          partStatus: partItem.status,
-        },
+          partStatus: partItem.status
+        }
       });
     } catch (error) {
-      console.error("Error completing process:", error);
-      res.status(500).json({
-        message: "Error completing process",
-        error: error.message,
+      console.error('Error completing process:', error);
+      res.status(500).json({ 
+        message: 'Error completing process', 
+        error: error.message 
       });
     }
   }
