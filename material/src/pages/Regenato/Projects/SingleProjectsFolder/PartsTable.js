@@ -42,6 +42,52 @@ import HoursPlanningTab from "../HoursPlanningTab";
 import HoursPlanningCard from "../HoursPlanningCard";
 import { PartListHrPlan } from "../HoursPlanningFolder/TestingPartAllocation/PartListHrPlan";
 
+// Add these styles at the top of the file after the imports
+const styles = {
+  partNameWithImage: {
+    position: 'relative',
+    display: 'inline-block',
+  },
+  partImageTooltip: {
+    display: 'none',
+    position: 'absolute',
+    zIndex: 1000,
+    backgroundColor: 'white',
+    padding: '5px',
+    borderRadius: '4px',
+    boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
+    top: '100%',
+    left: '50%',
+    transform: 'translateX(-50%)',
+    marginTop: '5px',
+  },
+  partNameWithImageHover: {
+    '&:hover .part-image-tooltip': {
+      display: 'block',
+    },
+  },
+};
+
+// Add this CSS to your existing styles
+const partNameWithImageStyle = {
+  position: 'relative',
+  display: 'inline-block',
+};
+
+const partImageTooltipStyle = {
+  display: 'none',
+  position: 'absolute',
+  zIndex: 1000,
+  backgroundColor: 'white',
+  padding: '5px',
+  borderRadius: '4px',
+  boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
+  top: '100%',
+  left: '50%',
+  transform: 'translateX(-50%)',
+  marginTop: '5px',
+};
+
 const PartsTable = React.memo(
   ({
     partsList,
@@ -106,6 +152,10 @@ const PartsTable = React.memo(
     const [open, setOpen] = useState(false);
     const [imageCache, setImageCache] = useState({});
 
+    // const [expandedRowId, setExpandedRowId] = useState(null);
+
+    const [imageLoadErrors, setImageLoadErrors] = useState({});
+
     const fetchPartsListItems = async () => {
       try {
         const response = await fetch(
@@ -136,96 +186,89 @@ const PartsTable = React.memo(
       fetchPartsListItems();
     }, [_id, partsList, partsListItemsUpdated]);
 
-    // Replace the fetchPartImage function with this improved version
-const fetchPartImage = useCallback(async (imagePath, itemId) => {
-  try {
-    if (!imagePath) return null;
-    
-    // Check cache first
-    if (imageCache[itemId]) {
-      return imageCache[itemId];
-    }
-
-    // Try the specific route first
-    const response = await fetch(
-      `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${_id}/partsLists/${partsList._id}/items/${itemId}/image`,
-      {
-        headers: {
-          'Cache-Control': 'no-cache', // Prevent caching issues
+    const fetchPartImage = useCallback(async (imagePath, itemId) => {
+      try {
+        if (!imagePath) return null;
+        
+        // Check cache first
+        if (imageCache[itemId]) {
+          return imageCache[itemId];
         }
-      }
-    );
 
-    if (response.ok) {
-      const blob = await response.blob();
-      const imageUrl = URL.createObjectURL(blob);
-      
-      // Update cache
-      setImageCache(prev => ({
-        ...prev,
-        [itemId]: imageUrl
-      }));
-      
-      return imageUrl;
-    }
-
-    // If specific route fails, try direct path
-    const fallbackResponse = await fetch(
-      `${process.env.REACT_APP_BASE_URL}${imagePath}`,
-      {
-        headers: {
-          'Cache-Control': 'no-cache',
+        // Check if we've already failed to load this image
+        if (imageLoadErrors[itemId]) {
+          return null;
         }
-      }
-    );
 
-    if (fallbackResponse.ok) {
-      const blob = await fallbackResponse.blob();
-      const imageUrl = URL.createObjectURL(blob);
-      
-      // Update cache
-      setImageCache(prev => ({
-        ...prev,
-        [itemId]: imageUrl
-      }));
-      
-      return imageUrl;
-    }
+        // Use the specific API endpoint for fetching images
+        const response = await fetch(
+          `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${_id}/partsLists/${partsList._id}/items/${itemId}/image`,
+          {
+            headers: {
+              'Cache-Control': 'no-cache',
+            }
+          }
+        );
 
-    return null;
-  } catch (error) {
-    console.error("Error fetching image:", error);
-    return null;
-  }
-}, [_id, partsList._id, imageCache]);
-
-// Add this useEffect to fetch images when partsListItems changes
-useEffect(() => {
-  const fetchImages = async () => {
-    const newImageUrls = {};
-    for (const item of partsListItems) {
-      if (item.image) {
-        const url = await fetchPartImage(item.image, item._id);
-        if (url) {
-          newImageUrls[item._id] = url;
+        if (response.ok) {
+          const blob = await response.blob();
+          const objectUrl = URL.createObjectURL(blob);
+          
+          // Update cache
+          setImageCache(prev => ({
+            ...prev,
+            [itemId]: objectUrl
+          }));
+          
+          return objectUrl;
         }
+
+        // If we get here, the image failed to load
+        setImageLoadErrors(prev => ({
+          ...prev,
+          [itemId]: true
+        }));
+        
+        console.error("Failed to fetch image:", response.status, response.statusText);
+        return null;
+      } catch (error) {
+        // Mark this image as failed to prevent future attempts
+        setImageLoadErrors(prev => ({
+          ...prev,
+          [itemId]: true
+        }));
+        
+        console.error("Error fetching image:", error);
+        return null;
       }
-    }
-    setImageCache(prev => ({ ...prev, ...newImageUrls }));
-  };
+    }, [_id, partsList._id, imageCache, imageLoadErrors]);
 
-  fetchImages();
-}, [partsListItems, fetchPartImage]);
+    // Add this useEffect to fetch images when partsListItems changes
+    useEffect(() => {
+      const fetchImages = async () => {
+        const newImageUrls = {};
+        for (const item of partsListItems) {
+          if (item.image && !imageLoadErrors[item._id]) {
+            const url = await fetchPartImage(item.image, item._id);
+            if (url) {
+              newImageUrls[item._id] = url;
+            }
+          }
+        }
+        setImageCache(prev => ({ ...prev, ...newImageUrls }));
+      };
 
-// Update the cleanup to revoke object URLs when component unmounts
-useEffect(() => {
-  return () => {
-    Object.values(imageCache).forEach(url => {
-      if (url) URL.revokeObjectURL(url);
-    });
-  };
-}, [imageCache]);
+      fetchImages();
+    }, [partsListItems, fetchPartImage]);
 
+    // Update the cleanup to revoke object URLs when component unmounts
+    useEffect(() => {
+      return () => {
+        Object.values(imageCache).forEach(url => {
+          if (url) URL.revokeObjectURL(url);
+        });
+      };
+    }, [imageCache]);
 
     useEffect(() => {
       setPartsListItemsUpdated(false);
@@ -902,34 +945,6 @@ useEffect(() => {
                           return (
                             <React.Fragment key={item._id}>
                               <tr>
-                                {/* <td
-                                  onClick={() =>
-                                    handleRowClickParts(item._id, item.partName)
-                                  }
-                                  className={
-                                    expandedRowId === item._id ? "expanded" : ""
-                                  }
-                                  style={{
-                                    cursor: "pointer",
-                                    color: "#64B5F6",
-                                    position: "relative",
-                                  }}
-                                >
-                                  {item.partName} ({item.partsCodeId || ""})
-                                  {item.image && (
-                                    <div className="part-image-tooltip">
-                                      <img
-                                        src={`${process.env.REACT_APP_BASE_URL}${item.image}`}
-                                        alt={item.partName}
-                                        onError={(e) => {
-                                          e.target.src =
-                                            "/path/to/default/image.png";
-                                        }}
-                                      />
-                                    </div>
-                                  )}
-                                </td> */}
-
                                 <td
                                   onClick={() => handleRowClickParts(item._id, item.partName)}
                                   className={expandedRowId === item._id ? "expanded" : ""}
@@ -939,33 +954,42 @@ useEffect(() => {
                                     position: "relative",
                                   }}
                                 >
-  <div
-    className="part-name-with-image"
-    style={{
-      position: "relative",
-      display: "inline-block",
-    }}
-  >
-    {item.partName} ({item.partsCodeId || ""})
-    {item.image && (
-      <div className="part-image-tooltip">
-        <img
-          src={imageCache[item._id] || `${process.env.REACT_APP_BASE_URL}${item.image}`}
-          alt={item.partName}
-          onError={(e) => {
-            e.target.src = "/path/to/default/image.png";
-            e.target.onerror = null; // Prevent infinite loop if default image fails
-          }}
-          style={{
-            maxWidth: '100px',
-            maxHeight: '100px',
-            display: 'block'
-          }}
-        />
-      </div>
-    )}
-  </div>
-</td>
+                                  <div
+                                    className="part-name-with-image"
+                                    style={partNameWithImageStyle}
+                                    onMouseEnter={(e) => {
+                                      const tooltip = e.currentTarget.querySelector('.part-image-tooltip');
+                                      if (tooltip) {
+                                        tooltip.style.display = 'block';
+                                      }
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      const tooltip = e.currentTarget.querySelector('.part-image-tooltip');
+                                      if (tooltip) {
+                                        tooltip.style.display = 'none';
+                                      }
+                                    }}
+                                  >
+                                    {item.partName} ({item.partsCodeId || ""})
+                                    {item.image && (
+                                      <div 
+                                        className="part-image-tooltip"
+                                        style={partImageTooltipStyle}
+                                      >
+                                        <img
+                                          src={`${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${_id}/partsLists/${partsList._id}/items/${item._id}/image`}
+                                          alt={item.partName}
+                                          style={{
+                                            maxWidth: '100px',
+                                            maxHeight: '100px',
+                                            display: 'block',
+                                            objectFit: 'contain'
+                                          }}
+                                        />
+                                      </div>
+                                    )}
+                                  </div>
+                                </td>
                                 <td>
                                   {(() => {
                                     const status = getStatusDisplay(item);
