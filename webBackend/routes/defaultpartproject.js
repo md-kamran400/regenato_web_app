@@ -391,6 +391,41 @@ partproject.post(
   }
 );
 
+partproject.get("/projects/:projectId/partsLists/:listId/items/:itemId/image", async (req, res) => {
+  try {
+    const { projectId, listId, itemId } = req.params;
+    const project = await PartListProjectModel.findById(projectId);
+    
+    if (!project) {
+      return res.status(404).json({ message: "Project not found" });
+    }
+
+    const partsList = project.partsLists.id(listId);
+    if (!partsList) {
+      return res.status(404).json({ message: "Parts list not found" });
+    }
+
+    const item = partsList.partsListItems.id(itemId);
+    if (!item || !item.image) {
+      return res.status(404).json({ message: "Image not found" });
+    }
+
+    // Ensure the path is correct and file exists
+    const imagePath = path.join(__dirname, "../../", item.image);
+    if (!fs.existsSync(imagePath)) {
+      return res.status(404).json({ message: "Image file not found" });
+    }
+
+    // Set proper headers
+    res.setHeader('Content-Type', 'image/*');
+    res.setHeader('Cache-Control', 'no-cache');
+    
+    res.sendFile(imagePath);
+  } catch (error) {
+    console.error("Error serving image:", error);
+    res.status(500).json({ message: "Error serving image" });
+  }
+});
 
 //put request for quentitiy
 partproject.put(

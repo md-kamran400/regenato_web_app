@@ -136,6 +136,7 @@ const { PartsExcelRoutes } = require("./routes/partsRoutes/partsExcel.routes");
 const { inchargeVariableRouter } = require("./routes/variableRoutes/incharge.route");
 const subAssemblyproject = require("./routes/defaultSubAssembly");
 const assemblyListProject = require("./routes/defaultassembly");
+const { storeVariableRouter } = require("./routes/variableRoutes/stores.routes");
 
 // MongoDB connection
 const connect = async () => {
@@ -159,6 +160,7 @@ app.use("/api/manufacturingStatics", manufacturingStaticRouter);
 app.use("/api/userVariable", userVariableRouter);
 app.use("/api/shiftVariable", shiftRoutes);
 app.use("/api/inchargeVariable", inchargeVariableRouter);
+app.use("/api/storesVariable", storeVariableRouter);
 app.use("/api/eventScheduler", eventRoutes);
 app.use("/api/parts", PartsExcelRoutes);
 app.use("/api/projects", ProjectRouter);
