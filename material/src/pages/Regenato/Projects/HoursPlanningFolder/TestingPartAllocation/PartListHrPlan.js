@@ -2221,13 +2221,97 @@ export const PartListHrPlan = ({
                                 option ? `${option.subcategoryId} - ${option.name}` : ""
                               }
                               onChange={(event, newValue) => {
-                                const updatedRows = [...rows];
-                                updatedRows[index][rowIndex] = {
-                                  ...updatedRows[index][rowIndex],
-                                  machineId: newValue ? newValue.subcategoryId : "",
-                                  warehouse: newValue ? newValue.wareHouse : "",
-                                };
-                                setRows(updatedRows);
+                                if (!hasStartDate) return;
+
+                                const isAlreadySelected = rows[index].some(
+                                  (r, idx) =>
+                                    idx !== rowIndex &&
+                                    r.machineId === newValue?.subcategoryId
+                                );
+
+                                if (isAlreadySelected) {
+                                  toast.error(
+                                    "This machine is already selected in another row for this process"
+                                  );
+                                  return;
+                                }
+
+                                if (newValue) {
+                                  const status = getMachineStatus(
+                                    newValue,
+                                    row.startDate,
+                                    row.endDate
+                                  );
+
+                                  if (status.isDowntime) {
+                                    toast.warning(
+                                      `Warning: This machine is in downtime until ${
+                                        status.downtimeEnd
+                                          ? new Date(
+                                              status.downtimeEnd
+                                            ).toLocaleDateString()
+                                          : "unknown"
+                                      } (Reason: ${status.downtimeReason})`
+                                    );
+                                  }
+
+                                  if (
+                                    status.isAllocated &&
+                                    !status.isDowntime
+                                  ) {
+                                    toast.error(
+                                      "This machine is occupied during the selected time period"
+                                    );
+                                    return;
+                                  }
+                                }
+
+                                setRows((prevRows) => {
+                                  const updatedRows = [...prevRows[index]];
+                                  updatedRows[rowIndex] = {
+                                    ...updatedRows[rowIndex],
+                                    machineId: newValue
+                                      ? newValue.subcategoryId
+                                      : "",
+                                    warehouse: newValue ? newValue.wareHouse : "",
+                                  };
+
+                                  if (
+                                    newValue &&
+                                    updatedRows[rowIndex].startDate
+                                  ) {
+                                    const shift = shiftOptions.find(
+                                      (option) =>
+                                        option.name ===
+                                        updatedRows[rowIndex].shift
+                                    );
+
+                                    updatedRows[rowIndex].endDate =
+                                      calculateEndDateWithDowntime(
+                                        updatedRows[rowIndex].startDate,
+                                        updatedRows[rowIndex].plannedQtyTime,
+                                        shift,
+                                        newValue,
+                                        index,
+                                        rowIndex
+                                      );
+
+                                    const downtimeInfo =
+                                      isMachineOnDowntimeDuringPeriod(
+                                        newValue,
+                                        updatedRows[rowIndex].startDate,
+                                        updatedRows[rowIndex].endDate
+                                      );
+
+                                    if (downtimeInfo.isDowntime) {
+                                      toast.info(
+                                        `Machine has ${downtimeInfo.downtimeMinutes} minutes of downtime. End date extended to ${updatedRows[rowIndex].endDate}.`
+                                      );
+                                    }
+                                  }
+
+                                  return { ...prevRows, [index]: updatedRows };
+                                });
                               }}
                               renderInput={(params) => (
                                 <TextField
