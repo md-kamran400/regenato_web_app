@@ -1847,6 +1847,7 @@ export const PartListHrPlan = ({
                         <th style={{ width: "8%" }}>End Date</th>
                         <th>End Time</th>
                         <th style={{ width: "25%" }}>Machine ID</th>
+                        <th style={{ width: "15%" }}>Warehouse</th>
                         <th style={{ width: "50%" }}>Operator</th>
                         <th>Actions</th>
                       </tr>
@@ -2216,6 +2217,9 @@ export const PartListHrPlan = ({
                                     machine.subcategoryId === row.machineId
                                 ) || null
                               }
+                              getOptionLabel={(option) =>
+                                option ? `${option.subcategoryId} - ${option.name}` : ""
+                              }
                               onChange={(event, newValue) => {
                                 if (!hasStartDate) return;
 
@@ -2269,6 +2273,7 @@ export const PartListHrPlan = ({
                                     machineId: newValue
                                       ? newValue.subcategoryId
                                       : "",
+                                    warehouse: newValue ? newValue.wareHouse : "",
                                   };
 
                                   if (
@@ -2308,187 +2313,11 @@ export const PartListHrPlan = ({
                                   return { ...prevRows, [index]: updatedRows };
                                 });
                               }}
-                              getOptionLabel={(option) => option.name}
-                              renderOption={(props, option) => {
-                                const today = new Date();
-                                const tomorrow = new Date();
-                                tomorrow.setDate(today.getDate() + 1);
-
-                                const status = getMachineStatus(
-                                  option,
-                                  row.startDate || today,
-                                  row.endDate || tomorrow,
-                                  allocatedMachines
-                                );
-
-                                const isDisabled = status.isAllocated && !status.isDowntime;
-                                const downtimeEnd = status.downtimeEnd
-                                  ? new Date(status.downtimeEnd).toLocaleDateString()
-                                  : null;
-
-                                // Get downtime info for the selected dates
-                                const downtimeInfo = isMachineOnDowntimeDuringPeriod(
-                                  option,
-                                  row.startDate || today,
-                                  row.endDate || tomorrow
-                                );
-
-                                return (
-                                  <li
-                                    {...props}
-                                    style={{
-                                      padding: "10px 16px",
-                                      backgroundColor: status.isDowntime
-                                        ? "#fff0f0"
-                                        : status.isAllocated
-                                        ? "#fff9e6"
-                                        : "white",
-                                      color: isDisabled ? "#999" : "#212529",
-                                      cursor: isDisabled
-                                        ? "not-allowed"
-                                        : "pointer",
-                                      opacity: isDisabled ? 0.7 : 1,
-                                      pointerEvents: isDisabled
-                                        ? "none"
-                                        : "auto",
-                                    }}
-                                  >
-                                    <div
-                                      style={{
-                                        display: "flex",
-                                        alignItems: "center",
-                                      }}
-                                    >
-                                      <div
-                                        style={{
-                                          width: 24,
-                                          height: 24,
-                                          borderRadius: "50%",
-                                          backgroundColor: status.isDowntime
-                                            ? "#dc3545"
-                                            : status.isAllocated
-                                            ? "#ffc107"
-                                            : "#28a745",
-                                          display: "flex",
-                                          alignItems: "center",
-                                          justifyContent: "center",
-                                          marginRight: 12,
-                                          flexShrink: 0,
-                                        }}
-                                      >
-                                        <span
-                                          style={{
-                                            color: "white",
-                                            fontSize: 12,
-                                          }}
-                                        >
-                                          {status.isDowntime
-                                            ? "D"
-                                            : status.isAllocated
-                                            ? "O"
-                                            : "A"}
-                                        </span>
-                                      </div>
-
-                                      <div style={{ flexGrow: 1 }}>
-                                        <div style={{ fontWeight: 500 }}>
-                                          {option.name}
-                                          {status.isDowntime && (
-                                            <span
-                                              style={{
-                                                marginLeft: 8,
-                                                fontSize: "0.75rem",
-                                                color: "#dc3545",
-                                              }}
-                                            >
-                                              (Downtime)
-                                            </span>
-                                          )}
-                                        </div>
-                                        <div
-                                          style={{
-                                            fontSize: "0.75rem",
-                                            color: "#6c757d",
-                                          }}
-                                        >
-                                          {status.isDowntime ? (
-                                            <>
-                                              <div>
-                                                Downtime Duration:{" "}
-                                                {formatDowntime(
-                                                  downtimeInfo.downtimeMinutes
-                                                )}
-                                              </div>
-                                              {downtimeInfo.downtimeReason && (
-                                                <div>
-                                                  Reason:{" "}
-                                                  {downtimeInfo.downtimeReason}
-                                                </div>
-                                              )}
-                                              {downtimeEnd && (
-                                                <div>Until: {downtimeEnd}</div>
-                                              )}
-                                              <div style={{ marginTop: "4px", color: "#dc3545" }}>
-                                                Note: Selecting this machine will extend the end date by {formatDowntime(downtimeInfo.downtimeMinutes)}
-                                              </div>
-                                            </>
-                                          ) : status.isAllocated ? (
-                                            <>
-                                              <div>
-                                                Occupied - Not Available
-                                              </div>
-                                              {status.conflictingAllocation && (
-                                                <div>
-                                                  Occupied from{" "}
-                                                  {formatDate(
-                                                    new Date(
-                                                      status.conflictingAllocation.startDate
-                                                    )
-                                                  )}{" "}
-                                                  to{" "}
-                                                  {formatDate(
-                                                    new Date(
-                                                      status.conflictingAllocation.endDate
-                                                    )
-                                                  )}
-                                                </div>
-                                              )}
-                                            </>
-                                          ) : (
-                                            "Available"
-                                          )}
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </li>
-                                );
-                              }}
                               renderInput={(params) => (
                                 <TextField
                                   {...params}
-                                  label="Select Machine"
-                                  variant="outlined"
+                                  placeholder="Select Machine"
                                   size="small"
-                                  InputProps={{
-                                    ...params.InputProps,
-                                    startAdornment: (
-                                      <>
-                                        {row.machineId && (
-                                          <div
-                                            style={{
-                                              width: 12,
-                                              height: 12,
-                                              borderRadius: "50%",
-                                              backgroundColor: "#28a745",
-                                              marginRight: 8,
-                                            }}
-                                          />
-                                        )}
-                                        {params.InputProps.startAdornment}
-                                      </>
-                                    ),
-                                  }}
-                                  placeholder="Search machines..."
                                 />
                               )}
                               noOptionsText={
@@ -2523,7 +2352,11 @@ export const PartListHrPlan = ({
                               }}
                             />
                           </td>
-
+                          <td>
+                            {machineOptions[man.categoryId]?.find(
+                              (machine) => machine.subcategoryId === row.machineId
+                            )?.wareHouse || "-"}
+                          </td>
                           <td>
                             <Autocomplete
                               sx={{

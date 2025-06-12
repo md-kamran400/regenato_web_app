@@ -127,12 +127,12 @@ manufacturRouter.delete("/:id", async (req, res) => {
 manufacturRouter.post("/:id/subcategories", async (req, res) => {
   try {
     const { id } = req.params;
-    const { subcategoryId, name, hourlyRate } = req.body;
+    const { subcategoryId, name, hourlyRate, wareHouse } = req.body;
 
     // Validate required fields
-    if (!subcategoryId || !name || hourlyRate === undefined) {
+    if (!subcategoryId || !name || hourlyRate === undefined || !wareHouse) {
       return res.status(400).json({
-        msg: "Fields (subcategoryId, name, and hourlyRate) are required.",
+        msg: "Fields (subcategoryId, name, hourlyRate, and wareHouse) are required.",
       });
     }
 
@@ -160,6 +160,12 @@ manufacturRouter.post("/:id/subcategories", async (req, res) => {
       hours: 0, // Default value
       hourlyRate,
       totalRate: 0, // Default value
+      wareHouse,
+      isAvailable: true,
+      status: "available",
+      unavailableUntil: null,
+      allocations: [],
+      downtimeHistory: []
     };
 
     // Add the subcategory to the manufacturing entry

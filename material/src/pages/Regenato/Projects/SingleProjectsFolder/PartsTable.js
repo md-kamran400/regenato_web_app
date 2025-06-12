@@ -156,6 +156,9 @@ const PartsTable = React.memo(
 
     const [imageLoadErrors, setImageLoadErrors] = useState({});
 
+    const [hoveredImageId, setHoveredImageId] = useState(null);
+    const [imageUrls, setImageUrls] = useState({});
+
     const fetchPartsListItems = async () => {
       try {
         const response = await fetch(
@@ -188,19 +191,13 @@ const PartsTable = React.memo(
 
     const fetchPartImage = useCallback(async (imagePath, itemId) => {
       try {
-        if (!imagePath) return null;
+        if (!imagePath || imageUrls[itemId]) return null;
         
-        // Check cache first
-        if (imageCache[itemId]) {
-          return imageCache[itemId];
-        }
-
         // Check if we've already failed to load this image
         if (imageLoadErrors[itemId]) {
           return null;
         }
 
-        // Use the specific API endpoint for fetching images
         const response = await fetch(
           `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${_id}/partsLists/${partsList._id}/items/${itemId}/image`,
           {
@@ -214,8 +211,7 @@ const PartsTable = React.memo(
           const blob = await response.blob();
           const objectUrl = URL.createObjectURL(blob);
           
-          // Update cache
-          setImageCache(prev => ({
+          setImageUrls(prev => ({
             ...prev,
             [itemId]: objectUrl
           }));
@@ -223,52 +219,42 @@ const PartsTable = React.memo(
           return objectUrl;
         }
 
-        // If we get here, the image failed to load
         setImageLoadErrors(prev => ({
           ...prev,
           [itemId]: true
         }));
         
-        console.error("Failed to fetch image:", response.status, response.statusText);
         return null;
       } catch (error) {
-        // Mark this image as failed to prevent future attempts
         setImageLoadErrors(prev => ({
           ...prev,
           [itemId]: true
         }));
-        
-        console.error("Error fetching image:", error);
         return null;
       }
-    }, [_id, partsList._id, imageCache, imageLoadErrors]);
+    }, [_id, partsList._id, imageUrls, imageLoadErrors]);
 
-    // Add this useEffect to fetch images when partsListItems changes
+    // Update the useEffect for image loading
     useEffect(() => {
       const fetchImages = async () => {
-        const newImageUrls = {};
         for (const item of partsListItems) {
-          if (item.image && !imageLoadErrors[item._id]) {
-            const url = await fetchPartImage(item.image, item._id);
-            if (url) {
-              newImageUrls[item._id] = url;
-            }
+          if (item.image && !imageLoadErrors[item._id] && !imageUrls[item._id]) {
+            await fetchPartImage(item.image, item._id);
           }
         }
-        setImageCache(prev => ({ ...prev, ...newImageUrls }));
       };
 
       fetchImages();
     }, [partsListItems, fetchPartImage]);
 
-    // Update the cleanup to revoke object URLs when component unmounts
+    // Cleanup effect
     useEffect(() => {
       return () => {
-        Object.values(imageCache).forEach(url => {
+        Object.values(imageUrls).forEach(url => {
           if (url) URL.revokeObjectURL(url);
         });
       };
-    }, [imageCache]);
+    }, [imageUrls]);
 
     useEffect(() => {
       setPartsListItemsUpdated(false);
@@ -956,25 +942,30 @@ const PartsTable = React.memo(
                                 >
                                   <div
                                     className="part-name-with-image"
-                                    style={partNameWithImageStyle}
-                                    onMouseEnter={(e) => {
-                                      const tooltip = e.currentTarget.querySelector('.part-image-tooltip');
-                                      if (tooltip) {
-                                        tooltip.style.display = 'block';
-                                      }
+                                    style={{
+                                      position: 'relative',
+                                      display: 'inline-block',
                                     }}
-                                    onMouseLeave={(e) => {
-                                      const tooltip = e.currentTarget.querySelector('.part-image-tooltip');
-                                      if (tooltip) {
-                                        tooltip.style.display = 'none';
-                                      }
-                                    }}
+                                    onMouseEnter={() => setHoveredImageId(item._id)}
+                                    onMouseLeave={() => setHoveredImageId(null)}
                                   >
                                     {item.partName} ({item.partsCodeId || ""})
-                                    {item.image && (
+                                    {item.image && hoveredImageId === item._id && (
                                       <div 
                                         className="part-image-tooltip"
-                                        style={partImageTooltipStyle}
+                                        style={{
+                                          position: 'absolute',
+                                          zIndex: 1000,
+                                          backgroundColor: 'white',
+                                          padding: '5px',
+                                          borderRadius: '4px',
+                                          boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
+                                          top: '100%',
+                                          left: '50%',
+                                          transform: 'translateX(-50%)',
+                                          marginTop: '5px',
+                                          display: 'block'
+                                        }}
                                       >
                                         <img
                                           src={`${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${_id}/partsLists/${partsList._id}/items/${item._id}/image`}
@@ -984,6 +975,13 @@ const PartsTable = React.memo(
                                             maxHeight: '100px',
                                             display: 'block',
                                             objectFit: 'contain'
+                                          }}
+                                          onError={(e) => {
+                                            e.target.style.display = 'none';
+                                            setImageLoadErrors(prev => ({
+                                              ...prev,
+                                              [item._id]: true
+                                            }));
                                           }}
                                         />
                                       </div>
@@ -1198,7 +1196,7 @@ const PartsTable = React.memo(
           <Modal isOpen={modalAdd} toggle={toggleAddModal}>
             <ModalHeader toggle={toggleAddModal}>Add Part</ModalHeader>
             <ModalBody>
-              <form onSubmit={handleSubmit}>
+              <form onSubmit={handleSubmit} id="addPartForm">
                 <Autocomplete
                   multiple
                   open={open}
@@ -1227,7 +1225,7 @@ const PartsTable = React.memo(
                       {...params}
                       label="Select Parts"
                       variant="outlined"
-                      onClick={() => setOpen(true)} // Open dropdown when clicking input
+                      onClick={() => setOpen(true)}
                       InputProps={{
                         ...params.InputProps,
                         endAdornment: (
@@ -1241,7 +1239,7 @@ const PartsTable = React.memo(
                       }}
                     />
                   )}
-                  disableCloseOnSelect // This prevents closing when selecting an option
+                  disableCloseOnSelect
                 />
 
                 <div className="form-group" style={{ display: "none" }}>
@@ -1319,12 +1317,12 @@ const PartsTable = React.memo(
                     className="form-control"
                     type="number"
                     id="quantity"
+                    name="quantity"
                     value={quantity.toString()}
                     onChange={(e) => {
                       const inputValue = e.target.value;
                       if (inputValue === "" || /^\d+$/.test(inputValue)) {
-                        const numericValue =
-                          inputValue === "" ? 0 : parseInt(inputValue);
+                        const numericValue = inputValue === "" ? 0 : parseInt(inputValue);
                         if (numericValue > 99999) {
                           toast.warning("Maximum quantity is 99999");
                           setQuantity(99999);
@@ -1669,12 +1667,13 @@ const PartsTable = React.memo(
               Edit Quantity
             </ModalHeader>
             <ModalBody>
-              <form onSubmit={(e) => handleSubmitEditQuantity(e)}>
+              <form onSubmit={(e) => handleSubmitEditQuantity(e)} id="editQuantityForm">
                 <div className="form-group">
-                  <Label for="quantity">New Quantity</Label>
+                  <Label htmlFor="editQuantity">New Quantity</Label>
                   <Input
                     type="number"
-                    id="quantity"
+                    id="editQuantity"
+                    name="editQuantity"
                     value={itemToEdit ? itemToEdit.quantity : ""}
                     onChange={(e) =>
                       setItemToEdit({
@@ -1688,7 +1687,7 @@ const PartsTable = React.memo(
               </form>
             </ModalBody>
             <ModalFooter>
-              <Button color="primary" onClick={handleSubmitEditQuantity}>
+              <Button color="primary" type="submit" form="editQuantityForm">
                 Update Quantity
               </Button>
               <Button

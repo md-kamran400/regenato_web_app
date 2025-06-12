@@ -191,7 +191,7 @@ const StoresVariable = () => {
         <Col lg={12}>
           <Card style={{ marginBottom: "10rem" }}>
             <CardHeader>
-              <h4 className="card-title mb-0">Stores</h4>
+              <h4 className="card-title mb-0">Warehouse</h4>
             </CardHeader>
             <CardBody>
               <Row className="g-4 mb-3">

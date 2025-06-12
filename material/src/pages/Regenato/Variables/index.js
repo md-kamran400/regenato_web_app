@@ -106,7 +106,7 @@ const Variables = () => {
       { id: "ShiftVariable", label: "Shift" },
       { id: "EventScheduler", label: "Event Scheduler" },
       { id: "Incharge", label: "Incharge" },
-      { id: "Stores", label: "Stores" },
+      { id: "Stores", label: "Warehouse" },
     ];
   };
 

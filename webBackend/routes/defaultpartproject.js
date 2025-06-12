@@ -424,7 +424,7 @@ partproject.get("/projects/:projectId/partsLists/:listId/items/:itemId/image", a
     const imageFileName = item.image.split('/').pop();
     const imagePath = path.join(imageUploadDir, imageFileName);
 
-    console.log("Looking for image at:", imagePath);
+    // console.log("Looking for image at:", imagePath);
 
     if (!fs.existsSync(imagePath)) {
       console.log("Image file not found at path:", imagePath);
