@@ -19,6 +19,20 @@ import { MdOutlineDelete } from "react-icons/md";
 import { Bold } from "feather-icons-react/build/IconComponents";
 import MachineDowntimeModal from "./MachineDowntimeModal";
 import MachineDowntimeHistory from "./MachineDowntimeHistory";
+import Select from "react-select";
+import Autocomplete from "@mui/material/Autocomplete";
+import TextField from "@mui/material/TextField";
+
+const customStyles = {
+  control: (base) => ({
+    ...base,
+    minHeight: "36px",
+    borderColor: "#ced4da",
+    "&:hover": {
+      borderColor: "#ced4da",
+    },
+  }),
+};
 
 const ManufacturingVariable = () => {
   const [modal_add, setModalList] = useState(false);
@@ -49,6 +63,9 @@ const ManufacturingVariable = () => {
   const [selectedMachineDetails, setSelectedMachineDetails] = useState(null);
   const [machineDetailsModalOpen, setMachineDetailsModalOpen] = useState(false);
 
+  // Add this state near your other state declarations
+  const [warehouseLocations, setWarehouseLocations] = useState([]);
+
   //sub categroy
   const [modal_add_sub, setModalAddSub] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -58,6 +75,7 @@ const ManufacturingVariable = () => {
     subcategoryId: "",
     name: "",
     hourlyRate: "",
+    wareHouse: "",
   });
   const [lastUsedId, setLastUsedId] = useState("");
 
@@ -66,6 +84,7 @@ const ManufacturingVariable = () => {
     categoryId: "",
     name: "",
     hourlyrate: "",
+    wareHouse: "",
   });
 
   // Toggles for modals
@@ -79,6 +98,7 @@ const ManufacturingVariable = () => {
         subcategoryId: item.subcategoryId,
         name: item.name,
         hourlyRate: item.hourlyRate,
+        wareHouse: item.wareHouse,
       });
       setEditingSubId(item._id); // Set the ID of the item being edited
     } else {
@@ -86,6 +106,7 @@ const ManufacturingVariable = () => {
         subcategoryId: "",
         name: "",
         hourlyRate: "",
+        wareHouse: "",
       });
       setEditingSubId(null); // Reset the ID if no item is selected
     }
@@ -117,6 +138,7 @@ const ManufacturingVariable = () => {
         categoryId: item.categoryId,
         name: item.name,
         hourlyrate: item.hourlyrate,
+        wareHouse: item.wareHouse,
       });
       setEditId(item._id); // Set the ID of the item being edited
     } else {
@@ -124,6 +146,7 @@ const ManufacturingVariable = () => {
         categoryId: "",
         name: "",
         hourlyrate: "",
+        wareHouse: "",
       });
       setEditId(null); // Reset the ID if no item is selected
     }
@@ -166,6 +189,38 @@ const ManufacturingVariable = () => {
       return [];
     }
   };
+
+  // Add this useEffect to fetch warehouse locations when component mounts
+  useEffect(() => {
+    const fetchWarehouseLocations = async () => {
+      try {
+        const response = await fetch(
+          `${process.env.REACT_APP_BASE_URL}/api/storesVariable`
+        );
+        if (!response.ok)
+          throw new Error("Failed to fetch warehouse locations");
+        const data = await response.json();
+
+        // Extract all unique locations from all stores
+        const locations = data.reduce((acc, store) => {
+          if (store.location && store.location.length > 0) {
+            store.location.forEach((loc) => {
+              if (!acc.includes(loc)) {
+                acc.push(loc);
+              }
+            });
+          }
+          return acc;
+        }, []);
+
+        setWarehouseLocations(locations);
+      } catch (error) {
+        console.error("Error fetching warehouse locations:", error);
+      }
+    };
+
+    fetchWarehouseLocations();
+  }, []);
 
   const fetchManufacturing = useCallback(async () => {
     setLoading(true);
@@ -362,7 +417,7 @@ const ManufacturingVariable = () => {
       setIsEditModalOpen(false); // Close the edit modal
 
       // Reset form
-      setSubFormData({ subcategoryId: "", name: "", hourlyRate: "" });
+      setSubFormData({ subcategoryId: "", name: "", hourlyRate: "", wareHouse: "", });
     } catch (error) {
       toast.error(error.message || "Failed to update machine"); // Error message
     } finally {
@@ -406,6 +461,7 @@ const ManufacturingVariable = () => {
         categoryId: "",
         name: "",
         hourlyrate: "",
+        wareHouse: "",
       });
     } catch (error) {
       setError(
@@ -458,6 +514,7 @@ const ManufacturingVariable = () => {
           categoryId: "",
           name: "",
           hourlyrate: "",
+          wareHouse: "",
         });
       } else {
         throw new Error("Network response was not ok");
@@ -677,6 +734,7 @@ const ManufacturingVariable = () => {
                                         <th>Machine ID</th>
                                         <th>Machine Name</th>
                                         <th>Hourly Rate (INR)</th>
+                                        <th>Warehouse</th>
                                         <th>Status</th>
                                         <th>Action</th>
                                       </tr>
@@ -710,6 +768,7 @@ const ManufacturingVariable = () => {
                                             <td>{subCategory.subcategoryId}</td>
                                             <td>{subCategory.name} </td>
                                             <td>{subCategory.hourlyRate}</td>
+                                            <td>{subCategory.wareHouse}</td>
 
                                             <td
                                               onClick={() =>
@@ -1048,12 +1107,7 @@ const ManufacturingVariable = () => {
         <ModalBody>
           <form className="tablelist-form" onSubmit={handleAddSub}>
             <div className="mb-3">
-              <label
-                for="subcategoryId"
-                htmlFor="id-field"
-                className="form-label"
-              >
-                {" "}
+              <label htmlFor="subcategoryId" className="form-label">
                 Machine ID
               </label>
               <input
@@ -1068,9 +1122,8 @@ const ManufacturingVariable = () => {
               />
             </div>
 
-            {/* </FormGroup> */}
             <div className="mb-3">
-              <label for="name" htmlFor="id-field" className="form-label">
+              <label htmlFor="name" className="form-label">
                 Machine Name
               </label>
               <input
@@ -1086,7 +1139,7 @@ const ManufacturingVariable = () => {
             </div>
 
             <div className="mb-3">
-              <label for="hourlyRate" htmlFor="id-field" className="form-label">
+              <label htmlFor="hourlyRate" className="form-label">
                 Machine Hourly Rate
               </label>
               <input
@@ -1098,6 +1151,33 @@ const ManufacturingVariable = () => {
                 placeholder="Enter Machines Hourly Rate"
                 onChange={handleSubChange}
                 required
+              />
+            </div>
+
+            <div className="mb-3">
+              <label htmlFor="wareHouse" className="form-label">
+                Warehouse Location
+              </label>
+              <Autocomplete
+                options={warehouseLocations}
+                value={subFormData.wareHouse}
+                onChange={(event, newValue) => {
+                  setSubFormData(prev => ({
+                    ...prev,
+                    wareHouse: newValue || ""
+                  }));
+                }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    placeholder="Select warehouse location"
+                    required
+                    size="small"
+                    fullWidth
+                  />
+                )}
+                size="small"
+                fullWidth
               />
             </div>
           </form>
@@ -1154,6 +1234,32 @@ const ManufacturingVariable = () => {
                 value={subFormData.hourlyRate}
                 onChange={handleSubChange}
                 required
+              />
+            </div>
+            <div className="mb-3">
+              <label htmlFor="wareHouse" className="form-label">
+                Warehouse Location
+              </label>
+              <Autocomplete
+                options={warehouseLocations}
+                value={subFormData.wareHouse}
+                onChange={(event, newValue) => {
+                  setSubFormData(prev => ({
+                    ...prev,
+                    wareHouse: newValue || ""
+                  }));
+                }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    placeholder="Select warehouse location"
+                    required
+                    size="small"
+                    fullWidth
+                  />
+                )}
+                size="small"
+                fullWidth
               />
             </div>
             <ModalFooter>
