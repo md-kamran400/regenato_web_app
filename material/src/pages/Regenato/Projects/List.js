@@ -873,11 +873,11 @@ const List = () => {
                   <th className="child_parts">Total Cost (INR)</th>
                   <th className="child_parts">Total Hour</th>
                   <th className="child_parts">Status</th>
-                  {manufacturingData?.map((item) => (
+                  {/* {manufacturingData?.map((item) => (
                     <th key={item._id} className="child_parts">
                       {item.name}
                     </th>
-                  ))}
+                  ))} */}
                   <th className="sticky-col">Actions</th>
                 </tr>
               </thead>
@@ -906,7 +906,7 @@ const List = () => {
                     <td>{Math.ceil(item.costPerUnit)}</td>
                     <td>{formatTime(item.timePerUnit)}</td>
                     <td>{getStatus(item)}</td>
-                    {getMachineHoursCells(item)}
+                    {/* {getMachineHoursCells(item)} */}
 
                     <td className="sticky-col">
                       <UncontrolledDropdown direction="start">
@@ -952,7 +952,7 @@ const List = () => {
                   </tr>
                 ))}
               </tbody>
-              <tfoot>
+              {/* <tfoot>
                 <tr>
                   <td
                     className="sticky-col"
@@ -977,7 +977,7 @@ const List = () => {
                   ))}
                   <td className="sticky-col">--</td>
                 </tr>
-              </tfoot>
+              </tfoot> */}
             </table>
           </div>
         </div>
