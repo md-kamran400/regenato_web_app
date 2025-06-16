@@ -203,8 +203,8 @@ const ManufacturingVariable = () => {
 
         // Extract all unique locations from all stores
         const locations = data.reduce((acc, store) => {
-          if (store.location && store.location.length > 0) {
-            store.location.forEach((loc) => {
+          if (store.Name && store.Name.length > 0) {
+            store.Name.forEach((loc) => {
               if (!acc.includes(loc)) {
                 acc.push(loc);
               }
