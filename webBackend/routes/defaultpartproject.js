@@ -895,6 +895,176 @@ partproject.get(
   }
 );
 
+// partproject.post(
+//   "/projects/:projectId/partsLists/:partsListId/partsListItems/:partListItemId/allocations/:processId/allocations/:allocationId/dailyTracking",
+//   async (req, res) => {
+//     try {
+//       const {
+//         projectId,
+//         partsListId,
+//         partListItemId,
+//         processId,
+//         allocationId,
+//       } = req.params;
+//       const { date, planned, produced, operator, dailyStatus } = req.body;
+
+//       if (!date || produced === undefined) {
+//         return res
+//           .status(400)
+//           .json({ error: "Date and produced quantity are required" });
+//       }
+
+//       const project = await PartListProjectModel.findById(projectId);
+//       if (!project) return res.status(404).json({ error: "Project not found" });
+
+//       const partsList = project.partsLists.id(partsListId);
+//       if (!partsList)
+//         return res.status(404).json({ error: "Parts List not found" });
+
+//       const partItem = partsList.partsListItems.id(partListItemId);
+//       if (!partItem)
+//         return res.status(404).json({ error: "Part List Item not found" });
+
+//       const process = partItem.allocations.id(processId);
+//       if (!process) return res.status(404).json({ error: "Process not found" });
+
+//       const allocation = process.allocations.id(allocationId);
+//       if (!allocation)
+//         return res.status(404).json({ error: "Allocation not found" });
+
+//       // Validate and calculate daily planned quantity with proper safeguards
+//       const shiftTotalTime = allocation.shiftTotalTime || 510; // Default to 8.5 hours in minutes (510 minutes)
+//       const perMachinetotalTime = allocation.perMachinetotalTime || 1; // Prevent division by zero
+//       const plannedQuantity = allocation.plannedQuantity || 0;
+
+//       let dailyPlannedQty;
+//       if (perMachinetotalTime <= 0) {
+//         // If invalid time per unit, fallback to planned quantity
+//         dailyPlannedQty = plannedQuantity;
+//       } else {
+//         // Calculate based on shift time and time per unit
+//         dailyPlannedQty = Math.floor(shiftTotalTime / perMachinetotalTime);
+//       }
+
+//       // Ensure we have at least 1 as minimum value
+//       dailyPlannedQty = Math.max(1, dailyPlannedQty);
+//       allocation.dailyPlannedQty = dailyPlannedQty;
+
+//       // Add or update daily tracking
+//       const existingEntryIndex = allocation.dailyTracking.findIndex(
+//         (e) => new Date(e.date).toISOString() === new Date(date).toISOString()
+//       );
+
+//       const trackingEntry = {
+//         date,
+//         planned: dailyPlannedQty, // Use the calculated value
+//         produced: Number(produced),
+//         operator,
+//         dailyStatus: dailyStatus || 
+//           (produced > dailyPlannedQty ? "Ahead" : 
+//            produced < dailyPlannedQty ? "Delayed" : "On Track")
+//       };
+
+//       if (existingEntryIndex >= 0) {
+//         allocation.dailyTracking[existingEntryIndex] = trackingEntry;
+//       } else {
+//         allocation.dailyTracking.push(trackingEntry);
+//       }
+
+//       // Sort tracking entries by date
+//       allocation.dailyTracking.sort(
+//         (a, b) => new Date(a.date) - new Date(b.date)
+//       );
+
+//       // Fetch holidays
+//       const holidaysResponse = await axios.get(
+//         `${baseUrl}/api/eventScheduler/events`
+//       );
+//       const holidays = holidaysResponse.data
+//         .filter((event) => event.eventName === "HOLIDAY")
+//         .flatMap((event) => {
+//           const start = new Date(event.startDate);
+//           const end = new Date(event.endDate);
+//           let current = new Date(start);
+//           const dates = [];
+//           while (current <= end) {
+//             dates.push(new Date(current));
+//             current.setDate(current.getDate() + 1);
+//           }
+//           return dates;
+//         });
+
+//       const isWorkingDay = (date) => {
+//         const dateObj = new Date(date);
+//         if (dateObj.getDay() === 0) return false; // Sunday
+//         const dateStr = dateObj.toISOString().split("T")[0];
+//         return !holidays.some(
+//           (holiday) =>
+//             new Date(holiday).toISOString().split("T")[0] === dateStr
+//         );
+//       };
+
+//       // Calculate production progress
+//       const totalProduced = allocation.dailyTracking.reduce(
+//         (sum, entry) => sum + entry.produced,
+//         0
+//       );
+//       const remainingQuantity = Math.max(0, plannedQuantity - totalProduced);
+
+//       // Calculate actual end date
+//       let currentDate = new Date();
+//       if (remainingQuantity > 0) {
+//         let workingDaysNeeded = Math.ceil(remainingQuantity / dailyPlannedQty);
+//         let addedDays = 0;
+        
+//         while (addedDays < workingDaysNeeded) {
+//           currentDate.setDate(currentDate.getDate() + 1);
+//           if (isWorkingDay(currentDate)) {
+//             addedDays++;
+//           }
+//         }
+//       }
+
+//       allocation.actualEndDate = currentDate;
+
+//       // Save with validation
+//       try {
+//         await project.save();
+//       } catch (saveError) {
+//         console.error("Validation error on save:", saveError);
+//         return res.status(400).json({
+//           error: "Validation failed",
+//           details: saveError.message,
+//           allocation: {
+//             shiftTotalTime: allocation.shiftTotalTime,
+//             perMachinetotalTime: allocation.perMachinetotalTime,
+//             dailyPlannedQty: allocation.dailyPlannedQty
+//           }
+//         });
+//       }
+
+//       res.status(201).json({
+//         message: "Daily tracking updated successfully",
+//         data: {
+//           dailyPlannedQty,
+//           totalProduced,
+//           remainingQuantity,
+//           actualEndDate: allocation.actualEndDate
+//         },
+//         allocation
+//       });
+//     } catch (error) {
+//       console.error("Error in daily tracking:", error);
+//       res.status(500).json({
+//         error: "Server error",
+//         details: error.message,
+//         stack: process.env.NODE_ENV === "development" ? error.stack : undefined
+//       });
+//     }
+//   }
+// );
+
+// Update the POST route for daily tracking
 partproject.post(
   "/projects/:projectId/partsLists/:partsListId/partsListItems/:partListItemId/allocations/:processId/allocations/:allocationId/dailyTracking",
   async (req, res) => {
@@ -906,7 +1076,7 @@ partproject.post(
         processId,
         allocationId,
       } = req.params;
-      const { date, planned, produced, operator, dailyStatus } = req.body;
+      const { date, planned, produced, operator, dailyStatus, wareHouseTotalQty, wareHouseremainingQty } = req.body;
 
       if (!date || produced === undefined) {
         return res
@@ -932,37 +1102,36 @@ partproject.post(
       if (!allocation)
         return res.status(404).json({ error: "Allocation not found" });
 
-      // Validate and calculate daily planned quantity with proper safeguards
-      const shiftTotalTime = allocation.shiftTotalTime || 510; // Default to 8.5 hours in minutes (510 minutes)
-      const perMachinetotalTime = allocation.perMachinetotalTime || 1; // Prevent division by zero
+      // Calculate daily planned quantity
+      const shiftTotalTime = allocation.shiftTotalTime || 510;
+      const perMachinetotalTime = allocation.perMachinetotalTime || 1;
       const plannedQuantity = allocation.plannedQuantity || 0;
 
       let dailyPlannedQty;
       if (perMachinetotalTime <= 0) {
-        // If invalid time per unit, fallback to planned quantity
         dailyPlannedQty = plannedQuantity;
       } else {
-        // Calculate based on shift time and time per unit
         dailyPlannedQty = Math.floor(shiftTotalTime / perMachinetotalTime);
       }
 
-      // Ensure we have at least 1 as minimum value
       dailyPlannedQty = Math.max(1, dailyPlannedQty);
       allocation.dailyPlannedQty = dailyPlannedQty;
 
-      // Add or update daily tracking
+      // Add or update daily tracking with warehouse quantities
       const existingEntryIndex = allocation.dailyTracking.findIndex(
         (e) => new Date(e.date).toISOString() === new Date(date).toISOString()
       );
 
       const trackingEntry = {
         date,
-        planned: dailyPlannedQty, // Use the calculated value
+        planned: dailyPlannedQty,
         produced: Number(produced),
         operator,
         dailyStatus: dailyStatus || 
           (produced > dailyPlannedQty ? "Ahead" : 
-           produced < dailyPlannedQty ? "Delayed" : "On Track")
+           produced < dailyPlannedQty ? "Delayed" : "On Track"),
+        wareHouseTotalQty: Number(wareHouseTotalQty) || 0,
+        wareHouseremainingQty: Number(wareHouseremainingQty) || 0
       };
 
       if (existingEntryIndex >= 0) {
@@ -971,85 +1140,25 @@ partproject.post(
         allocation.dailyTracking.push(trackingEntry);
       }
 
-      // Sort tracking entries by date
       allocation.dailyTracking.sort(
         (a, b) => new Date(a.date) - new Date(b.date)
       );
 
-      // Fetch holidays
-      const holidaysResponse = await axios.get(
-        `${baseUrl}/api/eventScheduler/events`
-      );
-      const holidays = holidaysResponse.data
-        .filter((event) => event.eventName === "HOLIDAY")
-        .flatMap((event) => {
-          const start = new Date(event.startDate);
-          const end = new Date(event.endDate);
-          let current = new Date(start);
-          const dates = [];
-          while (current <= end) {
-            dates.push(new Date(current));
-            current.setDate(current.getDate() + 1);
-          }
-          return dates;
-        });
+      // Rest of your existing logic for calculating actualEndDate...
 
-      const isWorkingDay = (date) => {
-        const dateObj = new Date(date);
-        if (dateObj.getDay() === 0) return false; // Sunday
-        const dateStr = dateObj.toISOString().split("T")[0];
-        return !holidays.some(
-          (holiday) =>
-            new Date(holiday).toISOString().split("T")[0] === dateStr
-        );
-      };
-
-      // Calculate production progress
-      const totalProduced = allocation.dailyTracking.reduce(
-        (sum, entry) => sum + entry.produced,
-        0
-      );
-      const remainingQuantity = Math.max(0, plannedQuantity - totalProduced);
-
-      // Calculate actual end date
-      let currentDate = new Date();
-      if (remainingQuantity > 0) {
-        let workingDaysNeeded = Math.ceil(remainingQuantity / dailyPlannedQty);
-        let addedDays = 0;
-        
-        while (addedDays < workingDaysNeeded) {
-          currentDate.setDate(currentDate.getDate() + 1);
-          if (isWorkingDay(currentDate)) {
-            addedDays++;
-          }
-        }
-      }
-
-      allocation.actualEndDate = currentDate;
-
-      // Save with validation
-      try {
-        await project.save();
-      } catch (saveError) {
-        console.error("Validation error on save:", saveError);
-        return res.status(400).json({
-          error: "Validation failed",
-          details: saveError.message,
-          allocation: {
-            shiftTotalTime: allocation.shiftTotalTime,
-            perMachinetotalTime: allocation.perMachinetotalTime,
-            dailyPlannedQty: allocation.dailyPlannedQty
-          }
-        });
-      }
+      await project.save();
 
       res.status(201).json({
         message: "Daily tracking updated successfully",
         data: {
           dailyPlannedQty,
-          totalProduced,
-          remainingQuantity,
-          actualEndDate: allocation.actualEndDate
+          totalProduced: allocation.dailyTracking.reduce(
+            (sum, entry) => sum + entry.produced, 0),
+          remainingQuantity: Math.max(0, plannedQuantity - 
+            allocation.dailyTracking.reduce((sum, entry) => sum + entry.produced, 0)),
+          actualEndDate: allocation.actualEndDate,
+          wareHouseTotalQty: trackingEntry.wareHouseTotalQty,
+          wareHouseremainingQty: trackingEntry.wareHouseremainingQty
         },
         allocation
       });
@@ -1057,8 +1166,7 @@ partproject.post(
       console.error("Error in daily tracking:", error);
       res.status(500).json({
         error: "Server error",
-        details: error.message,
-        stack: process.env.NODE_ENV === "development" ? error.stack : undefined
+        details: error.message
       });
     }
   }
