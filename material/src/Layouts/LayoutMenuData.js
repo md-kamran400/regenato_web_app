@@ -12,6 +12,14 @@ const navdata = (userRole = "guest") => {
       label: "Plan",
       link: "/regenato-allocation-plan",
       icon: "fa fa-wrench",
+      children: [
+        {
+              id: "ware House",
+              label: "ware House",
+              link: "/regenato-wareHouse-plan",
+              icon: "fa fa-list",
+        },
+      ]
     },
     variables: {
       id: "variables",

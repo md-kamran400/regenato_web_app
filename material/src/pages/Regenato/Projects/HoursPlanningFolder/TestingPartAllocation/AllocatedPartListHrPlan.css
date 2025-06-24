@@ -43,3 +43,8 @@
   background-color: #f8f9fa !important;
   cursor: not-allowed !important;
 }
+
+
+.date-form-control{
+  width: 62rem;
+}
