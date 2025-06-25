@@ -315,7 +315,7 @@ const StoresVariable = () => {
         size="m"
       >
         <ModalHeader toggle={() => setModalOpen(!modalOpen)}>
-          <h5 className="modal-title">Add Store</h5>
+          <h5 className="modal-title">Add Warehouse</h5>
         </ModalHeader>
         <ModalBody>
           <form onSubmit={handleSubmit}>
@@ -388,7 +388,7 @@ const StoresVariable = () => {
         size="m"
       >
         <ModalHeader toggle={() => setEditModalOpen(!editModalOpen)}>
-          <h5 className="modal-title">Edit Store</h5>
+          <h5 className="modal-title">Edit Warehouse</h5>
         </ModalHeader>
         <ModalBody>
           <form onSubmit={handleUpdate}>
