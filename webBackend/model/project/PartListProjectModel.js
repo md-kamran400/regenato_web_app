@@ -50,6 +50,9 @@ const AllocationPlanningSchema = new mongoose.Schema(
           type: String,
           required: true,
         },
+        wareHouse:{
+          type: String,
+        },
         shift: {
           type: String,
           required: true,
@@ -100,6 +103,12 @@ const AllocationPlanningSchema = new mongoose.Schema(
             dailyStatus: {
               type: String,
             },
+            wareHouseTotalQty:{
+              type: Number,
+            },
+            wareHouseremainingQty:{
+              type:Number,
+            }
           },
         ],
       },

@@ -40,6 +40,7 @@ import OpearatorCapecity from "../pages/Regenato/Capecity/OpearatorCapecity";
 import TimePage from "../pages/Regenato/ProcessTImeline/PageTime";
 import OperatorTime from "../pages/Regenato/ProcessTImeline/OperatorTimeline/OperatorTime";
 import AllocationPlan from "../pages/Regenato/AllocationPlan/AllocationPlan";
+import WareHouseAllocation from "../pages/Regenato/AllocationPlan/WareHouseAllocation";
 // import ProjectSection from "../pages/Regenato/Projects/ProjectSection";
 
 // Auth
@@ -105,9 +106,10 @@ const publicRoutes = [
   { path: "/regenato-user-management", component: <UserHandle /> },
 
   { path: "/regenato-allocation-plan", component: <AllocationPlan /> }, ///regenato-allocation-plan
+  {path:'/regenato-wareHouse-plan', component: <WareHouseAllocation/>},
 
   // allocation Page;
-  { path: "/regenato-allocation", component: <AllocationPage /> },
+  { path: "/regenato-allocation", components: <AllocationPage /> },
   // { path: "/regenato-allocation/:_id", component: <AllocationList /> },
 
   {

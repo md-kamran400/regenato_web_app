@@ -18,6 +18,10 @@ import { toast } from "react-toastify";
 import DatePicker from "react-datepicker";
 import "../TestingPartAllocation/AllocatedPartListHrPlan.css";
 import moment from "moment";
+import { IoIosCheckmarkCircleOutline } from "react-icons/io";
+import { CiCircleInfo } from "react-icons/ci";
+import { FaArrowUp, FaArrowDown } from "react-icons/fa";
+
 export const AllocatedPartListHrPlan = ({
   porjectID,
   partID,
@@ -42,8 +46,13 @@ export const AllocatedPartListHrPlan = ({
       operator: "",
     },
   ]);
+  const [warehouseQuantities, setWarehouseQuantities] = useState({
+    total: 200,
+    remaining: 200,
+  });
   const [completeConfirmationModal, setCompleteConfirmationModal] =
     useState(false);
+  const [updateConfirmationModal, setUpdateConfirmationModal] = useState(false);
   const [completeProcess, setCompleteProcess] = useState(false);
   const [completingAllocation, setCompletingAllocation] = useState(false);
   const [completingprocess, setCompletingprocess] = useState(false);
@@ -55,7 +64,10 @@ export const AllocatedPartListHrPlan = ({
   const [highlightDates, setHighlightDates] = useState([]);
 
   const [disableDates, setDisableDates] = useState([]);
-
+  const [warehouseChanges, setWarehouseChanges] = useState({
+    fromWarehouseChange: 0,
+    toWarehouseChange: 0,
+  });
   useEffect(() => {
     const disableDatesArray = [];
     if (highlightDates.length > 0) {
@@ -163,7 +175,8 @@ export const AllocatedPartListHrPlan = ({
                 if (perMachinetotalTime <= 0) {
                   dailyPlannedQty = plannedQuantity; // Fallback if invalid time per unit
                 } else {
-                  const totalTimeRequired = plannedQuantity * perMachinetotalTime;
+                  const totalTimeRequired =
+                    plannedQuantity * perMachinetotalTime;
                   dailyPlannedQty =
                     totalTimeRequired <= shiftTotalTime
                       ? plannedQuantity // Can complete in one day
@@ -176,6 +189,7 @@ export const AllocatedPartListHrPlan = ({
                   startDate: moment(allocation.startDate).format("DD MMM YYYY"),
                   endDate: moment(allocation.endDate).format("DD MMM YYYY"),
                   machineId: allocation.machineId,
+                  wareHouse: allocation?.wareHouse || "N/A",
                   shift: allocation.shift,
                   plannedTime: `${allocation.plannedTime} min`,
                   operator: allocation.operator,
@@ -189,6 +203,7 @@ export const AllocatedPartListHrPlan = ({
             };
           });
           setSections(formattedSections);
+          console.log(setSections);
         }
       } catch (error) {
         setError("Failed to fetch allocations. Please try again later.");
@@ -219,10 +234,28 @@ export const AllocatedPartListHrPlan = ({
   };
 
   const openModal = async (section, row) => {
-    console.log("Row Data:", row); // Debugging: Check if actualEndDate is present
     setSelectedSection({
       ...section,
       data: [row], // Pass the specific row data
+    });
+
+    // Calculate remaining quantity based on previous processes
+    const currentIndex = sections.findIndex(
+      (s) => s.allocationId === section.allocationId
+    );
+    let currentTotal = 200; // Start with initial total
+
+    // Sum up planned quantities from previous processes
+    for (let i = 0; i < currentIndex; i++) {
+      const prevSection = sections[i];
+      if (prevSection.data && prevSection.data.length > 0) {
+        currentTotal -= prevSection.data[0].dailyPlannedQty || 0;
+      }
+    }
+
+    setWarehouseQuantities({
+      total: currentTotal,
+      remaining: currentTotal - (row.dailyPlannedQty || 0),
     });
 
     setDailyTracking([
@@ -259,26 +292,75 @@ export const AllocatedPartListHrPlan = ({
     setAddRowModal(false);
   };
 
+  // const handleDailyTrackingChange = (index, field, value) => {
+  //   if (field === "produced") {
+  //     const remainingQty = calculateRemainingQuantity();
+  //     const numericValue = Number(value) || 0;
+
+  //     // If the new value exceeds remaining quantity
+  //     if (numericValue > remainingQty) {
+  //       toast.error(
+  //         `Produced quantity cannot exceed remaining quantity (${remainingQty})`
+  //       );
+
+  //       // Keep the previous value (don't update the state)
+  //       return;
+  //     }
+  //   }
+
+  //   setDailyTracking((prev) => {
+  //     const updated = [...prev];
+
+  //     // SAFETY CHECK
+  //     if (!updated[index]) {
+  //       console.warn(`Index ${index} is undefined`);
+  //       return prev;
+  //     }
+
+  //     updated[index][field] = value;
+
+  //     if (field === "produced") {
+  //       const produced = Number(value) || 0;
+  //       const planned =
+  //         Number(updated[index].planned) ||
+  //         Number(selectedSection?.data[0]?.dailyPlannedQty) ||
+  //         0;
+
+  //       if (produced === planned) {
+  //         updated[index].dailyStatus = "On Track";
+  //       } else if (produced > planned) {
+  //         updated[index].dailyStatus = "Ahead";
+  //       } else {
+  //         updated[index].dailyStatus = "Delayed";
+  //       }
+  //     }
+
+  //     return updated;
+  //   });
+  // };
+
   const handleDailyTrackingChange = (index, field, value) => {
     if (field === "produced") {
       const remainingQty = calculateRemainingQuantity();
       const numericValue = Number(value) || 0;
 
-      // If the new value exceeds remaining quantity
       if (numericValue > remainingQty) {
         toast.error(
           `Produced quantity cannot exceed remaining quantity (${remainingQty})`
         );
-
-        // Keep the previous value (don't update the state)
         return;
       }
+
+      // Calculate warehouse changes
+      setWarehouseChanges({
+        fromWarehouseChange: -numericValue,
+        toWarehouseChange: numericValue,
+      });
     }
 
     setDailyTracking((prev) => {
       const updated = [...prev];
 
-      // SAFETY CHECK
       if (!updated[index]) {
         console.warn(`Index ${index} is undefined`);
         return prev;
@@ -334,31 +416,10 @@ export const AllocatedPartListHrPlan = ({
         return;
       }
 
-      const shiftTotalTime = selectedSection.data[0].shiftTotalTime || 510;
-      const perMachinetotalTime =
-        selectedSection.data[0].perMachinetotalTime || 1;
-      const plannedQuantity = selectedSection.data[0].plannedQty || 0;
-
-      let calculatedDailyPlannedQty;
-      if (perMachinetotalTime <= 0) {
-        calculatedDailyPlannedQty = plannedQuantity;
-      } else {
-        const totalTimeRequired = plannedQuantity * perMachinetotalTime;
-        calculatedDailyPlannedQty =
-          totalTimeRequired <= shiftTotalTime
-            ? plannedQuantity
-            : Math.floor(shiftTotalTime / perMachinetotalTime);
-      }
-
       const trackingData = {
         ...dailyTracking[0],
-        planned: calculatedDailyPlannedQty,
-        dailyStatus:
-          dailyTracking[0].produced < calculatedDailyPlannedQty
-            ? "Delayed"
-            : dailyTracking[0].produced > calculatedDailyPlannedQty
-            ? "Ahead"
-            : "On Track",
+        wareHouseTotalQty: warehouseQuantities.total,
+        wareHouseremainingQty: warehouseQuantities.remaining,
       };
 
       const response = await axios.post(
@@ -379,30 +440,11 @@ export const AllocatedPartListHrPlan = ({
       setExistingDailyTracking(updatedResponse.data.dailyTracking || []);
       setactulEndDateData(updatedResponse.data);
 
-      // ✅ FIX: Update actual end date in modal UI
-      const updatedActualEndDate = updatedResponse.data.actualEndDate;
-      if (updatedActualEndDate) {
-        setSelectedSection((prevSection) => {
-          if (!prevSection || !prevSection.data || !prevSection.data[0])
-            return prevSection;
-
-          const updatedData = [...prevSection.data];
-          updatedData[0] = {
-            ...updatedData[0],
-            actualEndDate: updatedActualEndDate,
-          };
-
-          return {
-            ...prevSection,
-            data: updatedData,
-          };
-        });
-      }
-
+      // Reset the form
       setDailyTracking([
         {
           date: "",
-          planned: calculatedDailyPlannedQty,
+          planned: selectedSection.data[0].dailyPlannedQty || 0,
           produced: 0,
           dailyStatus: "On Track",
           operator: selectedSection.data[0].operator || "",
@@ -561,7 +603,7 @@ export const AllocatedPartListHrPlan = ({
         toast.error("No process selected for completion");
         return;
       }
-  
+
       const response = await axios.put(
         `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/items/${partListItemId}/complete-process`,
         {
@@ -569,10 +611,10 @@ export const AllocatedPartListHrPlan = ({
           trackingId: selectedSection.data[0]?.trackingId,
         }
       );
-  
+
       if (response.status === 200) {
         toast.success("Process marked as completed!");
-        
+
         // Close the modal first
         setCompleteProcess(false);
         setSelectedSection(null);
@@ -689,7 +731,9 @@ export const AllocatedPartListHrPlan = ({
                               const isProcessCompleted = row.isProcessCompleted;
                               return (
                                 <Button
-                                  color={isProcessCompleted ? "secondary" : "success"}
+                                  color={
+                                    isProcessCompleted ? "secondary" : "success"
+                                  }
                                   onClick={() => {
                                     if (!isProcessCompleted) {
                                       setSelectedSection({
@@ -701,11 +745,13 @@ export const AllocatedPartListHrPlan = ({
                                   }}
                                   disabled={isProcessCompleted}
                                 >
-                                  {isProcessCompleted ? "Completed" : "Complete Process"}
+                                  {isProcessCompleted
+                                    ? "Completed"
+                                    : "Complete Process"}
                                 </Button>
                               );
                             }
-                            
+
                             return (
                               <Button
                                 color="primary"
@@ -763,75 +809,215 @@ export const AllocatedPartListHrPlan = ({
         style={{ maxWidth: "80vw" }}
       >
         <ModalHeader toggle={() => setDailyTaskModal(false)}>
-          {/* Update Daily Tracking -  {selectedSection?.title}  */}
-          Update Daily Tracking -- {selectedSection?.title} - (Machine ID:{" "}
-          {selectedSection?.data[0]?.machineId || "N/A"})
+          Update Input
         </ModalHeader>
 
-        <ModalBody>
-          {selectedSection && (
-            <>
-              <Row className="mb-3">
-                <Col>
-                  <span style={{ fontWeight: "bold" }}>Total Quantity: </span>
-                  <span>{selectedSection.data[0].plannedQty}</span>
-                </Col>
-                <Col>
-                  <span style={{ fontWeight: "bold" }}>
-                    Daily Planned Quantity:{" "}
-                  </span>
-                  <span>{selectedSection.data[0].dailyPlannedQty}</span>
-                </Col>
-                <Col>
-                  <span style={{ fontWeight: "bold" }}>
-                    Remaining Produce Quantity:{" "}
-                  </span>
-                  <span>{calculateRemainingQuantity()}</span>
-                </Col>
-              </Row>
+        <Container
+          style={{
+            backgroundColor: "#f5f5f5",
+            padding: "20px",
+            borderRadius: "8px",
+            marginTop: "10px",
+          }}
+        >
+          <h4
+            style={{
+              fontWeight: "600",
+              marginBottom: "20px",
+              fontSize: "18px",
+              color: "#2d3748",
+            }}
+          >
+            Machine Information
+          </h4>
 
-              <Row className="mb-3">
-                <Col>
-                  <span style={{ fontWeight: "bold" }}>Start Date: </span>
-                  <span>
-                    {moment(selectedSection.data[0].startDate).format(
-                      "DD MMM YYYY"
-                    )}
-                  </span>
-                </Col>
-                <Col>
-                  <span style={{ fontWeight: "bold" }}>Plan End Date: </span>
-                  <span>
-                    {moment(selectedSection.data[0].endDate).format(
-                      "DD MMM YYYY"
-                    )}
-                  </span>
-                </Col>
+          <Row>
+            <Col md={6}>
+              <h5
+                style={{
+                  fontWeight: "500",
+                  fontSize: "15px",
+                  color: "#4a5568",
+                  marginBottom: "8px",
+                }}
+              >
+                Process
+              </h5>
+              <div style={{ fontSize: "14px" }}>
+                {selectedSection?.title || "N/A"} - (Machine ID:{" "}
+                {selectedSection?.data?.[0]?.machineId || "N/A"})
+              </div>
+            </Col>
 
-                <Col>
-                  <span style={{ fontWeight: "bold" }}>Actual End Date: </span>
+            <Col md={6}>
+              <h5
+                style={{
+                  fontWeight: "500",
+                  fontSize: "15px",
+                  color: "#4a5568",
+                  marginBottom: "8px",
+                }}
+              >
+                Operator
+              </h5>
+              <p style={{ fontSize: "14px", marginBottom: 0 }}>
+                {selectedSection?.data?.[0]?.operator || "N/A"}
+              </p>
+            </Col>
+          </Row>
+        </Container>
+
+        {selectedSection?.data?.[0] && (
+          <Container
+            style={{
+              backgroundColor: "#eff6ff",
+              padding: "20px",
+              borderRadius: "8px",
+              marginTop: "15px",
+            }}
+          >
+            <h4
+              style={{
+                fontWeight: "600",
+                marginBottom: "20px",
+                fontSize: "18px",
+                color: "#2d3748",
+              }}
+            >
+              Production Plan
+            </h4>
+
+            <Row className="mb-3">
+              <Col md={3}>
+                <div style={{ display: "flex", flexDirection: "column" }}>
+                  <h5
+                    style={{
+                      fontWeight: "500",
+                      fontSize: "15px",
+                      color: "#4a5568",
+                      marginBottom: "8px",
+                    }}
+                  >
+                    Total Quantity
+                  </h5>
+                  <span style={{ fontSize: "14px" }}>
+                    {selectedSection?.data?.[0]?.plannedQty || "N/A"}
+                  </span>
+                </div>
+              </Col>
+              <Col md={3}>
+                <div style={{ display: "flex", flexDirection: "column" }}>
+                  <h5
+                    style={{
+                      fontWeight: "500",
+                      fontSize: "15px",
+                      color: "#4a5568",
+                      marginBottom: "8px",
+                    }}
+                  >
+                    Daily Planned Quantity
+                  </h5>
+                  <span style={{ fontSize: "14px" }}>
+                    {selectedSection?.data?.[0]?.dailyPlannedQty || "N/A"}
+                  </span>
+                </div>
+              </Col>
+              <Col md={3}>
+                <div style={{ display: "flex", flexDirection: "column" }}>
+                  <h5
+                    style={{
+                      fontWeight: "500",
+                      fontSize: "15px",
+                      color: "#4a5568",
+                      marginBottom: "8px",
+                    }}
+                  >
+                    Remaining Quantity
+                  </h5>
+                  <span style={{ fontSize: "14px" }}>
+                    {calculateRemainingQuantity()}
+                  </span>
+                </div>
+              </Col>
+              <Col md={3}>
+                <div style={{ display: "flex", flexDirection: "column" }}>
+                  <h5
+                    style={{
+                      fontWeight: "500",
+                      fontSize: "15px",
+                      color: "#4a5568",
+                      marginBottom: "8px",
+                    }}
+                  >
+                    Start Date
+                  </h5>
+                  <span style={{ fontSize: "14px" }}>
+                    {selectedSection?.data?.[0]?.startDate
+                      ? moment(selectedSection.data[0].startDate).format(
+                          "DD MMM YYYY"
+                        )
+                      : "N/A"}
+                  </span>
+                </div>
+              </Col>
+            </Row>
+
+            <Row className="mb-3">
+              <Col md={3}>
+                <div style={{ display: "flex", flexDirection: "column" }}>
+                  <h5
+                    style={{
+                      fontWeight: "500",
+                      fontSize: "15px",
+                      color: "#4a5568",
+                      marginBottom: "8px",
+                    }}
+                  >
+                    Plan End Date
+                  </h5>
+                  <span style={{ fontSize: "14px" }}>
+                    {selectedSection?.data?.[0]?.endDate
+                      ? moment(selectedSection.data[0].endDate).format(
+                          "DD MMM YYYY"
+                        )
+                      : "N/A"}
+                  </span>
+                </div>
+              </Col>
+              <Col md={3}>
+                <div style={{ display: "flex", flexDirection: "column" }}>
+                  <h5
+                    style={{
+                      fontWeight: "500",
+                      fontSize: "15px",
+                      color: "#4a5568",
+                      marginBottom: "8px",
+                    }}
+                  >
+                    Actual End Date
+                  </h5>
                   <span
                     style={{
+                      fontSize: "14px",
                       fontWeight: "bold",
                       color: (() => {
-                        if (!actulEndDateData.actualEndDate) return "black";
+                        if (!actulEndDateData.actualEndDate) return "#2d3748";
 
                         const actualEndDate = new Date(
                           actulEndDateData.actualEndDate
                         );
                         const plannedEndDate = new Date(
-                          selectedSection.data[0].endDate
+                          selectedSection?.data?.[0]?.endDate
                         );
 
-                        // Compare dates directly (not working days)
                         if (
                           actualEndDate.getTime() === plannedEndDate.getTime()
                         ) {
-                          return "black";
+                          return "#2d3748";
                         } else if (actualEndDate > plannedEndDate) {
-                          return "red"; // Delayed
+                          return "#e53e3e"; // Red for delayed
                         } else {
-                          return "green"; // Completed early
+                          return "#38a169"; // Green for completed early
                         }
                       })(),
                     }}
@@ -840,65 +1026,194 @@ export const AllocatedPartListHrPlan = ({
                       ? moment(actulEndDateData.actualEndDate).format(
                           "DD MMM YYYY"
                         )
-                      : moment(selectedSection.data[0].endDate).format(
+                      : moment(selectedSection?.data?.[0]?.endDate).format(
                           "DD MMM YYYY"
                         )}
                   </span>
-                </Col>
-
-                {/* {process.env.NODE_ENV === "development" && ( */}
-                <div
-                  style={{
-                    marginTop: "20px",
-                    padding: "15px",
-                    borderRadius: "4px",
-                    display: "flex",
-                  }}
-                >
-                  <div>
-                    <p>
-                      <span style={{ fontWeight: "bold" }}>
-                        Tentative Days:
-                      </span>{" "}
-                      {actulEndDateData.actualEndDate ? (
-                        <span
-                          className={
-                            getWorkingDaysDifference(
-                              new Date(selectedSection.data[0].endDate),
-                              new Date(actulEndDateData.actualEndDate),
-                              highlightDates
-                            ) < 0
-                              ? "danger" // Red for negative numbers
-                              : "success" // Green for positive numbers
-                          }
-                        >
-                          {getWorkingDaysDifference(
-                            new Date(selectedSection.data[0].endDate),
+                </div>
+              </Col>
+              <Col md={3}>
+                <div style={{ display: "flex", flexDirection: "column" }}>
+                  <h5
+                    style={{
+                      fontWeight: "500",
+                      fontSize: "15px",
+                      color: "#4a5568",
+                      marginBottom: "8px",
+                    }}
+                  >
+                    Tentative Days
+                  </h5>
+                  <span style={{ fontSize: "14px" }}>
+                    {actulEndDateData.actualEndDate ? (
+                      <span
+                        className={
+                          getWorkingDaysDifference(
+                            new Date(selectedSection?.data?.[0]?.endDate),
                             new Date(actulEndDateData.actualEndDate),
                             highlightDates
-                          )}
-                        </span>
-                      ) : (
-                        "N/A"
-                      )}
-                    </p>
-                    <p>
-                      <strong>Total Produced:</strong>{" "}
-                      {existingDailyTracking.reduce(
-                        (sum, task) => sum + task.produced,
-                        0
-                      )}{" "}
-                      / {selectedSection.data[0].plannedQty}
-                    </p>
-                  </div>
+                          ) < 0
+                            ? "text-danger" // Red for negative numbers
+                            : "text-success" // Green for positive numbers
+                        }
+                      >
+                        {getWorkingDaysDifference(
+                          new Date(selectedSection?.data?.[0]?.endDate),
+                          new Date(actulEndDateData.actualEndDate),
+                          highlightDates
+                        )}
+                      </span>
+                    ) : (
+                      "N/A"
+                    )}
+                  </span>
                 </div>
-                {/* )} */}
-              </Row>
+              </Col>
+              <Col md={3}>
+                <div style={{ display: "flex", flexDirection: "column" }}>
+                  <h5
+                    style={{
+                      fontWeight: "500",
+                      fontSize: "15px",
+                      color: "#4a5568",
+                      marginBottom: "8px",
+                    }}
+                  >
+                    Total Produced
+                  </h5>
+                  <span style={{ fontSize: "14px" }}>
+                    {existingDailyTracking.reduce(
+                      (sum, task) => sum + task.produced,
+                      0
+                    )}{" "}
+                    / {selectedSection?.data?.[0]?.plannedQty || "N/A"}
+                  </span>
+                </div>
+              </Col>
+            </Row>
+          </Container>
+        )}
 
-              <div
-                className="d-flex justify-content-end"
-                style={{ marginBottom: "-3rem" }}
+        <Container fluid className="mt-2 px-0">
+          <Row className="mx-0">
+            <Col md={6} className="px-1">
+              <Container
+                style={{
+                  backgroundColor: "#fefce8",
+                  padding: "20px",
+                  borderRadius: "8px",
+                  marginTop: "10px",
+                  height: "100%",
+                  width: "95%",
+                }}
               >
+                <h4
+                  style={{
+                    fontWeight: "600",
+                    marginBottom: "20px",
+                    fontSize: "18px",
+                    color: "#2d3748",
+                  }}
+                >
+                  From Warehouse
+                </h4>
+
+                <Row>
+                  <Col md={6}>
+                    <h5
+                      style={{
+                        fontWeight: "500",
+                        fontSize: "15px",
+                        color: "#4a5568",
+                        marginBottom: "8px",
+                      }}
+                    >
+                      Warehouse Name
+                    </h5>
+                    <div style={{ fontSize: "14px" }}>
+                      {selectedSection?.data[0]?.wareHouse || "N/A"}
+                    </div>
+                  </Col>
+                </Row>
+                <Row className="mt-4">
+                  <Col md={6}>
+                    <h5
+                      style={{
+                        fontWeight: "500",
+                        fontSize: "15px",
+                        color: "#4a5568",
+                        marginBottom: "8px",
+                      }}
+                    >
+                      Total Quantity in Warehouse
+                    </h5>
+                    <p style={{ fontSize: "14px", marginBottom: 0 }}>300</p>
+                  </Col>
+                </Row>
+              </Container>
+            </Col>
+
+            <Col md={6} className="px-2">
+              <Container
+                style={{
+                  backgroundColor: "#f0fdf4",
+                  padding: "20px",
+                  borderRadius: "8px",
+                  marginTop: "10px",
+                  height: "100%",
+                  width: "95%",
+                }}
+              >
+                <h4
+                  style={{
+                    fontWeight: "600",
+                    marginBottom: "20px",
+                    fontSize: "18px",
+                    color: "#2d3748",
+                  }}
+                >
+                  To Warehouse
+                </h4>
+
+                <Row>
+                  <Col md={6}>
+                    <h5
+                      style={{
+                        fontWeight: "500",
+                        fontSize: "15px",
+                        color: "#4a5568",
+                        marginBottom: "8px",
+                      }}
+                    >
+                      Warehouse Name
+                    </h5>
+                    <div style={{ fontSize: "14px" }}>{"WareHouse-Floor2"}</div>
+                  </Col>
+                </Row>
+                <Row className="mt-4">
+                  <Col md={6}>
+                    <h5
+                      style={{
+                        fontWeight: "500",
+                        fontSize: "15px",
+                        color: "#4a5568",
+                        marginBottom: "8px",
+                      }}
+                    >
+                      Total Quantity in Warehouse
+                    </h5>
+                    <p style={{ fontSize: "14px", marginBottom: 0 }}>200</p>
+                  </Col>
+                </Row>
+              </Container>
+            </Col>
+          </Row>
+        </Container>
+        <ModalBody className="mt-3 p-1">
+          <div>
+            <div className="d-flex justify-content-between align-items-center mb-3">
+              <h5 style={{ margin: 0 }}>Previous Tracking Data</h5>
+              {selectedSection && (
                 <Button
                   color="primary"
                   onClick={openAddRowModal}
@@ -908,75 +1223,77 @@ export const AllocatedPartListHrPlan = ({
                 >
                   Add Daily Input
                 </Button>
-              </div>
-            </>
-          )}
-        </ModalBody>
-        <ModalHeader>Previous Tracking Data</ModalHeader>
-        <ModalBody>
-          <div className="table-responsive">
-            <table className="table table-striped vertical-lines horizontals-lines">
-              <thead style={{ backgroundColor: "#f3f4f6" }}>
-                <tr>
-                  <th>Date</th>
-                  <th>Planned</th>
-                  <th>Produced</th>
-                  <th>Status</th>
-                  <th>Operator</th>
-                </tr>
-              </thead>
-              <tbody>
-                {!existingDailyTracking.length ? (
+              )}
+            </div>
+
+            <div className="table-responsive">
+              <table className="table table-striped vertical-lines horizontals-lines">
+                <thead style={{ backgroundColor: "#f3f4f6" }}>
                   <tr>
-                    <td colSpan="5" className="text-center">
-                      No daily tracking data available
-                    </td>
+                    <th>Date</th>
+                    <th>Planned</th>
+                    <th>Produced</th>
+                    <th>Warehouse Total</th>
+                    <th>Warehouse Remaining</th>
+                    <th>Status</th>
+                    <th>Operator</th>
                   </tr>
-                ) : (
-                  existingDailyTracking.map((task, index) => (
-                    <tr key={index}>
-                      <td>{moment(task.date).format("DD MMM YYYY")}</td>
-                      <td>{task.planned}</td>
-                      <td>{task.produced}</td>
-                      <td>
-                        {task.dailyStatus === "On Track" ? (
-                          <span
-                            className="badge bg-primary-subtle text-primary"
-                            style={{ fontSize: "13px" }}
-                          >
-                            On Track
-                          </span>
-                        ) : task.dailyStatus === "Delayed" ? (
-                          <span
-                            className="badge bg-danger-subtle text-danger"
-                            style={{ fontSize: "13px" }}
-                          >
-                            Delayed
-                          </span>
-                        ) : task.dailyStatus === "Ahead" ? (
-                          <span
-                            className="badge bg-success-subtle text-success"
-                            style={{ fontSize: "13px" }}
-                          >
-                            Ahead
-                          </span>
-                        ) : task.dailyStatus === "Not Started" ||
-                          task.produced == null ||
-                          task.produced === 0 ? (
-                          <span
-                            className="badge bg-secondary-subtle text-secondary"
-                            style={{ fontSize: "13px" }}
-                          >
-                            Not Started
-                          </span>
-                        ) : null}
+                </thead>
+                <tbody>
+                  {!existingDailyTracking.length ? (
+                    <tr>
+                      <td colSpan="5" className="text-center">
+                        No daily tracking data available
                       </td>
-                      <td>{task.operator}</td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ) : (
+                    existingDailyTracking.map((task, index) => (
+                      <tr key={index}>
+                        <td>{moment(task.date).format("DD MMM YYYY")}</td>
+                        <td>{task.planned}</td>
+                        <td>{task.produced}</td>
+                        <td>{task.wareHouseTotalQty || "N/A"}</td>
+                        <td>{task.wareHouseremainingQty || "N/A"}</td>
+                        <td>
+                          {task.dailyStatus === "On Track" ? (
+                            <span
+                              className="badge bg-primary-subtle text-primary"
+                              style={{ fontSize: "13px" }}
+                            >
+                              On Track
+                            </span>
+                          ) : task.dailyStatus === "Delayed" ? (
+                            <span
+                              className="badge bg-danger-subtle text-danger"
+                              style={{ fontSize: "13px" }}
+                            >
+                              Delayed
+                            </span>
+                          ) : task.dailyStatus === "Ahead" ? (
+                            <span
+                              className="badge bg-success-subtle text-success"
+                              style={{ fontSize: "13px" }}
+                            >
+                              Ahead
+                            </span>
+                          ) : task.dailyStatus === "Not Started" ||
+                            task.produced == null ||
+                            task.produced === 0 ? (
+                            <span
+                              className="badge bg-secondary-subtle text-secondary"
+                              style={{ fontSize: "13px" }}
+                            >
+                              Not Started
+                            </span>
+                          ) : null}
+                        </td>
+                        <td>{task.operator}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </ModalBody>
       </Modal>
@@ -1007,11 +1324,15 @@ export const AllocatedPartListHrPlan = ({
       </Modal>
 
       {/* daily trackin modal */}
-      <Modal isOpen={addRowModal} toggle={closeAddRowModal} size="l">
-        <ModalHeader toggle={closeAddRowModal}>Add Daily Tracking</ModalHeader>
+      <Modal
+        isOpen={addRowModal}
+        toggle={closeAddRowModal}
+        style={{ maxWidth: "70vw" }}
+      >
+        <ModalHeader toggle={closeAddRowModal}>Add Input</ModalHeader>
         <ModalBody>
           <form>
-            <div className="form-group">
+            <div className="form-group" style={{ width: "100%" }}>
               <label>Date</label>
               <div>
                 <DatePicker
@@ -1022,7 +1343,7 @@ export const AllocatedPartListHrPlan = ({
                     handleDailyTrackingChange(0, "date", date);
                   }}
                   dateFormat="dd-MM-yyyy"
-                  className="form-control-date"
+                  className="form-control date-form-control"
                   placeholderText="DD-MM-YYYY"
                   minDate={new Date()}
                   maxDate={new Date()}
@@ -1031,7 +1352,8 @@ export const AllocatedPartListHrPlan = ({
                       (d) => d.toDateString() === date.toDateString()
                     );
                     const isSunday = date.getDay() === 0;
-                    const isToday = new Date().toDateString() === date.toDateString();
+                    const isToday =
+                      new Date().toDateString() === date.toDateString();
 
                     return !isHoliday && !isSunday && isToday;
                   }}
@@ -1049,104 +1371,586 @@ export const AllocatedPartListHrPlan = ({
               </div>
             </div>
 
-            {/* Planned and Produced Inputs in a Row */}
-            <div className="form-row" style={{ display: "flex", gap: "5px" }}>
-              <div className="form-group col-md-6">
-                <label>Planned</label>
-                <input
-                  type="number"
-                  className="form-control"
-                  value={
-                    dailyTracking[0]?.planned ||
-                    selectedSection?.data[0]?.dailyPlannedQty ||
-                    ""
-                  }
-                  readOnly
-                />
-              </div>
-
-              <div className="form-group col-md-6">
-                <label>
-                  Produced (Remaining: {calculateRemainingQuantity()})
-                </label>
-                <input
-                  type="number"
-                  className="form-control"
-                  value={
-                    dailyTracking.length > 0 ? dailyTracking[0].produced : ""
-                  }
-                  max={calculateRemainingQuantity()} // HTML max attribute
-                  onChange={(e) =>
-                    handleDailyTrackingChange(0, "produced", e.target.value)
-                  }
-                />
-              </div>
-            </div>
-
-            {/* Produced Status (Styled like an input) */}
-            {dailyTracking.length > 0 &&
-              dailyTracking[0].produced !== undefined &&
-              dailyTracking[0].planned !== undefined && (
-                <div className="form-group">
-                  <label>Status</label>
-                  <div
-                    className="form-control"
+            <div
+              className="form-row mt-4"
+              style={{ display: "flex", gap: "20px" }}
+            >
+              {/* Left side - Produced Quantity */}
+              <div style={{ flex: 1 }}>
+                <div
+                  style={{
+                    border: "2px solid #d6e9ff",
+                    backgroundColor: "#eff6ff",
+                    padding: "16px",
+                    borderRadius: "5px",
+                    height: "90%",
+                  }}
+                >
+                  <p
                     style={{
-                      backgroundColor: "#f8f9fa", // Light gray background
-                      border: "1px solid #ced4da", // Border like an input
-                      padding: "0.375rem 0.75rem", // Input padding
-                      borderRadius: "0.25rem", // Rounded corners like an input
-                      color: "#495057", // Text color
+                      marginBottom: "12px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "6px",
                     }}
                   >
-                    {(() => {
-                      const produced = Number(dailyTracking[0].produced) || 0;
-                      const planned = Number(dailyTracking[0].planned) || 0;
-
-                      if (produced === 0) {
-                        return (
-                          <span className="text-danger">
-                            Please Enter Produced Quantity
-                          </span>
-                        );
+                    <IoIosCheckmarkCircleOutline size={20} color="#4154e0" />
+                    <span
+                      style={{
+                        fontWeight: "800",
+                        fontSize: "18px",
+                        color: "#4154e0",
+                      }}
+                    >
+                      Produced Quantity
+                    </span>
+                  </p>
+                  <input
+                    type="number"
+                    className="form-control"
+                    value={
+                      dailyTracking.length > 0 ? dailyTracking[0].produced : ""
+                    }
+                    placeholder="Enter Produced Quantity"
+                    max={calculateRemainingQuantity()}
+                    onChange={(e) =>
+                      handleDailyTrackingChange(0, "produced", e.target.value)
+                    }
+                    onWheel={(e) => e.target.blur()}
+                    onKeyDown={(e) => {
+                      if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+                        e.preventDefault();
                       }
-
-                      if (Number(produced) === Number(planned)) {
-                        return <span className="text-primary">On Track</span>;
-                      } else if (produced > planned) {
-                        return <span className="text-success">Ahead</span>;
-                      } else if (produced < planned) {
-                        return <span className="text-danger">Delayed</span>;
-                      }
-
-                      return null;
-                    })()}
-                  </div>
+                    }}
+                    style={{
+                      width: "100%",
+                      padding: "8px",
+                      border: "2px solid #bfdbfe",
+                      borderRadius: "4px",
+                      backgroundColor: "#ffffff",
+                      marginBottom: "12px",
+                      boxSizing: "border-box",
+                      fontWeight: "bold",
+                      fontSize: "16px",
+                      color: "#1e3a8a",
+                    }}
+                  />
+                  <p
+                    style={{
+                      margin: "0",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      color: "#64748b",
+                      fontSize: "14px",
+                    }}
+                  >
+                    <CiCircleInfo size={18} color="#64748b" />
+                    This will automatically update warehouse quantities below
+                  </p>
                 </div>
-              )}
+              </div>
 
-            {/* Operator Input */}
-            <div className="form-group">
-              <label>Operator</label>
-              <input
-                type="text"
-                className="form-control"
-                value={
-                  dailyTracking[0]?.operator ||
-                  selectedSection?.data[0]?.operator ||
-                  ""
-                }
-                readOnly
-              />
+              {/* Right side - Status and Operator */}
+              <div
+                style={{
+                  width: "50%",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "1px",
+                  height: "60%",
+                }}
+              >
+                {/* Status */}
+                {dailyTracking.length > 0 &&
+                  dailyTracking[0].produced !== undefined &&
+                  dailyTracking[0].planned !== undefined && (
+                    <div className="form-group">
+                      <label>Status</label>
+                      <div
+                        className="form-control"
+                        style={{
+                          backgroundColor: "#f8f9fa",
+                          border: "1px solid #ced4da",
+                          padding: "0.375rem 0.75rem",
+                          borderRadius: "0.25rem",
+                          color: "#495057",
+                          height: "42px",
+                          display: "flex",
+                          alignItems: "center",
+                        }}
+                      >
+                        {(() => {
+                          const produced =
+                            Number(dailyTracking[0].produced) || 0;
+                          const planned = Number(dailyTracking[0].planned) || 0;
+
+                          if (produced === 0) {
+                            return (
+                              <span className="text-danger">
+                                Please Enter Produced Quantity
+                              </span>
+                            );
+                          }
+
+                          if (Number(produced) === Number(planned)) {
+                            return (
+                              <span className="text-primary">On Track</span>
+                            );
+                          } else if (produced > planned) {
+                            return <span className="text-success">Ahead</span>;
+                          } else if (produced < planned) {
+                            return <span className="text-danger">Delayed</span>;
+                          }
+
+                          return null;
+                        })()}
+                      </div>
+                    </div>
+                  )}
+
+                {/* Operator */}
+                <div className="form-group">
+                  <label>Operator</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={
+                      dailyTracking[0]?.operator ||
+                      selectedSection?.data[0]?.operator ||
+                      ""
+                    }
+                    readOnly
+                    style={{ height: "42px" }}
+                  />
+                </div>
+              </div>
             </div>
+
+            {selectedSection?.data?.[0] && (
+              <Container
+                style={{
+                  backgroundColor: "#eff6ff",
+                  padding: "20px",
+                  borderRadius: "8px",
+                  marginTop: "15px",
+                }}
+              >
+                <h4
+                  style={{
+                    fontWeight: "600",
+                    marginBottom: "20px",
+                    fontSize: "18px",
+                    color: "#2d3748",
+                  }}
+                >
+                  Production Plan
+                </h4>
+
+                <Row className="mb-3">
+                  <Col md={3}>
+                    <div style={{ display: "flex", flexDirection: "column" }}>
+                      <h5
+                        style={{
+                          fontWeight: "500",
+                          fontSize: "15px",
+                          color: "#4a5568",
+                          marginBottom: "8px",
+                        }}
+                      >
+                        Total Quantity
+                      </h5>
+                      <span style={{ fontSize: "14px" }}>
+                        {selectedSection?.data?.[0]?.plannedQty || "N/A"}
+                      </span>
+                    </div>
+                  </Col>
+                  <Col md={3}>
+                    <div style={{ display: "flex", flexDirection: "column" }}>
+                      <h5
+                        style={{
+                          fontWeight: "500",
+                          fontSize: "15px",
+                          color: "#4a5568",
+                          marginBottom: "8px",
+                        }}
+                      >
+                        Daily Planned Quantity
+                      </h5>
+                      <span style={{ fontSize: "14px" }}>
+                        {selectedSection?.data?.[0]?.dailyPlannedQty || "N/A"}
+                      </span>
+                    </div>
+                  </Col>
+                  <Col md={3}>
+                    <div style={{ display: "flex", flexDirection: "column" }}>
+                      <h5
+                        style={{
+                          fontWeight: "500",
+                          fontSize: "15px",
+                          color: "#4a5568",
+                          marginBottom: "8px",
+                        }}
+                      >
+                        Remaining Quantity
+                      </h5>
+                      <span style={{ fontSize: "14px" }}>
+                        {calculateRemainingQuantity()}
+                      </span>
+                    </div>
+                  </Col>
+                  <Col md={3}>
+                    <div style={{ display: "flex", flexDirection: "column" }}>
+                      <h5
+                        style={{
+                          fontWeight: "500",
+                          fontSize: "15px",
+                          color: "#4a5568",
+                          marginBottom: "8px",
+                        }}
+                      >
+                        Start Date
+                      </h5>
+                      <span style={{ fontSize: "14px" }}>
+                        {selectedSection?.data?.[0]?.startDate
+                          ? moment(selectedSection.data[0].startDate).format(
+                              "DD MMM YYYY"
+                            )
+                          : "N/A"}
+                      </span>
+                    </div>
+                  </Col>
+                </Row>
+
+                <Row className="mb-3">
+                  <Col md={3}>
+                    <div style={{ display: "flex", flexDirection: "column" }}>
+                      <h5
+                        style={{
+                          fontWeight: "500",
+                          fontSize: "15px",
+                          color: "#4a5568",
+                          marginBottom: "8px",
+                        }}
+                      >
+                        Plan End Date
+                      </h5>
+                      <span style={{ fontSize: "14px" }}>
+                        {selectedSection?.data?.[0]?.endDate
+                          ? moment(selectedSection.data[0].endDate).format(
+                              "DD MMM YYYY"
+                            )
+                          : "N/A"}
+                      </span>
+                    </div>
+                  </Col>
+                  <Col md={3}>
+                    <div style={{ display: "flex", flexDirection: "column" }}>
+                      <h5
+                        style={{
+                          fontWeight: "500",
+                          fontSize: "15px",
+                          color: "#4a5568",
+                          marginBottom: "8px",
+                        }}
+                      >
+                        Actual End Date
+                      </h5>
+                      <span
+                        style={{
+                          fontSize: "14px",
+                          fontWeight: "bold",
+                          color: (() => {
+                            if (!actulEndDateData.actualEndDate)
+                              return "#2d3748";
+
+                            const actualEndDate = new Date(
+                              actulEndDateData.actualEndDate
+                            );
+                            const plannedEndDate = new Date(
+                              selectedSection?.data?.[0]?.endDate
+                            );
+
+                            if (
+                              actualEndDate.getTime() ===
+                              plannedEndDate.getTime()
+                            ) {
+                              return "#2d3748";
+                            } else if (actualEndDate > plannedEndDate) {
+                              return "#e53e3e"; // Red for delayed
+                            } else {
+                              return "#38a169"; // Green for completed early
+                            }
+                          })(),
+                        }}
+                      >
+                        {actulEndDateData.actualEndDate
+                          ? moment(actulEndDateData.actualEndDate).format(
+                              "DD MMM YYYY"
+                            )
+                          : moment(selectedSection?.data?.[0]?.endDate).format(
+                              "DD MMM YYYY"
+                            )}
+                      </span>
+                    </div>
+                  </Col>
+                  <Col md={3}>
+                    <div style={{ display: "flex", flexDirection: "column" }}>
+                      <h5
+                        style={{
+                          fontWeight: "500",
+                          fontSize: "15px",
+                          color: "#4a5568",
+                          marginBottom: "8px",
+                        }}
+                      >
+                        Tentative Days
+                      </h5>
+                      <span style={{ fontSize: "14px" }}>
+                        {actulEndDateData.actualEndDate ? (
+                          <span
+                            className={
+                              getWorkingDaysDifference(
+                                new Date(selectedSection?.data?.[0]?.endDate),
+                                new Date(actulEndDateData.actualEndDate),
+                                highlightDates
+                              ) < 0
+                                ? "text-danger" // Red for negative numbers
+                                : "text-success" // Green for positive numbers
+                            }
+                          >
+                            {getWorkingDaysDifference(
+                              new Date(selectedSection?.data?.[0]?.endDate),
+                              new Date(actulEndDateData.actualEndDate),
+                              highlightDates
+                            )}
+                          </span>
+                        ) : (
+                          "N/A"
+                        )}
+                      </span>
+                    </div>
+                  </Col>
+                  <Col md={3}>
+                    <div style={{ display: "flex", flexDirection: "column" }}>
+                      <h5
+                        style={{
+                          fontWeight: "500",
+                          fontSize: "15px",
+                          color: "#4a5568",
+                          marginBottom: "8px",
+                        }}
+                      >
+                        Total Produced
+                      </h5>
+                      <span style={{ fontSize: "14px" }}>
+                        {existingDailyTracking.reduce(
+                          (sum, task) => sum + task.produced,
+                          0
+                        )}{" "}
+                        / {selectedSection?.data?.[0]?.plannedQty || "N/A"}
+                      </span>
+                    </div>
+                  </Col>
+                </Row>
+              </Container>
+            )}
+
+            <Container fluid className="mt-2 px-0">
+              <Row className="mx-0">
+                <Col md={6} className="px-2">
+                  <Container
+                    style={{
+                      backgroundColor: "#fefce8",
+                      padding: "20px",
+                      borderRadius: "8px",
+                      marginTop: "10px",
+                      height: "100%",
+                      width: "100%",
+                      border: "2px solid #facc15",
+                    }}
+                  >
+                    <h4
+                      style={{
+                        fontWeight: "600",
+                        marginBottom: "20px",
+                        fontSize: "18px",
+                        color: "#2d3748",
+                      }}
+                    >
+                      From Warehouse
+                    </h4>
+
+                    <Row>
+                      <Col md={6}>
+                        <h5
+                          style={{
+                            fontWeight: "500",
+                            fontSize: "15px",
+                            color: "#4a5568",
+                            marginBottom: "8px",
+                          }}
+                        >
+                          Warehouse Name
+                        </h5>
+                        <div style={{ fontSize: "14px" }}>
+                          {selectedSection?.data[0]?.wareHouse || "N/A"}
+                        </div>
+                      </Col>
+                    </Row>
+                    <Row className="mt-4">
+                      <Col md={12}>
+                        <div>
+                          <h5
+                            style={{
+                              fontWeight: "500",
+                              fontSize: "15px",
+                              color: "#4a5568",
+                              marginBottom: "8px",
+                            }}
+                          >
+                            Total Quantity in Warehouse
+                          </h5>
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                            }}
+                          >
+                            <p
+                              style={{
+                                fontSize: "14px",
+                                marginBottom: 0,
+                                fontWeight: "bold",
+                                color: "red",
+                              }}
+                            >
+                              {300 +
+                                (warehouseChanges.fromWarehouseChange || 0)}
+                            </p>
+                            {dailyTracking[0]?.produced > 0 && (
+                              <FaArrowDown color="red" />
+                            )}
+                          </div>
+                          {dailyTracking[0]?.produced > 0 && (
+                            <div
+                              style={{ textAlign: "left", marginTop: "5px" }}
+                            >
+                              <span style={{ color: "red", fontSize: "13px" }}>
+                                Reduced by {dailyTracking[0]?.produced} units
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </Col>
+                    </Row>
+                  </Container>
+                </Col>
+
+                <Col md={6} className="px-2">
+                  <Container
+                    style={{
+                      backgroundColor: "#f0fdf4",
+                      padding: "20px",
+                      borderRadius: "8px",
+                      marginTop: "10px",
+                      height: "100%",
+                      width: "100%",
+                      border: "2px solid #86efac",
+                    }}
+                  >
+                    <h4
+                      style={{
+                        fontWeight: "600",
+                        marginBottom: "20px",
+                        fontSize: "18px",
+                        color: "#2d3748",
+                      }}
+                    >
+                      To Warehouse
+                    </h4>
+
+                    <Row>
+                      <Col md={6}>
+                        <h5
+                          style={{
+                            fontWeight: "500",
+                            fontSize: "15px",
+                            color: "#4a5568",
+                            marginBottom: "8px",
+                          }}
+                        >
+                          Warehouse Name
+                        </h5>
+                        <div style={{ fontSize: "14px" }}>
+                          {"WareHouse-Floor2"}
+                        </div>
+                      </Col>
+                    </Row>
+
+                    <Row className="mt-4">
+                      <Col md={12}>
+                        <div>
+                          <h5
+                            style={{
+                              fontWeight: "500",
+                              fontSize: "15px",
+                              color: "#4a5568",
+                              marginBottom: "8px",
+                            }}
+                          >
+                            Total Quantity in Warehouse
+                          </h5>
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                            }}
+                          >
+                            <p
+                              style={{
+                                fontSize: "14px",
+                                marginBottom: 0,
+                                fontWeight: "bold",
+                                color: "green",
+                              }}
+                            >
+                              {200 + (warehouseChanges.toWarehouseChange || 0)}
+                            </p>
+                            {dailyTracking[0]?.produced > 0 && (
+                              <FaArrowUp color="green" />
+                            )}
+                          </div>
+                          {dailyTracking[0]?.produced > 0 && (
+                            <div
+                              style={{ textAlign: "left", marginTop: "5px" }}
+                            >
+                              <span
+                                style={{ color: "green", fontSize: "13px" }}
+                              >
+                                Increased by {dailyTracking[0]?.produced} units
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </Col>
+                    </Row>
+                  </Container>
+                </Col>
+              </Row>
+            </Container>
           </form>
         </ModalBody>
         <ModalFooter>
           {/* Update Button */}
           <Button
             color="primary"
-            onClick={submitDailyTracking}
-            disabled={isUpdating}
+            onClick={() => setUpdateConfirmationModal(true)} // Changed to open confirmation modal
+            disabled={
+              isUpdating ||
+              !dailyTracking[0]?.produced ||
+              !dailyTracking[0]?.date
+            }
           >
             {isUpdating ? "Updating..." : "Update"}
           </Button>
@@ -1245,6 +2049,123 @@ export const AllocatedPartListHrPlan = ({
             color="secondary"
             onClick={() => setCompleteProcess(false)}
             disabled={completingprocess}
+          >
+            Cancel
+          </Button>
+        </ModalFooter>
+      </Modal>
+
+      {/* Update Confirmation Modal */}
+      <Modal
+        isOpen={updateConfirmationModal}
+        toggle={() => setUpdateConfirmationModal(false)}
+        size="lg"
+      >
+        <ModalHeader toggle={() => setUpdateConfirmationModal(false)}>
+          Confirm Daily Input Update
+        </ModalHeader>
+        <ModalBody>
+          <div style={{ marginBottom: "20px" }}>
+            <h5
+              style={{
+                fontWeight: "600",
+                marginBottom: "15px",
+                color: "#2d3748",
+              }}
+            >
+              Please confirm the following details before updating:
+            </h5>
+
+            <div className="confirmation-details">
+              <Row className="mb-2">
+                <Col md={3}>
+                  <strong>Date:</strong>
+                </Col>
+                <Col md={9}>
+                  {dailyTracking[0]?.date
+                    ? moment(dailyTracking[0].date).format("DD MMM YYYY")
+                    : "N/A"}
+                </Col>
+              </Row>
+
+              <Row className="mb-2">
+                <Col md={3}>
+                  <strong>Produced:</strong>
+                </Col>
+                <Col md={9}>{dailyTracking[0]?.produced || "0"}</Col>
+              </Row>
+
+              <Row className="mb-2">
+                <Col md={3}>
+                  <strong>Status:</strong>
+                </Col>
+                <Col md={9}>
+                  {(() => {
+                    const produced = Number(dailyTracking[0]?.produced) || 0;
+                    const planned = Number(dailyTracking[0]?.planned) || 0;
+
+                    if (produced === 0) return "Not Started";
+                    if (produced === planned) return "On Track";
+                    if (produced > planned) return "Ahead";
+                    if (produced < planned) return "Delayed";
+                    return "N/A";
+                  })()}
+                </Col>
+              </Row>
+
+              <Row className="mb-2">
+                <Col md={3}>
+                  <strong>Operator:</strong>
+                </Col>
+                <Col md={9}>
+                  {dailyTracking[0]?.operator ||
+                    selectedSection?.data[0]?.operator ||
+                    "N/A"}
+                </Col>
+              </Row>
+
+              <Row className="mb-2">
+                <Col md={3}>
+                  <strong>From Warehouse:</strong>
+                </Col>
+                <Col md={9}>
+                  {selectedSection?.data[0]?.wareHouse || "N/A"} (Quantity:{" "}
+                  {300 + (warehouseChanges.fromWarehouseChange || 0)})
+                </Col>
+              </Row>
+
+              <Row className="mb-2">
+                <Col md={3}>
+                  <strong>To Warehouse:</strong>
+                </Col>
+                <Col md={9}>
+                  {"WareHouse-Floor2"} (Quantity:{" "}
+                  {200 + (warehouseChanges.toWarehouseChange || 0)})
+                </Col>
+              </Row>
+            </div>
+          </div>
+
+          <Alert color="warning" style={{ marginTop: "20px" }}>
+            <strong>Note:</strong> This action will update the production
+            records and cannot be undone.
+          </Alert>
+        </ModalBody>
+        <ModalFooter>
+          <Button
+            color="primary"
+            onClick={() => {
+              setUpdateConfirmationModal(false);
+              submitDailyTracking();
+            }}
+            disabled={isUpdating}
+          >
+            {isUpdating ? "Updating..." : "Confirm Update"}
+          </Button>
+          <Button
+            color="secondary"
+            onClick={() => setUpdateConfirmationModal(false)}
+            disabled={isUpdating}
           >
             Cancel
           </Button>

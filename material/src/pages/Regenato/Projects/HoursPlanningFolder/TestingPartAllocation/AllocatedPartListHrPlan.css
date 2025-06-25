@@ -43,3 +43,24 @@
   background-color: #f8f9fa !important;
   cursor: not-allowed !important;
 }
+
+
+.date-form-control{
+  width: 62rem;
+}
+
+.confirmation-details {
+  background-color: #f8f9fa;
+  padding: 15px;
+  border-radius: 5px;
+  border: 1px solid #e9ecef;
+}
+
+.confirmation-details .row {
+  padding: 5px 0;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.confirmation-details .row:last-child {
+  border-bottom: none;
+}

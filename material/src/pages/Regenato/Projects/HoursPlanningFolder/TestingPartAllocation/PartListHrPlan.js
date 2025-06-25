@@ -24,7 +24,16 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { isSameDay, parseISO, getDay, isSameMonth } from "date-fns";
 import { AllocatedPartListHrPlan } from "./AllocatedPartListHrPlan";
-
+import { 
+  FaWarehouse, 
+  FaBoxes, 
+  FaStoreAlt, 
+  FaClipboardList, 
+  FaCheckCircle, 
+  FaThumbsUp 
+} from 'react-icons/fa';
+// import { FiInfoCircle } from 'react-icons/fi';
+import { FiInfo } from "react-icons/fi";
 export const PartListHrPlan = ({
   partName,
   manufacturingVariables,
@@ -58,6 +67,8 @@ export const PartListHrPlan = ({
   const [isDataAllocated, setIsDataAllocated] = useState(false);
   const [allocatedMachines, setAllocatedMachines] = useState({});
   const [operatorAllocations, setOperatorAllocations] = useState({});
+  const [blankStoreQty, setBlankStoreQty] = useState(100); // Hardcoded value for Quantity in Blank Store
+  const [isApproved, setIsApproved] = useState(false);
 
   useEffect(() => {
     fetch(`${process.env.REACT_APP_BASE_URL}/api/eventScheduler/events`)
@@ -212,18 +223,16 @@ export const PartListHrPlan = ({
     const parsedStart = new Date(startDate);
     const parsedEnd = new Date(endDate);
 
-    const conflictingAllocation = allocatedMachines[machineId].find(
-      (alloc) => {
-        const allocStart = new Date(alloc.startDate);
-        const allocEnd = new Date(alloc.endDate);
+    const conflictingAllocation = allocatedMachines[machineId].find((alloc) => {
+      const allocStart = new Date(alloc.startDate);
+      const allocEnd = new Date(alloc.endDate);
 
-        return (
-          (parsedStart >= allocStart && parsedStart <= allocEnd) ||
-          (parsedEnd >= allocStart && parsedEnd <= allocEnd) ||
-          (parsedStart <= allocStart && parsedEnd >= allocEnd)
-        );
-      }
-    );
+      return (
+        (parsedStart >= allocStart && parsedStart <= allocEnd) ||
+        (parsedEnd >= allocStart && parsedEnd <= allocEnd) ||
+        (parsedStart <= allocStart && parsedEnd >= allocEnd)
+      );
+    });
 
     return {
       available: !conflictingAllocation,
@@ -393,7 +402,7 @@ export const PartListHrPlan = ({
     parsedEnd.setHours(0, 0, 0, 0);
 
     // Find the operator
-    const operator = operators.find(op => op._id === operatorId);
+    const operator = operators.find((op) => op._id === operatorId);
     if (!operator) {
       return {
         available: true,
@@ -412,7 +421,10 @@ export const PartListHrPlan = ({
     }
 
     // Check if operator has any allocations
-    if (!operatorAllocations[operatorId] || operatorAllocations[operatorId].length === 0) {
+    if (
+      !operatorAllocations[operatorId] ||
+      operatorAllocations[operatorId].length === 0
+    ) {
       return {
         available: true,
         status: "Available",
@@ -421,20 +433,22 @@ export const PartListHrPlan = ({
     }
 
     // Find conflicting allocation
-    const conflictingAllocation = operatorAllocations[operatorId].find((alloc) => {
-      const allocStart = new Date(alloc.startDate);
-      const allocEnd = new Date(alloc.endDate);
-      
-      // Set hours to start of day for proper date comparison
-      allocStart.setHours(0, 0, 0, 0);
-      allocEnd.setHours(0, 0, 0, 0);
+    const conflictingAllocation = operatorAllocations[operatorId].find(
+      (alloc) => {
+        const allocStart = new Date(alloc.startDate);
+        const allocEnd = new Date(alloc.endDate);
 
-      return (
-        (parsedStart >= allocStart && parsedStart <= allocEnd) ||
-        (parsedEnd >= allocStart && parsedEnd <= allocEnd) ||
-        (parsedStart <= allocStart && parsedEnd >= allocEnd)
-      );
-    });
+        // Set hours to start of day for proper date comparison
+        allocStart.setHours(0, 0, 0, 0);
+        allocEnd.setHours(0, 0, 0, 0);
+
+        return (
+          (parsedStart >= allocStart && parsedStart <= allocEnd) ||
+          (parsedEnd >= allocStart && parsedEnd <= allocEnd) ||
+          (parsedStart <= allocStart && parsedEnd >= allocEnd)
+        );
+      }
+    );
 
     return {
       available: !conflictingAllocation,
@@ -460,7 +474,7 @@ export const PartListHrPlan = ({
     return operator.leavePeriod.some((leave) => {
       const leaveStart = new Date(leave.startDate);
       const leaveEnd = new Date(leave.endDate);
-      
+
       // Set hours to start of day for proper date comparison
       leaveStart.setHours(0, 0, 0, 0);
       leaveEnd.setHours(0, 0, 0, 0);
@@ -773,36 +787,39 @@ export const PartListHrPlan = ({
 
   const handleStartDateChange = (index, rowIndex, date) => {
     if (!date) return;
-  
+
     const adjustedDate = new Date(
       Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())
     );
-  
+
     const nextWorkingDay = getNextWorkingDay(adjustedDate);
-  
+
     if (index === 0) {
       setHasStartDate(!!nextWorkingDay);
     }
-  
+
     setRows((prevRows) => {
       const newRows = { ...prevRows };
       const currentRow = newRows[index][rowIndex];
-  
+
       if (isAutoSchedule && index === 0) {
         let currentDate = new Date(nextWorkingDay);
         let previousEndTime = null;
         let previousEndDate = null;
         let usedOperators = new Set(); // Track used operators
-  
+
         manufacturingVariables.forEach((man, processIndex) => {
           const shift = shiftOptions.length > 0 ? shiftOptions[0] : null;
           const machineList = machineOptions[man.categoryId] || [];
-          const processInfo = getProcessSpecialDayInfo(man.name, man.categoryId);
-  
+          const processInfo = getProcessSpecialDayInfo(
+            man.name,
+            man.categoryId
+          );
+
           newRows[processIndex] = newRows[processIndex].map((row) => {
             let firstAvailableMachine = null;
             let daysAddedForDowntime = 0;
-  
+
             firstAvailableMachine = machineList.find((machine) => {
               const shift = shiftOptions.length > 0 ? shiftOptions[0] : null;
               const endDateEstimate = calculateEndDateWithDowntime(
@@ -813,43 +830,43 @@ export const PartListHrPlan = ({
                 index,
                 rowIndex
               );
-  
+
               const availability = isMachineAvailable(
                 machine.subcategoryId,
                 currentDate,
                 endDateEstimate
               );
-  
+
               if (!availability.available) return false;
-  
+
               const downtimeInfo = isMachineOnDowntimeDuringPeriod(
                 machine,
                 currentDate,
                 null
               );
-  
+
               return !downtimeInfo.isDowntime;
             });
-  
+
             if (!firstAvailableMachine) {
               let earliestEndMachine = null;
               let earliestEndDate = null;
-  
+
               machineList.forEach((machine) => {
                 const availability = isMachineAvailable(
                   machine.subcategoryId,
                   currentDate,
                   null
                 );
-  
+
                 if (!availability.available) return;
-  
+
                 const downtimeInfo = isMachineOnDowntimeDuringPeriod(
                   machine,
                   currentDate,
                   null
                 );
-  
+
                 if (downtimeInfo.isDowntime && downtimeInfo.downtimeEnd) {
                   if (
                     !earliestEndDate ||
@@ -860,26 +877,26 @@ export const PartListHrPlan = ({
                   }
                 }
               });
-  
+
               firstAvailableMachine = earliestEndMachine;
             }
-  
+
             let startDate = currentDate;
             let endDate = currentDate;
-  
+
             if (firstAvailableMachine) {
               const downtimeInfo = isMachineOnDowntimeDuringPeriod(
                 firstAvailableMachine,
                 startDate,
                 null
               );
-  
+
               if (downtimeInfo.isDowntime && downtimeInfo.downtimeEnd) {
                 startDate = new Date(downtimeInfo.downtimeEnd);
                 startDate.setDate(startDate.getDate() + 1);
                 startDate = getNextWorkingDay(startDate);
               }
-  
+
               // Handle special day process
               if (processInfo?.isSpecialday) {
                 // Convert minutes to days (1440 minutes = 1 day)
@@ -911,7 +928,7 @@ export const PartListHrPlan = ({
               startDate = new Date(calcStart);
               endDate = new Date(calcEnd);
             }
-  
+
             // Calculate start time based on previous process end time
             let startTime = shift?.startTime || "09:00";
             if (processIndex > 0 && previousEndTime) {
@@ -926,13 +943,13 @@ export const PartListHrPlan = ({
               startTime = `${String(newHours).padStart(2, "0")}:${String(
                 newMinutes
               ).padStart(2, "0")}`;
-  
+
               // Use the same date as previous process end date if possible
               if (previousEndDate) {
                 startDate = new Date(previousEndDate);
               }
             }
-  
+
             // Find available operators that haven't been used yet
             const availableOperators = operators.filter((operator) => {
               const isOnLeave = isOperatorOnLeave(operator, startDate, endDate);
@@ -941,15 +958,17 @@ export const PartListHrPlan = ({
                 startDate,
                 endDate
               );
-              return !isOnLeave && available && !usedOperators.has(operator._id);
+              return (
+                !isOnLeave && available && !usedOperators.has(operator._id)
+              );
             });
-  
+
             // Select the first available operator
             const selectedOperator = availableOperators[0];
             if (selectedOperator) {
               usedOperators.add(selectedOperator._id);
             }
-  
+
             // Calculate end time based on start time and planned minutes
             const endTime = calculateEndTime(
               startTime,
@@ -958,9 +977,9 @@ export const PartListHrPlan = ({
             );
             previousEndTime = endTime;
             previousEndDate = endDate;
-  
+
             currentDate = new Date(endDate);
-  
+
             return {
               ...row,
               startDate: formatDateUTC(startDate),
@@ -975,7 +994,7 @@ export const PartListHrPlan = ({
             };
           });
         });
-  
+
         return newRows;
       } else {
         const shift = shiftOptions.find(
@@ -1073,7 +1092,10 @@ export const PartListHrPlan = ({
 
   const getNextWorkingDay = (date) => {
     let nextDay = new Date(date);
-    while (getDay(nextDay) === 0 || eventDates.some((d) => isSameDay(d, nextDay))) {
+    while (
+      getDay(nextDay) === 0 ||
+      eventDates.some((d) => isSameDay(d, nextDay))
+    ) {
       nextDay.setDate(nextDay.getDate() + 1);
     }
     return new Date(
@@ -1099,95 +1121,117 @@ export const PartListHrPlan = ({
     rowIndex
   ) => {
     if (!startDate || !plannedMinutes) return "";
-  
+
     const parsedDate = new Date(startDate);
     if (isNaN(parsedDate.getTime())) return "";
-  
+
     const processInfo = manufacturingVariables[processIndex];
     const specialDayInfo = getProcessSpecialDayInfo(
       processInfo.name,
       processInfo.categoryId
     );
-  
+
     let currentDate = new Date(parsedDate);
     let endDate = new Date(currentDate);
-  
+
     // Special handling for special day processes
     if (specialDayInfo?.isSpecialday) {
       // For special day processes, we treat each day as a full working day (1440 minutes)
       const daysNeeded = Math.ceil(plannedMinutes / 1440);
-      
+
       // Start with the next working day
       let currentDay = getNextWorkingDay(new Date(currentDate));
       let daysAdded = 0;
-      
+
       // Add the required number of working days
       while (daysAdded < daysNeeded) {
         // Skip to next working day if current day is Sunday or event date
-        while (getDay(currentDay) === 0 || eventDates.some((d) => isSameDay(d, currentDay))) {
+        while (
+          getDay(currentDay) === 0 ||
+          eventDates.some((d) => isSameDay(d, currentDay))
+        ) {
           currentDay.setDate(currentDay.getDate() + 1);
         }
-        
+
         daysAdded++;
         if (daysAdded < daysNeeded) {
           currentDay.setDate(currentDay.getDate() + 1);
         }
       }
-      
+
       // Final check to ensure we're not ending on a Sunday or event date
-      while (getDay(currentDay) === 0 || eventDates.some((d) => isSameDay(d, currentDay))) {
+      while (
+        getDay(currentDay) === 0 ||
+        eventDates.some((d) => isSameDay(d, currentDay))
+      ) {
         currentDay.setDate(currentDay.getDate() + 1);
       }
-      
+
       return formatDateUTC(currentDay);
     }
-  
+
     // Regular process logic
     const workingMinutesPerDay = shift?.workingMinutes || 510;
     let remainingMinutes = plannedMinutes;
     let totalDowntimeAdded = 0;
-  
+
     if (machine) {
-      const downtimeInfo = isMachineOnDowntimeDuringPeriod(machine, currentDate, null);
+      const downtimeInfo = isMachineOnDowntimeDuringPeriod(
+        machine,
+        currentDate,
+        null
+      );
       if (downtimeInfo.isDowntime && downtimeInfo.downtimeEnd) {
         currentDate = new Date(downtimeInfo.downtimeEnd);
         currentDate.setDate(currentDate.getDate() + 1);
         currentDate = getNextWorkingDay(currentDate);
       }
     }
-  
-    const workingDaysNeeded = Math.ceil(remainingMinutes / workingMinutesPerDay);
+
+    const workingDaysNeeded = Math.ceil(
+      remainingMinutes / workingMinutesPerDay
+    );
     let daysAdded = 0;
     endDate = new Date(currentDate);
-  
+
     while (daysAdded < workingDaysNeeded) {
-      while (getDay(endDate) === 0 || eventDates.some((d) => isSameDay(d, endDate))) {
+      while (
+        getDay(endDate) === 0 ||
+        eventDates.some((d) => isSameDay(d, endDate))
+      ) {
         endDate.setDate(endDate.getDate() + 1);
       }
-  
+
       if (machine) {
         const dayStart = new Date(endDate);
         const dayEnd = new Date(endDate);
         dayEnd.setHours(23, 59, 59, 999);
-        const downtimeInfo = isMachineOnDowntimeDuringPeriod(machine, dayStart, dayEnd);
-  
+        const downtimeInfo = isMachineOnDowntimeDuringPeriod(
+          machine,
+          dayStart,
+          dayEnd
+        );
+
         if (downtimeInfo.isDowntime) {
           totalDowntimeAdded += downtimeInfo.downtimeMinutes;
           endDate.setDate(endDate.getDate() + 1);
           continue;
         }
       }
-  
+
       daysAdded++;
       if (daysAdded < workingDaysNeeded) {
         endDate.setDate(endDate.getDate() + 1);
       }
     }
-  
-    while (getDay(endDate) === 0 || eventDates.some((d) => isSameDay(d, endDate))) {
+
+    while (
+      getDay(endDate) === 0 ||
+      eventDates.some((d) => isSameDay(d, endDate))
+    ) {
       endDate.setDate(endDate.getDate() + 1);
     }
-  
+
     if (totalDowntimeAdded > 0) {
       setRows((prevRows) => {
         const updatedRows = [...prevRows[processIndex]];
@@ -1198,10 +1242,9 @@ export const PartListHrPlan = ({
         return { ...prevRows, [processIndex]: updatedRows };
       });
     }
-  
+
     return formatDateUTC(endDate);
   };
-  
 
   const addRow = (index) => {
     if (!hasStartDate) return;
@@ -1229,7 +1272,9 @@ export const PartListHrPlan = ({
           machineId: "",
           shift: "",
           plannedQtyTime: calculatePlannedMinutes(
-            processInfo?.isSpecialday ? 0 : currentRemaining * manufacturingVariables[index].hours,
+            processInfo?.isSpecialday
+              ? 0
+              : currentRemaining * manufacturingVariables[index].hours,
             manufacturingVariables[index].name,
             manufacturingVariables[index].categoryId
           ),
@@ -1364,6 +1409,11 @@ export const PartListHrPlan = ({
               (shift) => shift.name === row.shift
             );
 
+            // Get the machine to access its warehouse
+            const machine = machineOptions[man.categoryId]?.find(
+              (m) => m.subcategoryId === row.machineId
+            );
+
             groupedAllocations[key].allocations.push({
               splitNumber,
               AllocationPartType: "Part",
@@ -1377,6 +1427,7 @@ export const PartListHrPlan = ({
                 shiftOptions.find((s) => s.name === row.shift)
               ),
               machineId: row.machineId,
+              wareHouse: machine?.wareHouse || "N/A", // Add warehouse here
               shift: row.shift,
               plannedTime: row.plannedQtyTime,
               operator:
@@ -1395,6 +1446,7 @@ export const PartListHrPlan = ({
         });
       });
 
+      // Rest of the handleSubmit function remains the same...
       const finalAllocations = Object.values(groupedAllocations);
 
       console.log(
@@ -1437,76 +1489,87 @@ export const PartListHrPlan = ({
 
   const calculateEndTime = (startTime, plannedMinutes, shift) => {
     if (!startTime || !plannedMinutes || !shift) return "00:00";
-  
+
     const [startHour, startMin] = startTime.split(":").map(Number);
     const shiftStart = new Date();
     shiftStart.setHours(startHour, startMin, 0, 0);
-  
+
     // Get process info to check if it's a special day
-    const processInfo = manufacturingVariables.find((mv) =>
-      mv.name === shift.processName
+    const processInfo = manufacturingVariables.find(
+      (mv) => mv.name === shift.processName
     );
     const specialDayInfo = getProcessSpecialDayInfo(
       processInfo?.name,
       processInfo?.categoryId
     );
-  
+
     // Special handling for special day processes
     if (specialDayInfo?.isSpecialday) {
       const endTime = new Date(shiftStart);
-      
+
       // For special day processes, we use a fixed 8-hour working day
       const workingMinutesPerDay = 480; // 8 hours
-      
+
       // If it's exactly 1440 minutes (1 day), set end time to next day's start time
       if (plannedMinutes === 1440) {
         // Set end time to the same time as start time (for next day)
         return startTime;
       }
-      
+
       // For other durations, calculate based on 8-hour working day
       const daysNeeded = Math.ceil(plannedMinutes / workingMinutesPerDay);
-      
+
       // For single day allocations
       if (daysNeeded === 1) {
         endTime.setMinutes(endTime.getMinutes() + plannedMinutes);
         // Cap at 5:30 PM
-        if (endTime.getHours() > 17 || (endTime.getHours() === 17 && endTime.getMinutes() > 30)) {
+        if (
+          endTime.getHours() > 17 ||
+          (endTime.getHours() === 17 && endTime.getMinutes() > 30)
+        ) {
           endTime.setHours(17, 30, 0, 0);
         }
         return formatTime(endTime);
       }
-      
+
       // For multiple days, calculate the end time on the last day
-      const remainingMinutes = plannedMinutes % workingMinutesPerDay || workingMinutesPerDay;
+      const remainingMinutes =
+        plannedMinutes % workingMinutesPerDay || workingMinutesPerDay;
       endTime.setMinutes(endTime.getMinutes() + remainingMinutes);
       // Cap at 5:30 PM
-      if (endTime.getHours() > 17 || (endTime.getHours() === 17 && endTime.getMinutes() > 30)) {
+      if (
+        endTime.getHours() > 17 ||
+        (endTime.getHours() === 17 && endTime.getMinutes() > 30)
+      ) {
         endTime.setHours(17, 30, 0, 0);
       }
       return formatTime(endTime);
     }
-  
+
     // Regular process logic
     const shiftEnd = new Date(shiftStart);
     const [shiftEndHour, shiftEndMin] = shift.endTime.split(":").map(Number);
     shiftEnd.setHours(shiftEndHour, shiftEndMin, 0, 0);
-  
+
     const breakStart = new Date(shiftStart);
     const breakEnd = new Date(shiftStart);
     if (shift.breakStartTime && shift.breakEndTime) {
-      const [breakStartHour, breakStartMin] = shift.breakStartTime.split(":").map(Number);
-      const [breakEndHour, breakEndMin] = shift.breakEndTime.split(":").map(Number);
+      const [breakStartHour, breakStartMin] = shift.breakStartTime
+        .split(":")
+        .map(Number);
+      const [breakEndHour, breakEndMin] = shift.breakEndTime
+        .split(":")
+        .map(Number);
       breakStart.setHours(breakStartHour, breakStartMin, 0, 0);
       breakEnd.setHours(breakEndHour, breakEndMin, 0, 0);
     }
-  
+
     let current = new Date(shiftStart);
     let minutesLeft = plannedMinutes;
-  
+
     const calculateWorkMinutes = (start, end) =>
       start >= end ? 0 : Math.floor((end - start) / (1000 * 60));
-  
+
     if (breakStart > current && breakEnd > current) {
       const beforeBreak = calculateWorkMinutes(current, breakStart);
       if (minutesLeft <= beforeBreak) {
@@ -1517,27 +1580,28 @@ export const PartListHrPlan = ({
         current = new Date(breakEnd);
       }
     }
-  
+
     const remainingShift = calculateWorkMinutes(current, shiftEnd);
     if (minutesLeft <= remainingShift) {
       current.setMinutes(current.getMinutes() + minutesLeft);
       return formatTime(current);
     }
-  
+
     minutesLeft -= remainingShift;
-  
+
     // Advance to next working day recursively
-    const nextDay = getNextWorkingDay(new Date(current.setDate(current.getDate() + 1)));
+    const nextDay = getNextWorkingDay(
+      new Date(current.setDate(current.getDate() + 1))
+    );
     nextDay.setHours(
       parseInt(shift.startTime.split(":")[0]),
       parseInt(shift.startTime.split(":")[1]),
       0,
       0
     );
-  
+
     return calculateEndTime(formatTime(nextDay), minutesLeft, shift);
   };
-  
 
   const formatTime = (date) =>
     `${String(date.getHours()).padStart(2, "0")}:${String(
@@ -1773,6 +1837,216 @@ export const PartListHrPlan = ({
           )}
         </CardHeader>
 
+        {!isDataAllocated && (
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "16px",
+              padding: "20px",
+              border: "1px solid #e2e8f0",
+              borderRadius: "12px",
+              background: "linear-gradient(145deg, #f8fafc, #f1f5f9)",
+              boxShadow:
+                "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+              transition: "all 0.3s ease",
+              ":hover": {
+                boxShadow:
+                  "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
+              },
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+              <FaWarehouse style={{ color: "#4f46e5", fontSize: "24px" }} />
+              <h2
+                style={{
+                  fontSize: "20px",
+                  fontWeight: "bold",
+                  margin: 0,
+                  color: "#1e293b",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                }}
+              >
+                Staging
+                {/* <FiInfo
+                  style={{ cursor: "pointer" }}
+                  title="This is where you verify quantities before allocation"
+                /> */}
+              </h2>
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                padding: "12px",
+                background: "#ffffff",
+                borderRadius: "8px",
+                borderLeft: "4px solid #4f46e5",
+              }}
+            >
+              <FaBoxes style={{ color: "#64748b" }} />
+              <div
+                style={{ fontSize: "15px", fontWeight: 800, color: "#334155" }}
+              >
+                {partName} -{" "}
+                <span style={{ color: "#4f46e5" }}>{partsCodeId}</span>
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "16px",
+                padding: "16px",
+                background: "#ffffff",
+                borderRadius: "8px",
+                boxShadow: "0 1px 3px rgba(0, 0, 0, 0.05)",
+              }}
+            >
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "12px" }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    minWidth: "200px",
+                    fontSize: "14px",
+                    fontWeight: 800,
+                    color: "#475569",
+                  }}
+                >
+                  <FaStoreAlt style={{ color: "#f59e0b" }} />
+                  <span>Quantity in Blank Store:</span>
+                </div>
+                <Input
+                  type="number"
+                  value={blankStoreQty}
+                  min={0}
+                  style={{
+                    width: "120px",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "6px",
+                    padding: "8px 12px",
+                    fontWeight: 600,
+                    ":focus": {
+                      borderColor: "#4f46e5",
+                      boxShadow: "0 0 0 2px rgba(79, 70, 229, 0.2)",
+                    },
+                  }}
+                  onChange={(e) => {
+                    setBlankStoreQty(Number(e.target.value));
+                    setIsApproved(false);
+                  }}
+                  disabled={isApproved}
+                />
+                <Button
+                  color={isApproved ? "success" : "primary"}
+                  onClick={() => {
+                    if (typeof quantity !== "number" || isNaN(quantity)) {
+                      toast.error("Invalid quantity from props.");
+                      return;
+                    }
+                    if (quantity <= 0) {
+                      toast.error("Quantity must be greater than 0.");
+                      return;
+                    }
+                    if (blankStoreQty <= 0) {
+                      toast.error(
+                        "Quantity in Blank Store must be greater than 0."
+                      );
+                      return;
+                    }
+                    if (quantity > blankStoreQty) {
+                      toast.error(
+                        `Cannot approve: Required quantity (${quantity}) exceeds Quantity in Blank Store (${blankStoreQty}).`
+                      );
+                      setIsApproved(false);
+                      return;
+                    }
+                    toast.success("Approved! You can now confirm allocation.");
+                    setIsApproved(true);
+                  }}
+                  disabled={isApproved}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    fontWeight: 600,
+                    padding: "8px 16px",
+                    borderRadius: "6px",
+                    transition: "all 0.2s ease",
+                    ":hover": {
+                      transform: "translateY(-1px)",
+                    },
+                  }}
+                >
+                  {isApproved ? (
+                    <>
+                      <FaCheckCircle /> Approved
+                    </>
+                  ) : (
+                    <>
+                      <FaThumbsUp /> Approve
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  padding: "8px 12px",
+                  background: "#f8fafc",
+                  borderRadius: "6px",
+                }}
+              >
+                <FaClipboardList style={{ color: "#64748b" }} />
+                <div
+                  style={{
+                    fontSize: "14px",
+                    fontWeight: 800,
+                    color: "#475569",
+                  }}
+                >
+                  Required Quantity:{" "}
+                  <span style={{ color: "#4f46e5", fontWeight: 900 }}>
+                    {quantity}
+                  </span>
+                </div>
+              </div>
+
+              {isApproved && (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    padding: "8px 12px",
+                    background: "#ecfdf5",
+                    borderRadius: "6px",
+                    borderLeft: "4px solid #10b981",
+                    marginTop: "8px",
+                  }}
+                >
+                  <FaCheckCircle style={{ color: "#10b981" }} />
+                  <span style={{ color: "#065f46", fontWeight: 600 }}>
+                    Ready for allocation
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {activeTab === "planned" && (
           <AllocatedPartListHrPlan
             porjectID={porjectID}
@@ -1786,6 +2060,7 @@ export const PartListHrPlan = ({
         {activeTab === "actual" && !isDataAllocated && (
           <Collapse isOpen={true}>
             <CardBody className="shadow-md">
+              <div>{/* need some more adjustment */}</div>
               {manufacturingVariables.map((man, index) => (
                 <Card key={index} className=" shadow-lg border-black">
                   <CardHeader
@@ -2218,7 +2493,9 @@ export const PartListHrPlan = ({
                                 ) || null
                               }
                               getOptionLabel={(option) =>
-                                option ? `${option.subcategoryId} - ${option.name}` : ""
+                                option
+                                  ? `${option.subcategoryId} - ${option.name}`
+                                  : ""
                               }
                               onChange={(event, newValue) => {
                                 if (!hasStartDate) return;
@@ -2273,7 +2550,9 @@ export const PartListHrPlan = ({
                                     machineId: newValue
                                       ? newValue.subcategoryId
                                       : "",
-                                    warehouse: newValue ? newValue.wareHouse : "",
+                                    warehouse: newValue
+                                      ? newValue.wareHouse
+                                      : "",
                                   };
 
                                   if (
@@ -2354,9 +2633,11 @@ export const PartListHrPlan = ({
                           </td>
                           <td>
                             {machineOptions[man.categoryId]?.find(
-                              (machine) => machine.subcategoryId === row.machineId
+                              (machine) =>
+                                machine.subcategoryId === row.machineId
                             )?.wareHouse || "-"}
                           </td>
+
                           <td>
                             <Autocomplete
                               sx={{
@@ -2422,20 +2703,31 @@ export const PartListHrPlan = ({
                                 const isDisabled = status === "Occupied";
 
                                 // Find the relevant leave period that overlaps with the selected dates
-                                const relevantLeavePeriod = option.leavePeriod?.find(leave => {
-                                  const leaveStart = new Date(leave.startDate);
-                                  const leaveEnd = new Date(leave.endDate);
-                                  const selectedStart = row.startDate ? new Date(row.startDate) : null;
-                                  const selectedEnd = row.endDate ? new Date(row.endDate) : null;
-                                  
-                                  if (!selectedStart || !selectedEnd) return false;
-                                  
-                                  return (
-                                    (selectedStart >= leaveStart && selectedStart <= leaveEnd) ||
-                                    (selectedEnd >= leaveStart && selectedEnd <= leaveEnd) ||
-                                    (selectedStart <= leaveStart && selectedEnd >= leaveEnd)
-                                  );
-                                });
+                                const relevantLeavePeriod =
+                                  option.leavePeriod?.find((leave) => {
+                                    const leaveStart = new Date(
+                                      leave.startDate
+                                    );
+                                    const leaveEnd = new Date(leave.endDate);
+                                    const selectedStart = row.startDate
+                                      ? new Date(row.startDate)
+                                      : null;
+                                    const selectedEnd = row.endDate
+                                      ? new Date(row.endDate)
+                                      : null;
+
+                                    if (!selectedStart || !selectedEnd)
+                                      return false;
+
+                                    return (
+                                      (selectedStart >= leaveStart &&
+                                        selectedStart <= leaveEnd) ||
+                                      (selectedEnd >= leaveStart &&
+                                        selectedEnd <= leaveEnd) ||
+                                      (selectedStart <= leaveStart &&
+                                        selectedEnd >= leaveEnd)
+                                    );
+                                  });
 
                                 return (
                                   <li
@@ -2522,7 +2814,18 @@ export const PartListHrPlan = ({
                                               marginTop: 4,
                                             }}
                                           >
-                                            Leave Period: {formatDate(new Date(relevantLeavePeriod.startDate))} - {formatDate(new Date(relevantLeavePeriod.endDate))}
+                                            Leave Period:{" "}
+                                            {formatDate(
+                                              new Date(
+                                                relevantLeavePeriod.startDate
+                                              )
+                                            )}{" "}
+                                            -{" "}
+                                            {formatDate(
+                                              new Date(
+                                                relevantLeavePeriod.endDate
+                                              )
+                                            )}
                                           </div>
                                         )}
                                         {status === "Occupied" &&
@@ -2687,6 +2990,7 @@ export const PartListHrPlan = ({
                   onClick={openConfirmationModal}
                   disabled={
                     !hasStartDate ||
+                    !isApproved || // Only enable if approved
                     !Object.keys(remainingQuantities).every(
                       (key) => remainingQuantities[key] === 0
                     ) ||

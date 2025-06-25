@@ -52,7 +52,6 @@ const AllocationPlan = () => {
       );
       const data = response.data.data;
       setAllocations(data);
-      console.log(data);
       setFilteredAllocations(data);
 
       // Initialize selection values with default data
@@ -483,15 +482,15 @@ const AllocationPlan = () => {
           ) : (
             filteredAllocations.map((project, projectIndex) => (
               <div key={project.projectName}>
-                <Card
-                  className="mb-4 shadow-none border"
-                  style={{ pageBreakInside: "avoid" }}
+                {/* <Card
+                  style={{ pageBreakInside: "avoid", boxShadow:'none' }}
                   id="print-area"
-                >
+                > */}
                   {project.allocations.map((process) => (
                     <div
                       key={`${process.processId}-${process._id}`}
                       className="mb-3"
+                      style={{ borderBottom: '1px solid black' }} 
                     >
                       <div className="bg-light p-2 px-3 small d-flex justify-content-between align-items-center">
                         <div>
@@ -730,7 +729,7 @@ const AllocationPlan = () => {
                       </div>
                     </div>
                   ))}
-                </Card>
+                {/* </Card> */}
                 {/* Add page break after each project except the last one */}
                 {projectIndex < filteredAllocations.length - 1 && (
                   <div className="print-page-break"></div>
