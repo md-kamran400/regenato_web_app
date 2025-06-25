@@ -52,6 +52,7 @@ export const AllocatedPartListHrPlan = ({
   });
   const [completeConfirmationModal, setCompleteConfirmationModal] =
     useState(false);
+  const [updateConfirmationModal, setUpdateConfirmationModal] = useState(false);
   const [completeProcess, setCompleteProcess] = useState(false);
   const [completingAllocation, setCompletingAllocation] = useState(false);
   const [completingprocess, setCompletingprocess] = useState(false);
@@ -1186,9 +1187,7 @@ export const AllocatedPartListHrPlan = ({
                     >
                       Warehouse Name
                     </h5>
-                    <div style={{ fontSize: "14px" }}>
-                      {"WareHouse-Floor2"}
-                    </div>
+                    <div style={{ fontSize: "14px" }}>{"WareHouse-Floor2"}</div>
                   </Col>
                 </Row>
                 <Row className="mt-4">
@@ -1372,115 +1371,159 @@ export const AllocatedPartListHrPlan = ({
               </div>
             </div>
 
-            {/* <div className="form-row" style={{ display: "flex", gap: "5px" }}>
-              <div className="form-group col-md-6">
-                <label>Planned</label>
-                <input
-                  type="number"
-                  className="form-control"
-                  value={
-                    dailyTracking[0]?.planned ||
-                    selectedSection?.data[0]?.dailyPlannedQty ||
-                    ""
-                  }
-                  readOnly
-                />
-              </div>
-
-              <div className="form-group col-md-6">
-                <label>
-                  Produced (Remaining: {calculateRemainingQuantity()})
-                </label>
-                <input
-                  type="number"
-                  className="form-control"
-                  value={
-                    dailyTracking.length > 0 ? dailyTracking[0].produced : ""
-                  }
-                  max={calculateRemainingQuantity()} // HTML max attribute
-                  onChange={(e) =>
-                    handleDailyTrackingChange(0, "produced", e.target.value)
-                  }
-                />
-              </div>
-            </div> */}
-
-            {/* Planned and Produced Inputs in a Row */}
             <div
-              className="form-row"
-              style={{
-                display: "flex",
-                gap: "5px",
-                border: "2px solid #d6e9ff",
-                backgroundColor: "#eff6ff",
-                padding: "16px",
-                borderRadius: "5px",
-              }}
+              className="form-row mt-4"
+              style={{ display: "flex", gap: "20px" }}
             >
-              <div style={{ width: "100%" }}>
-                <p
+              {/* Left side - Produced Quantity */}
+              <div style={{ flex: 1 }}>
+                <div
                   style={{
-                    marginBottom: "12px",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "6px",
+                    border: "2px solid #d6e9ff",
+                    backgroundColor: "#eff6ff",
+                    padding: "16px",
+                    borderRadius: "5px",
+                    height: "90%",
                   }}
                 >
-                  <IoIosCheckmarkCircleOutline size={20} color="#4154e0" />
-                  <span
+                  <p
                     style={{
-                      fontWeight: "800",
-                      fontSize: "18px",
-                      color: "#4154e0",
+                      marginBottom: "12px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "6px",
                     }}
                   >
-                    Produced Quantity
-                  </span>
-                </p>
-                <input
-                  type="number"
-                  className="form-control"
-                  value={
-                    dailyTracking.length > 0 ? dailyTracking[0].produced : ""
-                  }
-                  placeholder="Enter Produced Quantity"
-                  max={calculateRemainingQuantity()} // HTML max attribute
-                  onChange={(e) =>
-                    handleDailyTrackingChange(0, "produced", e.target.value)
-                  }
-                  onWheel={(e) => e.target.blur()} // 👈 Prevent mouse wheel changes
-                  onKeyDown={(e) => {
-                    if (e.key === "ArrowUp" || e.key === "ArrowDown") {
-                      e.preventDefault(); // 👈 Prevent up/down arrow key value changes
+                    <IoIosCheckmarkCircleOutline size={20} color="#4154e0" />
+                    <span
+                      style={{
+                        fontWeight: "800",
+                        fontSize: "18px",
+                        color: "#4154e0",
+                      }}
+                    >
+                      Produced Quantity
+                    </span>
+                  </p>
+                  <input
+                    type="number"
+                    className="form-control"
+                    value={
+                      dailyTracking.length > 0 ? dailyTracking[0].produced : ""
                     }
-                  }}
-                  style={{
-                    width: "100%",
-                    padding: "8px",
-                    border: "2px solid #bfdbfe",
-                    borderRadius: "4px",
-                    backgroundColor: "#ffffff",
-                    marginBottom: "12px",
-                    boxSizing: "border-box",
-                    fontWeight: "bold", // Bold input value
-                    fontSize: "16px", // Increased font size
-                    color: "#1e3a8a",
-                  }}
-                />
-                <p
-                  style={{
-                    margin: "0",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "6px",
-                    color: "#64748b",
-                    fontSize: "14px",
-                  }}
-                >
-                  <CiCircleInfo size={18} color="#64748b" />{" "}
-                  {/* Matching slate-500 color */}
-                  This will automatically update warehouse quantities below
-                </p>
+                    placeholder="Enter Produced Quantity"
+                    max={calculateRemainingQuantity()}
+                    onChange={(e) =>
+                      handleDailyTrackingChange(0, "produced", e.target.value)
+                    }
+                    onWheel={(e) => e.target.blur()}
+                    onKeyDown={(e) => {
+                      if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+                        e.preventDefault();
+                      }
+                    }}
+                    style={{
+                      width: "100%",
+                      padding: "8px",
+                      border: "2px solid #bfdbfe",
+                      borderRadius: "4px",
+                      backgroundColor: "#ffffff",
+                      marginBottom: "12px",
+                      boxSizing: "border-box",
+                      fontWeight: "bold",
+                      fontSize: "16px",
+                      color: "#1e3a8a",
+                    }}
+                  />
+                  <p
+                    style={{
+                      margin: "0",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      color: "#64748b",
+                      fontSize: "14px",
+                    }}
+                  >
+                    <CiCircleInfo size={18} color="#64748b" />
+                    This will automatically update warehouse quantities below
+                  </p>
+                </div>
+              </div>
+
+              {/* Right side - Status and Operator */}
+              <div
+                style={{
+                  width: "50%",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "1px",
+                  height: "60%",
+                }}
+              >
+                {/* Status */}
+                {dailyTracking.length > 0 &&
+                  dailyTracking[0].produced !== undefined &&
+                  dailyTracking[0].planned !== undefined && (
+                    <div className="form-group">
+                      <label>Status</label>
+                      <div
+                        className="form-control"
+                        style={{
+                          backgroundColor: "#f8f9fa",
+                          border: "1px solid #ced4da",
+                          padding: "0.375rem 0.75rem",
+                          borderRadius: "0.25rem",
+                          color: "#495057",
+                          height: "42px",
+                          display: "flex",
+                          alignItems: "center",
+                        }}
+                      >
+                        {(() => {
+                          const produced =
+                            Number(dailyTracking[0].produced) || 0;
+                          const planned = Number(dailyTracking[0].planned) || 0;
+
+                          if (produced === 0) {
+                            return (
+                              <span className="text-danger">
+                                Please Enter Produced Quantity
+                              </span>
+                            );
+                          }
+
+                          if (Number(produced) === Number(planned)) {
+                            return (
+                              <span className="text-primary">On Track</span>
+                            );
+                          } else if (produced > planned) {
+                            return <span className="text-success">Ahead</span>;
+                          } else if (produced < planned) {
+                            return <span className="text-danger">Delayed</span>;
+                          }
+
+                          return null;
+                        })()}
+                      </div>
+                    </div>
+                  )}
+
+                {/* Operator */}
+                <div className="form-group">
+                  <label>Operator</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={
+                      dailyTracking[0]?.operator ||
+                      selectedSection?.data[0]?.operator ||
+                      ""
+                    }
+                    readOnly
+                    style={{ height: "42px" }}
+                  />
+                </div>
               </div>
             </div>
 
@@ -1896,79 +1939,18 @@ export const AllocatedPartListHrPlan = ({
                 </Col>
               </Row>
             </Container>
-
-            <div
-              className="form-row mt-4"
-              style={{ display: "flex", gap: "5px" }}
-            >
-              <div className="form-group col-md-6">
-                {dailyTracking.length > 0 &&
-                  dailyTracking[0].produced !== undefined &&
-                  dailyTracking[0].planned !== undefined && (
-                    <div className="form-group">
-                      <label>Status</label>
-                      <div
-                        className="form-control"
-                        style={{
-                          backgroundColor: "#f8f9fa", // Light gray background
-                          border: "1px solid #ced4da", // Border like an input
-                          padding: "0.375rem 0.75rem", // Input padding
-                          borderRadius: "0.25rem", // Rounded corners like an input
-                          color: "#495057", // Text color
-                        }}
-                      >
-                        {(() => {
-                          const produced =
-                            Number(dailyTracking[0].produced) || 0;
-                          const planned = Number(dailyTracking[0].planned) || 0;
-
-                          if (produced === 0) {
-                            return (
-                              <span className="text-danger">
-                                Please Enter Produced Quantity
-                              </span>
-                            );
-                          }
-
-                          if (Number(produced) === Number(planned)) {
-                            return (
-                              <span className="text-primary">On Track</span>
-                            );
-                          } else if (produced > planned) {
-                            return <span className="text-success">Ahead</span>;
-                          } else if (produced < planned) {
-                            return <span className="text-danger">Delayed</span>;
-                          }
-
-                          return null;
-                        })()}
-                      </div>
-                    </div>
-                  )}
-              </div>
-              {/* Operator Input */}
-              <div className="form-group col-md-6">
-                <label>Operator</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  value={
-                    dailyTracking[0]?.operator ||
-                    selectedSection?.data[0]?.operator ||
-                    ""
-                  }
-                  readOnly
-                />
-              </div>
-            </div>
           </form>
         </ModalBody>
         <ModalFooter>
           {/* Update Button */}
           <Button
             color="primary"
-            onClick={submitDailyTracking}
-            disabled={isUpdating}
+            onClick={() => setUpdateConfirmationModal(true)} // Changed to open confirmation modal
+            disabled={
+              isUpdating ||
+              !dailyTracking[0]?.produced ||
+              !dailyTracking[0]?.date
+            }
           >
             {isUpdating ? "Updating..." : "Update"}
           </Button>
@@ -2067,6 +2049,123 @@ export const AllocatedPartListHrPlan = ({
             color="secondary"
             onClick={() => setCompleteProcess(false)}
             disabled={completingprocess}
+          >
+            Cancel
+          </Button>
+        </ModalFooter>
+      </Modal>
+
+      {/* Update Confirmation Modal */}
+      <Modal
+        isOpen={updateConfirmationModal}
+        toggle={() => setUpdateConfirmationModal(false)}
+        size="lg"
+      >
+        <ModalHeader toggle={() => setUpdateConfirmationModal(false)}>
+          Confirm Daily Input Update
+        </ModalHeader>
+        <ModalBody>
+          <div style={{ marginBottom: "20px" }}>
+            <h5
+              style={{
+                fontWeight: "600",
+                marginBottom: "15px",
+                color: "#2d3748",
+              }}
+            >
+              Please confirm the following details before updating:
+            </h5>
+
+            <div className="confirmation-details">
+              <Row className="mb-2">
+                <Col md={3}>
+                  <strong>Date:</strong>
+                </Col>
+                <Col md={9}>
+                  {dailyTracking[0]?.date
+                    ? moment(dailyTracking[0].date).format("DD MMM YYYY")
+                    : "N/A"}
+                </Col>
+              </Row>
+
+              <Row className="mb-2">
+                <Col md={3}>
+                  <strong>Produced:</strong>
+                </Col>
+                <Col md={9}>{dailyTracking[0]?.produced || "0"}</Col>
+              </Row>
+
+              <Row className="mb-2">
+                <Col md={3}>
+                  <strong>Status:</strong>
+                </Col>
+                <Col md={9}>
+                  {(() => {
+                    const produced = Number(dailyTracking[0]?.produced) || 0;
+                    const planned = Number(dailyTracking[0]?.planned) || 0;
+
+                    if (produced === 0) return "Not Started";
+                    if (produced === planned) return "On Track";
+                    if (produced > planned) return "Ahead";
+                    if (produced < planned) return "Delayed";
+                    return "N/A";
+                  })()}
+                </Col>
+              </Row>
+
+              <Row className="mb-2">
+                <Col md={3}>
+                  <strong>Operator:</strong>
+                </Col>
+                <Col md={9}>
+                  {dailyTracking[0]?.operator ||
+                    selectedSection?.data[0]?.operator ||
+                    "N/A"}
+                </Col>
+              </Row>
+
+              <Row className="mb-2">
+                <Col md={3}>
+                  <strong>From Warehouse:</strong>
+                </Col>
+                <Col md={9}>
+                  {selectedSection?.data[0]?.wareHouse || "N/A"} (Quantity:{" "}
+                  {300 + (warehouseChanges.fromWarehouseChange || 0)})
+                </Col>
+              </Row>
+
+              <Row className="mb-2">
+                <Col md={3}>
+                  <strong>To Warehouse:</strong>
+                </Col>
+                <Col md={9}>
+                  {"WareHouse-Floor2"} (Quantity:{" "}
+                  {200 + (warehouseChanges.toWarehouseChange || 0)})
+                </Col>
+              </Row>
+            </div>
+          </div>
+
+          <Alert color="warning" style={{ marginTop: "20px" }}>
+            <strong>Note:</strong> This action will update the production
+            records and cannot be undone.
+          </Alert>
+        </ModalBody>
+        <ModalFooter>
+          <Button
+            color="primary"
+            onClick={() => {
+              setUpdateConfirmationModal(false);
+              submitDailyTracking();
+            }}
+            disabled={isUpdating}
+          >
+            {isUpdating ? "Updating..." : "Confirm Update"}
+          </Button>
+          <Button
+            color="secondary"
+            onClick={() => setUpdateConfirmationModal(false)}
+            disabled={isUpdating}
           >
             Cancel
           </Button>

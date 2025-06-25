@@ -116,7 +116,7 @@ const WareHouseAllocation = () => {
       <CardHeader className="bg-white border-bottom-0">
         <Row className="align-items-center">
           <Col md={4}>
-            <h4 className="mb-0">Warehouse Allocation</h4>
+            <h4 className="mb-0">Inventory Plan</h4>
           </Col>
           <Col md={8}>
             <Row>
