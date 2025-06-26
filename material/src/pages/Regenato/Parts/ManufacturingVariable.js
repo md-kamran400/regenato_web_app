@@ -983,7 +983,7 @@ const ManufacturingVariable = ({
                 }
               />
               <label className="form-check-label" htmlFor="isSpecialday">
-                Batch Process
+                Batch Process (Set Fixed Time for all Quantities)
               </label>
             </div>
 

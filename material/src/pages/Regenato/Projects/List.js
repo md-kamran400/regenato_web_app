@@ -94,7 +94,8 @@ const List = () => {
   const [sortOrder, setSortOrder] = useState(null);
   const [initialLoad, setInitialLoad] = useState(true);
   const [modal_list, setModalList] = useState(false);
-  const [modal_edit, setModalEdit] = useState(false);
+  const [modal_edit, setModalEdit] = useState(false); 
+  const [secondModalList, setSeondModalList] = useState(false);
   const [modal_delete, setModalDelete] = useState(false);
   const [modal_category, setModal_category] = useState(false);
   const [modal_NaemEdit, setModal_NaemEdit] = useState(false);
@@ -201,6 +202,9 @@ const List = () => {
     setModalList(!modal_list);
   };
 
+  const toggleModalPO = ()=>{
+    setSeondModalList(!secondModalList)
+  }
   // function to toggle edit the modal
   const toggleEditModal = (item = null) => {
     if (item) {
@@ -809,6 +813,16 @@ const List = () => {
           )}
         </div>
 
+        <div className="col-sm-auto">
+          {userRole === "admin" && (
+            <div>
+              <Button className="btn btn-primary" onClick={toggleModalPO}>
+                <i className="ri-add-line align-bottom me-1"></i> Add Production Order
+              </Button>
+            </div>
+          )}
+        </div>
+
         <div className="col-sm-7 ms-auto">
           <div className="d-flex justify-content-sm-end gap-2 align-items-center">
             <div className="search-box ms-2 col-sm-5 d-flex align-items-center">
@@ -988,6 +1002,8 @@ const List = () => {
           onPageChange={handlePageChange}
         />
       </>
+
+      {/* toggleModalPO */}
       {/* Modal for adding a new item */}
       <Modal isOpen={modal_list} toggle={toggleModal} centered>
         <ModalHeader className="bg-light p-3" toggle={toggleModal}>
@@ -1034,6 +1050,88 @@ const List = () => {
                 <option value="PO Type 2">PO Type 2</option>
               </Input>
             </div>
+            <Button type="submit" color="primary" disabled={isSubmitting}>
+              {isSubmitting ? "Adding..." : "Add Production Order"}
+            </Button>
+          </ModalBody>
+        </form>
+      </Modal>
+
+      {/* second modal for adding PO and parts at once */}
+      <Modal isOpen={secondModalList} toggle={toggleModalPO} centered>
+        <ModalHeader className="bg-light p-3" toggle={toggleModalPO}>
+          {" "}
+          Add Production Order (Secondary){" "}
+        </ModalHeader>
+        <form
+          // onSubmit={(e) => {
+          //   e.preventDefault();
+          //   handleAddPart();
+          // }}
+        >
+          <ModalBody>
+            <div className="mb-3">
+              <label htmlFor="parts-field" className="form-label">
+                Production Order Name
+              </label>
+              <input
+                type="text"
+                id="parts-field"
+                className="form-control"
+                placeholder="Enter Name (PO)"
+                // value={newprojectName}
+                // onChange={(e) => setNewprojectName(e.target.value)}
+                required
+              />
+            </div>
+            <div className="mb-3">
+              <label htmlFor="project-type" className="form-label">
+                Select Type
+              </label>
+              <Input
+                type="select"
+                id="project-type"
+                className="form-control"
+                // value={projectType}
+                // onChange={(e) => setProjectType(e.target.value)}
+                required
+              >
+                <option value="">Select a type</option>
+                <option value="External PO">External PO</option>
+                <option value="Internal PO">Internal PO</option>
+                <option value="PO Type 1">PO Type 1</option>
+                <option value="PO Type 2">PO Type 2</option>
+              </Input>
+            </div>
+            <div className="mb-3">
+              <label htmlFor="parts-field" className="form-label">
+                Part Name
+              </label>
+              <input
+                type="text"
+                id="parts-field"
+                className="form-control"
+                placeholder="Enter Part Name"
+                // value={newprojectName}
+                // onChange={(e) => setNewprojectName(e.target.value)}
+                required
+              />
+            </div>
+            <div className="mb-3">
+              <label htmlFor="parts-field" className="form-label">
+                Quantity
+              </label>
+              <input
+                type="text"
+                id="parts-field"
+                className="form-control"
+                placeholder="Enter Quantity"
+                // value={newprojectName}
+                // onChange={(e) => setNewprojectName(e.target.value)}
+                required
+              />
+            </div>
+            
             <Button type="submit" color="primary" disabled={isSubmitting}>
               {isSubmitting ? "Adding..." : "Add Production Order"}
             </Button>
