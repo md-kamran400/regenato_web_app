@@ -24,16 +24,29 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { isSameDay, parseISO, getDay, isSameMonth } from "date-fns";
 import { AllocatedPartListHrPlan } from "./AllocatedPartListHrPlan";
-import { 
-  FaWarehouse, 
-  FaBoxes, 
-  FaStoreAlt, 
-  FaClipboardList, 
-  FaCheckCircle, 
-  FaThumbsUp 
-} from 'react-icons/fa';
+import {
+  FaWarehouse,
+  FaBoxes,
+  FaStoreAlt,
+  FaClipboardList,
+  FaCheckCircle,
+  FaThumbsUp,
+} from "react-icons/fa";
 // import { FiInfoCircle } from 'react-icons/fi';
 import { FiInfo } from "react-icons/fi";
+import {
+  FiSettings,
+  FiPackage,
+  FiPlus,
+  FiTrash2,
+  FiBox,
+  FiClock,
+  FiCalendar,
+  FiAlertTriangle,
+  FiCpu,
+  FiHome,
+  FiUser,
+} from "react-icons/fi";
 export const PartListHrPlan = ({
   partName,
   manufacturingVariables,
@@ -2111,7 +2124,7 @@ export const PartListHrPlan = ({
                       Add Row
                     </Button>
                   </CardHeader>
-                  <Table bordered responsive>
+                  {/* <Table bordered responsive>
                     <thead>
                       <tr>
                         <th>Plan Qty</th>
@@ -2440,7 +2453,6 @@ export const PartListHrPlan = ({
                               }
                             `}</style>
                           </td>
-
                           <td>
                             <Input
                               type="time"
@@ -2455,7 +2467,6 @@ export const PartListHrPlan = ({
                               readOnly
                             />
                           </td>
-
                           <td>
                             <Autocomplete
                               sx={{
@@ -2589,7 +2600,10 @@ export const PartListHrPlan = ({
                                     }
                                   }
 
-                                  return { ...prevRows, [index]: updatedRows };
+                                  return {
+                                    ...prevRows,
+                                    [index]: updatedRows,
+                                  };
                                 });
                               }}
                               renderInput={(params) => (
@@ -2637,7 +2651,6 @@ export const PartListHrPlan = ({
                                 machine.subcategoryId === row.machineId
                             )?.wareHouse || "-"}
                           </td>
-
                           <td>
                             <Autocomplete
                               sx={{
@@ -2961,7 +2974,6 @@ export const PartListHrPlan = ({
                               }
                             />
                           </td>
-
                           <td>
                             <span
                               onClick={() =>
@@ -2977,6 +2989,1229 @@ export const PartListHrPlan = ({
                             >
                               <MdOutlineDelete size={25} />
                             </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </Table> */}
+
+                  <Table bordered responsive style={{ marginBottom: "2rem" }}>
+                    <thead>
+                      <tr>
+                        <th
+                          style={{
+                            width: "25%",
+                            backgroundColor: "#f8f9fa",
+                            borderTopLeftRadius: "8px",
+                            borderBottom: "2px solid #e2e8f0",
+                          }}
+                        >
+                          Process
+                        </th>
+                        <th
+                          style={{
+                            backgroundColor: "#f8f9fa",
+                            borderTopRightRadius: "8px",
+                            borderBottom: "2px solid #e2e8f0",
+                          }}
+                        >
+                          Allocation Details
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rows[index]?.map((row, rowIndex) => (
+                        <tr
+                          key={rowIndex}
+                          style={{
+                            borderBottom: "2px solid #e2e8f0",
+                            backgroundColor:
+                              rowIndex % 2 === 0 ? "#ffffff" : "#f8fafc",
+                            transition: "background-color 0.2s ease",
+                          }}
+                        >
+                          <td
+                            style={{
+                              verticalAlign: "top",
+                              padding: "1.25rem",
+                              borderRight: "1px solid #e2e8f0",
+                            }}
+                          >
+                            <div
+                              style={{
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: "1rem",
+                              }}
+                            >
+                              <div
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "0.75rem",
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    width: "40px",
+                                    height: "40px",
+                                    borderRadius: "8px",
+                                    backgroundColor: "#4f46e510",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                  }}
+                                >
+                                  <FiSettings size={20} color="#4f46e5" />
+                                </div>
+                                <div>
+                                  <div
+                                    style={{
+                                      fontWeight: "600",
+                                      fontSize: "0.95rem",
+                                      color: "#1e293b",
+                                    }}
+                                  >
+                                    {`${man.categoryId} - ${man.name}`}
+                                  </div>
+                                  <div
+                                    style={{
+                                      fontSize: "0.8rem",
+                                      color: "#64748b",
+                                      marginTop: "0.25rem",
+                                    }}
+                                  >
+                                    Process {index + 1}
+                                  </div>
+                                </div>
+                              </div>
+
+                              {rowIndex === 0 && (
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "0.5rem",
+                                    padding: "0.75rem",
+                                    backgroundColor: "#f1f5f9",
+                                    borderRadius: "8px",
+                                    borderLeft: "3px solid #4f46e5",
+                                  }}
+                                >
+                                  <div
+                                    style={{
+                                      width: "32px",
+                                      height: "32px",
+                                      borderRadius: "6px",
+                                      backgroundColor: "#4f46e510",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                    }}
+                                  >
+                                    <FiPackage size={16} color="#4f46e5" />
+                                  </div>
+                                  <div style={{ fontSize: "0.85rem" }}>
+                                    <div
+                                      style={{
+                                        fontWeight: 600,
+                                        color: "#334155",
+                                      }}
+                                    >
+                                      Quantity Status
+                                    </div>
+                                    <div
+                                      style={{
+                                        display: "flex",
+                                        gap: "0.5rem",
+                                        marginTop: "0.25rem",
+                                      }}
+                                    >
+                                      <span
+                                        style={{
+                                          color: "#4f46e5",
+                                          fontWeight: 700,
+                                        }}
+                                      >
+                                        {remainingQuantities[index] || 0}
+                                      </span>
+                                      <span style={{ color: "#64748b" }}>
+                                        remaining of
+                                      </span>
+                                      <span
+                                        style={{
+                                          color: "#4f46e5",
+                                          fontWeight: 700,
+                                        }}
+                                      >
+                                        {quantity}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+
+                              <div
+                                style={{
+                                  display: "flex",
+                                  gap: "0.75rem",
+                                  marginTop: "0.5rem",
+                                }}
+                              >
+                                <Button
+                                  color="primary"
+                                  size="sm"
+                                  onClick={() => addRow(index)}
+                                  disabled={
+                                    !hasStartDate ||
+                                    remainingQuantities[index] <= 0
+                                  }
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "0.5rem",
+                                    fontSize: "0.8rem",
+                                    fontWeight: 500,
+                                    borderRadius: "6px",
+                                    padding: "0.5rem 0.75rem",
+                                    flex: 1,
+                                    boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+                                    transition: "all 0.2s ease",
+                                  }}
+                                >
+                                  <FiPlus size={16} />
+                                  Add Row
+                                </Button>
+                                <Button
+                                  color="danger"
+                                  size="sm"
+                                  onClick={() =>
+                                    hasStartDate && deleteRow(index, rowIndex)
+                                  }
+                                  disabled={!hasStartDate}
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "0.5rem",
+                                    fontSize: "0.8rem",
+                                    fontWeight: 500,
+                                    borderRadius: "6px",
+                                    padding: "0.5rem 0.75rem",
+                                    flex: 1,
+                                    boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+                                    transition: "all 0.2s ease",
+                                  }}
+                                >
+                                  <FiTrash2 size={16} />
+                                  Remove
+                                </Button>
+                              </div>
+                            </div>
+                          </td>
+                          <td style={{ padding: "1.25rem" }}>
+                            <div
+                              style={{
+                                display: "grid",
+                                gridTemplateColumns:
+                                  "repeat(auto-fill, minmax(240px, 1fr))",
+                                gap: "1.25rem",
+                                padding: "0.5rem 0",
+                              }}
+                            >
+                              {/* Plan Quantity */}
+                              <div
+                                style={{
+                                  backgroundColor: "#ffffff",
+                                  borderRadius: "8px",
+                                  padding: "1rem",
+                                  boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+                                  border: "1px solid #e2e8f0",
+                                }}
+                              >
+                                <label
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "0.5rem",
+                                    fontSize: "0.85rem",
+                                    fontWeight: 600,
+                                    color: "#334155",
+                                    marginBottom: "0.75rem",
+                                  }}
+                                >
+                                  <div
+                                    style={{
+                                      width: "28px",
+                                      height: "28px",
+                                      borderRadius: "6px",
+                                      backgroundColor: "#3b82f610",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                    }}
+                                  >
+                                    <FiBox size={16} color="#3b82f6" />
+                                  </div>
+                                  Plan Quantity
+                                </label>
+                                {isAutoSchedule ? (
+                                  <Input
+                                    type="number"
+                                    value={row.plannedQuantity}
+                                    required
+                                    onChange={(e) => {
+                                      const newValue =
+                                        e.target.value === ""
+                                          ? ""
+                                          : Number(e.target.value);
+                                      setRows((prevRows) => {
+                                        const updatedRows = { ...prevRows };
+                                        const processRows = [
+                                          ...(updatedRows[index] || []),
+                                        ];
+
+                                        const usedQuantityExcludingCurrent =
+                                          processRows.reduce((sum, r, i) => {
+                                            return i === rowIndex
+                                              ? sum
+                                              : sum +
+                                                  Number(
+                                                    r.plannedQuantity || 0
+                                                  );
+                                          }, 0);
+
+                                        const maxAllowed =
+                                          quantity -
+                                          usedQuantityExcludingCurrent;
+                                        const safeValue = Math.min(
+                                          Number(newValue),
+                                          maxAllowed
+                                        );
+
+                                        processRows[rowIndex] = {
+                                          ...processRows[rowIndex],
+                                          plannedQuantity: safeValue,
+                                          plannedQtyTime:
+                                            calculatePlannedMinutes(
+                                              (safeValue || 0) *
+                                                manufacturingVariables[index]
+                                                  .hours,
+                                              manufacturingVariables[index]
+                                                .name,
+                                              manufacturingVariables[index]
+                                                .categoryId
+                                            ),
+                                        };
+
+                                        updatedRows[index] = processRows;
+
+                                        const totalUsedQuantity =
+                                          processRows.reduce(
+                                            (sum, row) =>
+                                              sum +
+                                              Number(row.plannedQuantity || 0),
+                                            0
+                                          );
+
+                                        setRemainingQuantities((prev) => ({
+                                          ...prev,
+                                          [index]: Math.max(
+                                            0,
+                                            quantity - totalUsedQuantity
+                                          ),
+                                        }));
+
+                                        return updatedRows;
+                                      });
+                                    }}
+                                    style={{
+                                      width: "100%",
+                                      padding: "0.5rem 0.75rem",
+                                      fontSize: "0.875rem",
+                                      border: "1px solid #e2e8f0",
+                                      borderRadius: "6px",
+                                      transition: "all 0.2s ease",
+                                      ":focus": {
+                                        borderColor: "#3b82f6",
+                                        boxShadow:
+                                          "0 0 0 2px rgba(59, 130, 246, 0.2)",
+                                      },
+                                    }}
+                                  />
+                                ) : (
+                                  <Input
+                                    type="number"
+                                    value={row.plannedQuantity}
+                                    onChange={(e) =>
+                                      handleQuantityChange(
+                                        index,
+                                        rowIndex,
+                                        e.target.value
+                                      )
+                                    }
+                                    style={{
+                                      width: "100%",
+                                      padding: "0.5rem 0.75rem",
+                                      fontSize: "0.875rem",
+                                      border: "1px solid #e2e8f0",
+                                      borderRadius: "6px",
+                                      transition: "all 0.2s ease",
+                                      ":focus": {
+                                        borderColor: "#3b82f6",
+                                        boxShadow:
+                                          "0 0 0 2px rgba(59, 130, 246, 0.2)",
+                                      },
+                                    }}
+                                  />
+                                )}
+                              </div>
+
+                              {/* Plan Quantity Time */}
+                              <div
+                                style={{
+                                  backgroundColor: "#ffffff",
+                                  borderRadius: "8px",
+                                  padding: "1rem",
+                                  boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+                                  border: "1px solid #e2e8f0",
+                                }}
+                              >
+                                <label
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "0.5rem",
+                                    fontSize: "0.85rem",
+                                    fontWeight: 600,
+                                    color: "#334155",
+                                    marginBottom: "0.75rem",
+                                  }}
+                                >
+                                  <div
+                                    style={{
+                                      width: "28px",
+                                      height: "28px",
+                                      borderRadius: "6px",
+                                      backgroundColor: "#10b98110",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                    }}
+                                  >
+                                    <FiClock size={16} color="#10b981" />
+                                  </div>
+                                  Plan Time (min)
+                                </label>
+                                <Input
+                                  type="text"
+                                  value={
+                                    row.plannedQtyTime
+                                      ? `${row.plannedQtyTime} m`
+                                      : ""
+                                  }
+                                  readOnly
+                                  style={{
+                                    width: "100%",
+                                    padding: "0.5rem 0.75rem",
+                                    fontSize: "0.875rem",
+                                    border: "1px solid #e2e8f0",
+                                    borderRadius: "6px",
+                                    backgroundColor: "#f8fafc",
+                                    cursor: "not-allowed",
+                                  }}
+                                />
+                              </div>
+
+                              {/* Shift */}
+                              <div
+                                style={{
+                                  backgroundColor: "#ffffff",
+                                  borderRadius: "8px",
+                                  padding: "1rem",
+                                  boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+                                  border: "1px solid #e2e8f0",
+                                }}
+                              >
+                                <label
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "0.5rem",
+                                    fontSize: "0.85rem",
+                                    fontWeight: 600,
+                                    color: "#334155",
+                                    marginBottom: "0.75rem",
+                                  }}
+                                >
+                                  <div
+                                    style={{
+                                      width: "28px",
+                                      height: "28px",
+                                      borderRadius: "6px",
+                                      backgroundColor: "#f59e0b10",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                    }}
+                                  >
+                                    <FiCalendar size={16} color="#f59e0b" />
+                                  </div>
+                                  Shift
+                                </label>
+                                <Autocomplete
+                                  sx={{
+                                    width: "100%",
+                                    "& .MuiOutlinedInput-root": {
+                                      padding: "6px !important",
+                                      fontSize: "0.875rem",
+                                    },
+                                  }}
+                                  options={shiftOptions || []}
+                                  value={
+                                    shiftOptions.find(
+                                      (option) => option.name === row.shift
+                                    ) ||
+                                    (isAutoSchedule && shiftOptions.length > 0
+                                      ? shiftOptions[0]
+                                      : null)
+                                  }
+                                  onChange={(event, newValue) => {
+                                    if (!newValue) return;
+
+                                    setRows((prevRows) => ({
+                                      ...prevRows,
+                                      [index]: prevRows[index].map(
+                                        (row, rowIdx) => {
+                                          if (rowIdx === rowIndex) {
+                                            let updatedEndDate = row.endDate;
+                                            if (row.startDate) {
+                                              const recalculated =
+                                                calculateStartAndEndDates(
+                                                  row.startDate,
+                                                  row.plannedQtyTime,
+                                                  newValue.TotalHours
+                                                );
+                                              updatedEndDate =
+                                                recalculated.endDate;
+                                            }
+                                            return {
+                                              ...row,
+                                              shift: newValue.name,
+                                              startTime: newValue.startTime,
+                                              shiftMinutes: newValue.TotalHours,
+                                              endDate: updatedEndDate,
+                                            };
+                                          }
+                                          return row;
+                                        }
+                                      ),
+                                    }));
+                                  }}
+                                  getOptionLabel={(option) => option.name}
+                                  renderInput={(params) => (
+                                    <TextField
+                                      {...params}
+                                      label="Select Shift"
+                                      variant="outlined"
+                                      size="small"
+                                      placeholder="Select Shift"
+                                    />
+                                  )}
+                                  disabled={!hasStartDate && index !== 0}
+                                />
+                              </div>
+
+                              {/* Start Date */}
+                              <div
+                                style={{
+                                  backgroundColor: "#ffffff",
+                                  borderRadius: "8px",
+                                  padding: "1rem",
+                                  boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+                                  border: "1px solid #e2e8f0",
+                                }}
+                              >
+                                <label
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "0.5rem",
+                                    fontSize: "0.85rem",
+                                    fontWeight: 600,
+                                    color: "#334155",
+                                    marginBottom: "0.75rem",
+                                  }}
+                                >
+                                  <div
+                                    style={{
+                                      width: "28px",
+                                      height: "28px",
+                                      borderRadius: "6px",
+                                      backgroundColor: "#8b5cf610",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                    }}
+                                  >
+                                    <FiCalendar size={16} color="#8b5cf6" />
+                                  </div>
+                                  Start Date
+                                </label>
+                                <div style={{ position: "relative" }}>
+                                  <DatePicker
+                                    selected={
+                                      row.startDate
+                                        ? new Date(row.startDate + "T00:00:00")
+                                        : null
+                                    }
+                                    onChange={(date) => {
+                                      if (!date) return;
+
+                                      const utcDate = new Date(
+                                        Date.UTC(
+                                          date.getFullYear(),
+                                          date.getMonth(),
+                                          date.getDate()
+                                        )
+                                      );
+
+                                      handleStartDateChange(
+                                        index,
+                                        rowIndex,
+                                        utcDate
+                                      );
+                                    }}
+                                    filterDate={(date) => {
+                                      return (
+                                        date >=
+                                        new Date(
+                                          new Date().setHours(0, 0, 0, 0)
+                                        )
+                                      );
+                                    }}
+                                    dayClassName={(date) => {
+                                      const machine = machineOptions[
+                                        manufacturingVariables[index].categoryId
+                                      ]?.find(
+                                        (m) => m.subcategoryId === row.machineId
+                                      );
+
+                                      if (machine) {
+                                        const availability = isMachineAvailable(
+                                          machine.subcategoryId,
+                                          date,
+                                          calculateEndDateWithDowntime(
+                                            date,
+                                            row.plannedQtyTime,
+                                            shiftOptions.find(
+                                              (s) => s.name === row.shift
+                                            ),
+                                            machine,
+                                            index,
+                                            rowIndex
+                                          )
+                                        );
+                                        return availability.available
+                                          ? ""
+                                          : "highlighted-date";
+                                      }
+                                      return "";
+                                    }}
+                                    renderDayContents={renderDayContents}
+                                    customInput={<CustomInput />}
+                                    dateFormat="dd-MM-yyyy"
+                                    wrapperClassName="small-datepicker"
+                                  />
+                                </div>
+                              </div>
+
+                              {/* Start Time */}
+                              <div
+                                style={{
+                                  backgroundColor: "#ffffff",
+                                  borderRadius: "8px",
+                                  padding: "1rem",
+                                  boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+                                  border: "1px solid #e2e8f0",
+                                }}
+                              >
+                                <label
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "0.5rem",
+                                    fontSize: "0.85rem",
+                                    fontWeight: 600,
+                                    color: "#334155",
+                                    marginBottom: "0.75rem",
+                                  }}
+                                >
+                                  <div
+                                    style={{
+                                      width: "28px",
+                                      height: "28px",
+                                      borderRadius: "6px",
+                                      backgroundColor: "#ec489910",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                    }}
+                                  >
+                                    <FiClock size={16} color="#ec4899" />
+                                  </div>
+                                  Start Time
+                                </label>
+                                <div style={{ position: "relative" }}>
+                                  <Input
+                                    type="time"
+                                    value={row.startTime}
+                                    min={
+                                      row.shift
+                                        ? shiftOptions.find(
+                                            (s) => s.name === row.shift
+                                          )?.startTime
+                                        : "00:00"
+                                    }
+                                    max={
+                                      row.shift
+                                        ? shiftOptions.find(
+                                            (s) => s.name === row.shift
+                                          )?.endTime
+                                        : "23:59"
+                                    }
+                                    onChange={(e) =>
+                                      handleTimeChange(
+                                        index,
+                                        rowIndex,
+                                        e.target.value
+                                      )
+                                    }
+                                    style={{
+                                      width: "100%",
+                                      padding: "0.5rem 0.75rem",
+                                      fontSize: "0.875rem",
+                                      border: "1px solid #e2e8f0",
+                                      borderRadius: "6px",
+                                      transition: "all 0.2s ease",
+                                      ":focus": {
+                                        borderColor: "#ec4899",
+                                        boxShadow:
+                                          "0 0 0 2px rgba(236, 72, 153, 0.2)",
+                                      },
+                                    }}
+                                  />
+                                </div>
+                              </div>
+
+                              {/* End Date */}
+                              <div
+                                style={{
+                                  backgroundColor: "#ffffff",
+                                  borderRadius: "8px",
+                                  padding: "1rem",
+                                  boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+                                  border: "1px solid #e2e8f0",
+                                }}
+                              >
+                                <label
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "0.5rem",
+                                    fontSize: "0.85rem",
+                                    fontWeight: 600,
+                                    color: "#334155",
+                                    marginBottom: "0.75rem",
+                                  }}
+                                >
+                                  <div
+                                    style={{
+                                      width: "28px",
+                                      height: "28px",
+                                      borderRadius: "6px",
+                                      backgroundColor: "#14b8a610",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                    }}
+                                  >
+                                    <FiCalendar size={16} color="#14b8a6" />
+                                  </div>
+                                  End Date
+                                </label>
+                                <div style={{ position: "relative" }}>
+                                  <DatePicker
+                                    selected={
+                                      row.endDate ? new Date(row.endDate) : null
+                                    }
+                                    onChange={() => {}}
+                                    dayClassName={(date) =>
+                                      isMachineAvailable(
+                                        row.machineId,
+                                        row.startDate,
+                                        date
+                                      )
+                                        ? ""
+                                        : "highlighted-date"
+                                    }
+                                    renderDayContents={renderDayContents}
+                                    customInput={<CustomInput />}
+                                    dateFormat="dd-MM-yyyy"
+                                    wrapperClassName="small-datepicker"
+                                    disabled
+                                    readOnly
+                                  />
+
+                                  {row.totalDowntimeAdded > 0 && (
+                                    <div
+                                      style={{
+                                        fontSize: "0.75rem",
+                                        color: "#dc3545",
+                                        marginTop: "0.5rem",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: "0.25rem",
+                                        padding: "0.25rem 0.5rem",
+                                        backgroundColor: "#fee2e2",
+                                        borderRadius: "4px",
+                                      }}
+                                    >
+                                      <FiAlertTriangle size={12} />
+                                      <span>
+                                        +{row.totalDowntimeAdded}m downtime
+                                        added
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* End Time */}
+                              <div
+                                style={{
+                                  backgroundColor: "#ffffff",
+                                  borderRadius: "8px",
+                                  padding: "1rem",
+                                  boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+                                  border: "1px solid #e2e8f0",
+                                }}
+                              >
+                                <label
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "0.5rem",
+                                    fontSize: "0.85rem",
+                                    fontWeight: 600,
+                                    color: "#334155",
+                                    marginBottom: "0.75rem",
+                                  }}
+                                >
+                                  <div
+                                    style={{
+                                      width: "28px",
+                                      height: "28px",
+                                      borderRadius: "6px",
+                                      backgroundColor: "#0ea5e910",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                    }}
+                                  >
+                                    <FiClock size={16} color="#0ea5e9" />
+                                  </div>
+                                  End Time
+                                </label>
+                                <div style={{ position: "relative" }}>
+                                  <Input
+                                    type="time"
+                                    value={
+                                      row.endTime ||
+                                      calculateEndTime(
+                                        row.startTime,
+                                        row.plannedQtyTime,
+                                        shiftOptions.find(
+                                          (s) => s.name === row.shift
+                                        )
+                                      )
+                                    }
+                                    readOnly
+                                    style={{
+                                      width: "100%",
+                                      padding: "0.5rem 0.75rem",
+                                      fontSize: "0.875rem",
+                                      border: "1px solid #e2e8f0",
+                                      borderRadius: "6px",
+                                      backgroundColor: "#f8fafc",
+                                      cursor: "not-allowed",
+                                    }}
+                                  />
+                                </div>
+                              </div>
+
+                              {/* Machine */}
+                              <div
+                                style={{
+                                  backgroundColor: "#ffffff",
+                                  borderRadius: "8px",
+                                  padding: "1rem",
+                                  boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+                                  border: "1px solid #e2e8f0",
+                                }}
+                              >
+                                <label
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "0.5rem",
+                                    fontSize: "0.85rem",
+                                    fontWeight: 600,
+                                    color: "#334155",
+                                    marginBottom: "0.75rem",
+                                  }}
+                                >
+                                  <div
+                                    style={{
+                                      width: "28px",
+                                      height: "28px",
+                                      borderRadius: "6px",
+                                      backgroundColor: "#6366f110",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                    }}
+                                  >
+                                    <FiCpu size={16} color="#6366f1" />
+                                  </div>
+                                  Machine
+                                </label>
+                                <Autocomplete
+                                  sx={{
+                                    width: "100%",
+                                    "& .MuiOutlinedInput-root": {
+                                      padding: "6px !important",
+                                      fontSize: "0.875rem",
+                                    },
+                                  }}
+                                  options={getAvailableMachinesForRow(
+                                    index,
+                                    rowIndex
+                                  )}
+                                  value={
+                                    machineOptions[man.categoryId]?.find(
+                                      (machine) =>
+                                        machine.subcategoryId === row.machineId
+                                    ) || null
+                                  }
+                                  getOptionLabel={(option) =>
+                                    option
+                                      ? `${option.subcategoryId} - ${option.name}`
+                                      : ""
+                                  }
+                                  onChange={(event, newValue) => {
+                                    if (!hasStartDate) return;
+
+                                    const isAlreadySelected = rows[index].some(
+                                      (r, idx) =>
+                                        idx !== rowIndex &&
+                                        r.machineId === newValue?.subcategoryId
+                                    );
+
+                                    if (isAlreadySelected) {
+                                      toast.error(
+                                        "This machine is already selected in another row for this process"
+                                      );
+                                      return;
+                                    }
+
+                                    if (newValue) {
+                                      const status = getMachineStatus(
+                                        newValue,
+                                        row.startDate,
+                                        row.endDate
+                                      );
+
+                                      if (status.isDowntime) {
+                                        toast.warning(
+                                          `Warning: This machine is in downtime until ${
+                                            status.downtimeEnd
+                                              ? new Date(
+                                                  status.downtimeEnd
+                                                ).toLocaleDateString()
+                                              : "unknown"
+                                          } (Reason: ${status.downtimeReason})`
+                                        );
+                                      }
+
+                                      if (
+                                        status.isAllocated &&
+                                        !status.isDowntime
+                                      ) {
+                                        toast.error(
+                                          "This machine is occupied during the selected time period"
+                                        );
+                                        return;
+                                      }
+                                    }
+
+                                    setRows((prevRows) => {
+                                      const updatedRows = [...prevRows[index]];
+                                      updatedRows[rowIndex] = {
+                                        ...updatedRows[rowIndex],
+                                        machineId: newValue
+                                          ? newValue.subcategoryId
+                                          : "",
+                                        warehouse: newValue
+                                          ? newValue.wareHouse
+                                          : "",
+                                      };
+
+                                      if (
+                                        newValue &&
+                                        updatedRows[rowIndex].startDate
+                                      ) {
+                                        const shift = shiftOptions.find(
+                                          (option) =>
+                                            option.name ===
+                                            updatedRows[rowIndex].shift
+                                        );
+
+                                        updatedRows[rowIndex].endDate =
+                                          calculateEndDateWithDowntime(
+                                            updatedRows[rowIndex].startDate,
+                                            updatedRows[rowIndex]
+                                              .plannedQtyTime,
+                                            shift,
+                                            newValue,
+                                            index,
+                                            rowIndex
+                                          );
+
+                                        const downtimeInfo =
+                                          isMachineOnDowntimeDuringPeriod(
+                                            newValue,
+                                            updatedRows[rowIndex].startDate,
+                                            updatedRows[rowIndex].endDate
+                                          );
+
+                                        if (downtimeInfo.isDowntime) {
+                                          toast.info(
+                                            `Machine has ${downtimeInfo.downtimeMinutes} minutes of downtime. End date extended to ${updatedRows[rowIndex].endDate}.`
+                                          );
+                                        }
+                                      }
+
+                                      return {
+                                        ...prevRows,
+                                        [index]: updatedRows,
+                                      };
+                                    });
+                                  }}
+                                  renderInput={(params) => (
+                                    <TextField
+                                      {...params}
+                                      placeholder="Select Machine"
+                                      size="small"
+                                    />
+                                  )}
+                                  disabled={!hasStartDate}
+                                />
+                              </div>
+
+                              {/* Warehouse */}
+                              <div
+                                style={{
+                                  backgroundColor: "#ffffff",
+                                  borderRadius: "8px",
+                                  padding: "1rem",
+                                  boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+                                  border: "1px solid #e2e8f0",
+                                }}
+                              >
+                                <label
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "0.5rem",
+                                    fontSize: "0.85rem",
+                                    fontWeight: 600,
+                                    color: "#334155",
+                                    marginBottom: "0.75rem",
+                                  }}
+                                >
+                                  <div
+                                    style={{
+                                      width: "28px",
+                                      height: "28px",
+                                      borderRadius: "6px",
+                                      backgroundColor: "#f9731610",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                    }}
+                                  >
+                                    <FiHome size={16} color="#f97316" />
+                                  </div>
+                                  Warehouse
+                                </label>
+                                <Input
+                                  type="text"
+                                  value={
+                                    machineOptions[man.categoryId]?.find(
+                                      (machine) =>
+                                        machine.subcategoryId === row.machineId
+                                    )?.wareHouse || "-"
+                                  }
+                                  readOnly
+                                  style={{
+                                    width: "100%",
+                                    padding: "0.5rem 0.75rem",
+                                    fontSize: "0.875rem",
+                                    border: "1px solid #e2e8f0",
+                                    borderRadius: "6px",
+                                    backgroundColor: "#f8fafc",
+                                    cursor: "not-allowed",
+                                  }}
+                                />
+                              </div>
+
+                              {/* Operator */}
+                              <div
+                                style={{
+                                  backgroundColor: "#ffffff",
+                                  borderRadius: "8px",
+                                  padding: "1rem",
+                                  boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+                                  border: "1px solid #e2e8f0",
+                                }}
+                              >
+                                <label
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "0.5rem",
+                                    fontSize: "0.85rem",
+                                    fontWeight: 600,
+                                    color: "#334155",
+                                    marginBottom: "0.75rem",
+                                  }}
+                                >
+                                  <div
+                                    style={{
+                                      width: "28px",
+                                      height: "28px",
+                                      borderRadius: "6px",
+                                      backgroundColor: "#06b6d410",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                    }}
+                                  >
+                                    <FiUser size={16} color="#06b6d4" />
+                                  </div>
+                                  Operator
+                                </label>
+                                <Autocomplete
+                                  sx={{
+                                    width: "100%",
+                                    "& .MuiOutlinedInput-root": {
+                                      padding: "6px !important",
+                                      fontSize: "0.875rem",
+                                    },
+                                  }}
+                                  options={operators}
+                                  value={
+                                    operators.find(
+                                      (op) => op._id === row.operatorId
+                                    ) || null
+                                  }
+                                  getOptionLabel={(option) => {
+                                    if (!option) return "";
+                                    const isOnLeave = isOperatorOnLeave(
+                                      option,
+                                      row.startDate,
+                                      row.endDate
+                                    );
+                                    const { status } = isOperatorAvailable(
+                                      option._id,
+                                      row.startDate,
+                                      row.endDate
+                                    );
+                                    return `${option.name}${
+                                      isOnLeave
+                                        ? " (On Leave)"
+                                        : status === "Occupied"
+                                        ? " (Occupied)"
+                                        : ""
+                                    }`;
+                                  }}
+                                  onChange={(event, newValue) => {
+                                    if (!hasStartDate || !newValue) return;
+
+                                    const { status } = isOperatorAvailable(
+                                      newValue._id,
+                                      row.startDate,
+                                      row.endDate
+                                    );
+
+                                    if (status === "Occupied") {
+                                      event.preventDefault();
+                                      toast.error(
+                                        `${newValue.name} is already occupied during the selected dates`
+                                      );
+                                      return;
+                                    }
+
+                                    const isAlreadySelected = rows[index].some(
+                                      (r, idx) =>
+                                        idx !== rowIndex &&
+                                        r.operatorId === newValue._id
+                                    );
+
+                                    if (isAlreadySelected) {
+                                      toast.error(
+                                        `${newValue.name} is already assigned to another row in this process`
+                                      );
+                                      return;
+                                    }
+
+                                    const isOnLeave = isOperatorOnLeave(
+                                      newValue,
+                                      row.startDate,
+                                      row.endDate
+                                    );
+                                    if (isOnLeave) {
+                                      toast.warning(
+                                        `${newValue.name} is on leave during the selected dates. Please confirm if you want to proceed.`
+                                      );
+                                    }
+
+                                    setRows((prevRows) => ({
+                                      ...prevRows,
+                                      [index]: prevRows[index].map((r, idx) => {
+                                        if (idx === rowIndex) {
+                                          return {
+                                            ...r,
+                                            operatorId: newValue._id,
+                                          };
+                                        }
+                                        return r;
+                                      }),
+                                    }));
+                                  }}
+                                  renderInput={(params) => (
+                                    <TextField
+                                      {...params}
+                                      label="Select Operator"
+                                      variant="outlined"
+                                      size="small"
+                                      placeholder="Search operators..."
+                                    />
+                                  )}
+                                  disabled={!hasStartDate}
+                                />
+                              </div>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -3050,3 +4285,47 @@ export const PartListHrPlan = ({
 };
 
 export default PartListHrPlan;
+
+<style jsx>{`
+  .form-group {
+    margin-bottom: 0;
+  }
+  .form-label {
+    display: flex;
+    align-items: center;
+    font-size: 0.85rem;
+    font-weight: 500;
+    margin-bottom: 4px;
+    color: #495057;
+  }
+  .form-control {
+    width: 100%;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: #495057;
+    background-color: #fff;
+    background-clip: padding-box;
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  }
+  .form-control:focus {
+    color: #495057;
+    background-color: #fff;
+    border-color: #80bdff;
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+  }
+  .highlighted-date {
+    background-color: #f06548 !important;
+    color: black !important;
+    border-radius: 50%;
+  }
+  .small-datepicker input {
+    width: 100% !important;
+    font-size: 0.875rem !important;
+    padding: 0.375rem 0.75rem !important;
+    cursor: not-allowed;
+  }
+`}</style>;

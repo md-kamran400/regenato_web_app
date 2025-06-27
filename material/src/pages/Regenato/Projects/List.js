@@ -1046,8 +1046,8 @@ const List = () => {
                 <option value="">Select a type</option>
                 <option value="External PO">External PO</option>
                 <option value="Internal PO">Internal PO</option>
-                <option value="PO Type 1">PO Type 1</option>
-                <option value="PO Type 2">PO Type 2</option>
+                {/* <option value="PO Type 1">PO Type 1</option>
+                <option value="PO Type 2">PO Type 2</option> */}
               </Input>
             </div>
             <Button type="submit" color="primary" disabled={isSubmitting}>
