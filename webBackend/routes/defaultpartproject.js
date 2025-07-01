@@ -833,7 +833,7 @@ partproject.post(
         return res.status(400).json({ message: "Invalid allocation data" });
       }
 
-      const project = await PartListProjectModel.findOne({ _id: projectId });
+      const project = await PartListProjectModel.findById(projectId);
       if (!project) {
         return res.status(404).json({ message: "Project not found" });
       }
@@ -852,10 +852,10 @@ partproject.post(
         return res.status(404).json({ message: "Part List Item not found" });
       }
 
-      // Clear existing allocations first
+      // Clear existing allocations
       partItem.allocations = [];
 
-      // Add new allocations with properly calculated dailyPlannedQty
+      // Add all allocations in the same order
       allocations.forEach((alloc) => {
         const newAllocation = {
           partName: alloc.partName,
@@ -863,16 +863,15 @@ partproject.post(
           processId: alloc.processId,
           partsCodeId: alloc.partsCodeId,
           allocations: alloc.allocations.map((a) => {
-            // Calculate daily planned quantity
-            const shiftTotalTime = a.shiftTotalTime || 510; // Default 8.5 hours in minutes
-            const perMachinetotalTime = a.perMachinetotalTime || 1; // Prevent division by zero
+            const shiftTotalTime = a.shiftTotalTime || 510;
+            const perMachinetotalTime = a.perMachinetotalTime || 1;
             const dailyPlannedQty = Math.floor(
               shiftTotalTime / perMachinetotalTime
             );
 
             return {
               ...a,
-              dailyPlannedQty: dailyPlannedQty,
+              dailyPlannedQty,
               dailyTracking: [],
             };
           }),
@@ -880,18 +879,17 @@ partproject.post(
         partItem.allocations.push(newAllocation);
       });
 
-      // Calculate and update status
+      // Update status
       const status = partItem.calculateStatus();
       partItem.status = status.text;
       partItem.statusClass = status.class;
 
-      // Save the updated project
       await project.save();
 
       res.status(201).json({
         message: "Allocations added successfully",
         data: {
-          ...partItem.toObject(),
+          allocations: partItem.allocations,
           status: status.text,
           statusClass: status.class,
         },
@@ -956,60 +954,6 @@ partproject.delete(
   }
 );
 
-// const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
-
-// partproject.get(
-//   "/projects/:projectId/partsLists/:partsListId/partsListItems/:partsListItemsId/allocation",
-//   async (req, res) => {
-//     try {
-//       const { projectId, partsListId, partsListItemsId } = req.params;
-
-//       // Validate IDs
-//       if (
-//         !isValidObjectId(projectId) ||
-//         !isValidObjectId(partsListId) ||
-//         !isValidObjectId(partsListItemsId)
-//       ) {
-//         return res.status(400).json({ message: "Invalid or missing ID(s)" });
-//       }
-
-//       // Find the project
-//       const project = await PartListProjectModel.findById(projectId);
-//       if (!project) {
-//         return res.status(404).json({ message: "Project not found" });
-//       }
-
-//       // Find the parts list
-//       const partsList = project.partsLists.find(
-//         (list) => list._id.toString() === partsListId
-//       );
-//       if (!partsList) {
-//         return res.status(404).json({ message: "Parts List not found" });
-//       }
-
-//       // Find the part item
-//       const partItem = partsList.partsListItems.find(
-//         (item) => item._id.toString() === partsListItemsId
-//       );
-//       if (!partItem) {
-//         return res.status(404).json({ message: "Part List Item not found" });
-//       }
-
-//       // Send response with daily tracking included
-//       res.status(200).json({
-//         message: "Allocations retrieved successfully",
-//         data: partItem.allocations.map((allocation) => ({
-//           ...allocation.toObject(),
-//           dailyTracking: allocation.dailyTracking,
-//         })),
-//       });
-//     } catch (error) {
-//       console.error("Error retrieving allocations:", error);
-//       res.status(500).json({ message: "Server error", error: error.message });
-//     }
-//   }
-// );
-
 const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 
 partproject.get(
@@ -1049,37 +993,10 @@ partproject.get(
         return res.status(404).json({ message: "Part List Item not found" });
       }
 
-      // If there are no allocations, return empty array
-      if (!partItem.allocations || partItem.allocations.length === 0) {
-        return res.status(200).json({
-          message: "Allocations retrieved successfully",
-          data: [],
-        });
-      }
-
-      // Build expected process order from manufacturingVariables
-      const expectedProcessOrder = partItem.manufacturingVariables.map(
-        (m) => m.categoryId
-      );
-
-      // Group allocations by processId
-      const groupedAllocations = partItem.allocations.reduce((acc, allocation) => {
-        if (!acc[allocation.processId]) {
-          acc[allocation.processId] = [];
-        }
-        acc[allocation.processId].push(allocation);
-        return acc;
-      }, {});
-
-      // Reassemble allocations in the expected order
-      const orderedAllocations = expectedProcessOrder.flatMap((processId) =>
-        groupedAllocations[processId] ? groupedAllocations[processId] : []
-      );
-
-      // Return allocations
+      // Return allocations in the exact stored order
       res.status(200).json({
         message: "Allocations retrieved successfully",
-        data: orderedAllocations.map((allocation) => ({
+        data: (partItem.allocations || []).map((allocation) => ({
           ...allocation.toObject(),
           dailyTracking: allocation.dailyTracking,
         })),
@@ -1090,7 +1007,6 @@ partproject.get(
     }
   }
 );
-
 
 // partproject.post(
 //   "/projects/:projectId/partsLists/:partsListId/partsListItems/:partListItemId/allocations/:processId/allocations/:allocationId/dailyTracking",
