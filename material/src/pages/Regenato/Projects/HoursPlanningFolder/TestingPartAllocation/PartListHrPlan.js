@@ -156,7 +156,7 @@ export const PartListHrPlan = ({
         if (response.data.data.length > 0) {
           setIsDataAllocated(true);
           setActiveTab("planned");
-          console.log(response)
+          console.log(response);
         }
       } catch (error) {
         console.error("Error fetching allocated data:", error);
@@ -1379,25 +1379,131 @@ export const PartListHrPlan = ({
     });
   };
 
+  // const handleSubmit = async () => {
+  //   console.log("Submitting allocations...");
+  //   console.log("Rows before processing:", JSON.stringify(rows, null, 2));
+
+  //   try {
+  //     if (Object.keys(rows).length === 0) {
+  //       alert("No allocations to submit.");
+  //       return;
+  //     }
+
+  //     const groupedAllocations = {};
+
+  //     Object.keys(rows).forEach((index) => {
+  //       const man = manufacturingVariables[index];
+  //       let orderCounter = 1;
+
+  //       rows[index].forEach((row, rowIndex) => {
+  //         console.log(`Processing row ${rowIndex} in process ${index}:`, row);
+
+  //         if (
+  //           row.plannedQuantity &&
+  //           row.startDate &&
+  //           row.endDate &&
+  //           row.machineId &&
+  //           row.shift &&
+  //           row.operatorId
+  //         ) {
+  //           const key = `${partName}-${man.categoryId}-${man.name}`;
+
+  //           if (!groupedAllocations[key]) {
+  //             groupedAllocations[key] = {
+  //               partName: partName,
+  //               processName: `${man.categoryId} - ${man.name}`,
+  //               processId: man.categoryId,
+  //               partsCodeId: partsCodeId,
+  //               allocations: [],
+  //             };
+  //           }
+
+  //           const splitNumber = orderCounter.toString().padStart(3, "0");
+  //           orderCounter++;
+  //           const selectedShift = shiftOptions.find(
+  //             (shift) => shift.name === row.shift
+  //           );
+
+  //           // Get the machine to access its warehouse
+  //           const machine = machineOptions[man.categoryId]?.find(
+  //             (m) => m.subcategoryId === row.machineId
+  //           );
+
+  //           groupedAllocations[key].allocations.push({
+  //             splitNumber,
+  //             AllocationPartType: "Part",
+  //             plannedQuantity: row.plannedQuantity,
+  //             startDate: new Date(row.startDate).toISOString(),
+  //             startTime: row.startTime || "08:00 AM",
+  //             endDate: new Date(row.endDate).toISOString(),
+  //             endTime: calculateEndTime(
+  //               row.startTime,
+  //               row.plannedQtyTime,
+  //               shiftOptions.find((s) => s.name === row.shift)
+  //             ),
+  //             machineId: row.machineId,
+  //             wareHouse: machine?.wareHouse || "N/A", // Add warehouse here
+  //             shift: row.shift,
+  //             plannedTime: row.plannedQtyTime,
+  //             operator:
+  //               operators.find((op) => op._id === row.operatorId)?.name ||
+  //               "Unknown",
+  //             shiftTotalTime: selectedShift ? selectedShift.TotalHours : 0,
+  //             perMachinetotalTime: Math.ceil(man.hours * 60),
+  //             processId: man.categoryId,
+  //           });
+  //         } else {
+  //           console.warn(
+  //             `Skipping row ${rowIndex} in process ${index} due to missing or invalid fields:`,
+  //             row
+  //           );
+  //         }
+  //       });
+  //     });
+
+  //     // Rest of the handleSubmit function remains the same...
+  //     const finalAllocations = Object.values(groupedAllocations);
+
+  //     console.log(
+  //       "Final Nested Allocations:",
+  //       JSON.stringify(finalAllocations, null, 2)
+  //     );
+
+  //     if (finalAllocations.length === 0) {
+  //       toast.error(
+  //         "No valid allocations to submit. Please check your inputs."
+  //       );
+  //       return;
+  //     }
+
+  //     const response = await axios.post(
+  //       `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/allocation`,
+  //       { allocations: finalAllocations }
+  //     );
+
+  //     if (response.status === 201) {
+  //       toast.success("Allocations successfully added!");
+  //       setIsDataAllocated(true);
+  //       setActiveTab("planned");
+
+  //       if (onUpdateAllocaitonStatus) {
+  //         onUpdateAllocaitonStatus(response.data);
+  //       }
+  //     } else {
+  //       toast.error("Failed to add allocations.");
+  //     }
+  //   } catch (error) {
+  //     console.error("Error submitting allocations:", error);
+  //     toast.error("An error occurred while submitting allocations.");
+  //   }
+  // };
+
   const handleSubmit = async () => {
-    console.log("Submitting allocations...");
-    console.log("Rows before processing:", JSON.stringify(rows, null, 2));
-
     try {
-      if (Object.keys(rows).length === 0) {
-        alert("No allocations to submit.");
-        return;
-      }
+      const flatAllocations = [];
 
-      const groupedAllocations = {};
-
-      Object.keys(rows).forEach((index) => {
-        const man = manufacturingVariables[index];
-        let orderCounter = 1;
-
-        rows[index].forEach((row, rowIndex) => {
-          console.log(`Processing row ${rowIndex} in process ${index}:`, row);
-
+      manufacturingVariables.forEach((man, index) => {
+        rows[index]?.forEach((row) => {
           if (
             row.plannedQuantity &&
             row.startDate &&
@@ -1406,70 +1512,52 @@ export const PartListHrPlan = ({
             row.shift &&
             row.operatorId
           ) {
-            const key = `${partName}-${man.categoryId}-${man.name}`;
-
-            if (!groupedAllocations[key]) {
-              groupedAllocations[key] = {
-                partName: partName,
-                processName: `${man.categoryId} - ${man.name}`,
-                processId: man.categoryId,
-                partsCodeId: partsCodeId,
-                allocations: [],
-              };
-            }
-
-            const splitNumber = orderCounter.toString().padStart(3, "0");
-            orderCounter++;
             const selectedShift = shiftOptions.find(
-              (shift) => shift.name === row.shift
+              (s) => s.name === row.shift
             );
-
-            // Get the machine to access its warehouse
             const machine = machineOptions[man.categoryId]?.find(
               (m) => m.subcategoryId === row.machineId
             );
 
-            groupedAllocations[key].allocations.push({
-              splitNumber,
-              AllocationPartType: "Part",
-              plannedQuantity: row.plannedQuantity,
-              startDate: new Date(row.startDate).toISOString(),
-              startTime: row.startTime || "08:00 AM",
-              endDate: new Date(row.endDate).toISOString(),
-              endTime: calculateEndTime(
-                row.startTime,
-                row.plannedQtyTime,
-                shiftOptions.find((s) => s.name === row.shift)
-              ),
-              machineId: row.machineId,
-              wareHouse: machine?.wareHouse || "N/A", // Add warehouse here
-              shift: row.shift,
-              plannedTime: row.plannedQtyTime,
-              operator:
-                operators.find((op) => op._id === row.operatorId)?.name ||
-                "Unknown",
-              shiftTotalTime: selectedShift ? selectedShift.TotalHours : 0,
-              perMachinetotalTime: Math.ceil(man.hours * 60),
+            flatAllocations.push({
+              partName,
+              processName: `${man.categoryId} - ${man.name}`,
               processId: man.categoryId,
+              partsCodeId,
+              allocations: [
+                {
+                  splitNumber: (flatAllocations.length + 1)
+                    .toString()
+                    .padStart(3, "0"),
+                  AllocationPartType: "Part",
+                  plannedQuantity: row.plannedQuantity,
+                  startDate: new Date(row.startDate).toISOString(),
+                  startTime: row.startTime || "08:00 AM",
+                  endDate: new Date(row.endDate).toISOString(),
+                  endTime: calculateEndTime(
+                    row.startTime,
+                    row.plannedQtyTime,
+                    selectedShift
+                  ),
+                  machineId: row.machineId,
+                  wareHouse: machine?.wareHouse || "N/A",
+                  shift: row.shift,
+                  plannedTime: row.plannedQtyTime,
+                  operator:
+                    operators.find((op) => op._id === row.operatorId)?.name ||
+                    "Unknown",
+                  shiftTotalTime: selectedShift
+                    ? selectedShift.workingMinutes
+                    : 510,
+                  perMachinetotalTime: Math.ceil(man.hours * 60),
+                },
+              ],
             });
-          } else {
-            console.warn(
-              `Skipping row ${rowIndex} in process ${index} due to missing or invalid fields:`,
-              row
-            );
           }
         });
       });
 
-      // Rest of the handleSubmit function remains the same...
-      const finalAllocations = Object.values(groupedAllocations);
-
-      console.log(
-        "Final Nested Allocations:",
-        JSON.stringify(finalAllocations, null, 2)
-      );
-
-      if (finalAllocations.length === 0) {
+      if (flatAllocations.length === 0) {
         toast.error(
           "No valid allocations to submit. Please check your inputs."
         );
@@ -1478,14 +1566,13 @@ export const PartListHrPlan = ({
 
       const response = await axios.post(
         `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/allocation`,
-        { allocations: finalAllocations }
+        { allocations: flatAllocations }
       );
 
       if (response.status === 201) {
         toast.success("Allocations successfully added!");
         setIsDataAllocated(true);
         setActiveTab("planned");
-
         if (onUpdateAllocaitonStatus) {
           onUpdateAllocaitonStatus(response.data);
         }
@@ -2082,7 +2169,7 @@ export const PartListHrPlan = ({
               <div>{/* need some more adjustment */}</div>
               {manufacturingVariables.map((man, index) => (
                 <Card key={index} className=" shadow-lg border-black">
-                  <CardHeader
+                 {/* <CardHeader
                     style={{
                       display: "flex",
                       justifyContent: "space-between",
