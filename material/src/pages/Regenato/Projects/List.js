@@ -1,5 +1,11 @@
 // react imports
-import React, { useState, useEffect, useCallback,useMemo, Suspense } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  Suspense,
+} from "react";
 import { useSelector, useDispatch } from "react-redux";
 
 import OutlinedInput from "@mui/material/OutlinedInput";
@@ -74,6 +80,7 @@ import {
   PaginationItem,
   PaginationLink,
   Badge,
+  Spinner,
 } from "reactstrap";
 import FeatherIcon from "feather-icons-react";
 import { ToastContainer, toast } from "react-toastify";
@@ -94,7 +101,7 @@ const List = () => {
   const [sortOrder, setSortOrder] = useState(null);
   const [initialLoad, setInitialLoad] = useState(true);
   const [modal_list, setModalList] = useState(false);
-  const [modal_edit, setModalEdit] = useState(false); 
+  const [modal_edit, setModalEdit] = useState(false);
   const [secondModalList, setSeondModalList] = useState(false);
   const [modal_delete, setModalDelete] = useState(false);
   const [modal_category, setModal_category] = useState(false);
@@ -138,6 +145,20 @@ const List = () => {
   const [modal_duplicate, setModalDuplicate] = useState(false);
   const [itemToDuplicate, setItemToDuplicate] = useState(null);
   const userRole = localStorage.getItem("userRole");
+
+  // Add these state variables at the top of your component
+  const [poFormData, setPoFormData] = useState({
+    projectName: "",
+    projectType: "",
+    partName: "",
+    partQuantity: "",
+    // costPerUnit: 0,
+    // timePerUnit: 0,
+    // stockPoQty: 0,
+  });
+
+  const [partsOptions, setPartsOptions] = useState([]);
+  const [isLoadingParts, setIsLoadingParts] = useState(false);
 
   // Replace the existing handleDuplicateProject function with these:
   const handleDuplicateClick = (item) => {
@@ -202,9 +223,9 @@ const List = () => {
     setModalList(!modal_list);
   };
 
-  const toggleModalPO = ()=>{
-    setSeondModalList(!secondModalList)
-  }
+  const toggleModalPO = () => {
+    setSeondModalList(!secondModalList);
+  };
   // function to toggle edit the modal
   const toggleEditModal = (item = null) => {
     if (item) {
@@ -363,6 +384,102 @@ const List = () => {
 
   const handlePageChange = (page) => {
     setCurrentPage(page);
+  };
+
+  // ===============
+
+  useEffect(() => {
+    if (secondModalList) {
+      fetchParts();
+    }
+  }, [secondModalList]);
+
+  const fetchParts = async () => {
+    setIsLoadingParts(true);
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_BASE_URL}/api/parts`
+      );
+      if (!response.ok) {
+        throw new Error("Failed to fetch parts");
+      }
+      const data = await response.json();
+      setPartsOptions(
+        data.map((part) => ({
+          value: part._id,
+          label: part.partName,
+        }))
+      );
+    } catch (error) {
+      toast.error(`Error fetching parts: ${error.message}`);
+    } finally {
+      setIsLoadingParts(false);
+    }
+  };
+
+  const handlePoFormChange = (e) => {
+    const { name, value } = e.target;
+    setPoFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handlePartSelect = (selectedOption) => {
+    setPoFormData((prev) => ({
+      ...prev,
+      partName: selectedOption.label,
+      partsCodeId: selectedOption.value,
+    }));
+  };
+  // ===============
+
+  const handleAddPoWithPart = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    try {
+      const baseUrl = process.env.REACT_APP_BASE_URL || "http://localhost:4040";
+      const response = await fetch(
+        `${baseUrl}/api/defpartproject/production_part`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            projectName: poFormData.projectName,
+            projectType: poFormData.projectType,
+            selectedPartId: poFormData.partsCodeId,
+            selectedPartName: poFormData.partName,
+            partQuantity: Number(poFormData.partQuantity),
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to add the production order");
+      }
+
+      const addedPo = await response.json();
+      setprojectListsData((prev) => [...prev, addedPo]);
+      toast.success("Production Order with Part added successfully!");
+
+      // Reset form and close modal
+      setPoFormData({
+        projectName: "",
+        projectType: "",
+        partName: "",
+        partQuantity: "",
+        partsCodeId: "",
+      });
+      toggleModalPO();
+    } catch (error) {
+      console.error("API Error:", error);
+      toast.error(`Error: ${error.message}`);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Handle adding a new part
@@ -776,21 +893,17 @@ const List = () => {
     return `${totalMinutes} m`;
   };
 
-
   const getMachineHoursCells = useCallback(
-  (item) =>
-    manufacturingData.map((machine) => {
-      const hours =
-        item.machineHours && item.machineHours[machine.name]
-          ? item.machineHours[machine.name]
-          : 0;
-      return (
-        <td key={machine._id}>{formatTime(hours)}</td>
-      );
-    }),
-  [manufacturingData, formatTime]
-);
-
+    (item) =>
+      manufacturingData.map((machine) => {
+        const hours =
+          item.machineHours && item.machineHours[machine.name]
+            ? item.machineHours[machine.name]
+            : 0;
+        return <td key={machine._id}>{formatTime(hours)}</td>;
+      }),
+    [manufacturingData, formatTime]
+  );
 
   return (
     <React.Fragment>
@@ -817,7 +930,8 @@ const List = () => {
           {userRole === "admin" && (
             <div>
               <Button className="btn btn-primary" onClick={toggleModalPO}>
-                <i className="ri-add-line align-bottom me-1"></i> Add Production Order
+                <i className="ri-add-line align-bottom me-1"></i> Add Production
+                Order
               </Button>
             </div>
           )}
@@ -853,7 +967,6 @@ const List = () => {
           </div>
         </div>
       </Row>
-
       <>
         {isLoading && (
           <div className="loader-overlay">
@@ -1002,7 +1115,6 @@ const List = () => {
           onPageChange={handlePageChange}
         />
       </>
-
       {/* toggleModalPO */}
       {/* Modal for adding a new item */}
       <Modal isOpen={modal_list} toggle={toggleModal} centered>
@@ -1057,85 +1169,126 @@ const List = () => {
         </form>
       </Modal>
 
-      {/* second modal for adding PO and parts at once */}
-      <Modal isOpen={secondModalList} toggle={toggleModalPO} centered>
+      <Modal isOpen={secondModalList} toggle={toggleModalPO} centered size="lg">
         <ModalHeader className="bg-light p-3" toggle={toggleModalPO}>
-          {" "}
-          Add Production Order (Secondary){" "}
+          Add Production Order with Part
         </ModalHeader>
-        <form
-          // onSubmit={(e) => {
-          //   e.preventDefault();
-          //   handleAddPart();
-          // }}
-        >
+        <form onSubmit={handleAddPoWithPart}>
           <ModalBody>
-            <div className="mb-3">
-              <label htmlFor="parts-field" className="form-label">
-                Production Order Name
-              </label>
-              <input
-                type="text"
-                id="parts-field"
-                className="form-control"
-                placeholder="Enter Name (PO)"
-                // value={newprojectName}
-                // onChange={(e) => setNewprojectName(e.target.value)}
-                required
-              />
-            </div>
-            <div className="mb-3">
-              <label htmlFor="project-type" className="form-label">
-                Select Type
-              </label>
-              <Input
-                type="select"
-                id="project-type"
-                className="form-control"
-                // value={projectType}
-                // onChange={(e) => setProjectType(e.target.value)}
-                required
-              >
-                <option value="">Select a type</option>
-                <option value="External PO">External PO</option>
-                <option value="Internal PO">Internal PO</option>
-                <option value="PO Type 1">PO Type 1</option>
-                <option value="PO Type 2">PO Type 2</option>
-              </Input>
-            </div>
-            <div className="mb-3">
-              <label htmlFor="parts-field" className="form-label">
-                Part Name
-              </label>
-              <input
-                type="text"
-                id="parts-field"
-                className="form-control"
-                placeholder="Enter Part Name"
-                // value={newprojectName}
-                // onChange={(e) => setNewprojectName(e.target.value)}
-                required
-              />
-            </div>
-            <div className="mb-3">
-              <label htmlFor="parts-field" className="form-label">
-                Quantity
-              </label>
-              <input
-                type="text"
-                id="parts-field"
-                className="form-control"
-                placeholder="Enter Quantity"
-                // value={newprojectName}
-                // onChange={(e) => setNewprojectName(e.target.value)}
-                required
-              />
-            </div>
-            
-            <Button type="submit" color="primary" disabled={isSubmitting}>
-              {isSubmitting ? "Adding..." : "Add Production Order"}
-            </Button>
+            <Row>
+              <Col md={6}>
+                <div className="mb-3">
+                  <label htmlFor="po-name" className="form-label">
+                    Production Order Name
+                  </label>
+                  <input
+                    type="text"
+                    id="po-name"
+                    name="projectName"
+                    className="form-control"
+                    placeholder="Enter PO Name"
+                    value={poFormData.projectName}
+                    onChange={handlePoFormChange}
+                    required
+                  />
+                </div>
+              </Col>
+              <Col md={6}>
+                <div className="mb-3">
+                  <label htmlFor="po-type" className="form-label">
+                    PO Type
+                  </label>
+                  <Input
+                    type="select"
+                    id="po-type"
+                    name="projectType"
+                    className="form-control"
+                    value={poFormData.projectType}
+                    onChange={handlePoFormChange}
+                    required
+                  >
+                    <option value="">Select a type</option>
+                    <option value="External PO">External PO</option>
+                    <option value="Internal PO">Internal PO</option>
+                  </Input>
+                </div>
+              </Col>
+            </Row>
+
+            <Row>
+              <Col md={6}>
+                <div className="mb-3">
+                  <label htmlFor="part-select" className="form-label">
+                    Part Name
+                  </label>
+                  <Select
+                    id="part-select"
+                    options={partsOptions}
+                    isLoading={isLoadingParts}
+                    onChange={handlePartSelect}
+                    placeholder="Select a part"
+                    isClearable
+                    required
+                    styles={{
+                      control: (provided) => ({
+                        ...provided,
+                        minHeight: "38px",
+                        height: "38px",
+                      }),
+                      dropdownIndicator: (provided) => ({
+                        ...provided,
+                        padding: "4px",
+                      }),
+                    }}
+                  />
+                </div>
+              </Col>
+              <Col md={6}>
+                <div className="mb-3">
+                  <label htmlFor="part-quantity" className="form-label">
+                    Quantity
+                  </label>
+                  <input
+                    type="number"
+                    id="part-quantity"
+                    name="partQuantity"
+                    className="form-control"
+                    placeholder="Enter Quantity"
+                    value={poFormData.partQuantity}
+                    onChange={handlePoFormChange}
+                    min="1"
+                    required
+                  />
+                </div>
+              </Col>
+            </Row>
           </ModalBody>
+          <ModalFooter>
+            <Button type="submit" color="primary" disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Spinner
+                    size="sm"
+                    style={{
+                      width: "1rem",
+                      height: "1rem",
+                      borderWidth: "0.15em",
+                    }}
+                  />
+                  <span>Adding...</span>
+                </>
+              ) : (
+                "Add Production Order"
+              )}
+            </Button>
+            <Button
+              color="secondary"
+              onClick={toggleModalPO}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </Button>
+          </ModalFooter>
         </form>
       </Modal>
 
@@ -1218,7 +1371,6 @@ const List = () => {
           </form>
         </ModalBody>
       </Modal>
-
       {/* Delete modal */}
       <Modal isOpen={modal_delete} toggle={tog_delete} centered>
         <ModalHeader className="bg-light p-3" toggle={tog_delete}>
@@ -1253,7 +1405,6 @@ const List = () => {
           </Button>
         </ModalFooter>
       </Modal>
-
       {/* edit modal */}
       <Modal isOpen={modal_NaemEdit} toggle={toggle_editName}>
         <ModalHeader toggle={toggle_editName}>
@@ -1276,7 +1427,6 @@ const List = () => {
           </Button>
         </ModalFooter>
       </Modal>
-
       {/* Duplicate Confirmation Modal */}
       <Modal
         isOpen={modal_duplicate}

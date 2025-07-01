@@ -1332,47 +1332,108 @@ export const AllocatedPartListHrPlan = ({
         <ModalHeader toggle={closeAddRowModal}>Add Input</ModalHeader>
         <ModalBody>
           <form>
-            <div className="form-group" style={{ width: "100%" }}>
-              <label>Date</label>
-              <div>
-                <DatePicker
-                  selected={
-                    dailyTracking[0].date ? new Date(dailyTracking[0].date) : ""
-                  }
-                  onChange={(date) => {
-                    handleDailyTrackingChange(0, "date", date);
-                  }}
-                  dateFormat="dd-MM-yyyy"
-                  className="form-control date-form-control"
-                  placeholderText="DD-MM-YYYY"
-                  minDate={new Date()}
-                  maxDate={new Date()}
-                  filterDate={(date) => {
-                    const isHoliday = highlightDates.some(
-                      (d) => d.toDateString() === date.toDateString()
-                    );
-                    const isSunday = date.getDay() === 0;
-                    const isToday =
-                      new Date().toDateString() === date.toDateString();
+            <Container fluid className="mt-2 px-0">
+              <Row className="mx-0">
+                {/* Date Picker Column */}
+                <Col md={6} className="px-2">
+                  <div
+                    className="form-group"
+                    style={{
+                      backgroundColor: "#fff",
+                      padding: "10px",
+                      borderRadius: "8px",
+                      marginTop: "10px",
+                      height: "75%",
+                      width: "100%",
+                      border: "1px solid #e2e8f0",
+                    }}
+                  >
+                    <label
+                      style={{
+                        fontWeight: "600",
+                        marginBottom: "20px",
+                        fontSize: "18px",
+                        color: "#2d3748",
+                        display: "block",
+                      }}
+                    >
+                      Date
+                    </label>
+                    {/* Removed width:50px wrapper */}
+                    <DatePicker
+                      selected={
+                        dailyTracking[0].date
+                          ? new Date(dailyTracking[0].date)
+                          : ""
+                      }
+                      onChange={(date) =>
+                        handleDailyTrackingChange(0, "date", date)
+                      }
+                      className="form-control"
+                      dateFormat="dd-MM-yyyy"
+                      placeholderText="DD-MM-YYYY"
+                      minDate={new Date()}
+                      maxDate={new Date()}
+                      filterDate={(date) => {
+                        const isHoliday = highlightDates.some(
+                          (d) => d.toDateString() === date.toDateString()
+                        );
+                        const isSunday = date.getDay() === 0;
+                        const isToday =
+                          new Date().toDateString() === date.toDateString();
+                        return !isHoliday && !isSunday && isToday;
+                      }}
+                      dayClassName={(date) => {
+                        const isHighlighted = highlightDates.some(
+                          (d) => d.toDateString() === date.toDateString()
+                        );
+                        const isSunday = date.getDay() === 0;
+                        if (isHighlighted || isSunday) {
+                          return "highlighted-date";
+                        }
+                        return undefined;
+                      }}
+                    />
+                  </div>
+                </Col>
 
-                    return !isHoliday && !isSunday && isToday;
-                  }}
-                  dayClassName={(date) => {
-                    const isHighlighted = highlightDates.some(
-                      (d) => d.toDateString() === date.toDateString()
-                    );
-                    const isSunday = date.getDay() === 0;
-                    if (isHighlighted || isSunday) {
-                      return "highlighted-date";
-                    }
-                    return undefined;
-                  }}
-                />
-              </div>
-            </div>
+                {/* Process Information Column */}
+                <Col md={6} className="px-2">
+                  <div
+                    style={{
+                      backgroundColor: "#fff",
+                      padding: "20px",
+                      borderRadius: "8px",
+                      marginTop: "10px",
+                      height: "75%",
+                      width: "100%",
+                      border: "1px solid #e2e8f0",
+                    }}
+                  >
+                    <h4
+                      style={{
+                        fontWeight: "600",
+                        marginBottom: "20px",
+                        fontSize: "18px",
+                        color: "#2d3748",
+                      }}
+                    >
+                      Process
+                    </h4>
+                    <div>
+                   
+                      <div style={{ fontSize: "14px" }}>
+                        {selectedSection?.title || "N/A"} - (Machine ID:{" "}
+                        {selectedSection?.data?.[0]?.machineId || "N/A"})
+                      </div>
+                    </div>
+                  </div>
+                </Col>
+              </Row>
+            </Container>
 
             <div
-              className="form-row mt-4"
+              className="form-row mt-1"
               style={{ display: "flex", gap: "20px" }}
             >
               {/* Left side - Produced Quantity */}

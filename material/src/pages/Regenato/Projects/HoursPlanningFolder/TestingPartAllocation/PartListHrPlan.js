@@ -61,6 +61,7 @@ export const PartListHrPlan = ({
   const userRole = localStorage.getItem("userRole");
   const [machineOptions, setMachineOptions] = useState({});
   const [isConfirmationModalOpen, setIsConfirmationModalOpen] = useState(false);
+  const [isApproveModalOpen, setIsApproveModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("actual");
   const [rows, setRows] = useState({});
   const [operators, setOperators] = useState([]);
@@ -155,6 +156,7 @@ export const PartListHrPlan = ({
         if (response.data.data.length > 0) {
           setIsDataAllocated(true);
           setActiveTab("planned");
+          console.log(response)
         }
       } catch (error) {
         console.error("Error fetching allocated data:", error);
@@ -1795,6 +1797,34 @@ export const PartListHrPlan = ({
     return processInfo || null;
   };
 
+  const openApproveModal = () => {
+    if (typeof quantity !== "number" || isNaN(quantity)) {
+      toast.error("Invalid quantity from props.");
+      return;
+    }
+    if (quantity <= 0) {
+      toast.error("Quantity must be greater than 0.");
+      return;
+    }
+    if (blankStoreQty <= 0) {
+      toast.error("Quantity in Blank Store must be greater than 0.");
+      return;
+    }
+    if (quantity > blankStoreQty) {
+      toast.error(
+        `Cannot approve: Required quantity (${quantity}) exceeds Quantity in Blank Store (${blankStoreQty}).`
+      );
+      return;
+    }
+    setIsApproveModalOpen(true);
+  };
+
+  const handleApprove = () => {
+    toast.success("Approved! You can now confirm allocation.");
+    setIsApproved(true);
+    setIsApproveModalOpen(false);
+  };
+
   return (
     <div style={{ width: "100%", margin: "auto" }}>
       <Card>
@@ -1961,31 +1991,7 @@ export const PartListHrPlan = ({
                 />
                 <Button
                   color={isApproved ? "success" : "primary"}
-                  onClick={() => {
-                    if (typeof quantity !== "number" || isNaN(quantity)) {
-                      toast.error("Invalid quantity from props.");
-                      return;
-                    }
-                    if (quantity <= 0) {
-                      toast.error("Quantity must be greater than 0.");
-                      return;
-                    }
-                    if (blankStoreQty <= 0) {
-                      toast.error(
-                        "Quantity in Blank Store must be greater than 0."
-                      );
-                      return;
-                    }
-                    if (quantity > blankStoreQty) {
-                      toast.error(
-                        `Cannot approve: Required quantity (${quantity}) exceeds Quantity in Blank Store (${blankStoreQty}).`
-                      );
-                      setIsApproved(false);
-                      return;
-                    }
-                    toast.success("Approved! You can now confirm allocation.");
-                    setIsApproved(true);
-                  }}
+                  onClick={openApproveModal}
                   disabled={isApproved}
                   style={{
                     display: "flex",
@@ -4275,6 +4281,50 @@ export const PartListHrPlan = ({
           <Button
             color="secondary"
             onClick={() => setIsConfirmationModalOpen(false)}
+          >
+            Cancel
+          </Button>
+        </ModalFooter>
+      </Modal>
+
+      {/* Approve Confirmation Modal */}
+      <Modal
+        isOpen={isApproveModalOpen}
+        toggle={() => setIsApproveModalOpen(false)}
+        style={{ maxWidth: "600px", margin: "auto", marginTop: "50px" }}
+      >
+        <ModalHeader toggle={() => setIsApproveModalOpen(false)}>
+          Confirm Approval
+        </ModalHeader>
+        <ModalBody>
+          <p>Are you sure you want to approve this allocation?</p>
+          <p>
+            <strong>Required Quantity:</strong> {quantity}
+          </p>
+          <p>
+            <strong>Blank Store Quantity:</strong> {blankStoreQty}
+          </p>
+          {quantity <= blankStoreQty ? (
+            <p style={{ color: "green" }}>
+              The required quantity is available in blank store.
+            </p>
+          ) : (
+            <p style={{ color: "red" }}>
+              Warning: Required quantity exceeds blank store quantity!
+            </p>
+          )}
+        </ModalBody>
+        <ModalFooter>
+          <Button
+            color="primary"
+            onClick={handleApprove}
+            disabled={quantity > blankStoreQty}
+          >
+            Confirm Approval
+          </Button>
+          <Button
+            color="secondary"
+            onClick={() => setIsApproveModalOpen(false)}
           >
             Cancel
           </Button>
