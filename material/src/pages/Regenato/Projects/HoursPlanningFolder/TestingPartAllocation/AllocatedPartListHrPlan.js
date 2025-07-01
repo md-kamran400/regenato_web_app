@@ -202,7 +202,16 @@ export const AllocatedPartListHrPlan = ({
               }),
             };
           });
-          setSections(formattedSections);
+          // Filter out consecutive duplicates by processName (title)
+          const filteredSections = [];
+          let lastTitle = null;
+          for (const section of formattedSections) {
+            if (section.title !== lastTitle) {
+              filteredSections.push(section);
+              lastTitle = section.title;
+            }
+          }
+          setSections(filteredSections);
           console.log(setSections);
         }
       } catch (error) {
