@@ -20,8 +20,19 @@ import "../TestingPartAllocation/AllocatedPartListHrPlan.css";
 import moment from "moment";
 import { IoIosCheckmarkCircleOutline } from "react-icons/io";
 import { CiCircleInfo } from "react-icons/ci";
-import { FaArrowUp, FaArrowDown } from "react-icons/fa";
-
+import { FaArrowUp, FaArrowDown, FaWarehouse } from "react-icons/fa";
+import {
+  FiSettings,
+  FiPackage,
+  FiBox,
+  FiCalendar,
+  FiClock,
+  FiCpu,
+  FiUser,
+  FiEdit,
+  FiCheck,
+  FiCheckCircle,
+} from "react-icons/fi";
 export const AllocatedPartListHrPlan = ({
   porjectID,
   partID,
@@ -710,72 +721,682 @@ export const AllocatedPartListHrPlan = ({
                 </Col>
               </Row>
               <div className="table-responsive">
-                <table className="table table-striped vertical-lines horizontals-lines">
-                  <thead style={{ backgroundColor: "#f3f4f6" }}>
+                <Table bordered responsive style={{ marginBottom: "2rem" }}>
+                  <thead>
                     <tr>
-                      <th>Planned Quantity</th>
-                      <th>Start Date</th>
-                      <th>End Date</th>
-                      <th>Machine ID</th>
-                      <th>Shift</th>
-                      <th>Planned Time</th>
-                      <th>Operator</th>
-                      <th>Action</th>
+                      <th
+                        style={{
+                          width: "25%",
+                          backgroundColor: "#f8f9fa",
+                          borderTopLeftRadius: "8px",
+                          borderBottom: "2px solid #e2e8f0",
+                        }}
+                      >
+                        Process
+                      </th>
+                      <th
+                        style={{
+                          backgroundColor: "#f8f9fa",
+                          borderTopRightRadius: "8px",
+                          borderBottom: "2px solid #e2e8f0",
+                        }}
+                      >
+                        Allocation Details
+                      </th>
                     </tr>
                   </thead>
-                  <tbody>
-                    {section.data.map((row, rowIndex) => (
-                      <tr key={rowIndex}>
-                        <td>{row.plannedQty}</td>
-                        <td>{moment(row.startDate).format("DD MMM YYYY")}</td>
-                        <td>{moment(row.endDate).format("DD MMM YYYY")} </td>
+                   <tbody>
+          <tr
+            key={index}
+            style={{
+              borderBottom: "2px solid #e2e8f0",
+              backgroundColor: index % 2 === 0 ? "#ffffff" : "#f8fafc",
+              transition: "background-color 0.2s ease",
+            }}
+          >
+            <td
+              style={{
+                verticalAlign: "top",
+                padding: "1.25rem",
+                borderRight: "1px solid #e2e8f0",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "1rem",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.75rem",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: "40px",
+                      height: "40px",
+                      borderRadius: "8px",
+                      backgroundColor: "#4f46e510",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <FiSettings size={20} color="#4f46e5" />
+                  </div>
+                  <div>
+                    <div
+                      style={{
+                        fontWeight: "600",
+                        fontSize: "0.95rem",
+                        color: "#1e293b",
+                      }}
+                    >
+                      {section.title}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: "0.8rem",
+                        color: "#64748b",
+                        marginTop: "0.25rem",
+                      }}
+                    >
+                      Process {index + 1}
+                    </div>
+                  </div>
+                </div>
 
-                        <td>{row.machineId}</td>
-                        <td>{row.shift}</td>
-                        <td>{row.plannedTime}</td>
-                        <td>{row.operator}</td>
-                        <td>
-                          {(() => {
-                            if (section.isSpecialDay) {
-                              const isProcessCompleted = row.isProcessCompleted;
-                              return (
-                                <Button
-                                  color={
-                                    isProcessCompleted ? "secondary" : "success"
-                                  }
-                                  onClick={() => {
-                                    if (!isProcessCompleted) {
-                                      setSelectedSection({
-                                        ...section,
-                                        data: [row],
-                                      });
-                                      setCompleteProcess(true);
-                                    }
-                                  }}
-                                  disabled={isProcessCompleted}
-                                >
-                                  {isProcessCompleted
-                                    ? "Completed"
-                                    : "Complete Process"}
-                                </Button>
-                              );
-                            }
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                    padding: "0.75rem",
+                    backgroundColor: "#f1f5f9",
+                    borderRadius: "8px",
+                    borderLeft: "3px solid #4f46e5",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: "32px",
+                      height: "32px",
+                      borderRadius: "6px",
+                      backgroundColor: "#4f46e510",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <FiPackage size={16} color="#4f46e5" />
+                  </div>
+                  <div style={{ fontSize: "0.85rem" }}>
+                    <div style={{ fontWeight: 600, color: "#334155" }}>
+                      Quantity Status
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: "0.5rem",
+                        marginTop: "0.25rem",
+                      }}
+                    >
+                      <span
+                        style={{
+                          color: "#4f46e5",
+                          fontWeight: 700,
+                        }}
+                      >
+                        {section.data[0]?.plannedQty || 0}
+                      </span>
+                      <span style={{ color: "#64748b" }}>planned</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </td>
+            <td style={{ padding: "1.25rem" }}>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
+                  gap: "1.25rem",
+                  padding: "0.5rem 0",
+                }}
+              >
+                {section.data.map((row, rowIndex) => (
+                  <div
+                    key={rowIndex}
+                    style={{
+                      width: "60rem",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "1fr 3px 1fr 3px 1fr 3px 1fr",
+                        gap: "1rem",
+                      }}
+                    >
+                      {/* First Column */}
+                      <div
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: "1rem",
+                        }}
+                      >
+                        {/* Planned Quantity */}
+                        <div
+                          style={{
+                            backgroundColor: "#FAFFFF",
+                            borderRadius: "8px",
+                            padding: "1.5rem",
+                            boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+                          }}
+                        >
+                          <label
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "0.5rem",
+                              fontSize: "0.85rem",
+                              fontWeight: 600,
+                              color: "#334155",
+                              marginBottom: "0.5rem",
+                            }}
+                          >
+                            <div
+                              style={{
+                                width: "28px",
+                                height: "28px",
+                                borderRadius: "6px",
+                                backgroundColor: "#3b82f610",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                              }}
+                            >
+                              <FiBox size={16} color="#3b82f6" />
+                            </div>
+                            Planned Quantity
+                          </label>
+                          <div
+                            style={{
+                              fontSize: "0.875rem",
+                              padding: "0.5rem",
+                              backgroundColor: "#f8fafc",
+                              borderRadius: "6px",
+                            }}
+                          >
+                            {row.plannedQty}
+                          </div>
+                        </div>
 
-                            return (
-                              <Button
-                                color="primary"
-                                onClick={() => openModal(section, row)}
-                                disabled={!hasRemainingQuantity(section, row)}
+                        {/* Dates */}
+                        <div
+                          style={{
+                            backgroundColor: "#FAFFFF",
+                            borderRadius: "8px",
+                            padding: "1.5rem",
+                            boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+                          }}
+                        >
+                          <label
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "0.5rem",
+                              fontSize: "0.85rem",
+                              fontWeight: 600,
+                              color: "#334155",
+                              marginBottom: "0.5rem",
+                            }}
+                          >
+                            <div
+                              style={{
+                                width: "28px",
+                                height: "28px",
+                                borderRadius: "6px",
+                                backgroundColor: "#8b5cf610",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                              }}
+                            >
+                              <FiCalendar size={16} color="#8b5cf6" />
+                            </div>
+                            Dates
+                          </label>
+                          <div
+                            style={{
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: "0.5rem",
+                            }}
+                          >
+                            <div
+                              style={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "center",
+                              }}
+                            >
+                              <span
+                                style={{
+                                  fontSize: "0.8rem",
+                                  color: "#64748b",
+                                }}
                               >
-                                Update Input
-                              </Button>
-                            );
-                          })()}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                                Start:
+                              </span>
+                              <span
+                                style={{
+                                  fontWeight: 500,
+                                  fontSize: "0.875rem",
+                                }}
+                              >
+                                {moment(row.startDate).format("DD MMM YYYY")}
+                              </span>
+                            </div>
+                            <div
+                              style={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "center",
+                              }}
+                            >
+                              <span
+                                style={{
+                                  fontSize: "0.8rem",
+                                  color: "#64748b",
+                                }}
+                              >
+                                End:
+                              </span>
+                              <span
+                                style={{
+                                  fontWeight: 500,
+                                  fontSize: "0.875rem",
+                                }}
+                              >
+                                {moment(row.endDate).format("DD MMM YYYY")}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* First Vertical Divider - Made bolder */}
+                      <div
+                        style={{
+                          backgroundColor: "#cbd5e1",
+                          width: "3px",
+                          borderRadius: "3px",
+                        }}
+                      />
+
+                      {/* Second Column */}
+                      <div
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: "1rem",
+                        }}
+                      >
+                        {/* Machine */}
+                        <div
+                          style={{
+                            backgroundColor: "#FAFFFF",
+                            borderRadius: "8px",
+                            padding: "1.5rem",
+                            boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+                          }}
+                        >
+                          <label
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "0.5rem",
+                              fontSize: "0.85rem",
+                              fontWeight: 600,
+                              color: "#334155",
+                              marginBottom: "0.5rem",
+                            }}
+                          >
+                            <div
+                              style={{
+                                width: "28px",
+                                height: "28px",
+                                borderRadius: "6px",
+                                backgroundColor: "#6366f110",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                              }}
+                            >
+                              <FiCpu size={16} color="#6366f1" />
+                            </div>
+                            Machine
+                          </label>
+                          <div
+                            style={{
+                              fontSize: "0.875rem",
+                              padding: "0.5rem",
+                              backgroundColor: "#f8fafc",
+                              borderRadius: "6px",
+                            }}
+                          >
+                            {row.machineId}
+                          </div>
+                        </div>
+
+                        {/* Shift */}
+                        <div
+                          style={{
+                            backgroundColor: "#FAFFFF",
+                            borderRadius: "8px",
+                            padding: "1.5rem",
+                            boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+                          }}
+                        >
+                          <label
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "0.5rem",
+                              fontSize: "0.85rem",
+                              fontWeight: 600,
+                              color: "#334155",
+                              marginBottom: "0.5rem",
+                            }}
+                          >
+                            <div
+                              style={{
+                                width: "28px",
+                                height: "28px",
+                                borderRadius: "6px",
+                                backgroundColor: "#f59e0b10",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                              }}
+                            >
+                              <FiClock size={16} color="#f59e0b" />
+                            </div>
+                            Shift
+                          </label>
+                          <div
+                            style={{
+                              fontSize: "0.875rem",
+                              padding: "0.5rem",
+                              backgroundColor: "#f8fafc",
+                              borderRadius: "6px",
+                            }}
+                          >
+                            {row.shift}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Second Vertical Divider - Made bolder */}
+                      <div
+                        style={{
+                          backgroundColor: "#cbd5e1",
+                          width: "3px",
+                          borderRadius: "3px",
+                        }}
+                      />
+
+                      {/* Third Column */}
+                      <div
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: "1rem",
+                        }}
+                      >
+                        {/* Planned Time */}
+                        <div
+                          style={{
+                            backgroundColor: "#FAFFFF",
+                            borderRadius: "8px",
+                            padding: "1.5rem",
+                            boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+                          }}
+                        >
+                          <label
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "0.5rem",
+                              fontSize: "0.85rem",
+                              fontWeight: 600,
+                              color: "#334155",
+                              marginBottom: "0.5rem",
+                            }}
+                          >
+                            <div
+                              style={{
+                                width: "28px",
+                                height: "28px",
+                                borderRadius: "6px",
+                                backgroundColor: "#10b98110",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                              }}
+                            >
+                              <FiClock size={16} color="#10b981" />
+                            </div>
+                            Planned Time
+                          </label>
+                          <div
+                            style={{
+                              fontSize: "0.875rem",
+                              padding: "0.5rem",
+                              backgroundColor: "#f8fafc",
+                              borderRadius: "6px",
+                            }}
+                          >
+                            {row.plannedTime}
+                          </div>
+                        </div>
+
+                        {/* Operator */}
+                        <div
+                          style={{
+                            backgroundColor: "#FAFFFF",
+                            borderRadius: "8px",
+                            padding: "1.5rem",
+                            boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+                          }}
+                        >
+                          <label
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "0.5rem",
+                              fontSize: "0.85rem",
+                              fontWeight: 600,
+                              color: "#334155",
+                              marginBottom: "0.5rem",
+                            }}
+                          >
+                            <div
+                              style={{
+                                width: "28px",
+                                height: "28px",
+                                borderRadius: "6px",
+                                backgroundColor: "#06b6d410",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                              }}
+                            >
+                              <FiUser size={16} color="#06b6d4" />
+                            </div>
+                            Operator
+                          </label>
+                          <div
+                            style={{
+                              fontSize: "0.875rem",
+                              padding: "0.5rem",
+                              backgroundColor: "f8fafc",
+                              borderRadius: "6px",
+                            }}
+                          >
+                            {row.operator}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Third Vertical Divider - Made bolder */}
+                      <div
+                        style={{
+                          backgroundColor: "#cbd5e1",
+                          width: "3px",
+                          borderRadius: "3px",
+                        }}
+                      />
+
+                      {/* Fourth Column */}
+                      <div
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: "1rem",
+                        }}
+                      >
+                        {/* Warehouse */}
+                        <div
+                          style={{
+                            backgroundColor: "#FAFFFF",
+                            borderRadius: "8px",
+                            padding: "1.5rem",
+                            boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+                          }}
+                        >
+                          <label
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "0.5rem",
+                              fontSize: "0.85rem",
+                              fontWeight: 600,
+                              color: "#334155",
+                              marginBottom: "0.5rem",
+                            }}
+                          >
+                            <div
+                              style={{
+                                width: "28px",
+                                height: "28px",
+                                borderRadius: "6px",
+                                backgroundColor: "#4f46e510",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                              }}
+                            >
+                              <FaWarehouse size={16} color="#4f46e5" />
+                            </div>
+                            Warehouse
+                          </label>
+                          <div
+                            style={{
+                              fontSize: "0.875rem",
+                              padding: "0.5rem",
+                              backgroundColor: "#f8fafc",
+                              borderRadius: "6px",
+                            }}
+                          >
+                            {row.wareHouse}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Action Button - Right aligned with normal width */}
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "flex-end",
+                        marginTop: "1.5rem",
+                      }}
+                    >
+                      {section.isSpecialDay ? (
+                        <Button
+                          color={
+                            row.isProcessCompleted ? "secondary" : "success"
+                          }
+                          onClick={() => {
+                            if (!row.isProcessCompleted) {
+                              setSelectedSection({
+                                ...section,
+                                data: [row],
+                              });
+                              setCompleteProcess(true);
+                            }
+                          }}
+                          disabled={row.isProcessCompleted}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: "0.5rem",
+                            borderRadius: "6px",
+                            padding: "0.5rem 1rem",
+                            fontSize: "0.875rem",
+                            fontWeight: 500,
+                            width: "auto",
+                          }}
+                        >
+                          {row.isProcessCompleted ? (
+                            <>
+                              <FiCheckCircle size={16} />
+                              Completed
+                            </>
+                          ) : (
+                            <>
+                              <FiCheck size={16} />
+                              Complete Process
+                            </>
+                          )}
+                        </Button>
+                      ) : (
+                        <Button
+                          color="primary"
+                          onClick={() => openModal(section, row)}
+                          disabled={!hasRemainingQuantity(section, row)}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: "0.5rem",
+                            borderRadius: "6px",
+                            padding: "0.5rem 1rem",
+                            fontSize: "0.875rem",
+                            fontWeight: 500,
+                            width: "auto",
+                          }}
+                        >
+                          <FiEdit size={16} />
+                          Update Input
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </td>
+          </tr>
+        </tbody>
+                </Table>
               </div>
             </div>
           ))
@@ -1430,7 +2051,6 @@ export const AllocatedPartListHrPlan = ({
                       Process
                     </h4>
                     <div>
-                   
                       <div style={{ fontSize: "14px" }}>
                         {selectedSection?.title || "N/A"} - (Machine ID:{" "}
                         {selectedSection?.data?.[0]?.machineId || "N/A"})
