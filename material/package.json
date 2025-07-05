@@ -117,6 +117,7 @@
     "redux": "^5.0.0",
     "remixicon-react": "^1.0.0",
     "reselect": "^5.0.1",
+    "sass": "^1.89.2",
     "save": "^2.9.0",
     "simplebar-react": "^3.2.4",
     "styled-components": "^6.1.13",
