@@ -154,57 +154,90 @@ partproject.post("/production_part", async (req, res) => {
 
 partproject.get("/projects", async (req, res) => {
   try {
-    const projects = await PartListProjectModel.find();
+    // Get filter from query params if exists
+    const { filterType } = req.query;
+    const query = filterType ? { projectType: filterType } : {};
 
-    // Recalculate totals for each project
-    for (const project of projects) {
+    // Fetch projects with only necessary fields
+    const projects = await PartListProjectModel.find(query)
+      .select('projectName createdAt projectType costPerUnit timePerUnit machineHours partsLists subAssemblyListFirst assemblyList')
+      .lean(); // Use lean() for faster plain JS objects
+
+    // Process calculations in memory without saving
+    const processedProjects = projects.map(project => {
       let totalProjectCost = 0;
       let totalProjectHours = 0;
       const machineHours = {};
 
-      project.partsLists.forEach((partsList) => {
-        partsList.partsListItems.forEach((item) => {
-          const costPerUnit = Number(item.costPerUnit);
-          const timePerUnit = Number(item.timePerUnit);
-          const quantity = Number(item.quantity);
+      // Helper function to process parts list items
+      const processItems = (items) => {
+        items.forEach(item => {
+          const costPerUnit = Number(item.costPerUnit) || 0;
+          const timePerUnit = Number(item.timePerUnit) || 0;
+          const quantity = Number(item.quantity) || 0;
 
-          // Ensure all values are valid numbers
-          if (!isNaN(costPerUnit) && !isNaN(timePerUnit) && !isNaN(quantity)) {
-            const itemTotalCost = costPerUnit * quantity;
-            const itemTotalHours = timePerUnit * quantity;
+          const itemTotalCost = costPerUnit * quantity;
+          const itemTotalHours = timePerUnit * quantity;
 
-            totalProjectCost += itemTotalCost;
-            totalProjectHours += itemTotalHours;
+          totalProjectCost += itemTotalCost;
+          totalProjectHours += itemTotalHours;
 
-            if (Array.isArray(item.manufacturingVariables)) {
-              item.manufacturingVariables.forEach((machine) => {
-                const machineName = machine.name;
-                const machineHoursVal = Number(machine.hours);
-
-                if (!isNaN(machineHoursVal)) {
-                  const totalHours = machineHoursVal * quantity;
-                  machineHours[machineName] =
-                    (machineHours[machineName] || 0) + totalHours;
-                }
-              });
-            }
-          } else {
-            //
+          // Process manufacturing variables if they exist
+          if (Array.isArray(item.manufacturingVariables)) {
+            item.manufacturingVariables.forEach(machine => {
+              const machineName = machine.name;
+              const machineHoursVal = Number(machine.hours) || 0;
+              const totalHours = machineHoursVal * quantity;
+              machineHours[machineName] = (machineHours[machineName] || 0) + totalHours;
+            });
           }
         });
-      });
+      };
 
-      // Save calculated values, ensuring they're valid numbers
-      project.costPerUnit = isNaN(totalProjectCost) ? 0 : totalProjectCost;
-      project.timePerUnit = isNaN(totalProjectHours) ? 0 : totalProjectHours;
-      project.machineHours = machineHours;
+      // Process all parts lists
+      if (project.partsLists) {
+        project.partsLists.forEach(partsList => {
+          if (partsList.partsListItems) {
+            processItems(partsList.partsListItems);
+          }
+        });
+      }
 
-      await project.save(); // Save updated project
-    }
+      // Process sub assemblies if they exist
+      if (project.subAssemblyListFirst) {
+        project.subAssemblyListFirst.forEach(subAssembly => {
+          if (subAssembly.partsListItems) {
+            processItems(subAssembly.partsListItems);
+          }
+        });
+      }
 
-    // Refetch updated list
-    const updatedProjects = await PartListProjectModel.find();
-    res.status(200).json(updatedProjects);
+      // Process assemblies if they exist
+      if (project.assemblyList) {
+        project.assemblyList.forEach(assembly => {
+          if (assembly.partsListItems) {
+            processItems(assembly.partsListItems);
+          }
+          if (assembly.subAssemblies) {
+            assembly.subAssemblies.forEach(subAssembly => {
+              if (subAssembly.partsListItems) {
+                processItems(subAssembly.partsListItems);
+              }
+            });
+          }
+        });
+      }
+
+      // Return the project with calculated values (without saving to DB)
+      return {
+        ...project,
+        costPerUnit: totalProjectCost,
+        timePerUnit: totalProjectHours,
+        machineHours: machineHours
+      };
+    });
+
+    res.status(200).json(processedProjects);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
