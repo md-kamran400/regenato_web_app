@@ -154,57 +154,90 @@ partproject.post("/production_part", async (req, res) => {
 
 partproject.get("/projects", async (req, res) => {
   try {
-    const projects = await PartListProjectModel.find();
+    // Get filter from query params if exists
+    const { filterType } = req.query;
+    const query = filterType ? { projectType: filterType } : {};
 
-    // Recalculate totals for each project
-    for (const project of projects) {
+    // Fetch projects with only necessary fields
+    const projects = await PartListProjectModel.find(query)
+      .select('projectName createdAt projectType costPerUnit timePerUnit machineHours partsLists subAssemblyListFirst assemblyList')
+      .lean(); // Use lean() for faster plain JS objects
+
+    // Process calculations in memory without saving
+    const processedProjects = projects.map(project => {
       let totalProjectCost = 0;
       let totalProjectHours = 0;
       const machineHours = {};
 
-      project.partsLists.forEach((partsList) => {
-        partsList.partsListItems.forEach((item) => {
-          const costPerUnit = Number(item.costPerUnit);
-          const timePerUnit = Number(item.timePerUnit);
-          const quantity = Number(item.quantity);
+      // Helper function to process parts list items
+      const processItems = (items) => {
+        items.forEach(item => {
+          const costPerUnit = Number(item.costPerUnit) || 0;
+          const timePerUnit = Number(item.timePerUnit) || 0;
+          const quantity = Number(item.quantity) || 0;
 
-          // Ensure all values are valid numbers
-          if (!isNaN(costPerUnit) && !isNaN(timePerUnit) && !isNaN(quantity)) {
-            const itemTotalCost = costPerUnit * quantity;
-            const itemTotalHours = timePerUnit * quantity;
+          const itemTotalCost = costPerUnit * quantity;
+          const itemTotalHours = timePerUnit * quantity;
 
-            totalProjectCost += itemTotalCost;
-            totalProjectHours += itemTotalHours;
+          totalProjectCost += itemTotalCost;
+          totalProjectHours += itemTotalHours;
 
-            if (Array.isArray(item.manufacturingVariables)) {
-              item.manufacturingVariables.forEach((machine) => {
-                const machineName = machine.name;
-                const machineHoursVal = Number(machine.hours);
-
-                if (!isNaN(machineHoursVal)) {
-                  const totalHours = machineHoursVal * quantity;
-                  machineHours[machineName] =
-                    (machineHours[machineName] || 0) + totalHours;
-                }
-              });
-            }
-          } else {
-            //
+          // Process manufacturing variables if they exist
+          if (Array.isArray(item.manufacturingVariables)) {
+            item.manufacturingVariables.forEach(machine => {
+              const machineName = machine.name;
+              const machineHoursVal = Number(machine.hours) || 0;
+              const totalHours = machineHoursVal * quantity;
+              machineHours[machineName] = (machineHours[machineName] || 0) + totalHours;
+            });
           }
         });
-      });
+      };
 
-      // Save calculated values, ensuring they're valid numbers
-      project.costPerUnit = isNaN(totalProjectCost) ? 0 : totalProjectCost;
-      project.timePerUnit = isNaN(totalProjectHours) ? 0 : totalProjectHours;
-      project.machineHours = machineHours;
+      // Process all parts lists
+      if (project.partsLists) {
+        project.partsLists.forEach(partsList => {
+          if (partsList.partsListItems) {
+            processItems(partsList.partsListItems);
+          }
+        });
+      }
 
-      await project.save(); // Save updated project
-    }
+      // Process sub assemblies if they exist
+      if (project.subAssemblyListFirst) {
+        project.subAssemblyListFirst.forEach(subAssembly => {
+          if (subAssembly.partsListItems) {
+            processItems(subAssembly.partsListItems);
+          }
+        });
+      }
 
-    // Refetch updated list
-    const updatedProjects = await PartListProjectModel.find();
-    res.status(200).json(updatedProjects);
+      // Process assemblies if they exist
+      if (project.assemblyList) {
+        project.assemblyList.forEach(assembly => {
+          if (assembly.partsListItems) {
+            processItems(assembly.partsListItems);
+          }
+          if (assembly.subAssemblies) {
+            assembly.subAssemblies.forEach(subAssembly => {
+              if (subAssembly.partsListItems) {
+                processItems(subAssembly.partsListItems);
+              }
+            });
+          }
+        });
+      }
+
+      // Return the project with calculated values (without saving to DB)
+      return {
+        ...project,
+        costPerUnit: totalProjectCost,
+        timePerUnit: totalProjectHours,
+        machineHours: machineHours
+      };
+    });
+
+    res.status(200).json(processedProjects);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -822,6 +855,85 @@ partproject.put(
 
 // ============************** allocation code ****************===========================
 
+// partproject.post(
+//   "/projects/:projectId/partsLists/:partsListId/partsListItems/:partsListItemsId/allocation",
+//   async (req, res) => {
+//     try {
+//       const { projectId, partsListId, partsListItemsId } = req.params;
+//       const { allocations } = req.body;
+
+//       if (!Array.isArray(allocations) || allocations.length === 0) {
+//         return res.status(400).json({ message: "Invalid allocation data" });
+//       }
+
+//       const project = await PartListProjectModel.findById(projectId);
+//       if (!project) {
+//         return res.status(404).json({ message: "Project not found" });
+//       }
+
+//       const partsList = project.partsLists.find(
+//         (list) => list._id.toString() === partsListId
+//       );
+//       if (!partsList) {
+//         return res.status(404).json({ message: "Parts List not found" });
+//       }
+
+//       const partItem = partsList.partsListItems.find(
+//         (item) => item._id.toString() === partsListItemsId
+//       );
+//       if (!partItem) {
+//         return res.status(404).json({ message: "Part List Item not found" });
+//       }
+
+//       // Clear existing allocations
+//       partItem.allocations = [];
+
+//       // Add all allocations in the same order
+//       allocations.forEach((alloc) => {
+//         const newAllocation = {
+//           partName: alloc.partName,
+//           processName: alloc.processName,
+//           processId: alloc.processId,
+//           partsCodeId: alloc.partsCodeId,
+//           allocations: alloc.allocations.map((a) => {
+//             const shiftTotalTime = a.shiftTotalTime || 510;
+//             const perMachinetotalTime = a.perMachinetotalTime || 1;
+//             const dailyPlannedQty = Math.floor(
+//               shiftTotalTime / perMachinetotalTime
+//             );
+
+//             return {
+//               ...a,
+//               dailyPlannedQty,
+//               dailyTracking: [],
+//             };
+//           }),
+//         };
+//         partItem.allocations.push(newAllocation);
+//       });
+
+//       // Update status
+//       const status = partItem.calculateStatus();
+//       partItem.status = status.text;
+//       partItem.statusClass = status.class;
+
+//       await project.save();
+
+//       res.status(201).json({
+//         message: "Allocations added successfully",
+//         data: {
+//           allocations: partItem.allocations,
+//           status: status.text,
+//           statusClass: status.class,
+//         },
+//       });
+//     } catch (error) {
+//       console.error("Error adding allocations:", error);
+//       res.status(500).json({ message: "Server error", error: error.message });
+//     }
+//   }
+// );
+
 partproject.post(
   "/projects/:projectId/partsLists/:partsListId/partsListItems/:partsListItemsId/allocation",
   async (req, res) => {
@@ -863,11 +975,21 @@ partproject.post(
           processId: alloc.processId,
           partsCodeId: alloc.partsCodeId,
           allocations: alloc.allocations.map((a) => {
-            const shiftTotalTime = a.shiftTotalTime || 510;
-            const perMachinetotalTime = a.perMachinetotalTime || 1;
-            const dailyPlannedQty = Math.floor(
-              shiftTotalTime / perMachinetotalTime
-            );
+            const shiftTotalTime = a.shiftTotalTime || 510; // Default to 8.5 hours in minutes
+            const perMachinetotalTime = a.perMachinetotalTime || 1; // Prevent division by zero
+            const plannedQuantity = a.plannedQuantity || 0;
+
+            // Calculate daily planned quantity considering total quantity
+            let dailyPlannedQty;
+            if (perMachinetotalTime <= 0) {
+              dailyPlannedQty = plannedQuantity; // Fallback if invalid time per unit
+            } else {
+              const totalTimeRequired = plannedQuantity * perMachinetotalTime;
+              dailyPlannedQty =
+                totalTimeRequired <= shiftTotalTime
+                  ? plannedQuantity // Can complete in one day
+                  : Math.floor(shiftTotalTime / perMachinetotalTime); // Daily capacity
+            }
 
             return {
               ...a,
@@ -1019,7 +1141,15 @@ partproject.get(
 //         processId,
 //         allocationId,
 //       } = req.params;
-//       const { date, planned, produced, operator, dailyStatus } = req.body;
+//       const {
+//         date,
+//         planned,
+//         produced,
+//         operator,
+//         dailyStatus,
+//         wareHouseTotalQty,
+//         wareHouseremainingQty,
+//       } = req.body;
 
 //       if (!date || produced === undefined) {
 //         return res
@@ -1045,37 +1175,44 @@ partproject.get(
 //       if (!allocation)
 //         return res.status(404).json({ error: "Allocation not found" });
 
-//       // Validate and calculate daily planned quantity with proper safeguards
-//       const shiftTotalTime = allocation.shiftTotalTime || 510; // Default to 8.5 hours in minutes (510 minutes)
-//       const perMachinetotalTime = allocation.perMachinetotalTime || 1; // Prevent division by zero
+//       // Calculate daily planned quantity considering total quantity
+//       const shiftTotalTime = allocation.shiftTotalTime || 510;
+//       const perMachinetotalTime = allocation.perMachinetotalTime || 1;
 //       const plannedQuantity = allocation.plannedQuantity || 0;
 
 //       let dailyPlannedQty;
 //       if (perMachinetotalTime <= 0) {
-//         // If invalid time per unit, fallback to planned quantity
 //         dailyPlannedQty = plannedQuantity;
 //       } else {
-//         // Calculate based on shift time and time per unit
-//         dailyPlannedQty = Math.floor(shiftTotalTime / perMachinetotalTime);
+//         const totalTimeRequired = plannedQuantity * perMachinetotalTime;
+//         dailyPlannedQty =
+//           totalTimeRequired <= shiftTotalTime
+//             ? plannedQuantity
+//             : Math.floor(shiftTotalTime / perMachinetotalTime);
 //       }
 
-//       // Ensure we have at least 1 as minimum value
 //       dailyPlannedQty = Math.max(1, dailyPlannedQty);
 //       allocation.dailyPlannedQty = dailyPlannedQty;
 
-//       // Add or update daily tracking
+//       // Add or update daily tracking with warehouse quantities
 //       const existingEntryIndex = allocation.dailyTracking.findIndex(
 //         (e) => new Date(e.date).toISOString() === new Date(date).toISOString()
 //       );
 
 //       const trackingEntry = {
 //         date,
-//         planned: dailyPlannedQty, // Use the calculated value
+//         planned: dailyPlannedQty,
 //         produced: Number(produced),
 //         operator,
-//         dailyStatus: dailyStatus ||
-//           (produced > dailyPlannedQty ? "Ahead" :
-//            produced < dailyPlannedQty ? "Delayed" : "On Track")
+//         dailyStatus:
+//           dailyStatus ||
+//           (produced > dailyPlannedQty
+//             ? "Ahead"
+//             : produced < dailyPlannedQty
+//             ? "Delayed"
+//             : "On Track"),
+//         wareHouseTotalQty: Number(wareHouseTotalQty) || 0,
+//         wareHouseremainingQty: Number(wareHouseremainingQty) || 0,
 //       };
 
 //       if (existingEntryIndex >= 0) {
@@ -1084,77 +1221,23 @@ partproject.get(
 //         allocation.dailyTracking.push(trackingEntry);
 //       }
 
-//       // Sort tracking entries by date
 //       allocation.dailyTracking.sort(
 //         (a, b) => new Date(a.date) - new Date(b.date)
 //       );
 
-//       // Fetch holidays
-//       const holidaysResponse = await axios.get(
-//         `${baseUrl}/api/eventScheduler/events`
-//       );
-//       const holidays = holidaysResponse.data
-//         .filter((event) => event.eventName === "HOLIDAY")
-//         .flatMap((event) => {
-//           const start = new Date(event.startDate);
-//           const end = new Date(event.endDate);
-//           let current = new Date(start);
-//           const dates = [];
-//           while (current <= end) {
-//             dates.push(new Date(current));
-//             current.setDate(current.getDate() + 1);
-//           }
-//           return dates;
-//         });
-
-//       const isWorkingDay = (date) => {
-//         const dateObj = new Date(date);
-//         if (dateObj.getDay() === 0) return false; // Sunday
-//         const dateStr = dateObj.toISOString().split("T")[0];
-//         return !holidays.some(
-//           (holiday) =>
-//             new Date(holiday).toISOString().split("T")[0] === dateStr
-//         );
-//       };
-
-//       // Calculate production progress
+//       // Calculate total produced and remaining quantity
 //       const totalProduced = allocation.dailyTracking.reduce(
 //         (sum, entry) => sum + entry.produced,
 //         0
 //       );
 //       const remainingQuantity = Math.max(0, plannedQuantity - totalProduced);
 
-//       // Calculate actual end date
-//       let currentDate = new Date();
-//       if (remainingQuantity > 0) {
-//         let workingDaysNeeded = Math.ceil(remainingQuantity / dailyPlannedQty);
-//         let addedDays = 0;
-
-//         while (addedDays < workingDaysNeeded) {
-//           currentDate.setDate(currentDate.getDate() + 1);
-//           if (isWorkingDay(currentDate)) {
-//             addedDays++;
-//           }
-//         }
+//       // Update actual end date if production is complete
+//       if (remainingQuantity <= 0) {
+//         allocation.actualEndDate = new Date(date);
 //       }
 
-//       allocation.actualEndDate = currentDate;
-
-//       // Save with validation
-//       try {
-//         await project.save();
-//       } catch (saveError) {
-//         console.error("Validation error on save:", saveError);
-//         return res.status(400).json({
-//           error: "Validation failed",
-//           details: saveError.message,
-//           allocation: {
-//             shiftTotalTime: allocation.shiftTotalTime,
-//             perMachinetotalTime: allocation.perMachinetotalTime,
-//             dailyPlannedQty: allocation.dailyPlannedQty
-//           }
-//         });
-//       }
+//       await project.save();
 
 //       res.status(201).json({
 //         message: "Daily tracking updated successfully",
@@ -1162,22 +1245,22 @@ partproject.get(
 //           dailyPlannedQty,
 //           totalProduced,
 //           remainingQuantity,
-//           actualEndDate: allocation.actualEndDate
+//           actualEndDate: allocation.actualEndDate,
+//           wareHouseTotalQty: trackingEntry.wareHouseTotalQty,
+//           wareHouseremainingQty: trackingEntry.wareHouseremainingQty,
 //         },
-//         allocation
+//         allocation,
 //       });
 //     } catch (error) {
 //       console.error("Error in daily tracking:", error);
 //       res.status(500).json({
 //         error: "Server error",
 //         details: error.message,
-//         stack: process.env.NODE_ENV === "development" ? error.stack : undefined
 //       });
 //     }
 //   }
 // );
 
-// Update the POST route for daily tracking
 partproject.post(
   "/projects/:projectId/partsLists/:partsListId/partsListItems/:partListItemId/allocations/:processId/allocations/:allocationId/dailyTracking",
   async (req, res) => {
@@ -1223,7 +1306,7 @@ partproject.post(
       if (!allocation)
         return res.status(404).json({ error: "Allocation not found" });
 
-      // Calculate daily planned quantity
+      // Calculate daily planned quantity considering total quantity
       const shiftTotalTime = allocation.shiftTotalTime || 510;
       const perMachinetotalTime = allocation.perMachinetotalTime || 1;
       const plannedQuantity = allocation.plannedQuantity || 0;
@@ -1232,7 +1315,10 @@ partproject.post(
       if (perMachinetotalTime <= 0) {
         dailyPlannedQty = plannedQuantity;
       } else {
-        dailyPlannedQty = Math.floor(shiftTotalTime / perMachinetotalTime);
+        const totalTimeRequired = plannedQuantity * perMachinetotalTime;
+        dailyPlannedQty = totalTimeRequired <= shiftTotalTime
+          ? plannedQuantity
+          : Math.floor(shiftTotalTime / perMachinetotalTime);
       }
 
       dailyPlannedQty = Math.max(1, dailyPlannedQty);
@@ -1265,11 +1351,76 @@ partproject.post(
         allocation.dailyTracking.push(trackingEntry);
       }
 
+      // Sort tracking entries by date
       allocation.dailyTracking.sort(
         (a, b) => new Date(a.date) - new Date(b.date)
       );
 
-      // Rest of your existing logic for calculating actualEndDate...
+      // Calculate total produced and remaining quantity
+      const totalProduced = allocation.dailyTracking.reduce(
+        (sum, entry) => sum + entry.produced,
+        0
+      );
+      const remainingQuantity = Math.max(0, plannedQuantity - totalProduced);
+
+      // Get holidays for working day calculation
+      const holidaysResponse = await axios.get(
+        `${baseUrl}/api/eventScheduler/events`
+      );
+      const holidays = holidaysResponse.data
+        .filter((event) => event.eventName === "HOLIDAY")
+        .flatMap((event) => {
+          const start = new Date(event.startDate);
+          const end = new Date(event.endDate);
+          let current = new Date(start);
+          const dates = [];
+          while (current <= end) {
+            dates.push(new Date(current));
+            current.setDate(current.getDate() + 1);
+          }
+          return dates;
+        });
+
+      // Function to check if a date is a working day
+      const isWorkingDay = (date) => {
+        const dateObj = new Date(date);
+        if (dateObj.getDay() === 0) return false; // Sunday
+        const dateStr = dateObj.toISOString().split('T')[0];
+        return !holidays.some(
+          (holiday) => new Date(holiday).toISOString().split('T')[0] === dateStr
+        );
+      };
+
+      // Calculate actual end date based on production progress
+      let actualEndDate = allocation.endDate; // Default to planned end date
+
+      if (remainingQuantity <= 0) {
+        // If production is complete, use the last production date
+        const productionDates = allocation.dailyTracking
+          .filter(entry => entry.produced > 0)
+          .map(entry => new Date(entry.date));
+        
+        if (productionDates.length > 0) {
+          actualEndDate = new Date(Math.max(...productionDates));
+        }
+      } else {
+        // If production is ongoing, estimate end date based on remaining work
+        let currentDate = new Date(date);
+        let remainingQty = remainingQuantity;
+        let workingDaysAdded = 0;
+
+        while (remainingQty > 0) {
+          currentDate.setDate(currentDate.getDate() + 1);
+          if (isWorkingDay(currentDate)) {
+            remainingQty -= dailyPlannedQty;
+            workingDaysAdded++;
+          }
+        }
+
+        actualEndDate = currentDate;
+      }
+
+      allocation.actualEndDate = actualEndDate;
 
       await project.save();
 
@@ -1277,18 +1428,8 @@ partproject.post(
         message: "Daily tracking updated successfully",
         data: {
           dailyPlannedQty,
-          totalProduced: allocation.dailyTracking.reduce(
-            (sum, entry) => sum + entry.produced,
-            0
-          ),
-          remainingQuantity: Math.max(
-            0,
-            plannedQuantity -
-              allocation.dailyTracking.reduce(
-                (sum, entry) => sum + entry.produced,
-                0
-              )
-          ),
+          totalProduced,
+          remainingQuantity,
           actualEndDate: allocation.actualEndDate,
           wareHouseTotalQty: trackingEntry.wareHouseTotalQty,
           wareHouseremainingQty: trackingEntry.wareHouseremainingQty,
