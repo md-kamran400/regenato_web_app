@@ -6,16 +6,22 @@ import React, {
   useMemo,
   Suspense,
 } from "react";
-import { useSelector, useDispatch } from "react-redux";
-
-import OutlinedInput from "@mui/material/OutlinedInput";
-import InputLabel from "@mui/material/InputLabel";
-import MenuItem from "@mui/material/MenuItem";
-import FormControl from "@mui/material/FormControl";
-import ListItemText from "@mui/material/ListItemText";
-// import Select from "@mui/material/Select";
-// import Checkbox from "@mui/material/Checkbox";
-
+const AddProductionOrderWithPart = React.lazy(() =>
+  import("./ListReusableModals/AddProductionOrderWithPart")
+);
+const EditModal = React.lazy(() => import("./ListReusableModals/EditModal"));
+const DeleteModal = React.lazy(() =>
+  import("./ListReusableModals/DeleteModal")
+);
+const EditNameModal = React.lazy(() =>
+  import("./ListReusableModals/EditNameModal")
+);
+const DuplicateModal = React.lazy(() =>
+  import("./ListReusableModals/DuplicateModal")
+);
+const AddProductionOrderModal = React.lazy(() =>
+  import("./ListReusableModals/AddProductionOrderModal")
+);
 import Select from "react-select";
 // third party impprts
 
@@ -52,16 +58,11 @@ const customStyles = {
 const projectTypeOptions = [
   { value: "External PO", label: "External PO" },
   { value: "Internal PO", label: "Internal PO" },
-  { value: "PO Type 1", label: "PO Type 1" },
-  { value: "PO Type 2", label: "PO Type 2" },
 ];
 
 import { Link } from "react-router-dom";
 // import { ToastContainer } from "react-toastify";
 import {
-  Card,
-  CardBody,
-  Col,
   DropdownItem,
   DropdownMenu,
   DropdownToggle,
@@ -73,12 +74,6 @@ import {
   ModalBody,
   ModalHeader,
   Button,
-  ListGroup,
-  ListGroupItem,
-  Dropdown,
-  Pagination,
-  PaginationItem,
-  PaginationLink,
   Badge,
   Spinner,
 } from "reactstrap";
@@ -86,18 +81,10 @@ import FeatherIcon from "feather-icons-react";
 import { ToastContainer, toast } from "react-toastify";
 // import "./project.css";
 import "./projectForProjects.css";
-
-import { Puff } from "react-loader-spinner";
-
-// component import
-const DeleteModal = React.lazy(() =>
-  import("../../../Components/Common/DeleteModal")
-);
 import PaginatedList from "../Pagination/PaginatedList";
 import { FaEdit, FaSort } from "react-icons/fa";
 
 const List = () => {
-  // const [filt, setFilteredData] = useState([]);
   const [sortOrder, setSortOrder] = useState(null);
   const [initialLoad, setInitialLoad] = useState(true);
   const [modal_list, setModalList] = useState(false);
@@ -109,14 +96,9 @@ const List = () => {
   const [projectListsData, setprojectListsData] = useState([]);
   const [deleteModal, setDeleteModal] = useState(false);
   const [loading, setLoading] = useState(true); // State to manage loading state
-
-  // loader
   const [isLoading, setIsLoading] = useState(true);
   const [newprojectName, setNewprojectName] = useState(""); // For storing new part name
   const [editId, setEditId] = useState(null); // ID for the item being edited
-  const [costPerUnit, setCostPerUnit] = useState(0);
-  const [timePerUnit, setTimePerUnit] = useState(0);
-  const [stockPOQty, setStockPOQty] = useState(0);
   const [posting, setPosting] = useState(false);
   const [totalCountCost, setTotalCostCount] = useState(0);
   const [selectedId, setSelectedId] = useState(null);
@@ -126,7 +108,8 @@ const List = () => {
   const [projectType, setProjectType] = useState("");
   const [filterType, setFilterType] = useState([]);
   const [newProjectName, setNewProjectName] = useState("");
-  const itemsPerPage = 25;
+  const itemsPerPage = 20;
+  const [totalpages,setTotalPages] = useState(20)
   const [formData, setFormData] = useState({
     projectName: "",
     costPerUnit: "",
@@ -140,25 +123,11 @@ const List = () => {
   const [daysToWork, setDaysToWork] = useState({});
   const [manufacturingData, setManufacturingData] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedItems, setSelectedItems] = useState([]);
+  const [selectedItem, setSelectedItems] = useState([]);
 
   const [modal_duplicate, setModalDuplicate] = useState(false);
   const [itemToDuplicate, setItemToDuplicate] = useState(null);
   const userRole = localStorage.getItem("userRole");
-
-  // Add these state variables at the top of your component
-  const [poFormData, setPoFormData] = useState({
-    projectName: "",
-    projectType: "",
-    partName: "",
-    partQuantity: "",
-    // costPerUnit: 0,
-    // timePerUnit: 0,
-    // stockPoQty: 0,
-  });
-
-  const [partsOptions, setPartsOptions] = useState([]);
-  const [isLoadingParts, setIsLoadingParts] = useState(false);
 
   // Replace the existing handleDuplicateProject function with these:
   const handleDuplicateClick = (item) => {
@@ -185,7 +154,7 @@ const List = () => {
     fetchManufacturingData();
   }, [fetchManufacturingData]);
 
-  const handleDuplicateConfirm = async () => {
+  const handleDuplicateConfirm = useCallback(async () => {
     if (!itemToDuplicate) return;
 
     try {
@@ -210,7 +179,7 @@ const List = () => {
       setModalDuplicate(false);
       setItemToDuplicate(null);
     }
-  };
+  });
   const handleFilterChange = (e) => {
     setFilterType(e.target.value);
   };
@@ -270,66 +239,110 @@ const List = () => {
     setModal_NaemEdit(!modal_NaemEdit);
   };
 
-  // In List.js, modify the fetchData function to ensure it's always fresh
-  // Replace the current fetchData with this optimized version
-  const fetchData = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      // Fetch projects and manufacturing data in parallel
-      const [projectsRes, manufacturingRes] = await Promise.all([
-        fetch(
-          `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects?filterType=${filterType}`
-        ),
-        fetch(`${process.env.REACT_APP_BASE_URL}/api/manufacturing`),
-      ]);
+  const fetchData = useCallback(
+    async (page = 1, pageSize = itemsPerPage) => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const response = await fetch(
+          `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects?filterType=${filterType}&page=${page}&limit=${pageSize}`
+        );
 
-      if (!projectsRes.ok || !manufacturingRes.ok) {
-        throw new Error("Failed to fetch data");
+        if (!response.ok) throw new Error("Failed to fetch data");
+
+        const data = await response.json();
+
+        // Debug: Log the API response
+        console.log("API Response:", data);
+
+        // Handle different response structures
+        const projects = Array.isArray(data)
+          ? data
+          : Array.isArray(data.projects)
+          ? data.projects
+          : Array.isArray(data.data)
+          ? data.data
+          : [];
+
+        setprojectListsData(projects);
+
+        // Handle pagination metadata
+        const totalItems = data.total || data.totalCount || projects.length;
+        const calculatedTotalPages = Math.ceil(totalItems / itemsPerPage);
+        setTotalPages(calculatedTotalPages);
+
+        if (initialLoad) {
+          setFilterType("");
+          setInitialLoad(false);
+        }
+      } catch (err) {
+        console.error("Fetch error:", err);
+        setError(err.message);
+        setprojectListsData([]);
+      } finally {
+        setIsLoading(false);
       }
+    },
+    [filterType, initialLoad, itemsPerPage]
+  );
 
-      const [projects, manufacturing] = await Promise.all([
-        projectsRes.json(),
-        manufacturingRes.json(),
-      ]);
-
-      // Only fetch details for visible items (first page)
-      const visibleProjects = projects.slice(0, itemsPerPage);
-      const projectsWithDetails = await Promise.all(
-        visibleProjects.map((project) =>
-          fetch(
-            `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${project._id}`
-          ).then((res) => res.json())
-        )
-      );
-
-      setprojectListsData(projectsWithDetails);
-      setManufacturingData(manufacturing);
-
-      if (initialLoad) {
-        setFilterType("");
-        setInitialLoad(false);
-      }
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setIsLoading(false);
+ 
+  const filteredData = useMemo(() => {
+    // If searchTerm is empty and no filterType, return all projects directly
+    if (searchTerm.length === 0 && filterType === "") {
+      return projectListsData;
     }
-  }, [filterType, initialLoad]);
+
+    return projectListsData.filter((item) => {
+      if (!item) return false;
+
+      // Handle search term filtering
+      const matchesSearch =
+        searchTerm.length === 0 ||
+        (item.projectName &&
+          searchTerm.some((term) =>
+            item.projectName.toLowerCase().includes(term.toLowerCase())
+          ));
+
+      // Handle project type filtering
+      const matchesType = filterType === "" || item.projectType === filterType;
+
+      return matchesSearch && matchesType;
+    });
+  }, [projectListsData, searchTerm, filterType]);
+
+  // Update paginatedData calculation
+  // Update paginatedData calculation
+  const paginatedData = useMemo(() => {
+    // If no filtering is applied, use direct pagination on projectListsData
+    if (searchTerm.length === 0 && filterType === "") {
+      return projectListsData.slice(
+        (currentPage - 1) * itemsPerPage,
+        currentPage * itemsPerPage
+      );
+    }
+
+    // Otherwise use filteredData
+    return filteredData.slice(
+      (currentPage - 1) * itemsPerPage,
+      currentPage * itemsPerPage
+    );
+  }, [
+    filteredData,
+    projectListsData,
+    currentPage,
+    itemsPerPage,
+    searchTerm,
+    filterType,
+  ]);
+
+  console.log({ paginatedData });
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    fetchData(currentPage); // Pass currentPage to fetch the correct page
+  }, [fetchData, currentPage]); // Add currentPage to dependencies
 
-  // Filtered and Paginated Data
-  const filteredData = projectListsData.filter(
-    (item) =>
-      (searchTerm.length === 0 ||
-        searchTerm.some((term) =>
-          item.projectName.toLowerCase().includes(term.toLowerCase())
-        )) &&
-      (filterType === "" || item.projectType === filterType)
-  );
+
 
   const projectOptions = projectListsData.map((project) => ({
     value: project.projectName,
@@ -372,10 +385,7 @@ const List = () => {
 
   // has context menu
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
-  const paginatedData = filteredData.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+ 
 
   const handleSearch = (e) => {
     setSearchTerm(e.target.value);
@@ -384,102 +394,6 @@ const List = () => {
 
   const handlePageChange = (page) => {
     setCurrentPage(page);
-  };
-
-  // ===============
-
-  useEffect(() => {
-    if (secondModalList) {
-      fetchParts();
-    }
-  }, [secondModalList]);
-
-  const fetchParts = async () => {
-    setIsLoadingParts(true);
-    try {
-      const response = await fetch(
-        `${process.env.REACT_APP_BASE_URL}/api/parts`
-      );
-      if (!response.ok) {
-        throw new Error("Failed to fetch parts");
-      }
-      const data = await response.json();
-      setPartsOptions(
-        data.map((part) => ({
-          value: part._id,
-          label: part.partName,
-        }))
-      );
-    } catch (error) {
-      toast.error(`Error fetching parts: ${error.message}`);
-    } finally {
-      setIsLoadingParts(false);
-    }
-  };
-
-  const handlePoFormChange = (e) => {
-    const { name, value } = e.target;
-    setPoFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  const handlePartSelect = (selectedOption) => {
-    setPoFormData((prev) => ({
-      ...prev,
-      partName: selectedOption.label,
-      partsCodeId: selectedOption.value,
-    }));
-  };
-  // ===============
-
-  const handleAddPoWithPart = async (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-
-    try {
-      const baseUrl = process.env.REACT_APP_BASE_URL || "http://localhost:4040";
-      const response = await fetch(
-        `${baseUrl}/api/defpartproject/production_part`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            projectName: poFormData.projectName,
-            projectType: poFormData.projectType,
-            selectedPartId: poFormData.partsCodeId,
-            selectedPartName: poFormData.partName,
-            partQuantity: Number(poFormData.partQuantity),
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to add the production order");
-      }
-
-      const addedPo = await response.json();
-      setprojectListsData((prev) => [...prev, addedPo]);
-      toast.success("Production Order with Part added successfully!");
-
-      // Reset form and close modal
-      setPoFormData({
-        projectName: "",
-        projectType: "",
-        partName: "",
-        partQuantity: "",
-        partsCodeId: "",
-      });
-      toggleModalPO();
-    } catch (error) {
-      console.error("API Error:", error);
-      toast.error(`Error: ${error.message}`);
-    } finally {
-      setIsSubmitting(false);
-    }
   };
 
   // Handle adding a new part
@@ -544,89 +458,11 @@ const List = () => {
     setprojectListsData(sorted);
   };
 
-  const handleEditSubmit = async (e) => {
-    e.preventDefault();
-    setPosting(true);
-    setError(null);
-    try {
-      const response = await fetch(
-        `${process.env.REACT_APP_BASE_URL}/api/projects/${editId}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(formData),
-        }
-      );
-      if (response.ok) {
-        // Refresh the page after successful POST request
-        await fetchData();
-      } else {
-        // Handle errors here
-        throw new Error("Network response was not ok");
-      }
-      setFormData({
-        projectName: "",
-        costPerUnit: "",
-        timePerUnit: "",
-        stockPOQty: "",
-      });
-      toggleEditModal();
-    } catch (error) {
-      setError(error.message);
-    } finally {
-      setPosting(false);
-    }
-  };
-
-  // handleing the deletion functionlaity
-  const handleDelete = async (_id) => {
-    setPosting(true);
-    setError(null);
-    try {
-      const response = await fetch(
-        `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${_id}`,
-        {
-          method: "DELETE",
-        }
-      );
-      if (!response.ok) {
-        throw new Error("Network response was not ok");
-      }
-      toast.success("Records Deleted Successfully!");
-      await fetchData(); // Refetch the data to update the table
-      tog_delete(); // Close the modal
-    } catch (error) {
-      setError(error.message);
-    } finally {
-      setPosting(false);
-    }
-  };
-
   const activebtn = (ele) => {
     if (ele.closest("button").classList.contains("active")) {
       ele.closest("button").classList.remove("active");
     } else {
       ele.closest("button").classList.add("active");
-    }
-  };
-
-  const getHoursForPartListItems = (
-    column,
-    quantity,
-    manufacturingVariables
-  ) => {
-    if (!manufacturingVariables || manufacturingVariables.length === 0) {
-      return "-"; // Handle missing data gracefully
-    }
-    const target = manufacturingVariables.find(
-      (a) => a.name.toLowerCase() === column.toLowerCase()
-    );
-    if (target) {
-      return quantity * target.hours;
-    } else {
-      return "-";
     }
   };
 
@@ -649,48 +485,6 @@ const List = () => {
 
     const monthsRequired = totalHours / availableMachineHoursPerMonth;
     return monthsRequired.toFixed(2);
-  };
-
-  const handleEditName = async () => {
-    if (!editId) {
-      toast.error("No project selected for editing.");
-      return;
-    }
-
-    try {
-      const response = await fetch(
-        `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${editId}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            projectName: newProjectName,
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to update project name");
-      }
-
-      const updatedProject = await response.json();
-
-      // Update local state to reflect changes
-      setprojectListsData((prevData) =>
-        prevData.map((project) =>
-          project._id === editId
-            ? { ...project, projectName: newProjectName }
-            : project
-        )
-      );
-
-      toast.success("Project name updated successfully!");
-      toggle_editName(); // Close modal after success
-    } catch (error) {
-      toast.error(`Error updating project name: ${error.message}`);
-    }
   };
 
   const getStatus = useCallback(
@@ -869,17 +663,6 @@ const List = () => {
     return partsListsCompleted && subAssembliesCompleted && assembliesCompleted;
   };
 
-  const totalSum = useMemo(
-    () => calculateTotalSum(),
-    [paginatedData, manufacturingData]
-  );
-
-  const getMachineHours = (project, machineName) => {
-    return project.machineHours && project.machineHours[machineName]
-      ? project.machineHours[machineName]
-      : 0;
-  };
-
   const formatTime = (time) => {
     if (time === "-" || isNaN(time)) {
       return "-";
@@ -893,7 +676,8 @@ const List = () => {
     return `${totalMinutes} m`;
   };
 
-  const getMachineHoursCells = useCallback(
+  // Machine total hr function
+    const getMachineHoursCells = useCallback(
     (item) =>
       manufacturingData.map((machine) => {
         const hours =
@@ -905,6 +689,28 @@ const List = () => {
     [manufacturingData, formatTime]
   );
 
+  // In your render function, before the table:
+  if (isLoading) {
+    return (
+      <div className="d-flex justify-content-center my-5">
+        <Spinner color="primary" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="alert alert-danger">Error loading projects: {error}</div>
+    );
+  }
+
+  if (projectListsData.length === 0 && !isLoading) {
+    return (
+      <div className="alert alert-info">
+        No projects found. Create a new project to get started.
+      </div>
+    );
+  }
   return (
     <React.Fragment>
       <ToastContainer closeButton={false} />
@@ -1000,11 +806,11 @@ const List = () => {
                   <th className="child_parts">Total Cost (INR)</th>
                   <th className="child_parts">Total Hour</th>
                   <th className="child_parts">Status</th>
-                  {/* {manufacturingData?.map((item) => (
+                  {manufacturingData?.map((item) => (
                     <th key={item._id} className="child_parts">
                       {item.name}
                     </th>
-                  ))} */}
+                  ))}
                   <th className="sticky-col">Actions</th>
                 </tr>
               </thead>
@@ -1033,7 +839,7 @@ const List = () => {
                     <td>{Math.ceil(item.costPerUnit)}</td>
                     <td>{formatTime(item.timePerUnit)}</td>
                     <td>{getStatus(item)}</td>
-                    {/* {getMachineHoursCells(item)} */}
+                    {getMachineHoursCells(item)}
 
                     <td className="sticky-col">
                       <UncontrolledDropdown direction="start">
@@ -1115,353 +921,86 @@ const List = () => {
           onPageChange={handlePageChange}
         />
       </>
-      {/* toggleModalPO */}
-      {/* Modal for adding a new item */}
-      <Modal isOpen={modal_list} toggle={toggleModal} centered>
-        <ModalHeader className="bg-light p-3" toggle={toggleModal}>
-          {" "}
-          Add Production Order{" "}
-        </ModalHeader>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleAddPart();
+
+      <Suspense fallback={<div>Loading...</div>}>
+        <AddProductionOrderModal
+          isOpen={modal_list}
+          toggle={toggleModal}
+          onSuccess={(newProject) => {
+            setprojectListsData((prev) => [...prev, newProject]);
           }}
-        >
-          <ModalBody>
-            <div className="mb-3">
-              <label htmlFor="parts-field" className="form-label">
-                Production Order Name
-              </label>
-              <input
-                type="text"
-                id="parts-field"
-                className="form-control"
-                placeholder="Enter Name"
-                value={newprojectName}
-                onChange={(e) => setNewprojectName(e.target.value)}
-                required
-              />
-            </div>
-            <div className="mb-3">
-              <label htmlFor="project-type" className="form-label">
-                Select Type
-              </label>
-              <Input
-                type="select"
-                id="project-type"
-                className="form-control"
-                value={projectType}
-                onChange={(e) => setProjectType(e.target.value)}
-                required
-              >
-                <option value="">Select a type</option>
-                <option value="External PO">External PO</option>
-                <option value="Internal PO">Internal PO</option>
-                {/* <option value="PO Type 1">PO Type 1</option>
-                <option value="PO Type 2">PO Type 2</option> */}
-              </Input>
-            </div>
-            <Button type="submit" color="primary" disabled={isSubmitting}>
-              {isSubmitting ? "Adding..." : "Add Production Order"}
-            </Button>
-          </ModalBody>
-        </form>
-      </Modal>
+        />
+      </Suspense>
 
-      <Modal isOpen={secondModalList} toggle={toggleModalPO} centered size="lg">
-        <ModalHeader className="bg-light p-3" toggle={toggleModalPO}>
-          Add Production Order with Part
-        </ModalHeader>
-        <form onSubmit={handleAddPoWithPart}>
-          <ModalBody>
-            <Row>
-              <Col md={6}>
-                <div className="mb-3">
-                  <label htmlFor="po-name" className="form-label">
-                    Production Order Name
-                  </label>
-                  <input
-                    type="text"
-                    id="po-name"
-                    name="projectName"
-                    className="form-control"
-                    placeholder="Enter PO Name"
-                    value={poFormData.projectName}
-                    onChange={handlePoFormChange}
-                    required
-                  />
-                </div>
-              </Col>
-              <Col md={6}>
-                <div className="mb-3">
-                  <label htmlFor="po-type" className="form-label">
-                    PO Type
-                  </label>
-                  <Input
-                    type="select"
-                    id="po-type"
-                    name="projectType"
-                    className="form-control"
-                    value={poFormData.projectType}
-                    onChange={handlePoFormChange}
-                    required
-                  >
-                    <option value="">Select a type</option>
-                    <option value="External PO">External PO</option>
-                    <option value="Internal PO">Internal PO</option>
-                  </Input>
-                </div>
-              </Col>
-            </Row>
+      <Suspense fallback={<div>Loading...</div>}>
+        <AddProductionOrderWithPart
+          isOpen={secondModalList}
+          toggle={toggleModalPO}
+          onSuccess={(newPo) => {
+            setprojectListsData((prev) => [...prev, newPo]);
+            setSeondModalList(false);
+          }}
+        />
+      </Suspense>
 
-            <Row>
-              <Col md={6}>
-                <div className="mb-3">
-                  <label htmlFor="part-select" className="form-label">
-                    Part Name
-                  </label>
-                  <Select
-                    id="part-select"
-                    options={partsOptions}
-                    isLoading={isLoadingParts}
-                    onChange={handlePartSelect}
-                    placeholder="Select a part"
-                    isClearable
-                    required
-                    styles={{
-                      control: (provided) => ({
-                        ...provided,
-                        minHeight: "38px",
-                        height: "38px",
-                      }),
-                      dropdownIndicator: (provided) => ({
-                        ...provided,
-                        padding: "4px",
-                      }),
-                    }}
-                  />
-                </div>
-              </Col>
-              <Col md={6}>
-                <div className="mb-3">
-                  <label htmlFor="part-quantity" className="form-label">
-                    Quantity
-                  </label>
-                  <input
-                    type="number"
-                    id="part-quantity"
-                    name="partQuantity"
-                    className="form-control"
-                    placeholder="Enter Quantity"
-                    value={poFormData.partQuantity}
-                    onChange={handlePoFormChange}
-                    min="1"
-                    required
-                  />
-                </div>
-              </Col>
-            </Row>
-          </ModalBody>
-          <ModalFooter>
-            <Button type="submit" color="primary" disabled={isSubmitting}>
-              {isSubmitting ? (
-                <>
-                  <Spinner
-                    size="sm"
-                    style={{
-                      width: "1rem",
-                      height: "1rem",
-                      borderWidth: "0.15em",
-                    }}
-                  />
-                  <span>Adding...</span>
-                </>
-              ) : (
-                "Add Production Order"
-              )}
-            </Button>
-            <Button
-              color="secondary"
-              onClick={toggleModalPO}
-              disabled={isSubmitting}
-            >
-              Cancel
-            </Button>
-          </ModalFooter>
-        </form>
-      </Modal>
+      <Suspense fallback={<div>Loading...</div>}>
+        <EditModal
+          isOpen={modal_edit}
+          toggle={toggleEditModal}
+          editId={selectedItem?._id}
+          initialData={selectedItem}
+          onSuccess={(updatedProject) => {
+            setprojectListsData((prev) =>
+              prev.map((proj) =>
+                proj._id === updatedProject._id ? updatedProject : proj
+              )
+            );
+          }}
+        />
+      </Suspense>
 
-      {/* Edit Modal */}
-      <Modal isOpen={modal_edit} toggle={toggleEditModal}>
-        <ModalHeader toggle={toggleEditModal}>Edit Part</ModalHeader>
-        <ModalBody>
-          <form onSubmit={handleEditSubmit}>
-            <div className="mb-3">
-              <label htmlFor="projectName" className="form-label">
-                Name
-              </label>
-              <Input
-                type="text"
-                id="projectName"
-                value={formData.projectName}
-                onChange={(e) =>
-                  setFormData({ ...formData, projectName: e.target.value })
-                }
-                required
-              />
-            </div>
-            <div className="mb-3">
-              <label htmlFor="costPerUnit" className="form-label">
-                Cost Per Unit
-              </label>
-              <Input
-                type="number"
-                id="costPerUnit"
-                value={formData.costPerUnit}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    costPerUnit: parseFloat(e.target.value) || 0,
-                  })
-                }
-                required
-              />
-            </div>
-            <div className="mb-3">
-              <label htmlFor="timePerUnit" className="form-label">
-                Total Hours
-              </label>
-              <Input
-                type="number"
-                id="timePerUnit"
-                value={formData.timePerUnit}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    timePerUnit: parseFloat(e.target.value) || 0,
-                  })
-                }
-              />
-            </div>
-            <div className="mb-3">
-              <label htmlFor="stockPOQty" className="form-label">
-                On Hand
-              </label>
-              <Input
-                type="number"
-                id="stockPOQty"
-                value={formData.stockPOQty}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    stockPOQty: parseFloat(e.target.value) || 0,
-                  })
-                }
-              />
-            </div>
-            <ModalFooter>
-              <Button type="submit" color="primary" disabled={posting}>
-                Update
-              </Button>
-              <Button type="button" color="secondary" onClick={toggleEditModal}>
-                Cancel
-              </Button>
-            </ModalFooter>
-          </form>
-        </ModalBody>
-      </Modal>
-      {/* Delete modal */}
-      <Modal isOpen={modal_delete} toggle={tog_delete} centered>
-        <ModalHeader className="bg-light p-3" toggle={tog_delete}>
-          Delete Record
-        </ModalHeader>
-        <ModalBody>
-          <div className="mt-2 text-center">
-            <lord-icon
-              src="https://cdn.lordicon.com/gsqxdxog.json"
-              trigger="loop"
-              colors="primary:#f7b84b,secondary:#f06548"
-              style={{ width: "100px", height: "100px" }}
-            ></lord-icon>
-            <div className="mt-4 pt-2 fs-15 mx-4 mx-sm-5">
-              <h4>Are you Sure?</h4>
-              <p className="text-muted mx-4 mb-0">
-                Are you sure you want to remove this record?
-              </p>
-            </div>
-          </div>
-        </ModalBody>
-        <ModalFooter>
-          <Button
-            color="danger"
-            onClick={() => handleDelete(selectedId)}
-            disabled={posting}
-          >
-            {posting ? "Deleting..." : "Yes! Delete It"}
-          </Button>
-          <Button color="secondary" onClick={tog_delete} disabled={posting}>
-            Cancel
-          </Button>
-        </ModalFooter>
-      </Modal>
-      {/* edit modal */}
-      <Modal isOpen={modal_NaemEdit} toggle={toggle_editName}>
-        <ModalHeader toggle={toggle_editName}>
-          Edit Production Order Name
-        </ModalHeader>
-        <ModalBody>
-          <Input
-            type="text"
-            value={newProjectName}
-            onChange={(e) => setNewProjectName(e.target.value)}
-            placeholder="Enter new project name"
-          />
-        </ModalBody>
-        <ModalFooter>
-          <Button color="primary" onClick={handleEditName}>
-            Save Changes
-          </Button>
-          <Button color="secondary" onClick={toggle_editName}>
-            Cancel
-          </Button>
-        </ModalFooter>
-      </Modal>
-      {/* Duplicate Confirmation Modal */}
-      <Modal
-        isOpen={modal_duplicate}
-        toggle={() => setModalDuplicate(false)}
-        centered
-      >
-        <ModalHeader toggle={() => setModalDuplicate(false)}>
-          Confirm Duplicate
-        </ModalHeader>
-        <ModalBody>
-          <div className="mt-2 text-center">
-            <lord-icon
-              src="https://cdn.lordicon.com/wloilxuq.json"
-              trigger="loop"
-              colors="primary:#405189,secondary:#0ab39c"
-              style={{ width: "100px", height: "100px" }}
-            ></lord-icon>
-            <div className="mt-4 pt-2 fs-15 mx-4 mx-sm-5">
-              <h4>Duplicate Project</h4>
-              <p className="text-muted mx-4 mb-0">
-                Are you sure you want to duplicate "
-                {itemToDuplicate?.projectName}"?
-              </p>
-            </div>
-          </div>
-        </ModalBody>
-        <ModalFooter>
-          <Button color="primary" onClick={handleDuplicateConfirm}>
-            Yes, Duplicate
-          </Button>
-          <Button color="secondary" onClick={() => setModalDuplicate(false)}>
-            Cancel
-          </Button>
-        </ModalFooter>
-      </Modal>
+      <Suspense fallback={<div>Loading...</div>}>
+        <DeleteModal
+          isOpen={modal_delete}
+          toggle={tog_delete}
+          projectId={selectedId}
+          projectName={
+            projectListsData.find((p) => p._id === selectedId)?.projectName
+          }
+          onSuccess={() => {
+            setprojectListsData((prev) =>
+              prev.filter((proj) => proj._id !== selectedId)
+            );
+          }}
+        />
+      </Suspense>
+
+      <Suspense fallback={<div>Loading...</div>}>
+        <EditNameModal
+          isOpen={modal_NaemEdit}
+          toggle={toggle_editName}
+          projectId={editId}
+          currentName={newProjectName}
+          onSuccess={(updatedProject) => {
+            setprojectListsData((prev) =>
+              prev.map((proj) =>
+                proj._id === updatedProject._id ? updatedProject : proj
+              )
+            );
+          }}
+        />
+      </Suspense>
+
+      <Suspense fallback={<div>Loading...</div>}>
+        <DuplicateModal
+          isOpen={modal_duplicate}
+          toggle={() => setModalDuplicate(false)}
+          project={itemToDuplicate}
+          onSuccess={(duplicatedProject) => {
+            setprojectListsData((prev) => [...prev, duplicatedProject]);
+          }}
+        />
+      </Suspense>
     </React.Fragment>
   );
 };
