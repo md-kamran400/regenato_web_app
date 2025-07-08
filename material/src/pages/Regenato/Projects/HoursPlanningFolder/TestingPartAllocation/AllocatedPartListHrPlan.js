@@ -122,7 +122,7 @@ export const AllocatedPartListHrPlan = ({
           });
         // Combine all dates and holiday dates
         const combinedDates = [...dates, ...holidayDates];
-        console.log("Highlight Dates:", combinedDates); // Debugging: Log the combined dates
+        // console.log("Highlight Dates:", combinedDates); // Debugging: Log the combined dates
         setHighlightDates(combinedDates);
       } catch (error) {
         console.error("Error fetching highlight dates:", error);
@@ -223,7 +223,7 @@ export const AllocatedPartListHrPlan = ({
             }
           }
           setSections(filteredSections);
-          console.log(setSections);
+          // console.log(setSections);
         }
       } catch (error) {
         setError("Failed to fetch allocations. Please try again later.");
@@ -707,19 +707,7 @@ export const AllocatedPartListHrPlan = ({
               key={index}
               style={{ marginBottom: "30px" }}
             >
-              <Row className="mb-3 d-flex justify-content-between align-items-center">
-                <Col>
-                  <h4
-                    style={{
-                      fontSize: "16px",
-                      fontWeight: "bold",
-                      color: "#495057",
-                    }}
-                  >
-                    {section.title}
-                  </h4>
-                </Col>
-              </Row>
+              
               <div className="table-responsive">
                 <Table bordered responsive style={{ marginBottom: "2rem" }}>
                   <thead>

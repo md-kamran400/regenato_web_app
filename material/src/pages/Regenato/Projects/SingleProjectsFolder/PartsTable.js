@@ -45,47 +45,47 @@ import { PartListHrPlan } from "../HoursPlanningFolder/TestingPartAllocation/Par
 // Add these styles at the top of the file after the imports
 const styles = {
   partNameWithImage: {
-    position: 'relative',
-    display: 'inline-block',
+    position: "relative",
+    display: "inline-block",
   },
   partImageTooltip: {
-    display: 'none',
-    position: 'absolute',
+    display: "none",
+    position: "absolute",
     zIndex: 1000,
-    backgroundColor: 'white',
-    padding: '5px',
-    borderRadius: '4px',
-    boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
-    top: '100%',
-    left: '50%',
-    transform: 'translateX(-50%)',
-    marginTop: '5px',
+    backgroundColor: "white",
+    padding: "5px",
+    borderRadius: "4px",
+    boxShadow: "0 2px 5px rgba(0,0,0,0.2)",
+    top: "100%",
+    left: "50%",
+    transform: "translateX(-50%)",
+    marginTop: "5px",
   },
   partNameWithImageHover: {
-    '&:hover .part-image-tooltip': {
-      display: 'block',
+    "&:hover .part-image-tooltip": {
+      display: "block",
     },
   },
 };
 
 // Add this CSS to your existing styles
 const partNameWithImageStyle = {
-  position: 'relative',
-  display: 'inline-block',
+  position: "relative",
+  display: "inline-block",
 };
 
 const partImageTooltipStyle = {
-  display: 'none',
-  position: 'absolute',
+  display: "none",
+  position: "absolute",
   zIndex: 1000,
-  backgroundColor: 'white',
-  padding: '5px',
-  borderRadius: '4px',
-  boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
-  top: '100%',
-  left: '50%',
-  transform: 'translateX(-50%)',
-  marginTop: '5px',
+  backgroundColor: "white",
+  padding: "5px",
+  borderRadius: "4px",
+  boxShadow: "0 2px 5px rgba(0,0,0,0.2)",
+  top: "100%",
+  left: "50%",
+  transform: "translateX(-50%)",
+  marginTop: "5px",
 };
 
 const PartsTable = React.memo(
@@ -189,56 +189,63 @@ const PartsTable = React.memo(
       fetchPartsListItems();
     }, [_id, partsList, partsListItemsUpdated]);
 
-    const fetchPartImage = useCallback(async (imagePath, itemId) => {
-      try {
-        if (!imagePath || imageUrls[itemId]) return null;
-        
-        // Check if we've already failed to load this image
-        if (imageLoadErrors[itemId]) {
+    const fetchPartImage = useCallback(
+      async (imagePath, itemId) => {
+        try {
+          if (!imagePath || imageUrls[itemId]) return null;
+
+          // Check if we've already failed to load this image
+          if (imageLoadErrors[itemId]) {
+            return null;
+          }
+
+          const response = await fetch(
+            `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${_id}/partsLists/${partsList._id}/items/${itemId}/image`,
+            {
+              headers: {
+                "Cache-Control": "no-cache",
+              },
+            }
+          );
+
+          if (response.ok) {
+            const blob = await response.blob();
+            const objectUrl = URL.createObjectURL(blob);
+
+            setImageUrls((prev) => ({
+              ...prev,
+              [itemId]: objectUrl,
+            }));
+
+            return objectUrl;
+          }
+
+          setImageLoadErrors((prev) => ({
+            ...prev,
+            [itemId]: true,
+          }));
+
+          return null;
+        } catch (error) {
+          setImageLoadErrors((prev) => ({
+            ...prev,
+            [itemId]: true,
+          }));
           return null;
         }
-
-        const response = await fetch(
-          `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${_id}/partsLists/${partsList._id}/items/${itemId}/image`,
-          {
-            headers: {
-              'Cache-Control': 'no-cache',
-            }
-          }
-        );
-
-        if (response.ok) {
-          const blob = await response.blob();
-          const objectUrl = URL.createObjectURL(blob);
-          
-          setImageUrls(prev => ({
-            ...prev,
-            [itemId]: objectUrl
-          }));
-          
-          return objectUrl;
-        }
-
-        setImageLoadErrors(prev => ({
-          ...prev,
-          [itemId]: true
-        }));
-        
-        return null;
-      } catch (error) {
-        setImageLoadErrors(prev => ({
-          ...prev,
-          [itemId]: true
-        }));
-        return null;
-      }
-    }, [_id, partsList._id, imageUrls, imageLoadErrors]);
+      },
+      [_id, partsList._id, imageUrls, imageLoadErrors]
+    );
 
     // Update the useEffect for image loading
     useEffect(() => {
       const fetchImages = async () => {
         for (const item of partsListItems) {
-          if (item.image && !imageLoadErrors[item._id] && !imageUrls[item._id]) {
+          if (
+            item.image &&
+            !imageLoadErrors[item._id] &&
+            !imageUrls[item._id]
+          ) {
             await fetchPartImage(item.image, item._id);
           }
         }
@@ -250,7 +257,7 @@ const PartsTable = React.memo(
     // Cleanup effect
     useEffect(() => {
       return () => {
-        Object.values(imageUrls).forEach(url => {
+        Object.values(imageUrls).forEach((url) => {
           if (url) URL.revokeObjectURL(url);
         });
       };
@@ -932,8 +939,12 @@ const PartsTable = React.memo(
                             <React.Fragment key={item._id}>
                               <tr>
                                 <td
-                                  onClick={() => handleRowClickParts(item._id, item.partName)}
-                                  className={expandedRowId === item._id ? "expanded" : ""}
+                                  onClick={() =>
+                                    handleRowClickParts(item._id, item.partName)
+                                  }
+                                  className={
+                                    expandedRowId === item._id ? "expanded" : ""
+                                  }
                                   style={{
                                     cursor: "pointer",
                                     color: "#64B5F6",
@@ -943,49 +954,136 @@ const PartsTable = React.memo(
                                   <div
                                     className="part-name-with-image"
                                     style={{
-                                      position: 'relative',
-                                      display: 'inline-block',
+                                      position: "relative",
+                                      display: "inline-block",
                                     }}
-                                    onMouseEnter={() => setHoveredImageId(item._id)}
+                                    onMouseEnter={() =>
+                                      setHoveredImageId(item._id)
+                                    }
                                     onMouseLeave={() => setHoveredImageId(null)}
                                   >
                                     {item.partName} ({item.partsCodeId || ""})
-                                    {item.image && hoveredImageId === item._id && (
-                                      <div 
-                                        className="part-image-tooltip"
-                                        style={{
-                                          position: 'absolute',
-                                          zIndex: 1000,
-                                          backgroundColor: 'white',
-                                          padding: '5px',
-                                          borderRadius: '4px',
-                                          boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
-                                          top: '100%',
-                                          left: '50%',
-                                          transform: 'translateX(-50%)',
-                                          marginTop: '5px',
-                                          display: 'block'
-                                        }}
-                                      >
-                                        <img
-                                          src={`${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${_id}/partsLists/${partsList._id}/items/${item._id}/image`}
-                                          alt={item.partName}
+                                    {item.image &&
+                                      hoveredImageId === item._id && (
+                                        <div
                                           style={{
-                                            maxWidth: '100px',
-                                            maxHeight: '100px',
-                                            display: 'block',
-                                            objectFit: 'contain'
+                                            position: "absolute",
+                                            zIndex: 1000,
+                                            backgroundColor: "white",
+                                            padding: "12px",
+                                            borderRadius: "12px",
+                                            boxShadow:
+                                              "0 10px 25px rgba(0, 0, 0, 0.15)",
+                                            top: "100%",
+                                            left: "50%",
+                                            transform: "translateX(-50%)",
+                                            marginTop: "8px",
+                                            display: "block",
+                                            animation: "fadeIn 0.2s ease-out",
+                                            border: "1px solid #f0f0f0",
+                                            width: "220px",
+                                            transition: "all 0.2s ease",
+                                            marginLeft:'2.5rem'
                                           }}
-                                          onError={(e) => {
-                                            e.target.style.display = 'none';
-                                            setImageLoadErrors(prev => ({
-                                              ...prev,
-                                              [item._id]: true
-                                            }));
-                                          }}
-                                        />
-                                      </div>
-                                    )}
+                                        >
+                                          <div
+                                            style={{
+                                              position: "relative",
+                                              paddingBottom: "100%",
+                                              borderRadius: "8px",
+                                              overflow: "hidden",
+                                              marginBottom: "8px",
+                                              backgroundColor: "#f9f9f9",
+                                            }}
+                                          >
+                                            <img
+                                              src={`${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${_id}/partsLists/${partsList._id}/items/${item._id}/image`}
+                                              alt={item.partName}
+                                              style={{
+                                                position: "absolute",
+                                                top: 0,
+                                                left: 0,
+                                                width: "100%",
+                                                height: "100%",
+                                                objectFit: "contain",
+                                                transition:
+                                                  "transform 0.3s ease",
+                                              }}
+                                              onMouseEnter={(e) =>
+                                                (e.currentTarget.style.transform =
+                                                  "scale(1.05)")
+                                              }
+                                              onMouseLeave={(e) =>
+                                                (e.currentTarget.style.transform =
+                                                  "scale(1)")
+                                              }
+                                              onError={(e) => {
+                                                e.target.style.display = "none";
+                                                setImageLoadErrors((prev) => ({
+                                                  ...prev,
+                                                  [item._id]: true,
+                                                }));
+                                              }}
+                                            />
+                                          </div>
+
+                                          <div
+                                            style={{
+                                              display: "flex",
+                                              flexDirection: "column",
+                                              gap: "6px",
+                                              padding: "0 4px",
+                                            }}
+                                          >
+                                            <div
+                                              style={{
+                                                fontWeight: "600",
+                                                fontSize: "15px",
+                                                color: "#222",
+                                                textAlign: "center",
+                                                whiteSpace: "nowrap",
+                                                overflow: "hidden",
+                                                textOverflow: "ellipsis",
+                                              }}
+                                            >
+                                              {item.partName}
+                                            </div>
+                                            <div
+                                              style={{
+                                                fontSize: "13px",
+                                                color: "#555",
+                                                textAlign: "center",
+                                                backgroundColor: "#f5f5f5",
+                                                padding: "4px 8px",
+                                                borderRadius: "12px",
+                                                display: "inline-block",
+                                                alignSelf: "center",
+                                              }}
+                                            >
+                                              ID: {item.partsCodeId || "N/A"}
+                                            </div>
+                                          </div>
+
+                                          {/* Optional: Add a small arrow at the top */}
+                                          <div
+                                            style={{
+                                              position: "absolute",
+                                              top: "-8px",
+                                              left: "50%",
+                                              transform: "translateX(-50%)",
+                                              width: 0,
+                                              height: 0,
+                                              borderLeft:
+                                                "8px solid transparent",
+                                              borderRight:
+                                                "8px solid transparent",
+                                              borderBottom: "8px solid white",
+                                              filter:
+                                                "drop-shadow(0 -2px 2px rgba(0,0,0,0.1))",
+                                            }}
+                                          />
+                                        </div>
+                                      )}
                                   </div>
                                 </td>
                                 <td>
@@ -1322,7 +1420,8 @@ const PartsTable = React.memo(
                     onChange={(e) => {
                       const inputValue = e.target.value;
                       if (inputValue === "" || /^\d+$/.test(inputValue)) {
-                        const numericValue = inputValue === "" ? 0 : parseInt(inputValue);
+                        const numericValue =
+                          inputValue === "" ? 0 : parseInt(inputValue);
                         if (numericValue > 99999) {
                           toast.warning("Maximum quantity is 99999");
                           setQuantity(99999);
@@ -1667,7 +1766,10 @@ const PartsTable = React.memo(
               Edit Quantity
             </ModalHeader>
             <ModalBody>
-              <form onSubmit={(e) => handleSubmitEditQuantity(e)} id="editQuantityForm">
+              <form
+                onSubmit={(e) => handleSubmitEditQuantity(e)}
+                id="editQuantityForm"
+              >
                 <div className="form-group">
                   <Label htmlFor="editQuantity">New Quantity</Label>
                   <Input
