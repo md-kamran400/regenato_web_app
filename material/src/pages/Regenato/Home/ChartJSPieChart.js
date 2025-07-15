@@ -356,6 +356,7 @@ const ChartJSPieChart = () => {
           size="sm"
           onClick={handleRefresh}
           disabled={isLoading}
+          style={{maxWidth:'30%'}}
         >
           <i className={`ri-refresh-line ${isLoading ? "d-none" : ""}`}></i>
           <span className="ml-1">Refresh</span>

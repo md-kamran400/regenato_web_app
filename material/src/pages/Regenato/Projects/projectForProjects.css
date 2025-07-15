@@ -758,3 +758,26 @@ h5 i.icon {
   object-fit: contain;
   border-radius: 4px;
 }
+
+/* Ensure select boxes don't shrink on medium screens */
+@media (min-width: 769px) and (max-width: 992px) {
+  .react-select__control {
+   
+    min-width: 200px !important;
+    border: 2px solid red;
+  }
+}
+
+/* Full width buttons on small screens */
+@media (max-width: 768px) {
+  .btn {
+    flex: 1;
+    min-width: 0; /* Allow buttons to shrink */
+  }
+}
+
+#Add_Part_btn {
+  width: auto;
+  max-width: 100px;
+  white-space: nowrap;
+}

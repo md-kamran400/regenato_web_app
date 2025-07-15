@@ -120,7 +120,7 @@ const WareHouseAllocation = () => {
           </Col>
           <Col md={8}>
             <Row>
-              <Col md={4}>
+              <Col md={4} className="g-2">
                 <Input
                   type="select"
                   value={warehouseFilter}
@@ -136,7 +136,7 @@ const WareHouseAllocation = () => {
                   ))}
                 </Input>
               </Col>
-              <Col md={4}>
+              <Col md={4} className="g-2">
                 <Input
                   type="select"
                   value={projectFilter}
@@ -152,7 +152,7 @@ const WareHouseAllocation = () => {
                   ))}
                 </Input>
               </Col>
-              <Col md={4}>
+              <Col md={4} className="g-2">
                 <Input
                   type="select"
                   value={statusFilter}

@@ -1,3 +1,11 @@
+body {
+  overflow-x: hidden;
+}
+
+html {
+  overflow-x: hidden;
+}
+
 /* General Navbar Styles */
 .header-class {
   background-color: #fff;
@@ -29,7 +37,8 @@
   display: flex;
   flex-direction: row;
   list-style: none;
-  margin: 0;
+  /* margin-left: 3%; */
+  margin: 6%;
   padding: 0;
   justify-content: flex-start;
 }
@@ -47,7 +56,7 @@
 
 /* Profile Dropdown on Right */
 .navbar-header > .menu-toggle + .navbar + .ProfileDropdown {
-  margin-left: auto;
+  margin-right: auto;
 }
 
 /* Default Dropdown Styles - Hidden */
@@ -86,58 +95,331 @@
   background-color: #ddd;
 }
 
-/* ✅ Mobile Menu Fixes */
-@media (max-width: 768px) {
-  .menu-toggle {
-    display: inline-block;
+/* Mobile Menu - Updated Layout */
+ @media (max-width: 768px) {
+  .navbar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 15px;
   }
 
+  .navbar-header > div:has(img) {
+    position: absolute;
+    left: 40%;
+    transform: translateX(-50%);
+    width: 12rem;
+    z-index: 1001;
+  }
+
+  .ProfileDropdown {
+    margin-left: 5rem;
+    order: 2;
+    z-index: 1001;
+  }
+
+  .menu-toggle {
+    display: block;
+    order: 3;
+    margin-left: 15px;
+    z-index: 1001;
+    transition: all 0.3s ease;
+  }
+  
   .navbar {
     display: none;
     flex-direction: column;
     background-color: #f8f9fa;
-    position: absolute;
+    position: fixed;
     top: 0;
     left: 0;
     height: 100vh;
+    margin: 0;
     width: 70%;
-    z-index: 1000;
-    padding: 20px;
+    padding: 70px 20px 20px;
     border-right: 1px solid #ddd;
     transform: translateX(-100%);
-    transition: transform 0.3s ease-in-out;
+    transition: transform 0.3s ease;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+  }
+
+  .navbar.show::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 30%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.3);
+    z-index: 999;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
   }
 
   .navbar.show {
     display: flex;
     transform: translateX(0);
+    transition: opacity 0.3s ease;
+  } 
+  .navbar.closing {
+    transform: translateX(-100%);
   }
 
+
   .nav-item {
-    padding: 15px;
+    padding: 15px 0;
     width: 100%;
+    border-bottom: 1px solid #eee;
   }
 
   .nav-link {
     font-size: 18px;
     display: block;
-    color: #333;
   }
 
   .navbar .dropdown-menu {
     position: static;
     width: 100%;
     display: none;
+    background-color: #f1f1f1;
+    border: none;
+    padding-left: 15rem;
   }
 
-  .navbar .nav-item:hover .dropdown-menu {
+  .navbar .dropdown-menu.show {
     display: block;
   }
 
-  .menu-toggle {
-    position: absolute;
+  .navbar.show ~ .menu-toggle {
+    position: fixed;
     top: 20px;
-    right: 20px;
-    z-index: 1100;
+    left: 20px;
+    margin-left: 0;
+  }
+    /* Logo positioning */
+  .navbar-header > .logo-wrapper {
+    position: absolute;
+    /* left: 50%; */
+    margin-left: 15px;
+    transform: translateX(-50%);
+    width: 10rem;
+    transition: all 0.3s ease;
+    z-index: 1009;
+  }
+} 
+
+.profile_icon_layout {
+  margin-left: auto; 
+}
+
+/* @media (max-width: 992px) {
+  .navbar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 15px;
+    position: relative;
+  }
+
+  .navbar-header .logo-wrapper {
+    position: absolute;
+    transform: translateX(-50%);
+    z-index: 1000;
+  }
+
+  .navbar-header .right-controls {
+    margin-left: auto;
+    display: flex;
+    gap: 10px;
+    z-index: 1001;
+    align-items: center;
+  }
+
+  .menu-toggle {
+    display: block;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding-right: 10%;
+  }
+
+  .profile_icon_layout {
+    margin-left: 80%;
+  }
+} */
+
+@media (max-width: 992px) {
+  .navbar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 15px;
+    position: relative;
+  }
+
+  .navbar-header .logo-wrapper {
+    position: absolute;
+    left: 15%;
+    transform: translateX(-50%);
+    width: 10rem;
+    transition: all 0.3s ease;
+    z-index: 1002;
+  }
+
+  .menu-toggle {
+    display: block;
+    z-index: 1003;
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  .profile_icon_layout {
+    z-index: 1002;
+    margin-left: auto;
+  }
+
+  .navbar {
+    display: flex;
+    flex-direction: column;
+    background-color: #f8f9fa;
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: 70%;
+    margin: 0;
+    padding: 70px 20px 20px;
+    border-right: 1px solid #ddd;
+    transform: translateX(-100%);
+    opacity: 0;
+    transition: transform 0.4s ease-in-out, opacity 0.3s ease-in-out;
+    box-shadow: 2px 0 15px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+  }
+
+  .navbar.show {
+    transform: translateX(0);
+    opacity: 1;
+  }
+
+  .navbar.closing {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+
+  .nav-item {
+    padding: 15px 0;
+    width: 100%;
+    border-bottom: 1px solid #eee;
+  }
+
+  .nav-link {
+    font-size: 18px;
+    display: block;
+  }
+
+  .navbar .dropdown-menu {
+    position: static;
+    width: 100%;
+    display: none;
+    background-color: #f1f1f1;
+    border: none;
+    padding-left: 1rem;
+  }
+
+  .navbar .dropdown-menu.show {
+    display: block;
+  }
+}
+
+/* Medium Screen Menu (same as mobile but with different breakpoint) */
+@media (min-width: 769px) and (max-width: 992px) {
+  .navbar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 15px;
+  }
+
+  .navbar-header > div:has(img) {
+    position: absolute;
+    left: -10%;
+    transform: translateX(-50%);
+    width: 12rem;
+    z-index: 1001;
+  }
+
+  .ProfileDropdown {
+    margin-left: 5rem;
+    order: 2;
+    z-index: 1001;
+  }
+
+  .menu-toggle {
+    display: block;
+    order: 3;
+    margin-left: 15px;
+    z-index: 1001;
+  }
+
+  .navbar {
+    display: none;
+    flex-direction: column;
+    background-color: #f8f9fa;
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: 70%;
+    margin: 0;
+    padding: 70px 20px 20px;
+    border-right: 1px solid #ddd;
+     transform: translateX(-100%);
+    transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    box-shadow: 2px 0 15px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+  }
+
+  .navbar.show {
+    display: flex;
+    transform: translateX(0);
+  }
+  .navbar.closing {
+    transform: translateX(-100%);
+  }
+
+  .nav-item {
+    padding: 15px 0;
+    width: 100%;
+    border-bottom: 1px solid #eee;
+  }
+
+  .nav-link {
+    font-size: 18px;
+    display: block;
+  }
+
+  .navbar .dropdown-menu {
+    position: static;
+    width: 100%;
+    display: none;
+    background-color: #f1f1f1;
+    border: none;
+    padding-left: 15rem;
+  }
+
+  .navbar .dropdown-menu.show {
+    display: block;
+  }
+
+  .navbar.show ~ .menu-toggle {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    margin-left: 0;
   }
 }

@@ -1,7 +1,7 @@
 @media print {
     @page {
       size: auto; /* Let the content determine page size */
-      margin: 10mm; /* Reasonable margin */
+      margin: 10mm; /*Reasonable margin*/
     }
   
     body {
@@ -21,9 +21,10 @@
     #print-area {
       position: relative;
       width: 100%;
-      margin: 0;
+      margin: auto;
       padding: 0;
       page-break-after: avoid;
+      border: 1px solid;
     }
   
     .no-print {
@@ -65,8 +66,8 @@
   
     .card {
       break-inside: avoid;
-      page-break-inside: avoid;
-      margin-bottom: 15px;
+      /* page-break-inside: avoid; */
+      margin-bottom: 10px;
     }
   
     .process-section {
@@ -74,3 +75,18 @@
       page-break-inside: avoid;
     }
   }
+   .badge {
+    background-color: #6c757d !important;
+    color: white !important;
+    padding: 2px 4px !important;
+    font-size: 7pt !important;
+  }
+.print-section {
+  break-inside: avoid;
+  page-break-inside: avoid;
+  page-break-before: auto;
+  page-break-after: auto;
+  /* margin-bottom: -50px; */
+}
+
+

@@ -1972,6 +1972,7 @@ export const PartListHrPlan = ({
                     ":hover": {
                       transform: "translateY(-1px)",
                     },
+                    maxWidth:'150px'
                   }}
                 >
                   {isApproved ? (

@@ -863,8 +863,9 @@ const PartsTable = React.memo(
               color="success"
               className="add-btn"
               onClick={toggleAddModal}
+              id="Add_Part_btn"
             >
-              <i className="ri-add-line align-bottom me-1"></i> Add Part
+              <i className="ri-add-line align-bottom me-1"></i>Add Part
             </Button>
           )}
         </div>
@@ -1104,6 +1105,7 @@ const PartsTable = React.memo(
                                       display: "flex",
                                       justifyContent: "space-between",
                                       width: "80%",
+                                      gap:'8px'
                                     }}
                                   >
                                     {parseInt(item.quantity || 0)}
