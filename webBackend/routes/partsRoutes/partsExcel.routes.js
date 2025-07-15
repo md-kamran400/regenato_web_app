@@ -166,10 +166,49 @@ PartsExcelRoutes.delete("/", async (req, res) => {
 
 // GET - Retrieve all parts
 
+// PartsExcelRoutes.get("/", async (req, res) => {
+//   try {
+//     const parts = await PartsModel.find();
+//     res.status(200).json(parts);
+//   } catch (error) {
+//     res.status(500).json({ message: error.message });
+//   }
+// });
+
 PartsExcelRoutes.get("/", async (req, res) => {
   try {
-    const parts = await PartsModel.find();
-    res.status(200).json(parts);
+    // Get pagination parameters from query string
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 25;
+    const skip = (page - 1) * limit;
+    
+    // Get filter type if provided
+    const filterType = req.query.filterType || '';
+
+    // Build query
+    const query = {};
+    if (filterType) {
+      query.partType = filterType;
+    }
+
+    // Get total count for pagination info
+    const total = await PartsModel.countDocuments(query);
+
+    // Get paginated results
+    const parts = await PartsModel.find(query)
+      .skip(skip)
+      .limit(limit)
+      .sort({ createdAt: -1 }); // Sort by newest first by default
+
+    res.status(200).json({
+      data: parts,
+      pagination: {
+        total,
+        page,
+        pages: Math.ceil(total / limit),
+        limit
+      }
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
