@@ -24,23 +24,28 @@ const AddProductionOrderWithPart = ({ isOpen, toggle, onSuccess }) => {
   const [partsOptions, setPartsOptions] = useState([]);
   const [isLoadingParts, setIsLoadingParts] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [parts, setParts] = useState([]);
 
-  const fetchParts = async () => {
+  const fetchParts = async (pageNumber = 1) => {
     setIsLoadingParts(true);
     try {
       const response = await fetch(
-        `${process.env.REACT_APP_BASE_URL}/api/parts`
+        `${process.env.REACT_APP_BASE_URL}/api/parts?page=${pageNumber}&limit=25`
       );
-      if (!response.ok) throw new Error("Failed to fetch parts");
-      const data = await response.json();
-      setPartsOptions(
-        data.map((part) => ({
-          value: part._id,
-          label: part.partName,
-        }))
-      );
+      const result = await response.json();
+      const newParts = result.data;
+
+      const options = newParts.map((part) => ({
+        value: part._id,
+        label: part.partName,
+      }));
+
+      setParts((prev) => (pageNumber === 1 ? options : [...prev, ...options]));
+      setHasMore(options.length > 0);
     } catch (error) {
-      toast.error(`Error fetching parts: ${error.message}`);
+      toast.error("Failed to load parts");
     } finally {
       setIsLoadingParts(false);
     }
@@ -48,7 +53,8 @@ const AddProductionOrderWithPart = ({ isOpen, toggle, onSuccess }) => {
 
   useEffect(() => {
     if (isOpen) {
-      fetchParts();
+      setPage(1);
+      fetchParts(1);
     }
   }, [isOpen]);
 
@@ -161,12 +167,19 @@ const AddProductionOrderWithPart = ({ isOpen, toggle, onSuccess }) => {
                 </label>
                 <Select
                   id="part-select"
-                  options={partsOptions}
+                  options={parts}
                   isLoading={isLoadingParts}
                   onChange={handlePartSelect}
                   placeholder="Select a part"
                   isClearable
                   required
+                  onMenuScrollToBottom={() => {
+                    if (hasMore && !isLoadingParts) {
+                      const nextPage = page + 1;
+                      setPage(nextPage);
+                      fetchParts(nextPage);
+                    }
+                  }}
                   styles={{
                     control: (provided) => ({
                       ...provided,
@@ -181,6 +194,7 @@ const AddProductionOrderWithPart = ({ isOpen, toggle, onSuccess }) => {
                 />
               </div>
             </Col>
+
             <Col md={6}>
               <div className="mb-3">
                 <label htmlFor="part-quantity" className="form-label">

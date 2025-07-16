@@ -159,6 +159,9 @@ const PartsTable = React.memo(
     const [hoveredImageId, setHoveredImageId] = useState(null);
     const [imageUrls, setImageUrls] = useState({});
 
+    const [page, setPage] = useState(1);
+    const [hasMore, setHasMore] = useState(true);
+
     const fetchPartsListItems = async () => {
       try {
         const response = await fetch(
@@ -309,24 +312,32 @@ const PartsTable = React.memo(
       fetchParts();
     }, []);
 
-    const fetchParts = async () => {
+    const fetchParts = async (pageNumber = 1) => {
       setLoadingParts(true);
       try {
         const response = await fetch(
-          `${process.env.REACT_APP_BASE_URL}/api/parts`
+          `${process.env.REACT_APP_BASE_URL}/api/parts?page=${pageNumber}&limit=25`
         );
-        const data = await response.json();
-        const partsWithImages = data.map((part) => ({
-          ...part,
-          image: part.image || null,
-        }));
-        setParts(data);
+        const result = await response.json();
+        const newParts = result.data;
+
+        setParts((prevParts) =>
+          pageNumber === 1 ? newParts : [...prevParts, ...newParts]
+        );
+        setHasMore(newParts.length > 0);
       } catch (error) {
         console.error("Error fetching parts:", error);
       } finally {
         setLoadingParts(false);
       }
     };
+
+    useEffect(() => {
+      if (open) {
+        setPage(1);
+        fetchParts(1);
+      }
+    }, [open]);
 
     const tog_delete = () => {
       setModalDelete(!modal_delete);
@@ -984,7 +995,7 @@ const PartsTable = React.memo(
                                             border: "1px solid #f0f0f0",
                                             width: "220px",
                                             transition: "all 0.2s ease",
-                                            marginLeft:'2.5rem'
+                                            marginLeft: "2.5rem",
                                           }}
                                         >
                                           <div
@@ -1105,7 +1116,7 @@ const PartsTable = React.memo(
                                       display: "flex",
                                       justifyContent: "space-between",
                                       width: "80%",
-                                      gap:'8px'
+                                      gap: "8px",
                                     }}
                                   >
                                     {parseInt(item.quantity || 0)}
@@ -1193,7 +1204,14 @@ const PartsTable = React.memo(
                                 <Modal
                                   isOpen={true}
                                   toggle={() => setModalOpenId(null)}
-                                  style={{ maxWidth: "80%" }}
+                                  centered // This centers the modal vertically
+                                  size="xl" // Makes the modal extra large
+                                  style={{
+                                    maxWidth: "90%", // Adjust this as needed
+                                    margin: "0 auto", // Centers horizontally
+                                    left: "auto", // Reset any left positioning
+                                    right: "auto", // Reset any right positioning
+                                  }}
                                 >
                                   <ModalHeader
                                     toggle={() => setModalOpenId(null)}
@@ -1216,70 +1234,94 @@ const PartsTable = React.memo(
                                       {item.partName}
                                     </h5>
                                   </ModalHeader>
-                                  <ModalBody>
-                                    <div>
-                                      <div style={{ marginBottom: "20px" }}>
-                                        <RawMaterial
-                                          partName={item.partName}
-                                          rmVariables={item.rmVariables}
-                                          projectId={_id}
-                                          partId={partsList._id}
-                                          itemId={item._id}
-                                          source="partList"
-                                          rawMatarialsUpdate={onUpdatePrts}
-                                          quantity={item.quantity}
-                                        />
-                                      </div>
+                                  <ModalBody
+                                    style={{
+                                      overflowX: "auto",
+                                      padding: "1.5rem", // Added padding for better spacing
+                                    }}
+                                  >
+                                    <div className="container-fluid">
+                                      <Row>
+                                        <Col xs={12}>
+                                          <div style={{ marginBottom: "20px" }}>
+                                            <RawMaterial
+                                              partName={item.partName}
+                                              rmVariables={item.rmVariables}
+                                              projectId={_id}
+                                              partId={partsList._id}
+                                              itemId={item._id}
+                                              source="partList"
+                                              rawMatarialsUpdate={onUpdatePrts}
+                                              quantity={item.quantity}
+                                            />
+                                          </div>
+                                        </Col>
 
-                                      <div style={{ marginBottom: "20px" }}>
-                                        <Manufacturing
-                                          partName={item.partName}
-                                          manufacturingVariables={
-                                            item.manufacturingVariables || []
-                                          }
-                                          projectId={_id}
-                                          partId={partsList._id}
-                                          itemId={item._id}
-                                          onUpdateVariable={
-                                            updateManufacturingVariable
-                                          }
-                                          source="partList"
-                                          manufatcuringUpdate={onUpdatePrts}
-                                          quantity={item.quantity}
-                                        />
-                                      </div>
+                                        <Col xs={12}>
+                                          <div style={{ marginBottom: "20px" }}>
+                                            <Manufacturing
+                                              partName={item.partName}
+                                              manufacturingVariables={
+                                                item.manufacturingVariables ||
+                                                []
+                                              }
+                                              projectId={_id}
+                                              partId={partsList._id}
+                                              itemId={item._id}
+                                              onUpdateVariable={
+                                                updateManufacturingVariable
+                                              }
+                                              source="partList"
+                                              manufatcuringUpdate={onUpdatePrts}
+                                              quantity={item.quantity}
+                                            />
+                                          </div>
+                                        </Col>
 
-                                      <div style={{ marginBottom: "20px" }}>
-                                        <Shipment
-                                          partName={item.partName}
-                                          projectId={_id}
-                                          partId={partsList._id}
-                                          itemId={item._id}
-                                          source="partList"
-                                          shipmentUpdate={onUpdatePrts}
-                                          shipmentVariables={
-                                            item.shipmentVariables || []
-                                          }
-                                          quantity={item.quantity}
-                                        />
-                                      </div>
+                                        <Col xs={12}>
+                                          <div style={{ marginBottom: "20px" }}>
+                                            <Shipment
+                                              partName={item.partName}
+                                              projectId={_id}
+                                              partId={partsList._id}
+                                              itemId={item._id}
+                                              source="partList"
+                                              shipmentUpdate={onUpdatePrts}
+                                              shipmentVariables={
+                                                item.shipmentVariables || []
+                                              }
+                                              quantity={item.quantity}
+                                            />
+                                          </div>
+                                        </Col>
 
-                                      <div>
-                                        <Overheads
-                                          partName={item.partName}
-                                          overheadsAndProfits={
-                                            item.overheadsAndProfits || []
-                                          }
-                                          projectId={_id}
-                                          partId={partsList._id}
-                                          itemId={item._id}
-                                          source="partList"
-                                          overHeadsUpdate={onUpdatePrts}
-                                          quantity={item.quantity}
-                                        />
-                                      </div>
+                                        <Col xs={12}>
+                                          <div>
+                                            <Overheads
+                                              partName={item.partName}
+                                              overheadsAndProfits={
+                                                item.overheadsAndProfits || []
+                                              }
+                                              projectId={_id}
+                                              partId={partsList._id}
+                                              itemId={item._id}
+                                              source="partList"
+                                              overHeadsUpdate={onUpdatePrts}
+                                              quantity={item.quantity}
+                                            />
+                                          </div>
+                                        </Col>
+                                      </Row>
                                     </div>
                                   </ModalBody>
+                                  <ModalFooter>
+                                    <Button
+                                      color="secondary"
+                                      onClick={() => setModalOpenId(null)}
+                                    >
+                                      Close
+                                    </Button>
+                                  </ModalFooter>
                                 </Modal>
                               )}
                             </React.Fragment>
@@ -1297,7 +1339,7 @@ const PartsTable = React.memo(
             <ModalHeader toggle={toggleAddModal}>Add Part</ModalHeader>
             <ModalBody>
               <form onSubmit={handleSubmit} id="addPartForm">
-                <Autocomplete
+                {/* <Autocomplete
                   multiple
                   open={open}
                   onOpen={() => setOpen(true)}
@@ -1340,6 +1382,60 @@ const PartsTable = React.memo(
                     />
                   )}
                   disableCloseOnSelect
+                /> */}
+
+                <Autocomplete
+                  multiple
+                  open={open}
+                  onOpen={() => setOpen(true)}
+                  onClose={() => setOpen(false)}
+                  options={parts}
+                  loading={loadingParts}
+                  getOptionLabel={(option) =>
+                    option ? `${option.partName} - ${option.id}` : ""
+                  }
+                  onChange={handlePartsChange}
+                  disableCloseOnSelect
+                  ListboxProps={{
+                    onScroll: (event) => {
+                      const listboxNode = event.currentTarget;
+                      const bottom =
+                        listboxNode.scrollTop + listboxNode.clientHeight >=
+                        listboxNode.scrollHeight - 10;
+                      if (bottom && hasMore && !loadingParts) {
+                        const nextPage = page + 1;
+                        setPage(nextPage);
+                        fetchParts(nextPage);
+                      }
+                    },
+                  }}
+                  renderOption={(props, option, { selected }) => (
+                    <li {...props}>
+                      <Checkbox
+                        style={{ marginRight: 8 }}
+                        checked={selectedPartIds.has(option.id)}
+                      />
+                      {`${option.partName} - ${option.id}`}
+                    </li>
+                  )}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Select Parts"
+                      variant="outlined"
+                      InputProps={{
+                        ...params.InputProps,
+                        endAdornment: (
+                          <>
+                            {loadingParts && (
+                              <CircularProgress color="inherit" size={20} />
+                            )}
+                            {params.InputProps.endAdornment}
+                          </>
+                        ),
+                      }}
+                    />
+                  )}
                 />
 
                 <div className="form-group" style={{ display: "none" }}>
@@ -1409,7 +1505,7 @@ const PartsTable = React.memo(
                   />
                 </div>
 
-                <div className="form-group">
+                <div className="form-group mt-4">
                   <Label for="quantity" className="form-label">
                     Quantity (for all selected parts)
                   </Label>

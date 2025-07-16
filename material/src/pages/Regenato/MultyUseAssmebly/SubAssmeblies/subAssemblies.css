@@ -18,3 +18,7 @@
   background-color: #a00e0e; /* Dark header color */
   color: rgb(0, 0, 0); 
 }
+
+.project-table th {
+  text-transform: none !important;
+}

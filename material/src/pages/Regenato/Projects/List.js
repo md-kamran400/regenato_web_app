@@ -713,122 +713,140 @@ const List = () => {
         />
       </Suspense>
       <Row className="g-2 mb-3 align-items-center">
-  {/* For small screens (<= 768px) - Stacked vertically */}
-  <div className="col-12 d-md-none">
-    <div className="d-flex flex-column gap-2">
-      <div className="d-flex flex-wrap gap-2">
-        {userRole === "admin" && (
-          <>
-            <Button
-              className="btn btn-success flex-fill"
-              onClick={toggleModal}
-              style={{ minWidth: '120px' }}
-            >
-              <i className="ri-add-line align-bottom me-1"></i> Add New
-            </Button>
-            <Button
-              className="btn btn-primary flex-fill"
-              onClick={toggleModalPO}
-              style={{ minWidth: '120px' }}
-            >
-              <i className="ri-add-line align-bottom me-1"></i> Add PO
-            </Button>
-          </>
-        )}
-      </div>
-      
-      <div className="d-flex flex-column gap-2">
-        <Select
-          options={projectOptions}
-          isMulti
-          isClearable
-          placeholder="Search..."
-          onChange={handleSearchChange}
-          styles={{
-            ...customStyles,
-            control: (provided) => ({
-              ...provided,
-              width: '100%',
-              minWidth: '100%'
-            })
-          }}
-        />
-        <Select
-          options={projectTypeOptions}
-          isClearable
-          placeholder="Filter by Type"
-          onChange={(selectedOption) => {
-            setFilterType(selectedOption?.value || "");
-          }}
-          styles={{
-            ...customStyles,
-            control: (provided) => ({
-              ...provided,
-              width: '100%',
-              minWidth: '100%'
-            })
-          }}
-        />
-      </div>
-    </div>
-  </div>
+        {/* For small screens (<= 768px) - Stacked vertically */}
+        <div className="col-12 d-md-none">
+          <div className="d-flex flex-column gap-2">
+            <div className="d-flex flex-wrap gap-2">
+              {userRole === "admin" && (
+                <>
+                  <Button
+                    className="btn btn-success flex-fill"
+                    onClick={toggleModal}
+                    style={{ minWidth: "120px" }}
+                  >
+                    <i className="ri-add-line align-bottom me-1"></i> Add New
+                  </Button>
+                  <Button
+                    className="btn btn-primary flex-fill"
+                    onClick={toggleModalPO}
+                    style={{ minWidth: "120px" }}
+                  >
+                    <i className="ri-add-line align-bottom me-1"></i> Add PO
+                  </Button>
+                </>
+              )}
+            </div>
 
-  {/* For medium screens (769px - 992px) - Compact layout */}
-  <div className="col-12 d-none d-md-flex d-lg-none">
-    <div className="d-flex w-100 align-items-center gap-2">
-      {userRole === "admin" && (
-        <div className="d-flex gap-2">
-          <Button className="btn btn-success" onClick={toggleModal}>
-            <i className="ri-add-line align-bottom me-1"></i> Add New
-          </Button>
-          <Button className="btn btn-primary" onClick={toggleModalPO}>
-            <i className="ri-add-line align-bottom me-1"></i> Add PO
-          </Button>
+            <div className="d-flex flex-column gap-2">
+              <Select
+                options={projectOptions}
+                isMulti
+                isClearable
+                placeholder="Search..."
+                onChange={handleSearchChange}
+                styles={{
+                  ...customStyles,
+                  menuPortal: (base) => ({ ...base, zIndex: 9999 }),
+                  control: (provided) => ({
+                    ...provided,
+                    width: "100%",
+                    minWidth: "100%",
+                  }),
+                }}
+                menuPortalTarget={document.body}
+                menuPosition="fixed"
+              />
+              <Select
+                options={projectTypeOptions}
+                isClearable
+                placeholder="Filter by Type"
+                value={
+                  projectTypeOptions.find((opt) => opt.value === filterType) ||
+                  null
+                } // ✅ Show selected value
+                onChange={(selectedOption) => {
+                  setFilterType(selectedOption?.value || "");
+                }}
+                styles={{
+                  ...customStyles,
+                  control: (provided) => ({
+                    ...provided,
+                    width: "100%",
+                    minWidth: "100%",
+                  }),
+                  menuPortal: (base) => ({
+                    ...base,
+                    zIndex: 9999, // ✅ make sure dropdown is above
+                  }),
+                }}
+                menuPortalTarget={document.body} // ✅ render dropdown outside scroll clipping
+                menuPosition="fixed"
+              />
+            </div>
+          </div>
         </div>
-      )}
-      
-      <div className="d-flex flex-grow-1 justify-content-end gap-2">
-        <div style={{ width: '200px' }}>
-          <Select
-            options={projectOptions}
-            isMulti
-            isClearable
-            placeholder="Search..."
-            onChange={handleSearchChange}
-            styles={{
-              ...customStyles,
-              control: (provided) => ({
-                ...provided,
-                width: '100%',
-                minWidth: '100%'
-              })
-            }}
-          />
-        </div>
-        <div style={{ width: '180px' }}>
-          <Select
-            options={projectTypeOptions}
-            isClearable
-            placeholder="Filter Type"
-            onChange={(selectedOption) => {
-              setFilterType(selectedOption?.value || "");
-            }}
-            styles={{
-              ...customStyles,
-              control: (provided) => ({
-                ...provided,
-                width: '100%',
-                minWidth: '100%'
-              })
-            }}
-          />
-        </div>
-      </div>
-    </div>
-  </div>
 
-  {/* For large screens (> 992px) - Original layout */}
-         {/* For large screens (> 992px) - Original layout */}
+        {/* For medium screens (769px - 992px) - Compact layout */}
+        <div className="col-12 d-none d-md-flex d-lg-none">
+          <div className="d-flex w-100 align-items-center gap-2">
+            {userRole === "admin" && (
+              <div className="d-flex gap-2">
+                <Button className="btn btn-success" onClick={toggleModal}>
+                  <i className="ri-add-line align-bottom me-1"></i> Add New
+                </Button>
+                <Button className="btn btn-primary" onClick={toggleModalPO}>
+                  <i className="ri-add-line align-bottom me-1"></i> Add PO
+                </Button>
+              </div>
+            )}
+
+            <div className="d-flex flex-grow-1 justify-content-end gap-2">
+              <div style={{ width: "200px" }}>
+                <Select
+                  options={projectOptions}
+                  isMulti
+                  isClearable
+                  placeholder="Search..."
+                  onChange={handleSearchChange}
+                  styles={{
+                    ...customStyles,
+                    control: (provided) => ({
+                      ...provided,
+                      width: "100%",
+                      minWidth: "100%",
+                    }),
+                  }}
+                />
+              </div>
+              <div style={{ width: "180px" }}>
+                <Select
+                  options={projectTypeOptions}
+                  isClearable
+                  placeholder="Filter by Type"
+                  value={
+                    projectTypeOptions.find(
+                      (opt) => opt.value === filterType
+                    ) || null
+                  } // ✅ Show selected value
+                  onChange={(selectedOption) => {
+                    setFilterType(selectedOption?.value || "");
+                  }}
+                  styles={{
+                    ...customStyles,
+                    control: (provided) => ({
+                      ...provided,
+                      width: "100%",
+                      minWidth: "100%",
+                    }),
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* For large screens (> 992px) - Original layout */}
+        {/* For large screens (> 992px) - Original layout */}
         <div className="col-12 d-none d-lg-flex">
           <div className="d-flex w-100 align-items-center">
             <div className="d-flex gap-2">
@@ -859,7 +877,12 @@ const List = () => {
                 <Select
                   options={projectTypeOptions}
                   isClearable
-                  placeholder="Select Project Type"
+                  placeholder="Filter by Type"
+                  value={
+                    projectTypeOptions.find(
+                      (opt) => opt.value === filterType
+                    ) || null
+                  } // ✅ Show selected value
                   onChange={(selectedOption) => {
                     setFilterType(selectedOption?.value || "");
                   }}
@@ -868,8 +891,8 @@ const List = () => {
               </div>
             </div>
           </div>
-          </div>
-</Row>
+        </div>
+      </Row>
       <>
         {isLoading && (
           <div className="loader-overlay">

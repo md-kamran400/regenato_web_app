@@ -38,6 +38,7 @@ import { BsFillClockFill } from "react-icons/bs";
 import { TbCoinRupee } from "react-icons/tb";
 import { LuClock3 } from "react-icons/lu";
 import "./Assemblies.css";
+import { LiaRupeeSignSolid } from "react-icons/lia";
 
 const Assmebly_subAssembly = ({
   subAssembly,
@@ -96,8 +97,16 @@ const Assmebly_subAssembly = ({
       const response = await fetch(
         `${process.env.REACT_APP_BASE_URL}/api/parts`
       );
-      const data = await response.json();
-      setParts(data);
+      const result = await response.json();
+
+      // Check if response has data array
+      const partsArray = Array.isArray(result)
+        ? result
+        : Array.isArray(result.data)
+        ? result.data
+        : [];
+
+      setParts(partsArray);
     };
 
     const fetchManufacturingVariables = async () => {
@@ -619,7 +628,13 @@ const Assmebly_subAssembly = ({
                           <th onClick={() => handleRowClickParts("name")}>
                             Name
                           </th>
-                          <th>Cost Per Unit</th>
+                          <th>
+                            {" "}
+                            <span>
+                              <LiaRupeeSignSolid size={18} />
+                            </span>
+                            Cost Per Unit
+                          </th>
                           <th>Machining Hours</th>
                           <th>Quantity</th>
                           <th>Total Cost (INR)</th>
@@ -664,6 +679,9 @@ const Assmebly_subAssembly = ({
                                   {item.codeName || ""}
                                 </td>
                                 <td>
+                                  <span>
+                                    <LiaRupeeSignSolid size={18} />
+                                  </span>
                                   {Math.round(
                                     parseFloat(item.costPerUnit || 0)
                                   )}
@@ -675,6 +693,7 @@ const Assmebly_subAssembly = ({
                                       display: "flex",
                                       justifyContent: "space-between",
                                       width: "60%",
+                                      gap: "15px",
                                     }}
                                   >
                                     {parseInt(item.quantity || 0)}
