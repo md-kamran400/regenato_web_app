@@ -109,7 +109,7 @@ const List = () => {
   const [filterType, setFilterType] = useState([]);
   const [newProjectName, setNewProjectName] = useState("");
   const itemsPerPage = 20;
-  const [totalpages,setTotalPages] = useState(20)
+  const [totalpages, setTotalPages] = useState(20);
   const [formData, setFormData] = useState({
     projectName: "",
     costPerUnit: "",
@@ -252,9 +252,6 @@ const List = () => {
 
         const data = await response.json();
 
-        // Debug: Log the API response
-        console.log("API Response:", data);
-
         // Handle different response structures
         const projects = Array.isArray(data)
           ? data
@@ -286,7 +283,6 @@ const List = () => {
     [filterType, initialLoad, itemsPerPage]
   );
 
- 
   const filteredData = useMemo(() => {
     // If searchTerm is empty and no filterType, return all projects directly
     if (searchTerm.length === 0 && filterType === "") {
@@ -336,13 +332,9 @@ const List = () => {
     filterType,
   ]);
 
-  console.log({ paginatedData });
-
   useEffect(() => {
     fetchData(currentPage); // Pass currentPage to fetch the correct page
   }, [fetchData, currentPage]); // Add currentPage to dependencies
-
-
 
   const projectOptions = projectListsData.map((project) => ({
     value: project.projectName,
@@ -385,7 +377,6 @@ const List = () => {
 
   // has context menu
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
- 
 
   const handleSearch = (e) => {
     setSearchTerm(e.target.value);
@@ -677,7 +668,7 @@ const List = () => {
   };
 
   // Machine total hr function
-    const getMachineHoursCells = useCallback(
+  const getMachineHoursCells = useCallback(
     (item) =>
       manufacturingData.map((machine) => {
         const hours =
@@ -721,54 +712,183 @@ const List = () => {
           onCloseClick={() => setDeleteModal(false)}
         />
       </Suspense>
-      <Row className="g-4 mb-3">
-        <div className="col-sm-auto">
-          {userRole === "admin" && (
-            <div>
-              <Button className="btn btn-success" onClick={toggleModal}>
-                <i className="ri-add-line align-bottom me-1"></i> Add New
-              </Button>
+      <Row className="g-2 mb-3 align-items-center">
+        {/* For small screens (<= 768px) - Stacked vertically */}
+        <div className="col-12 d-md-none">
+          <div className="d-flex flex-column gap-2">
+            <div className="d-flex flex-wrap gap-2">
+              {userRole === "admin" && (
+                <>
+                  <Button
+                    className="btn btn-success flex-fill"
+                    onClick={toggleModal}
+                    style={{ minWidth: "120px" }}
+                  >
+                    <i className="ri-add-line align-bottom me-1"></i> Add New
+                  </Button>
+                  <Button
+                    className="btn btn-primary flex-fill"
+                    onClick={toggleModalPO}
+                    style={{ minWidth: "120px" }}
+                  >
+                    <i className="ri-add-line align-bottom me-1"></i> Add PO
+                  </Button>
+                </>
+              )}
             </div>
-          )}
-        </div>
 
-        <div className="col-sm-auto">
-          {userRole === "admin" && (
-            <div>
-              <Button className="btn btn-primary" onClick={toggleModalPO}>
-                <i className="ri-add-line align-bottom me-1"></i> Add Production
-                Order
-              </Button>
-            </div>
-          )}
-        </div>
-
-        <div className="col-sm-7 ms-auto">
-          <div className="d-flex justify-content-sm-end gap-2 align-items-center">
-            <div className="search-box ms-2 col-sm-5 d-flex align-items-center">
+            <div className="d-flex flex-column gap-2">
               <Select
                 options={projectOptions}
                 isMulti
                 isClearable
                 placeholder="Search..."
                 onChange={handleSearchChange}
-                styles={customStyles}
+                styles={{
+                  ...customStyles,
+                  menuPortal: (base) => ({ ...base, zIndex: 9999 }),
+                  control: (provided) => ({
+                    ...provided,
+                    width: "100%",
+                    minWidth: "100%",
+                  }),
+                }}
+                menuPortalTarget={document.body}
+                menuPosition="fixed"
               />
-            </div>
-            <div className="col-sm-auto">
               <Select
                 options={projectTypeOptions}
                 isClearable
-                placeholder="Select Project Type"
+                placeholder="Filter by Type"
+                value={
+                  projectTypeOptions.find((opt) => opt.value === filterType) ||
+                  null
+                } // ✅ Show selected value
                 onChange={(selectedOption) => {
-                  if (selectedOption) {
-                    setFilterType(selectedOption.value);
-                  } else {
-                    setFilterType("");
-                  }
+                  setFilterType(selectedOption?.value || "");
                 }}
-                styles={customStyles}
+                styles={{
+                  ...customStyles,
+                  control: (provided) => ({
+                    ...provided,
+                    width: "100%",
+                    minWidth: "100%",
+                  }),
+                  menuPortal: (base) => ({
+                    ...base,
+                    zIndex: 9999, // ✅ make sure dropdown is above
+                  }),
+                }}
+                menuPortalTarget={document.body} // ✅ render dropdown outside scroll clipping
+                menuPosition="fixed"
               />
+            </div>
+          </div>
+        </div>
+
+        {/* For medium screens (769px - 992px) - Compact layout */}
+        <div className="col-12 d-none d-md-flex d-lg-none">
+          <div className="d-flex w-100 align-items-center gap-2">
+            {userRole === "admin" && (
+              <div className="d-flex gap-2">
+                <Button className="btn btn-success" onClick={toggleModal}>
+                  <i className="ri-add-line align-bottom me-1"></i> Add New
+                </Button>
+                <Button className="btn btn-primary" onClick={toggleModalPO}>
+                  <i className="ri-add-line align-bottom me-1"></i> Add PO
+                </Button>
+              </div>
+            )}
+
+            <div className="d-flex flex-grow-1 justify-content-end gap-2">
+              <div style={{ width: "200px" }}>
+                <Select
+                  options={projectOptions}
+                  isMulti
+                  isClearable
+                  placeholder="Search..."
+                  onChange={handleSearchChange}
+                  styles={{
+                    ...customStyles,
+                    control: (provided) => ({
+                      ...provided,
+                      width: "100%",
+                      minWidth: "100%",
+                    }),
+                  }}
+                />
+              </div>
+              <div style={{ width: "180px" }}>
+                <Select
+                  options={projectTypeOptions}
+                  isClearable
+                  placeholder="Filter by Type"
+                  value={
+                    projectTypeOptions.find(
+                      (opt) => opt.value === filterType
+                    ) || null
+                  } // ✅ Show selected value
+                  onChange={(selectedOption) => {
+                    setFilterType(selectedOption?.value || "");
+                  }}
+                  styles={{
+                    ...customStyles,
+                    control: (provided) => ({
+                      ...provided,
+                      width: "100%",
+                      minWidth: "100%",
+                    }),
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* For large screens (> 992px) - Original layout */}
+        {/* For large screens (> 992px) - Original layout */}
+        <div className="col-12 d-none d-lg-flex">
+          <div className="d-flex w-100 align-items-center">
+            <div className="d-flex gap-2">
+              {userRole === "admin" && (
+                <>
+                  <Button className="btn btn-success" onClick={toggleModal}>
+                    <i className="ri-add-line align-bottom me-1"></i> Add New
+                  </Button>
+                  <Button className="btn btn-primary" onClick={toggleModalPO}>
+                    <i className="ri-add-line align-bottom me-1"></i> Add
+                    Production Order
+                  </Button>
+                </>
+              )}
+            </div>
+            <div className="d-flex justify-content-end gap-3 ms-auto">
+              <div>
+                <Select
+                  options={projectOptions}
+                  isMulti
+                  isClearable
+                  placeholder="Search..."
+                  onChange={handleSearchChange}
+                  styles={customStyles}
+                />
+              </div>
+              <div>
+                <Select
+                  options={projectTypeOptions}
+                  isClearable
+                  placeholder="Filter by Type"
+                  value={
+                    projectTypeOptions.find(
+                      (opt) => opt.value === filterType
+                    ) || null
+                  } // ✅ Show selected value
+                  onChange={(selectedOption) => {
+                    setFilterType(selectedOption?.value || "");
+                  }}
+                  styles={customStyles}
+                />
+              </div>
             </div>
           </div>
         </div>

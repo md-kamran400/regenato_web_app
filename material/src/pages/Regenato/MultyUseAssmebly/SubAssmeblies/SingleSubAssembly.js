@@ -39,7 +39,7 @@ import { HiMiniCurrencyDollar } from "react-icons/hi2";
 import "./subAssemblies.css";
 import { TbCoinRupee } from "react-icons/tb";
 import { LuClock3 } from "react-icons/lu";
-
+import { LiaRupeeSignSolid } from "react-icons/lia";
 const SingleSubAssembly = () => {
   const { _id } = useParams();
 
@@ -159,8 +159,16 @@ const SingleSubAssembly = () => {
       const response = await fetch(
         `${process.env.REACT_APP_BASE_URL}/api/parts`
       );
-      const data = await response.json();
-      setParts(data);
+      const result = await response.json();
+
+      // Check if response has data array
+      const partsArray = Array.isArray(result)
+        ? result
+        : Array.isArray(result.data)
+        ? result.data
+        : [];
+
+      setParts(partsArray);
     };
 
     const fetchManufacturingVariables = async () => {
@@ -211,7 +219,7 @@ const SingleSubAssembly = () => {
       const partData = data.find((part) => part.partName === partName);
       if (partData) {
         setDetailedPartData(partData);
-        console.log(partData)
+        console.log(partData);
       } else {
         setDetailedPartData({});
       }
@@ -480,7 +488,6 @@ const SingleSubAssembly = () => {
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "space-between",
-                      
                     }}
                   >
                     <div
@@ -602,7 +609,12 @@ const SingleSubAssembly = () => {
                           <th onClick={() => handleRowClickParts("name")}>
                             Name
                           </th>
-                          <th>Cost Per Unit</th>
+                          <th>
+                            <span>
+                              <LiaRupeeSignSolid size={18} />{" "}
+                            </span>
+                            Cost Per Unit
+                          </th>
                           <th>Machining Hours</th>
                           <th>Quantity</th>
                           <th>Total Cost (INR)</th>
@@ -647,6 +659,9 @@ const SingleSubAssembly = () => {
                                   {/* {item.codeName || ""} */}
                                 </td>
                                 <td>
+                                  <span>
+                                    <LiaRupeeSignSolid size={18} />{" "}
+                                  </span>
                                   {Math.round(
                                     parseFloat(item.costPerUnit || 0)
                                   )}

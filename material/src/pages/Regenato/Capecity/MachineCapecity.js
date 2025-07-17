@@ -116,12 +116,12 @@ const MachineCapacity = () => {
     categories.forEach((category) => {
       stats[category._id] = {
         total: category.subCategories.length,
-        occupied: 0,
+        occupied: new Set(), // Using a Set to track unique machine IDs
         name: category.name,
       };
     });
 
-    // Count occupied machines per category
+    // Track occupied machines per category
     filteredAllocations.forEach((project) => {
       project.allocations.forEach((alloc) => {
         alloc.allocations.forEach((machineAlloc) => {
@@ -132,7 +132,7 @@ const MachineCapacity = () => {
             );
 
             if (machineExists) {
-              stats[category._id].occupied += 1;
+              stats[category._id].occupied.add(machineAlloc.machineId);
               break;
             }
           }
@@ -140,7 +140,16 @@ const MachineCapacity = () => {
       });
     });
 
-    setCategoryStats(stats);
+    // Convert Sets to counts for the final stats
+    const finalStats = {};
+    Object.keys(stats).forEach((categoryId) => {
+      finalStats[categoryId] = {
+        ...stats[categoryId],
+        occupied: stats[categoryId].occupied.size, // Get the size of the Set (unique count)
+      };
+    });
+
+    setCategoryStats(finalStats);
   };
 
   const filterAllocationsByDate = () => {
@@ -148,15 +157,17 @@ const MachineCapacity = () => {
     if (!startDate || !endDate || startDate.getTime() === endDate.getTime()) {
       setFilteredAllocations(allocations);
 
-      // Recalculate occupied machines
-      let occupied = 0;
+      // Recalculate occupied machines (unique count)
+      const occupiedMachinesSet = new Set();
       allocations.forEach((project) => {
         project.allocations.forEach((alloc) => {
-          occupied += alloc.allocations.length;
+          alloc.allocations.forEach((machineAlloc) => {
+            occupiedMachinesSet.add(machineAlloc.machineId);
+          });
         });
       });
 
-      setOccupiedMachines(occupied);
+      setOccupiedMachines(occupiedMachinesSet.size);
       return;
     }
 
@@ -189,15 +200,17 @@ const MachineCapacity = () => {
 
     setFilteredAllocations(filtered);
 
-    // Recalculate occupied machines
-    let occupied = 0;
+    // Recalculate occupied machines (unique count)
+    const occupiedMachinesSet = new Set();
     filtered.forEach((project) => {
       project.allocations.forEach((alloc) => {
-        occupied += alloc.allocations.length;
+        alloc.allocations.forEach((machineAlloc) => {
+          occupiedMachinesSet.add(machineAlloc.machineId);
+        });
       });
     });
 
-    setOccupiedMachines(occupied);
+    setOccupiedMachines(occupiedMachinesSet.size);
   };
 
   const getMachineAllocation = (subcategoryId, processName) => {

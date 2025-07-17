@@ -46,10 +46,12 @@ const MachineCapacityChart = () => {
             });
           });
 
+          const total = category.subCategories.length;
           return {
             name: category.name,
-            available: category.subCategories.length - occupied,
+            available: Math.max(0, total - occupied), // Clamp available to 0
             occupied: occupied,
+            overAllocated: occupied > total ? occupied - total : 0, // Optional: track over-allocations
           };
         });
 
@@ -69,7 +71,12 @@ const MachineCapacityChart = () => {
 
   return (
     <div
-      style={{ width: "100%", height: 400, borderRadius: "8px",marginTop:'2rem' }}
+      style={{
+        width: "100%",
+        height: 400,
+        borderRadius: "8px",
+        marginTop: "2rem",
+      }}
       className="shadow border-0"
     >
       <h3>Machine Capacity Overview</h3>

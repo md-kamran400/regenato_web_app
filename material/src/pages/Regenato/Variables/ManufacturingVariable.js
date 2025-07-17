@@ -613,7 +613,7 @@ const ManufacturingVariable = () => {
   return (
     <React.Fragment>
       {/* Manufacturing Table */}
-      <Row>
+      <Row style={{marginBottom:'3rem'}}>
         <Col lg={12}>
           <Card style={{ marginBottom: "10rem" }}>
             <CardHeader>

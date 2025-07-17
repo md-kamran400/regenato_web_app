@@ -62,10 +62,12 @@ const OperatorCapacityChart = () => {
             });
           });
 
+          const occupied = Math.min(occupiedOperators.size, totalOperators);
+
           return {
             name: category.name,
-            available: totalOperators - occupiedOperators.size,
-            occupied: occupiedOperators.size,
+            available: Math.max(0, totalOperators - occupied),
+            occupied: occupied,
             total: totalOperators,
           };
         });

@@ -9,7 +9,7 @@ import { Link } from "react-router-dom";
 import { debounce } from "lodash";
 import { Spinner } from "reactstrap";
 import { RiDeleteBin6Line } from "react-icons/ri";
-import "./projectParts.css";
+// import "./projectParts.css";
 
 import {
   Card,
@@ -94,7 +94,8 @@ const List = () => {
   const [newPartName, setNewPartName] = useState(""); // For storing new part name
   const [newCodeName, setnewCodeName] = useState(""); // For storing new part name
   const [newclientNumber, setnewclientNumber] = useState(""); // For storing new part name
-  const [listData, setListData] = useState([]); // Local state to store project list
+  const [listData, setListData] = useState(null);
+  const [totalPages, setTotalPages] = useState(1);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [loading, setLoading] = useState(true); // State to manage loading state
   const [error, setError] = useState(null); // State for handling errors
@@ -120,7 +121,6 @@ const List = () => {
   const [editPartName, setEditPartName] = useState("");
   const [editDrawingNumber, setEditDrawingNumber] = useState("");
   const [editClientNumber, setEditClientNumber] = useState("");
-  const [totalPage, setTotalPages] = useState(1);
 
   const [formData, setFormData] = useState({
     partName: "",
@@ -182,34 +182,34 @@ const List = () => {
     setModalDuplicate(!modal_duplicate);
   };
 
- const fetchData = useCallback(async (forceRefresh = false) => {
-  setLoading(true);
-  setError(null);
-  try {
-    // Clear cache if forceRefresh is true
-    if (forceRefresh) {
-      sessionStorage.removeItem("cachedPartsData");
-    }
-    
-    const response = await fetch(
-      `${process.env.REACT_APP_BASE_URL}/api/parts?filterType=${filterType}`
-    );
-    if (!response.ok) {
-      throw new Error("Failed to fetch parts");
-    }
-    const data = await response.json();
-    setListData(data);
-    
-    if (initialLoad) {
-      setFilterType(""); // Set filter to empty string on initial load
-      setInitialLoad(false);
-    }
-  } catch (err) {
-    setError(err.message);
-  } finally {
-    setLoading(false);
-  }
-}, [filterType, initialLoad]);
+  const fetchData = useCallback(
+    async (forceRefresh = false, page = currentPage) => {
+      setLoading(true);
+      setError(null);
+      try {
+        if (forceRefresh) {
+          sessionStorage.removeItem("cachedPartsData");
+        }
+
+        const response = await fetch(
+          `${process.env.REACT_APP_BASE_URL}/api/parts?filterType=${filterType}&page=${page}&limit=${itemsPerPage}`
+        );
+        if (!response.ok) {
+          throw new Error("Failed to fetch parts");
+        }
+        const { data, pagination } = await response.json();
+
+        setListData(data || []);
+        setTotalPages(pagination?.pages || 1);
+      } catch (err) {
+        setError(err.message);
+        setListData([]); // Set to empty array on error
+      } finally {
+        setLoading(false);
+      }
+    },
+    [filterType, currentPage, itemsPerPage]
+  );
 
   useEffect(() => {
     fetchData();
@@ -276,22 +276,30 @@ const List = () => {
     setListData(sorted);
   };
 
-  const filteredData = listData.filter(
-    (item) =>
-      (searchTerm.length === 0 ||
-        searchTerm.some((term) =>
-          item.partName.toLowerCase().includes(term.toLowerCase())
-        )) &&
-      (filterType === "" || item.partType === filterType)
-    // ((filterType === "" && true) ||
-    //   (filterType !== "" && item.projectType === filterType))
-  );
+  const filteredData = (listData || []).filter((item) => {
+    // If no search term, return all items that match the filter type
+    if (searchTerm.length === 0) {
+      return filterType === "" || item.partType === filterType;
+    }
 
-  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
-  const paginatedData = filteredData.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+    // Check if any search term matches either partName or drawingNumber
+    const matchesSearch = searchTerm.some(
+      (term) =>
+        item.partName?.toLowerCase().includes(term.partName.toLowerCase()) ||
+        item.id?.toLowerCase().includes(term.drawingNumber.toLowerCase())
+    );
+
+    // Also check the filter type
+    const matchesFilter = filterType === "" || item.partType === filterType;
+
+    return matchesSearch && matchesFilter;
+  });
+
+  // const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+  // const paginatedData = filteredData.slice(
+  //   (currentPage - 1) * itemsPerPage,
+  //   currentPage * itemsPerPage
+  // );
 
   const handleSearch = (e) => {
     const value = e.target.value;
@@ -301,6 +309,7 @@ const List = () => {
 
   const handlePageChange = (page) => {
     setCurrentPage(page);
+    fetchData(false, page); // Fetch data for the new page
   };
 
   const handleInputChange = (e) => {
@@ -309,16 +318,22 @@ const List = () => {
   };
 
   const handleSearchChange = (selectedOptions) => {
-    const selectedValues = selectedOptions
-      ? selectedOptions.map((opt) => opt.value)
+    const searchValues = selectedOptions
+      ? selectedOptions.map((opt) => ({
+          partName: opt.partName,
+          drawingNumber: opt.drawingNumber,
+        }))
       : [];
-    setSearchTerm(selectedValues); // Now searchTerm is an array
-    setCurrentPage(1); // Reset to page 1 when filtering
+
+    setSearchTerm(searchValues);
+    setCurrentPage(1);
   };
 
-  const partOptions = listData.map((project) => ({
-    value: project.partName,
-    label: project.partName,
+  const partOptions = (listData || []).map((project) => ({
+    value: `${project.partName} (${project.id})`, // Combine name and ID for display
+    label: `${project.partName} (${project.id})`, // Display both in dropdown
+    partName: project.partName,
+    drawingNumber: project.id,
   }));
 
   const handleAddPart = async () => {
@@ -355,10 +370,9 @@ const List = () => {
         throw new Error("Failed to add part");
       }
 
-     // Force refresh the data
-    sessionStorage.removeItem("cachedPartsData");
-    await fetchData(true);
-
+      // Force refresh the data
+      sessionStorage.removeItem("cachedPartsData");
+      await fetchData(true);
 
       // Reset form fields
       setNewPartId("");
@@ -411,9 +425,9 @@ const List = () => {
       );
 
       if (response.ok) {
-         // Force refresh the data
-      sessionStorage.removeItem("cachedPartsData");
-      await fetchData(true);
+        // Force refresh the data
+        sessionStorage.removeItem("cachedPartsData");
+        await fetchData(true);
         toast.success("Records updated successfully!");
         toggleEditModal();
       } else {
@@ -466,7 +480,7 @@ const List = () => {
       const result = await response.json();
       console.log("Duplicate Part Created:", result);
 
-       // Force refresh the data
+      // Force refresh the data
       sessionStorage.removeItem("cachedPartsData");
       await fetchData(true);
       setModalDuplicate(false);
@@ -508,27 +522,30 @@ const List = () => {
       // Clear the selection when component unmounts
       localStorage.removeItem("selectedPartId");
       setSelectedPartId(null);
-       // Clear cache when component unmounts
-    sessionStorage.removeItem("cachedPartsData");
+      // Clear cache when component unmounts
+      sessionStorage.removeItem("cachedPartsData");
     };
   }, []);
-  
+
   // Modify the clearSelection function to be more thorough
   const clearSelection = useCallback(() => {
     setSelectedPartId(null);
     localStorage.removeItem("selectedPartId");
     fetchData(); // Re-fetch the entire list
   }, [fetchData]);
-  
+
   // Modify the handlePartClick to include a way to clear selection
-  const handlePartClick = useCallback((id) => {
-    if (id === selectedPartId) {
-      clearSelection();
-    } else {
-      setSelectedPartId(id);
-      localStorage.setItem("selectedPartId", id);
-    }
-  }, [selectedPartId, clearSelection]);
+  const handlePartClick = useCallback(
+    (id) => {
+      if (id === selectedPartId) {
+        clearSelection();
+      } else {
+        setSelectedPartId(id);
+        localStorage.setItem("selectedPartId", id);
+      }
+    },
+    [selectedPartId, clearSelection]
+  );
 
   const formatTime = (time) => {
     if (time === 0) {
@@ -800,8 +817,6 @@ const List = () => {
     }
   };
 
-  console.log("Filter applied: ", filterType, filteredData);
-
   return (
     <React.Fragment>
       <ToastContainer closeButton={false} />
@@ -811,43 +826,57 @@ const List = () => {
         onCloseClick={() => {}}
       />
       <Row className="g-4 mb-3">
-        <div className="col-sm-auto d-flex">
-          <div>
-            <Button
-              color="success"
-              className="add-btn me-1"
-              onClick={toggleModal}
-              id="create-btn"
-            >
-              <i className="ri-add-line align-bottom me-1"></i> Add Part
-            </Button>
-          </div>
+        {/* Buttons Section - Will stack on small screens */}
+        <div className="col-12 col-md-auto d-flex flex-wrap gap-2 mb-2 mb-md-0">
+          <Button
+            color="success"
+            className="add-btn"
+            onClick={toggleModal}
+            id="create-btn"
+          >
+            <i className="ri-add-line align-bottom me-1"></i> Add Part
+          </Button>
 
-          <div>
-            <Button
-              color="success"
-              className="add-btn me-1"
-              onClick={toggleModalUpload}
-              id="create-btn"
-            >
-              <i className="ri-add-line align-bottom me-1"></i> Upload Excel
-            </Button>
-          </div>
+          <Button
+            color="success"
+            className="add-btn"
+            onClick={toggleModalUpload}
+            id="create-btn"
+          >
+            <i className="ri-add-line align-bottom me-1"></i> Upload Excel
+          </Button>
         </div>
-        <div className="col-sm-7 ms-auto">
-          <div className="d-flex justify-content-sm-end gap-2 align-items-center">
-            <div className="search-box col-sm-5 d-flex align-items-center ">
+
+        {/* Search and Filter Section - Will stack on small screens */}
+        <div className="col-12 col-md-7 ms-md-auto">
+          <div className="d-flex flex-column flex-md-row gap-2 align-items-stretch align-items-md-center">
+            {/* Search Box - Full width on small screens */}
+            <div className="flex-grow-1">
               <Select
                 options={partOptions}
                 isMulti
                 isClearable
-                placeholder="Search..."
+                placeholder="Search by name or drawing number..."
                 onChange={handleSearchChange}
-                styles={customStyles}
+                getOptionLabel={(option) =>
+                  `${option.partName} (${option.drawingNumber})`
+                }
+                getOptionValue={(option) => option.value}
+                styles={{
+                  ...customStyles,
+                  control: (provided) => ({
+                    ...provided,
+                    width: "100%",
+                    minWidth: "200px",
+                    height: "40px",
+                    overflow: "hidden",
+                  }),
+                }}
               />
             </div>
 
-            <div className="col-sm-auto">
+            {/* Part Type Filter - Full width on small screens */}
+            <div className="flex-grow-1">
               <Select
                 options={partTypeOptions}
                 isClearable
@@ -859,9 +888,20 @@ const List = () => {
                     setFilterType("");
                   }
                 }}
-                styles={customStyles}
+                styles={{
+                  ...customStyles,
+                  control: (provided) => ({
+                    ...provided,
+                    width: "100%", // Full width on small screens
+                    minWidth: "100px", // Minimum width
+                    height: "40px",
+                    overflow: "hidden",
+                  }),
+                }}
               />
             </div>
+
+            {/* Delete Button - Aligns to the end */}
             {selectedRows.length > 0 && (
               <div className="d-flex justify-content-end">
                 <Button
@@ -886,119 +926,137 @@ const List = () => {
             </div>
           </div>
         )}
-        <table
-          className="table table-striped vertical-lines horizontals-lines"
-          style={{ border: "2px solid black" }}
-        >
-          <thead style={{ backgroundColor: "#f3f4f6" }}>
-            <tr>
-              <th style={{ cursor: "pointer" }}>
-                <input
-                  type="checkbox"
-                  checked={selectAll}
-                  onChange={handleSelectAll}
-                />
-              </th>
-              <th style={{ cursor: "pointer" }}>
-                <span style={{ marginLeft: "5px", marginRight: "10px" }}>
-                  Date
-                </span>
-                <FaSort size={15} onClick={handleSortByDate} />
-              </th>
-              <th>Name</th>
-              <th>Part Type</th>
-              <th>Drawing Number</th>
-              <th>Client Number</th>
-              <th>Cost per Unit</th>
-              <th>Total Hours</th>
-              <th>Total Cost (INR) </th>
-              <th>Total Quantity</th>
-
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody style={{ border: "2px solid black" }}>
-            {paginatedData.map((item, index) => (
-              <tr key={index} style={{ border: "2px solid black" }}>
-                <td>
+        <div style={{ overflowX: "auto", width: "100%" }}>
+          <table
+            className="table table-striped vertical-lines horizontals-lines"
+            style={{
+              border: "2px solid black",
+              minWidth: "1000px",
+              width: "100%",
+            }}
+          >
+            <thead style={{ backgroundColor: "#f3f4f6" }}>
+              <tr>
+                <th
+                  style={{
+                    cursor: "pointer",
+                    position: "sticky",
+                    left: 0,
+                    backgroundColor: "#f3f4f6",
+                    zIndex: 1,
+                  }}
+                >
                   <input
                     type="checkbox"
-                    checked={selectedRows.includes(item._id)}
-                    onChange={() => handleRowSelect(item._id)}
+                    checked={selectAll}
+                    onChange={handleSelectAll}
                   />
-                </td>
-                {/* <td>{new Date(item.createdAt).toISOString().split("T")[0]}</td> */}
-                <td>
-                  {new Date(item.createdAt).toLocaleDateString("en-GB", {
-                    day: "2-digit",
-                    month: "short",
-                    year: "numeric",
-                  })}
-                </td>
-
-                <td>
-                  {item.partType === "Make" ? (
-                    <Link
-                      to={`/singlepart/${item._id}`}
-                      style={{ color: "red", cursor: "pointer" }}
-                      className="text-body"
-                      onClick={() => handlePartClick(item._id)}
-                    >
-                      {item.partName.trim()} {item.codeName}
-                    </Link>
-                  ) : (
-                    <span style={{ cursor: "no-drop" }}>
-                      {item.partName.trim()} {item.codeName}
-                    </span>
-                  )}
-                </td>
-                <td>{item.partType || "-"}</td>
-                <td>{item.id}</td>
-                <td>{item.clientNumber}</td>
-                <td>{Math.ceil(item.costPerUnit)}</td>
-                <td>{formatTime(item.timePerUnit || 0)}</td>
-                <td>{item.totalCost}</td>
-                <td>{item.totalQuantity}</td>
-
-                <td>
-                  <UncontrolledDropdown direction="start">
-                    <DropdownToggle
-                      tag="button"
-                      className="btn btn-link text-muted p-1 mt-n2 py-0 text-decoration-none fs-15 shadow-none"
-                    >
-                      <FeatherIcon icon="more-horizontal" className="icon-sm" />
-                    </DropdownToggle>
-                    <DropdownMenu className="dropdown-menu-end">
-                      {/* <div className="dropdown-divider"></div> */}
-                      <DropdownItem
-                        href="#"
-                        onClick={() => {
-                          setSelectedId(item._id);
-                          tog_delete();
-                        }}
-                      >
-                        <i className="ri-delete-bin-fill align-bottom me-2 text-muted"></i>{" "}
-                        Remove
-                      </DropdownItem>
-
-                      <DropdownItem
-                        href="#"
-                        onClick={() => toggleDuplicateModal(item)}
-                      >
-                        <i className="ri-file-copy-line align-bottom me-2 text-muted"></i>{" "}
-                        Duplicate
-                      </DropdownItem>
-                      <DropdownItem onClick={() => toggleEditModal(item)}>
-                        <i className="ri-pencil-fill align-bottom me-2 text-muted"></i>{" "}
-                        Edit
-                      </DropdownItem>
-                    </DropdownMenu>
-                  </UncontrolledDropdown>
-                </td>
+                </th>
+                <th style={{ cursor: "pointer", minWidth: "100px" }}>
+                  <span style={{ marginLeft: "5px", marginRight: "10px" }}>
+                    Date
+                  </span>
+                  <FaSort size={15} onClick={handleSortByDate} />
+                </th>
+                <th>Name</th>
+                <th>Part Type</th>
+                <th>Drawing Number</th>
+                <th>Client Number</th>
+                <th>Cost per Unit</th>
+                <th>Total Hours</th>
+                <th>Total Cost (INR) </th>
+                <th>Total Quantity</th>
+                <th>Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody style={{ border: "2px solid black" }}>
+              {filteredData?.map((item, index) => (
+                <tr key={index} style={{ border: "2px solid black" }}>
+                  <td
+                    style={{
+                      position: "sticky",
+                      left: 0,
+                      backgroundColor: "white",
+                      zIndex: 1,
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedRows.includes(item._id)}
+                      onChange={() => handleRowSelect(item._id)}
+                    />
+                  </td>
+                  <td>
+                    {new Date(item.createdAt).toLocaleDateString("en-GB", {
+                      day: "2-digit",
+                      month: "short",
+                      year: "numeric",
+                    })}
+                  </td>
+                  <td>
+                    {item.partType === "Make" ? (
+                      <Link
+                        to={`/singlepart/${item._id}`}
+                        style={{ color: "red", cursor: "pointer" }}
+                        className="text-body"
+                        onClick={() => handlePartClick(item._id)}
+                      >
+                        {item.partName.trim()} {item.codeName}
+                      </Link>
+                    ) : (
+                      <span style={{ cursor: "no-drop" }}>
+                        {item.partName.trim()} {item.codeName}
+                      </span>
+                    )}
+                  </td>
+                  <td>{item.partType || "-"}</td>
+                  <td>{item.id}</td>
+                  <td>{item.clientNumber}</td>
+                  <td>{Math.ceil(item.costPerUnit)}</td>
+                  <td>{formatTime(item.timePerUnit || 0)}</td>
+                  <td>{item.totalCost}</td>
+                  <td>{item.totalQuantity}</td>
+                  <td>
+                    <UncontrolledDropdown direction="start">
+                      <DropdownToggle
+                        tag="button"
+                        className="btn btn-link text-muted p-1 mt-n2 py-0 text-decoration-none fs-15 shadow-none"
+                      >
+                        <FeatherIcon
+                          icon="more-horizontal"
+                          className="icon-sm"
+                        />
+                      </DropdownToggle>
+                      <DropdownMenu className="dropdown-menu-end">
+                        <DropdownItem
+                          href="#"
+                          onClick={() => {
+                            setSelectedId(item._id);
+                            tog_delete();
+                          }}
+                        >
+                          <i className="ri-delete-bin-fill align-bottom me-2 text-muted"></i>{" "}
+                          Remove
+                        </DropdownItem>
+                        <DropdownItem
+                          href="#"
+                          onClick={() => toggleDuplicateModal(item)}
+                        >
+                          <i className="ri-file-copy-line align-bottom me-2 text-muted"></i>{" "}
+                          Duplicate
+                        </DropdownItem>
+                        <DropdownItem onClick={() => toggleEditModal(item)}>
+                          <i className="ri-pencil-fill align-bottom me-2 text-muted"></i>{" "}
+                          Edit
+                        </DropdownItem>
+                      </DropdownMenu>
+                    </UncontrolledDropdown>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
         {/* Pagination */}
         <PaginatedList

@@ -156,7 +156,7 @@ export const PartListHrPlan = ({
         if (response.data.data.length > 0) {
           setIsDataAllocated(true);
           setActiveTab("planned");
-          console.log(response);
+          // console.log(response);
         }
       } catch (error) {
         console.error("Error fetching allocated data:", error);
@@ -685,7 +685,7 @@ export const PartListHrPlan = ({
         }
       }
       setMachineOptions(machineData);
-      console.log("spectillsjfslj", machineData);
+      // console.log("spectillsjfslj", machineData);
     };
     fetchMachines();
   }, [manufacturingVariables, partManufacturingVariables]);
@@ -1972,6 +1972,7 @@ export const PartListHrPlan = ({
                     ":hover": {
                       transform: "translateY(-1px)",
                     },
+                    maxWidth:'150px'
                   }}
                 >
                   {isApproved ? (

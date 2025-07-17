@@ -70,7 +70,7 @@ const GeneralVariable = () => {
       }
       const data = await response.json();
       setGeneralData(data); // Set the fetched data to state
-      console.log(data);
+      
     } catch (error) {
       setError(error.message);
     } finally {
@@ -213,7 +213,7 @@ const GeneralVariable = () => {
     <React.Fragment>
       {/* Manufacturing Table */}
       <Row>
-        <Col lg={12}>
+        <Col lg={12} style={{marginBottom:'3rem'}}>
           <Card style={{ marginBottom: "10rem" }}>
             <CardHeader>
               <h4 className="card-title mb-0">General</h4>

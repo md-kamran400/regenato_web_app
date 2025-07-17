@@ -117,83 +117,94 @@ const AllocationPlan = () => {
     setFilteredAllocations(filtered);
   };
 
-  const handlePrint = () => {
-    window.scrollTo(0, 0);
+//   const handlePrint = () => {
+//     window.scrollTo(0, 0);
 
-    const style = document.createElement("style");
-    style.innerHTML = `
-      @media print {
-        body * {
-          visibility: hidden;
-        }
-        #print-area, #print-area * {
-          visibility: visible;
-        }
-        #print-area {
-          position: absolute;
-          top: 0;
-          left: 0;
-          width: 100%;
-          margin: 0;
-          padding: 0;
-        }
+//     const style = document.createElement("style");
+//     style.innerHTML = `
+//   @media print {
+//     body * {
+//       visibility: hidden;
+//     }
 
-        .no-print {
-          display: none !important;
-        }
+//     #print-area, #print-area * {
+//       visibility: visible;
+//     }
 
-        .print-only {
-          display: block !important;
-        }
+//     #print-area {
+//       position: absolute;
+//       top: 0;
+//       left: 0;
+//       width: 100%;
+//       margin: 0;
+//       padding: 0;
+//     }
 
-        .container,
-        .row,
-        .col,
-        .card {
-          all: unset;
-        }
+//     .no-print {
+//       display: none !important;
+//     }
 
-        .card {
-          page-break-inside: avoid;
-          break-inside: avoid;
-          margin-bottom: 10px;
-        }
+//     .print-only {
+//       display: block !important;
+//     }
 
-        .table-responsive {
-          overflow: visible !important;
-        }
+//     .container, .row, .col, .card {
+//       all: unset;
+//     }
 
-        table {
-          width: 100% !important;
-          font-size: 10px !important;
-          border-collapse: collapse !important;
-        }
+//     .card {
+//       break-inside: avoid;
+//       margin-bottom: 10px;
+//     }
 
-        th, td {
-          padding: 4px !important;
-          
-        }
+//     .table-responsive {
+//       overflow: visible !important;
+//     }
 
-        .print-page-break {
-          page-break-after: always;
-        }
+//     table {
+//       width: 100% !important;
+//       font-size: 10px !important;
+//       border-collapse: collapse !important;
+//       page-break-inside: auto;
+//     }
 
-        html, body {
-          height: auto !important;
-          overflow: visible !important;
-          margin: 0 !important;
-          padding: 0 !important;
-        }
-      }
-    `;
-    document.head.appendChild(style);
+//     tr, td, th {
+//       page-break-inside: avoid !important;
+//       page-break-after: auto !important;
+//     }
 
-    window.print();
+//     th, td {
+//       padding: 4px !important;
+//       white-space: nowrap;
+//     }
 
-    setTimeout(() => {
-      document.head.removeChild(style);
-    }, 1000);
-  };
+//     .print-page-break {
+//       display: block;
+//       page-break-before: always;
+//     }
+
+//     html, body {
+//       margin: 0 !important;
+//       padding: 0 !important;
+//       background: white !important;
+//       overflow: visible !important;
+//     }
+//   }
+// `;
+
+//     document.head.appendChild(style);
+
+//     window.print();
+
+//     setTimeout(() => {
+//       document.head.removeChild(style);
+//     }, 1000);
+//   };
+const handlePrint = () => {
+  window.scrollTo(0, 0);
+  window.print();
+};
+
 
   const handleDownloadExcel = () => {
     setDownloadModal(true);
@@ -329,8 +340,8 @@ const AllocationPlan = () => {
   };
 
   return (
-    <Container fluid className="py-4">
-      <BreadCrumb title="Allocation Plan" pageTitle="Allocation Plan" />
+    <Container fluid className=" pb-4">
+      {/* <BreadCrumb title="Allocation Plan" pageTitle="Allocation Plan" className='mt-2' style={{border:'2px solid'}} /> */}
 
       {/* Download Confirmation Modal */}
       <Modal isOpen={downloadModal} toggle={() => setDownloadModal(false)}>
@@ -361,18 +372,18 @@ const AllocationPlan = () => {
       <Card className="shadow-sm">
         <CardHeader className="bg-white border-bottom-0 py-3">
           <div className="no-print">
-            <Row className="align-items-center">
-              <Col md={6}>
+            <Row className="align-items-start flex-column flex-md-row">
+              <Col md={6} className="mb-2 mb-md-0">
                 <h2 className="mb-0 d-flex align-items-center">
                   <FaProjectDiagram className="me-2 text-primary" />
                   Production Allocation Plan
                 </h2>
               </Col>
-              <Col md={6} className="d-flex justify-content-end">
-                <div className="d-flex align-items-center">
+              <Col md={6} className="d-flex justify-content-md-end">
+                <div className="d-flex flex-column flex-sm-row gap-2 w-100 justify-content-end">
                   <Button
                     color="outline-primary"
-                    className="me-2 d-flex align-items-center"
+                    className="d-flex align-items-center justify-content-center"
                     onClick={handleDownloadExcel}
                   >
                     <FiDownload className="me-1" />
@@ -380,7 +391,7 @@ const AllocationPlan = () => {
                   </Button>
                   <Button
                     color="outline-secondary"
-                    className="d-flex align-items-center"
+                    className="d-flex align-items-center justify-content-center"
                     onClick={handlePrint}
                   >
                     <FiPrinter className="me-1" />
@@ -389,6 +400,7 @@ const AllocationPlan = () => {
                 </div>
               </Col>
             </Row>
+
             {(startDate || endDate) && (
               <Row className="mt-2">
                 <Col>
@@ -424,7 +436,7 @@ const AllocationPlan = () => {
         </CardHeader>
 
         <CardBody>
-          <Row className="mb-4 no-print">
+          <Row className="-mb-0 no-print">
             <Col md={3}>
               <FormGroup>
                 <Label for="startDate" className="form-label small text-muted">
@@ -480,262 +492,271 @@ const AllocationPlan = () => {
               </p>
             </div>
           ) : (
-            filteredAllocations.map((project, projectIndex) => (
-              <div key={project.projectName}>
-                {/* <Card
-                  style={{ pageBreakInside: "avoid", boxShadow:'none' }}
-                  id="print-area"
-                > */}
-                  {project.allocations.map((process) => (
-                    <div
-                      key={`${process.processId}-${process._id}`}
-                      className="mb-3"
-                      style={{ borderBottom: '1px solid black' }} 
-                    >
-                      <div className="bg-light p-2 px-3 small d-flex justify-content-between align-items-center">
-                        <div>
-                          <h5 style={{ fontWeight: "bold" }}>
-                            {/* {process.processName} */}
-                            {process.processName} (
-                            {process.allocations[0]?.machineId || "N/A"}) -{" "}
-                            {process.allocations[0]?.operator || "N/A"}
-                          </h5>
+            <div id="print-area">
+              {filteredAllocations.map((project, projectIndex) => (
+                <div key={project.projectName} className="print-section">
+                  <Card className="shadow-none"
+                    style={{
+                      pageBreakInside: "avoid",
+                      boxShadow: "none",
+                      marginTop: "-20px",
+                    }}
+                  >
+                    {project.allocations.map((process) => (
+                      <div
+                        key={`${process.processId}-${process._id}`}
+                        className="mb-3"
+                        style={{ borderBottom: "1px solid black" }}
+                      >
+                        <div className="bg-light p-2 px-3 small d-flex justify-content-between align-items-center">
+                          <div>
+                            <h5 style={{ fontWeight: "bold" }}>
+                              {/* {process.processName} */}
+                              {process.processName} (
+                              {process.allocations[0]?.machineId || "N/A"}) -{" "}
+                              {process.allocations[0]?.operator || "N/A"}
+                            </h5>
+                          </div>
+                        </div>
+
+                        <div className="table-responsive">
+                          <Table bordered hover className="mb-3">
+                            <thead className="table-light">
+                              <tr>
+                                <th rowSpan="2" className="align-middle">
+                                  Part No.
+                                </th>
+                                <th rowSpan="2" className="align-middle">
+                                  Description
+                                </th>
+                                <th rowSpan="2" className="align-middle">
+                                  Nature of Work
+                                </th>
+                                <th
+                                  rowSpan="2"
+                                  className="align-middle text-center"
+                                >
+                                  QTY Planned
+                                </th>
+                                <th
+                                  rowSpan="2"
+                                  className="align-middle text-center"
+                                >
+                                  Time (min)
+                                </th>
+                                <th colSpan="2" className="text-center">
+                                  Date
+                                </th>
+                                <th
+                                  rowSpan="2"
+                                  className="align-middle text-center"
+                                >
+                                  Status
+                                </th>
+                                <th colSpan="2" className="text-center">
+                                  Material Location
+                                </th>
+                                <th colSpan="2" className="text-center">
+                                  Next Location/Process
+                                </th>
+                              </tr>
+                              <tr>
+                                <th className="text-center">Target</th>
+                                <th className="text-center">Completion</th>
+                                <th className="text-center">From</th>
+                                <th className="text-center">To</th>
+                                <th className="text-center">From</th>
+                                <th className="text-center">To</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {process.allocations.map((allocation) => {
+                                const selectionKey = `${allocation._id}`;
+                                const currentSelection =
+                                  selectionValues[selectionKey] || {};
+
+                                return (
+                                  <tr key={allocation._id}>
+                                    <td className="fw-semibold">
+                                      {process.partsCodeId}
+                                    </td>
+                                    <td className="white-space-pre">
+                                      {formatWordsInChunks(process.partName)}
+                                    </td>
+                                    <td>{process.processName}</td>
+                                    <td className="text-center">
+                                      {allocation.plannedQuantity}
+                                    </td>
+                                    <td className="text-center">
+                                      {allocation.plannedTime}
+                                    </td>
+                                    <td className="text-center">
+                                      {formatDate(allocation.startDate)}
+                                    </td>
+                                    <td className="text-center">-</td>
+                                    <td className="text-center">
+                                      <select
+                                        className="form-select form-select-sm no-print"
+                                        style={{ width: "120px" }}
+                                        value={
+                                          currentSelection.status || "Fresh"
+                                        }
+                                        onChange={(e) =>
+                                          handleSelectionChange(
+                                            selectionKey,
+                                            "status",
+                                            e.target.value
+                                          )
+                                        }
+                                      >
+                                        <option value="Fresh">Fresh</option>
+                                        <option value="Pending">Pending</option>
+                                        <option value="Completed">
+                                          Completed
+                                        </option>
+                                      </select>
+                                      <span className="print-only">
+                                        {currentSelection.status || "Fresh"}
+                                      </span>
+                                    </td>
+                                    {/* Material Location */}
+                                    <td className="text-center">
+                                      <select
+                                        className="form-select form-select-sm no-print"
+                                        style={{ width: "120px" }}
+                                        value={
+                                          currentSelection.materialFrom || "GR"
+                                        }
+                                        onChange={(e) =>
+                                          handleSelectionChange(
+                                            selectionKey,
+                                            "materialFrom",
+                                            e.target.value
+                                          )
+                                        }
+                                      >
+                                        <option value="GR">GR</option>
+                                        <option value="MS">MS</option>
+                                        <option value="Store">Store</option>
+                                        <option value="Heat Treatment">
+                                          Heat Treatment
+                                        </option>
+                                        <option value="Auto Black">
+                                          Auto Black
+                                        </option>
+                                      </select>
+                                      <span className="print-only">
+                                        {currentSelection.materialFrom || "GR"}
+                                      </span>
+                                    </td>
+                                    <td className="text-center">
+                                      <select
+                                        className="form-select form-select-sm no-print"
+                                        style={{ width: "120px" }}
+                                        value={
+                                          currentSelection.materialTo || "MS"
+                                        }
+                                        onChange={(e) =>
+                                          handleSelectionChange(
+                                            selectionKey,
+                                            "materialTo",
+                                            e.target.value
+                                          )
+                                        }
+                                      >
+                                        <option value="GR">GR</option>
+                                        <option value="MS">MS</option>
+                                        <option value="Store">Store</option>
+                                        <option value="Heat Treatment">
+                                          Heat Treatment
+                                        </option>
+                                        <option value="Auto Black">
+                                          Auto Black
+                                        </option>
+                                      </select>
+                                      <span className="print-only">
+                                        {currentSelection.materialTo || "MS"}
+                                      </span>
+                                    </td>
+                                    {/* Next Location/Process */}
+                                    <td className="text-center">
+                                      <select
+                                        className="form-select form-select-sm no-print"
+                                        style={{ width: "120px" }}
+                                        value={
+                                          currentSelection.nextLocationFrom ||
+                                          "GR"
+                                        }
+                                        onChange={(e) =>
+                                          handleSelectionChange(
+                                            selectionKey,
+                                            "nextLocationFrom",
+                                            e.target.value
+                                          )
+                                        }
+                                      >
+                                        <option value="GR">GR</option>
+                                        <option value="MS">MS</option>
+                                        <option value="Store">Store</option>
+                                        <option value="Heat Treatment">
+                                          Heat Treatment
+                                        </option>
+                                        <option value="Auto Black">
+                                          Auto Black
+                                        </option>
+                                      </select>
+                                      <span className="print-only">
+                                        {currentSelection.nextLocationFrom ||
+                                          "GR"}
+                                      </span>
+                                    </td>
+                                    <td className="text-center">
+                                      <select
+                                        className="form-select form-select-sm no-print"
+                                        style={{ width: "120px" }}
+                                        value={
+                                          currentSelection.nextLocationTo ||
+                                          "MS"
+                                        }
+                                        onChange={(e) =>
+                                          handleSelectionChange(
+                                            selectionKey,
+                                            "nextLocationTo",
+                                            e.target.value
+                                          )
+                                        }
+                                      >
+                                        <option value="GR">GR</option>
+                                        <option value="MS">MS</option>
+                                        <option value="Store">Store</option>
+                                        <option value="Heat Treatment">
+                                          Heat Treatment
+                                        </option>
+                                        <option value="Auto Black">
+                                          Auto Black
+                                        </option>
+                                      </select>
+                                      <span className="print-only">
+                                        {currentSelection.nextLocationTo ||
+                                          "MS"}
+                                      </span>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </Table>
                         </div>
                       </div>
+                    ))}
+                  </Card>
 
-                      <div className="table-responsive">
-                        <Table bordered hover className="mb-3">
-                          <thead className="table-light">
-                            <tr>
-                              <th rowSpan="2" className="align-middle">
-                                Part No.
-                              </th>
-                              <th rowSpan="2" className="align-middle">
-                                Description
-                              </th>
-                              <th rowSpan="2" className="align-middle">
-                                Nature of Work
-                              </th>
-                              <th
-                                rowSpan="2"
-                                className="align-middle text-center"
-                              >
-                                QTY Planned
-                              </th>
-                              <th
-                                rowSpan="2"
-                                className="align-middle text-center"
-                              >
-                                Time (min)
-                              </th>
-                              <th colSpan="2" className="text-center">
-                                Date
-                              </th>
-                              <th
-                                rowSpan="2"
-                                className="align-middle text-center"
-                              >
-                                Status
-                              </th>
-                              <th colSpan="2" className="text-center">
-                                Material Location
-                              </th>
-                              <th colSpan="2" className="text-center">
-                                Next Location/Process
-                              </th>
-                            </tr>
-                            <tr>
-                              <th className="text-center">Target</th>
-                              <th className="text-center">Completion</th>
-                              <th className="text-center">From</th>
-                              <th className="text-center">To</th>
-                              <th className="text-center">From</th>
-                              <th className="text-center">To</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {process.allocations.map((allocation) => {
-                              const selectionKey = `${allocation._id}`;
-                              const currentSelection =
-                                selectionValues[selectionKey] || {};
-
-                              return (
-                                <tr key={allocation._id}>
-                                  <td className="fw-semibold">
-                                    {process.partsCodeId}
-                                  </td>
-                                  <td className="white-space-pre">
-                                    {formatWordsInChunks(process.partName)}
-                                  </td>
-                                  <td>{process.processName}</td>
-                                  <td className="text-center">
-                                    {allocation.plannedQuantity}
-                                  </td>
-                                  <td className="text-center">
-                                    {allocation.plannedTime}
-                                  </td>
-                                  <td className="text-center">
-                                    {formatDate(allocation.startDate)}
-                                  </td>
-                                  <td className="text-center">-</td>
-                                  <td className="text-center">
-                                    <select
-                                      className="form-select form-select-sm no-print"
-                                      style={{ width: "120px" }}
-                                      value={currentSelection.status || "Fresh"}
-                                      onChange={(e) =>
-                                        handleSelectionChange(
-                                          selectionKey,
-                                          "status",
-                                          e.target.value
-                                        )
-                                      }
-                                    >
-                                      <option value="Fresh">Fresh</option>
-                                      <option value="Pending">Pending</option>
-                                      <option value="Completed">
-                                        Completed
-                                      </option>
-                                    </select>
-                                    <span className="print-only">
-                                      {currentSelection.status || "Fresh"}
-                                    </span>
-                                  </td>
-                                  {/* Material Location */}
-                                  <td className="text-center">
-                                    <select
-                                      className="form-select form-select-sm no-print"
-                                      style={{ width: "120px" }}
-                                      value={
-                                        currentSelection.materialFrom || "GR"
-                                      }
-                                      onChange={(e) =>
-                                        handleSelectionChange(
-                                          selectionKey,
-                                          "materialFrom",
-                                          e.target.value
-                                        )
-                                      }
-                                    >
-                                      <option value="GR">GR</option>
-                                      <option value="MS">MS</option>
-                                      <option value="Store">Store</option>
-                                      <option value="Heat Treatment">
-                                        Heat Treatment
-                                      </option>
-                                      <option value="Auto Black">
-                                        Auto Black
-                                      </option>
-                                    </select>
-                                    <span className="print-only">
-                                      {currentSelection.materialFrom || "GR"}
-                                    </span>
-                                  </td>
-                                  <td className="text-center">
-                                    <select
-                                      className="form-select form-select-sm no-print"
-                                      style={{ width: "120px" }}
-                                      value={
-                                        currentSelection.materialTo || "MS"
-                                      }
-                                      onChange={(e) =>
-                                        handleSelectionChange(
-                                          selectionKey,
-                                          "materialTo",
-                                          e.target.value
-                                        )
-                                      }
-                                    >
-                                      <option value="GR">GR</option>
-                                      <option value="MS">MS</option>
-                                      <option value="Store">Store</option>
-                                      <option value="Heat Treatment">
-                                        Heat Treatment
-                                      </option>
-                                      <option value="Auto Black">
-                                        Auto Black
-                                      </option>
-                                    </select>
-                                    <span className="print-only">
-                                      {currentSelection.materialTo || "MS"}
-                                    </span>
-                                  </td>
-                                  {/* Next Location/Process */}
-                                  <td className="text-center">
-                                    <select
-                                      className="form-select form-select-sm no-print"
-                                      style={{ width: "120px" }}
-                                      value={
-                                        currentSelection.nextLocationFrom ||
-                                        "GR"
-                                      }
-                                      onChange={(e) =>
-                                        handleSelectionChange(
-                                          selectionKey,
-                                          "nextLocationFrom",
-                                          e.target.value
-                                        )
-                                      }
-                                    >
-                                      <option value="GR">GR</option>
-                                      <option value="MS">MS</option>
-                                      <option value="Store">Store</option>
-                                      <option value="Heat Treatment">
-                                        Heat Treatment
-                                      </option>
-                                      <option value="Auto Black">
-                                        Auto Black
-                                      </option>
-                                    </select>
-                                    <span className="print-only">
-                                      {currentSelection.nextLocationFrom ||
-                                        "GR"}
-                                    </span>
-                                  </td>
-                                  <td className="text-center">
-                                    <select
-                                      className="form-select form-select-sm no-print"
-                                      style={{ width: "120px" }}
-                                      value={
-                                        currentSelection.nextLocationTo || "MS"
-                                      }
-                                      onChange={(e) =>
-                                        handleSelectionChange(
-                                          selectionKey,
-                                          "nextLocationTo",
-                                          e.target.value
-                                        )
-                                      }
-                                    >
-                                      <option value="GR">GR</option>
-                                      <option value="MS">MS</option>
-                                      <option value="Store">Store</option>
-                                      <option value="Heat Treatment">
-                                        Heat Treatment
-                                      </option>
-                                      <option value="Auto Black">
-                                        Auto Black
-                                      </option>
-                                    </select>
-                                    <span className="print-only">
-                                      {currentSelection.nextLocationTo || "MS"}
-                                    </span>
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </Table>
-                      </div>
-                    </div>
-                  ))}
-                {/* </Card> */}
-                {/* Add page break after each project except the last one */}
-                {projectIndex < filteredAllocations.length - 1 && (
-                  <div className="print-page-break"></div>
-                )}
-              </div>
-            ))
+                  {projectIndex < filteredAllocations.length - 1 && (
+                    <div className="print-page-break"></div>
+                  )}
+                </div>
+              ))}
+            </div>
           )}
         </CardBody>
       </Card>
