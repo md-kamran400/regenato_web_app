@@ -49,7 +49,7 @@ const MachineCapacityChart = () => {
           const total = category.subCategories.length;
           return {
             name: category.name,
-            available: Math.max(0, total - occupied), // Clamp available to 0
+            available: Math.max(0, total - occupied), // Clamp available to 0 0 
             occupied: occupied,
             overAllocated: occupied > total ? occupied - total : 0, // Optional: track over-allocations
           };
