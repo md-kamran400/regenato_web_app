@@ -117,94 +117,93 @@ const AllocationPlan = () => {
     setFilteredAllocations(filtered);
   };
 
-//   const handlePrint = () => {
-//     window.scrollTo(0, 0);
+  //   const handlePrint = () => {
+  //     window.scrollTo(0, 0);
 
-//     const style = document.createElement("style");
-//     style.innerHTML = `
-//   @media print {
-//     body * {
-//       visibility: hidden;
-//     }
+  //     const style = document.createElement("style");
+  //     style.innerHTML = `
+  //   @media print {
+  //     body * {
+  //       visibility: hidden;
+  //     }
 
-//     #print-area, #print-area * {
-//       visibility: visible;
-//     }
+  //     #print-area, #print-area * {
+  //       visibility: visible;
+  //     }
 
-//     #print-area {
-//       position: absolute;
-//       top: 0;
-//       left: 0;
-//       width: 100%;
-//       margin: 0;
-//       padding: 0;
-//     }
+  //     #print-area {
+  //       position: absolute;
+  //       top: 0;
+  //       left: 0;
+  //       width: 100%;
+  //       margin: 0;
+  //       padding: 0;
+  //     }
 
-//     .no-print {
-//       display: none !important;
-//     }
+  //     .no-print {
+  //       display: none !important;
+  //     }
 
-//     .print-only {
-//       display: block !important;
-//     }
+  //     .print-only {
+  //       display: block !important;
+  //     }
 
-//     .container, .row, .col, .card {
-//       all: unset;
-//     }
+  //     .container, .row, .col, .card {
+  //       all: unset;
+  //     }
 
-//     .card {
-//       break-inside: avoid;
-//       margin-bottom: 10px;
-//     }
+  //     .card {
+  //       break-inside: avoid;
+  //       margin-bottom: 10px;
+  //     }
 
-//     .table-responsive {
-//       overflow: visible !important;
-//     }
+  //     .table-responsive {
+  //       overflow: visible !important;
+  //     }
 
-//     table {
-//       width: 100% !important;
-//       font-size: 10px !important;
-//       border-collapse: collapse !important;
-//       page-break-inside: auto;
-//     }
+  //     table {
+  //       width: 100% !important;
+  //       font-size: 10px !important;
+  //       border-collapse: collapse !important;
+  //       page-break-inside: auto;
+  //     }
 
-//     tr, td, th {
-//       page-break-inside: avoid !important;
-//       page-break-after: auto !important;
-//     }
+  //     tr, td, th {
+  //       page-break-inside: avoid !important;
+  //       page-break-after: auto !important;
+  //     }
 
-//     th, td {
-//       padding: 4px !important;
-//       white-space: nowrap;
-//     }
+  //     th, td {
+  //       padding: 4px !important;
+  //       white-space: nowrap;
+  //     }
 
-//     .print-page-break {
-//       display: block;
-//       page-break-before: always;
-//     }
+  //     .print-page-break {
+  //       display: block;
+  //       page-break-before: always;
+  //     }
 
-//     html, body {
-//       margin: 0 !important;
-//       padding: 0 !important;
-//       background: white !important;
-//       overflow: visible !important;
-//     }
-//   }
-// `;
+  //     html, body {
+  //       margin: 0 !important;
+  //       padding: 0 !important;
+  //       background: white !important;
+  //       overflow: visible !important;
+  //     }
+  //   }
+  // `;
 
-//     document.head.appendChild(style);
+  //     document.head.appendChild(style);
 
-//     window.print();
+  //     window.print();
 
-//     setTimeout(() => {
-//       document.head.removeChild(style);
-//     }, 1000);
-//   };
-const handlePrint = () => {
-  window.scrollTo(0, 0);
-  window.print();
-};
-
+  //     setTimeout(() => {
+  //       document.head.removeChild(style);
+  //     }, 1000);
+  //   };
+  const handlePrint = () => {
+    window.scrollTo(0, 0);
+    window.print();
+  };
 
   const handleDownloadExcel = () => {
     setDownloadModal(true);
@@ -322,11 +321,14 @@ const handlePrint = () => {
   const formatDate = (dateString) => {
     if (!dateString) return "";
     const date = new Date(dateString);
-    return date.toLocaleDateString("en-GB", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    });
+    return date
+      .toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      })
+      .toUpperCase()
+      .replace(/\//g, "/");
   };
 
   const formatWordsInChunks = (text, chunkSize = 3) => {
@@ -408,8 +410,8 @@ const handlePrint = () => {
                     <FiFilter className="me-1" />
                     <span>
                       <strong>Filter Applied:</strong>{" "}
-                      {startDate ? formatDate(startDate) : "Start"} to{" "}
-                      {endDate ? formatDate(endDate) : "End"}
+                      {startDate ? formatDate(startDate) : "START"} to{" "}
+                      {endDate ? formatDate(endDate) : "END"}
                     </span>
                   </div>
                 </Col>
@@ -423,9 +425,9 @@ const handlePrint = () => {
               <h2>Production Allocation Plan</h2>
               {(startDate || endDate) && (
                 <div className="print-filter">
-                  <strong>Date Range:</strong>{" "}
-                  {startDate ? formatDate(startDate) : "Start"} to{" "}
-                  {endDate ? formatDate(endDate) : "End"}
+                  <strong>DATE RANGE:</strong>{" "}
+                  {startDate ? formatDate(startDate) : "START"} to{" "}
+                  {endDate ? formatDate(endDate) : "END"}
                 </div>
               )}
               <div className="print-date">
@@ -495,7 +497,8 @@ const handlePrint = () => {
             <div id="print-area">
               {filteredAllocations.map((project, projectIndex) => (
                 <div key={project.projectName} className="print-section">
-                  <Card className="shadow-none"
+                  <Card
+                    className="shadow-none"
                     style={{
                       pageBreakInside: "avoid",
                       boxShadow: "none",
