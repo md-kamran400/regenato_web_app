@@ -40,7 +40,7 @@ const MachineCapacity = () => {
   useEffect(() => {
     fetchData();
   }, []);
-
+  
   useEffect(() => {
     if (allocations.length > 0) {
       filterAllocationsByDate();
@@ -121,10 +121,31 @@ const MachineCapacity = () => {
       };
     });
 
-    // Track occupied machines per category
+    // Track occupied machines per category based on filtered allocations
     filteredAllocations.forEach((project) => {
       project.allocations.forEach((alloc) => {
         alloc.allocations.forEach((machineAlloc) => {
+          // Check if the allocation falls within the selected date range
+          const allocStartDate = parseISO(machineAlloc.startDate);
+          const allocEndDate = parseISO(machineAlloc.endDate);
+
+          // Skip if we have a date range and this allocation doesn't overlap
+          if (
+            startDate &&
+            endDate &&
+            startDate.getTime() !== endDate.getTime()
+          ) {
+            if (
+              !(
+                (allocStartDate >= startDate && allocStartDate <= endDate) ||
+                (allocEndDate >= startDate && allocEndDate <= endDate) ||
+                (allocStartDate <= startDate && allocEndDate >= endDate)
+              )
+            ) {
+              return;
+            }
+          }
+
           // Find which category this machine belongs to
           for (const category of categories) {
             const machineExists = category.subCategories.some(
