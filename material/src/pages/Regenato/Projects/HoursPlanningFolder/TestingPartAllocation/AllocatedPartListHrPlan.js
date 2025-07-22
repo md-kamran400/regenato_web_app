@@ -79,6 +79,10 @@ export const AllocatedPartListHrPlan = ({
     fromWarehouseChange: 0,
     toWarehouseChange: 0,
   });
+  const [warehouseApiQuantity, setWarehouseApiQuantity] = useState(null);
+  const [warehouseApiLoading, setWarehouseApiLoading] = useState(false);
+  const [warehouseApiError, setWarehouseApiError] = useState(null);
+
   useEffect(() => {
     const disableDatesArray = [];
     if (highlightDates.length > 0) {
@@ -200,7 +204,8 @@ export const AllocatedPartListHrPlan = ({
                   startDate: moment(allocation.startDate).format("DD MMM YYYY"),
                   endDate: moment(allocation.endDate).format("DD MMM YYYY"),
                   machineId: allocation.machineId,
-                  wareHouse: allocation?.wareHouse || "N/A",
+                  wareHouse: allocation?.wareHouse || "N/A", //warehouseId
+                  warehouseId: allocation?.warehouseId || "N/A", //warehouseId
                   shift: allocation.shift,
                   plannedTime: `${allocation.plannedTime} min`,
                   operator: allocation.operator,
@@ -685,6 +690,49 @@ export const AllocatedPartListHrPlan = ({
       setCompletingprocess(false);
     }
   };
+
+  // Helper to get the part code (Itemcode) for the selected part
+  const getSelectedPartCode = () => {
+    // Try to get from selectedSection, fallback to partManufacturingVariables
+    return selectedSection?.data?.[0]?.machineId || selectedSection?.data?.[0]?.partCode || null;
+  };
+
+  // Fetch warehouse quantity from external API when modal is opened and selectedSection changes
+  useEffect(() => {
+    const fetchWarehouseApiQuantity = async () => {
+      setWarehouseApiLoading(true);
+      setWarehouseApiError(null);
+      setWarehouseApiQuantity(null);
+      try {
+        // Only fetch if we have a part code and warehouseId
+        const partCode = selectedSection?.data?.[0]?.machineId || selectedSection?.data?.[0]?.partCode || selectedSection?.data?.[0]?.Itemcode || null;
+        const warehouseId = selectedSection?.data?.[0]?.warehouseId || null;
+        if (!partCode || !warehouseId) {
+          setWarehouseApiLoading(false);
+          return;
+        }
+        const response = await fetch("http://182.77.56.228:85/GoodsReceipt/GetGoodsReceiptDetails");
+        if (!response.ok) throw new Error("Failed to fetch warehouse data");
+        const data = await response.json();
+        // Filter for matching part code and warehouseId
+        const filtered = data.filter(
+          (item) =>
+            String(item.Itemcode).trim() === String(partCode).trim() &&
+            String(item.WhsCode).trim() === String(warehouseId).trim()
+        );
+        // Sum the quantities for all matches
+        const totalQty = filtered.reduce((sum, item) => sum + Number(item.Quantity), 0);
+        setWarehouseApiQuantity(totalQty);
+      } catch (err) {
+        setWarehouseApiError("Error fetching warehouse quantity");
+      } finally {
+        setWarehouseApiLoading(false);
+      }
+    };
+    if (selectedSection && selectedSection.data && selectedSection.data[0]) {
+      fetchWarehouseApiQuantity();
+    }
+  }, [selectedSection]);
 
   return (
     <div style={{ width: "100%" }}>
@@ -1318,7 +1366,7 @@ export const AllocatedPartListHrPlan = ({
                                         borderRadius: "6px",
                                       }}
                                     >
-                                      {row.wareHouse}
+                                      {`${row.wareHouse} - ${row.warehouseId}`}
                                     </div>
                                   </div>
                                 </div>
@@ -1774,7 +1822,7 @@ export const AllocatedPartListHrPlan = ({
                       Warehouse Name
                     </h5>
                     <div style={{ fontSize: "14px" }}>
-                      {selectedSection?.data[0]?.wareHouse || "N/A"}
+                      {selectedSection?.data[0]?.wareHouse || "N/A"} - {selectedSection?.data[0]?.warehouseId || "N/A"}
                     </div>
                   </Col>
                 </Row>
@@ -1790,7 +1838,15 @@ export const AllocatedPartListHrPlan = ({
                     >
                       Total Quantity in Warehouse
                     </h5>
-                    <p style={{ fontSize: "14px", marginBottom: 0 }}>300</p>
+                    <p style={{ fontSize: "14px", marginBottom: 0 }}>
+                      {warehouseApiLoading
+                        ? "Loading..."
+                        : warehouseApiError
+                        ? warehouseApiError
+                        : warehouseApiQuantity !== null
+                        ? warehouseApiQuantity
+                        : "-"}
+                    </p>
                   </Col>
                 </Row>
               </Container>
@@ -2887,7 +2943,7 @@ export const AllocatedPartListHrPlan = ({
                   <strong>From Warehouse:</strong>
                 </Col>
                 <Col md={9}>
-                  {selectedSection?.data[0]?.wareHouse || "N/A"} (Quantity:{" "}
+                  {`${selectedSection?.data[0]?.wareHouse || "N/A"} - ${selectedSection?.data[0]?.warehouseId || "N/A"}`} (Quantity:{" "}
                   {300 + (warehouseChanges.fromWarehouseChange || 0)})
                 </Col>
               </Row>

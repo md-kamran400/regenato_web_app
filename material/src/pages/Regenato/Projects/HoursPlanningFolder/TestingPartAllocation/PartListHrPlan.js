@@ -1422,6 +1422,7 @@ export const PartListHrPlan = ({
                   ),
                   machineId: row.machineId,
                   wareHouse: machine?.wareHouse || "N/A",
+                  warehouseId: machine?.warehouseId || "N/A",
                   shift: row.shift,
                   plannedTime: row.plannedQtyTime,
                   operator:
@@ -3125,9 +3126,10 @@ export const PartListHrPlan = ({
                                         machineId: newValue
                                           ? newValue.subcategoryId
                                           : "",
-                                        warehouse: newValue
+                                        wareHouse: newValue
                                           ? newValue.wareHouse
                                           : "",
+                                        warehouseId: newValue ? newValue.warehouseId : "",
                                       };
 
                                       if (

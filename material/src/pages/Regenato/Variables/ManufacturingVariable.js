@@ -76,6 +76,7 @@ const ManufacturingVariable = () => {
     name: "",
     hourlyRate: "",
     wareHouse: "",
+    warehouseId: ""
   });
   const [lastUsedId, setLastUsedId] = useState("");
 
@@ -99,6 +100,7 @@ const ManufacturingVariable = () => {
         name: item.name,
         hourlyRate: item.hourlyRate,
         wareHouse: item.wareHouse,
+        warehouseId: item.warehouseId || ""
       });
       setEditingSubId(item._id); // Set the ID of the item being edited
     } else {
@@ -107,6 +109,7 @@ const ManufacturingVariable = () => {
         name: "",
         hourlyRate: "",
         wareHouse: "",
+        warehouseId: ""
       });
       setEditingSubId(null); // Reset the ID if no item is selected
     }
@@ -201,18 +204,15 @@ const ManufacturingVariable = () => {
           throw new Error("Failed to fetch warehouse locations");
         const data = await response.json();
 
-        // Extract all unique locations from all stores
-        const locations = data.reduce((acc, store) => {
+        // Extract all unique locations from all stores as objects with label and warehouseId
+        const locations = [];
+        data.forEach(store => {
           if (store.Name && store.Name.length > 0) {
-            store.Name.forEach((loc) => {
-              if (!acc.includes(loc)) {
-                acc.push(loc);
-              }
+            store.Name.forEach(name => {
+              locations.push({ label: name, warehouseId: store.categoryId });
             });
           }
-          return acc;
-        }, []);
-
+        });
         setWarehouseLocations(locations);
       } catch (error) {
         console.error("Error fetching warehouse locations:", error);
@@ -386,7 +386,7 @@ const ManufacturingVariable = () => {
       await fetchManufacturing(); // Update the UI
       toast.success("Machine Added Successfully!"); // Show success toast
       setModalAddSub(false);
-      setSubFormData({ subcategoryId: "", name: "", hourlyRate: "" });
+      setSubFormData({ subcategoryId: "", name: "", hourlyRate: "", wareHouse: "", warehouseId: "" });
     } catch (error) {
       toast.error(error.message || "Failed to add machine");
     } finally {
@@ -417,7 +417,7 @@ const ManufacturingVariable = () => {
       setIsEditModalOpen(false); // Close the edit modal
 
       // Reset form
-      setSubFormData({ subcategoryId: "", name: "", hourlyRate: "", wareHouse: "", });
+      setSubFormData({ subcategoryId: "", name: "", hourlyRate: "", wareHouse: "", warehouseId: "" });
     } catch (error) {
       toast.error(error.message || "Failed to update machine"); // Error message
     } finally {
@@ -1160,11 +1160,13 @@ const ManufacturingVariable = () => {
               </label>
               <Autocomplete
                 options={warehouseLocations}
-                value={subFormData.wareHouse}
+                getOptionLabel={(option) => option.label}
+                value={warehouseLocations.find(opt => opt.label === subFormData.wareHouse && opt.warehouseId === subFormData.warehouseId) || null}
                 onChange={(event, newValue) => {
                   setSubFormData(prev => ({
                     ...prev,
-                    wareHouse: newValue || ""
+                    wareHouse: newValue ? newValue.label : "",
+                    warehouseId: newValue ? newValue.warehouseId : ""
                   }));
                 }}
                 renderInput={(params) => (
@@ -1242,11 +1244,13 @@ const ManufacturingVariable = () => {
               </label>
               <Autocomplete
                 options={warehouseLocations}
-                value={subFormData.wareHouse}
+                getOptionLabel={(option) => option.label}
+                value={warehouseLocations.find(opt => opt.label === subFormData.wareHouse && opt.warehouseId === subFormData.warehouseId) || null}
                 onChange={(event, newValue) => {
                   setSubFormData(prev => ({
                     ...prev,
-                    wareHouse: newValue || ""
+                    wareHouse: newValue ? newValue.label : "",
+                    warehouseId: newValue ? newValue.warehouseId : ""
                   }));
                 }}
                 renderInput={(params) => (
