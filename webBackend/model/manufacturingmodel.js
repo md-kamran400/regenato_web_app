@@ -35,6 +35,7 @@ const manufacturingSchema = mongoose.Schema({
       hourlyRate: Number,
       totalRate: Number,
       wareHouse: String,
+      warehouseId: String,
       isAvailable: { type: Boolean, default: true },
       status: {
         type: String,

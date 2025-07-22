@@ -53,6 +53,9 @@ const AllocationPlanningSchema = new mongoose.Schema(
         wareHouse:{
           type: String,
         },
+        warehouseId:{
+          type: String,
+        },
         shift: {
           type: String,
           required: true,

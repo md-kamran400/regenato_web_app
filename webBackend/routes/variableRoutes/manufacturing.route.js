@@ -127,7 +127,7 @@ manufacturRouter.delete("/:id", async (req, res) => {
 manufacturRouter.post("/:id/subcategories", async (req, res) => {
   try {
     const { id } = req.params;
-    const { subcategoryId, name, hourlyRate, wareHouse } = req.body;
+    const { subcategoryId, name, hourlyRate, wareHouse, warehouseId } = req.body;
 
     // Validate required fields
     if (!subcategoryId || !name || hourlyRate === undefined || !wareHouse) {
@@ -161,6 +161,7 @@ manufacturRouter.post("/:id/subcategories", async (req, res) => {
       hourlyRate,
       totalRate: 0, // Default value
       wareHouse,
+      warehouseId,
       isAvailable: true,
       status: "available",
       unavailableUntil: null,

@@ -121,7 +121,7 @@ const List = () => {
   const [editPartName, setEditPartName] = useState("");
   const [editDrawingNumber, setEditDrawingNumber] = useState("");
   const [editClientNumber, setEditClientNumber] = useState("");
-
+  const [searchOptions, setSearchOptions] = useState([]);
   const [formData, setFormData] = useState({
     partName: "",
     costPerUnit: "",
@@ -209,6 +209,33 @@ const List = () => {
       }
     },
     [filterType, currentPage, itemsPerPage]
+  );
+
+  const fetchSearchOptions = useCallback(
+    debounce(async (inputValue) => {
+      if (!inputValue) {
+        setSearchOptions([]);
+        return;
+      }
+
+      try {
+        const response = await fetch(
+          `${process.env.REACT_APP_BASE_URL}/api/parts?search=${inputValue}&limit=20`
+        );
+        const result = await response.json();
+        const formatted = result.data.map((project) => ({
+          value: `${project.partName} (${project.id})`,
+          label: `${project.partName} (${project.id})`,
+          partName: project.partName,
+          drawingNumber: project.id,
+        }));
+        setSearchOptions(formatted);
+      } catch (error) {
+        console.error("Search fetch failed:", error);
+        setSearchOptions([]);
+      }
+    }, 300),
+    []
   );
 
   useEffect(() => {
@@ -317,7 +344,7 @@ const List = () => {
     setnewCodeName(inputValue === "" ? "-" : inputValue);
   };
 
-  const handleSearchChange = (selectedOptions) => {
+  const handleSearchChange = async (selectedOptions) => {
     const searchValues = selectedOptions
       ? selectedOptions.map((opt) => ({
           partName: opt.partName,
@@ -327,6 +354,30 @@ const List = () => {
 
     setSearchTerm(searchValues);
     setCurrentPage(1);
+
+    if (searchValues.length === 0) {
+      // If search is cleared, fetch normal paginated data again
+      fetchData(true);
+      return;
+    }
+
+    try {
+      // Construct query to fetch specific parts
+      const queryParams = searchValues
+        .map((term) => `search=${term.drawingNumber}`)
+        .join("&");
+
+      const response = await fetch(
+        `${process.env.REACT_APP_BASE_URL}/api/parts?${queryParams}`
+      );
+
+      const result = await response.json();
+      setListData(result.data || []);
+      setTotalPages(1); // Because we only show selected result(s)
+    } catch (error) {
+      console.error("Failed to fetch selected search data:", error);
+      toast.error("Failed to load search result");
+    }
   };
 
   const partOptions = (listData || []).map((project) => ({
@@ -337,12 +388,9 @@ const List = () => {
   }));
 
   const handleAddPart = async () => {
-    // Extract only the numeric part of the ID
-    // const numericId = newPartId.replace(/[^-\d]/g, "");
-    const numericId = newPartId.replace(/[^a-zA-Z0-9]/g, "");
-
+    // Use the ID as entered by the user, preserving dashes and formatting
     const newPart = {
-      id: numericId,
+      id: newPartId, // <-- preserve formatting
       partName: newPartName,
       clientNumber: newclientNumber,
       codeName: newCodeName || "",
@@ -367,6 +415,12 @@ const List = () => {
       );
 
       if (!response.ok) {
+        // Check for duplicate key error
+        const data = await response.json();
+        if (data.message && data.message.includes("duplicate key error")) {
+          toast.error("A part with this Drawing Number already exists.");
+          return;
+        }
         throw new Error("Failed to add part");
       }
 
@@ -651,6 +705,7 @@ const List = () => {
   // };
 
   // Modify handleUpload to clear cache after successful upload
+
   const handleUpload = async () => {
     if (uploadedFile) {
       setIsUploading(true);
@@ -784,6 +839,7 @@ const List = () => {
   // };
 
   // Modify handleDeleteSelect (bulk delete) to clear cache
+
   const handleDeleteSelect = async () => {
     try {
       if (selectAll) {
@@ -853,11 +909,15 @@ const List = () => {
             {/* Search Box - Full width on small screens */}
             <div className="flex-grow-1">
               <Select
-                options={partOptions}
+                options={searchOptions}
                 isMulti
                 isClearable
                 placeholder="Search by name or drawing number..."
                 onChange={handleSearchChange}
+                onInputChange={(inputValue) => {
+                  fetchSearchOptions(inputValue);
+                  return inputValue; // prevents [object Promise]
+                }}
                 getOptionLabel={(option) =>
                   `${option.partName} (${option.drawingNumber})`
                 }
@@ -867,7 +927,7 @@ const List = () => {
                   control: (provided) => ({
                     ...provided,
                     width: "100%",
-                    minWidth: "200px",
+                    minWidth: "150px",
                     height: "40px",
                     overflow: "hidden",
                   }),
