@@ -1,3 +1,4 @@
+import debounce from "lodash.debounce";
 import React, { useState, useCallback, useEffect, memo } from "react"; //add parts list
 import { FaEdit } from "react-icons/fa";
 // import "../project.css";
@@ -161,6 +162,7 @@ const PartsTable = React.memo(
 
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
+    const [searchTerm, setSearchTerm] = useState("");
 
     const fetchPartsListItems = async () => {
       try {
@@ -312,17 +314,21 @@ const PartsTable = React.memo(
       fetchParts();
     }, []);
 
-    const fetchParts = async (pageNumber = 1) => {
+    const fetchParts = async (pageNumber = 1, search = "") => {
       setLoadingParts(true);
       try {
         const response = await fetch(
-          `${process.env.REACT_APP_BASE_URL}/api/parts?page=${pageNumber}&limit=25`
+          `${
+            process.env.REACT_APP_BASE_URL
+          }/api/parts?page=${pageNumber}&limit=25&search=${encodeURIComponent(
+            search
+          )}`
         );
         const result = await response.json();
         const newParts = result.data;
 
-        setParts((prevParts) =>
-          pageNumber === 1 ? newParts : [...prevParts, ...newParts]
+        setParts((prev) =>
+          pageNumber === 1 ? newParts : [...prev, ...newParts]
         );
         setHasMore(newParts.length > 0);
       } catch (error) {
@@ -331,6 +337,30 @@ const PartsTable = React.memo(
         setLoadingParts(false);
       }
     };
+
+    // Debounced search
+    const debouncedSearch = useCallback(
+      debounce((value) => {
+        setPage(1);
+        setParts([]); // clear previous parts
+        fetchParts(1, value);
+      }, 400),
+      []
+    );
+
+    // Handle search input
+    const handleInputChange = (event, value, reason) => {
+      if (reason === "input") {
+        setSearchTerm(value);
+        debouncedSearch(value);
+      }
+    };
+
+    // Handle selection
+    // const handlePartsChange = (event, newValue) => {
+    //   setSelectedPartIds(new Set(newValue.map((part) => part.id)));
+    //   // Your logic for selected parts here
+    // };
 
     useEffect(() => {
       if (open) {
@@ -1339,55 +1369,16 @@ const PartsTable = React.memo(
             <ModalHeader toggle={toggleAddModal}>Add Part</ModalHeader>
             <ModalBody>
               <form onSubmit={handleSubmit} id="addPartForm">
-                {/* <Autocomplete
-                  multiple
-                  open={open}
-                  onOpen={() => setOpen(true)}
-                  onClose={() => setOpen(false)}
-                  options={parts || []}
-                  loading={loadingParts}
-                  getOptionLabel={(option) =>
-                    option ? `${option.partName} - ${option.id}---` : ""
-                  }
-                  onChange={handlePartsChange}
-                  noOptionsText={
-                    loadingParts ? "Loading parts..." : "No parts available"
-                  }
-                  renderOption={(props, option, { selected }) => (
-                    <li {...props}>
-                      <Checkbox
-                        style={{ marginRight: 8 }}
-                        checked={selectedPartIds.has(option.id)}
-                      />
-                      {`${option.partName} - ${option.id}`}
-                    </li>
-                  )}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      label="Select Parts"
-                      variant="outlined"
-                      onClick={() => setOpen(true)}
-                      InputProps={{
-                        ...params.InputProps,
-                        endAdornment: (
-                          <>
-                            {loadingParts ? (
-                              <CircularProgress color="inherit" size={20} />
-                            ) : null}
-                            {params.InputProps.endAdornment}
-                          </>
-                        ),
-                      }}
-                    />
-                  )}
-                  disableCloseOnSelect
-                /> */}
-
                 <Autocomplete
                   multiple
                   open={open}
-                  onOpen={() => setOpen(true)}
+                  onOpen={() => {
+                    setOpen(true);
+                    if (parts.length === 0) {
+                      setPage(1);
+                      fetchParts(1, searchTerm);
+                    }
+                  }}
                   onClose={() => setOpen(false)}
                   options={parts}
                   loading={loadingParts}
@@ -1395,6 +1386,7 @@ const PartsTable = React.memo(
                     option ? `${option.partName} - ${option.id}` : ""
                   }
                   onChange={handlePartsChange}
+                  onInputChange={handleInputChange}
                   disableCloseOnSelect
                   ListboxProps={{
                     onScroll: (event) => {
@@ -1405,7 +1397,7 @@ const PartsTable = React.memo(
                       if (bottom && hasMore && !loadingParts) {
                         const nextPage = page + 1;
                         setPage(nextPage);
-                        fetchParts(nextPage);
+                        fetchParts(nextPage, searchTerm);
                       }
                     },
                   }}
@@ -1437,6 +1429,7 @@ const PartsTable = React.memo(
                     />
                   )}
                 />
+
 
                 <div className="form-group" style={{ display: "none" }}>
                   <Label for="partId" className="form-label">

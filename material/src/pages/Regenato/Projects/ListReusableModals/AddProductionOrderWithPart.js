@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Button,
   Col,
@@ -11,6 +11,7 @@ import {
 } from "reactstrap";
 import Select from "react-select";
 import { toast } from "react-toastify";
+import debounce from "lodash.debounce";
 
 const AddProductionOrderWithPart = ({ isOpen, toggle, onSuccess }) => {
   const [poFormData, setPoFormData] = useState({
@@ -21,29 +22,42 @@ const AddProductionOrderWithPart = ({ isOpen, toggle, onSuccess }) => {
     partsCodeId: "",
   });
 
-  const [partsOptions, setPartsOptions] = useState([]);
+  const [parts, setParts] = useState([]);
   const [isLoadingParts, setIsLoadingParts] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
-  const [parts, setParts] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
 
-  const fetchParts = async (pageNumber = 1) => {
+  // 🧠 Debounced search handler
+  const debouncedSearch = useCallback(
+    debounce((value) => {
+      setPage(1);
+      fetchParts(1, value);
+    }, 300),
+    []
+  );
+
+  const fetchParts = async (pageNumber = 1, search = "") => {
     setIsLoadingParts(true);
     try {
       const response = await fetch(
-        `${process.env.REACT_APP_BASE_URL}/api/parts?page=${pageNumber}&limit=25`
+        `${
+          process.env.REACT_APP_BASE_URL
+        }/api/parts?page=${pageNumber}&limit=25&search=${encodeURIComponent(
+          search
+        )}`
       );
       const result = await response.json();
-      const newParts = result.data;
-
-      const options = newParts.map((part) => ({
+      const newParts = result.data.map((part) => ({
         value: part._id,
-        label: part.partName,
+        label: `${part.partName} (${part.id})`,
       }));
 
-      setParts((prev) => (pageNumber === 1 ? options : [...prev, ...options]));
-      setHasMore(options.length > 0);
+      setParts((prev) =>
+        pageNumber === 1 ? newParts : [...prev, ...newParts]
+      );
+      setHasMore(newParts.length > 0);
     } catch (error) {
       toast.error("Failed to load parts");
     } finally {
@@ -54,7 +68,7 @@ const AddProductionOrderWithPart = ({ isOpen, toggle, onSuccess }) => {
   useEffect(() => {
     if (isOpen) {
       setPage(1);
-      fetchParts(1);
+      fetchParts(1, searchTerm);
     }
   }, [isOpen]);
 
@@ -64,11 +78,26 @@ const AddProductionOrderWithPart = ({ isOpen, toggle, onSuccess }) => {
   };
 
   const handlePartSelect = (selectedOption) => {
-    setPoFormData((prev) => ({
-      ...prev,
-      partName: selectedOption.label,
-      partsCodeId: selectedOption.value,
-    }));
+    if (!selectedOption) {
+      setPoFormData((prev) => ({
+        ...prev,
+        partName: "",
+        partsCodeId: "",
+      }));
+    } else {
+      setPoFormData((prev) => ({
+        ...prev,
+        partName: selectedOption.label,
+        partsCodeId: selectedOption.value,
+      }));
+    }
+  };
+
+  const handleInputChange = (inputValue) => {
+    setSearchTerm(inputValue);
+    setPage(1);
+    debouncedSearch(inputValue);
+    return inputValue;
   };
 
   const handleSubmit = async (e) => {
@@ -170,14 +199,14 @@ const AddProductionOrderWithPart = ({ isOpen, toggle, onSuccess }) => {
                   options={parts}
                   isLoading={isLoadingParts}
                   onChange={handlePartSelect}
-                  placeholder="Select a part"
+                  placeholder="Search and select a part"
                   isClearable
-                  required
+                  onInputChange={handleInputChange}
                   onMenuScrollToBottom={() => {
                     if (hasMore && !isLoadingParts) {
                       const nextPage = page + 1;
                       setPage(nextPage);
-                      fetchParts(nextPage);
+                      fetchParts(nextPage, searchTerm);
                     }
                   }}
                   styles={{

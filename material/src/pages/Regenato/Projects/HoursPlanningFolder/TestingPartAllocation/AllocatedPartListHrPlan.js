@@ -40,6 +40,7 @@ export const AllocatedPartListHrPlan = ({
   onDeleteSuccess,
   onUpdateAllocaitonStatus,
   partManufacturingVariables,
+  // partsCodeId
 }) => {
   const userRole = localStorage.getItem("userRole");
   const [sections, setSections] = useState([]);
@@ -79,9 +80,6 @@ export const AllocatedPartListHrPlan = ({
     fromWarehouseChange: 0,
     toWarehouseChange: 0,
   });
-  const [warehouseApiQuantity, setWarehouseApiQuantity] = useState(null);
-  const [warehouseApiLoading, setWarehouseApiLoading] = useState(false);
-  const [warehouseApiError, setWarehouseApiError] = useState(null);
 
   useEffect(() => {
     const disableDatesArray = [];
@@ -179,6 +177,7 @@ export const AllocatedPartListHrPlan = ({
               allocationId: item._id,
               title: item.processName,
               isSpecialDay: processInfo?.isSpecialday || false,
+              warehouseQuantity: item.warehouseQuantity, // <-- add this
               data: item.allocations.map((allocation) => {
                 // Ensure we have valid values for calculation
                 const shiftTotalTime = allocation.shiftTotalTime || 510; // Default to 8.5 hours in minutes if not set
@@ -694,45 +693,12 @@ export const AllocatedPartListHrPlan = ({
   // Helper to get the part code (Itemcode) for the selected part
   const getSelectedPartCode = () => {
     // Try to get from selectedSection, fallback to partManufacturingVariables
-    return selectedSection?.data?.[0]?.machineId || selectedSection?.data?.[0]?.partCode || null;
+    return (
+      selectedSection?.data?.[0]?.machineId ||
+      selectedSection?.data?.[0]?.partCode ||
+      null
+    );
   };
-
-  // Fetch warehouse quantity from external API when modal is opened and selectedSection changes
-  useEffect(() => {
-    const fetchWarehouseApiQuantity = async () => {
-      setWarehouseApiLoading(true);
-      setWarehouseApiError(null);
-      setWarehouseApiQuantity(null);
-      try {
-        // Only fetch if we have a part code and warehouseId
-        const partCode = selectedSection?.data?.[0]?.machineId || selectedSection?.data?.[0]?.partCode || selectedSection?.data?.[0]?.Itemcode || null;
-        const warehouseId = selectedSection?.data?.[0]?.warehouseId || null;
-        if (!partCode || !warehouseId) {
-          setWarehouseApiLoading(false);
-          return;
-        }
-        const response = await fetch("http://182.77.56.228:85/GoodsReceipt/GetGoodsReceiptDetails");
-        if (!response.ok) throw new Error("Failed to fetch warehouse data");
-        const data = await response.json();
-        // Filter for matching part code and warehouseId
-        const filtered = data.filter(
-          (item) =>
-            String(item.Itemcode).trim() === String(partCode).trim() &&
-            String(item.WhsCode).trim() === String(warehouseId).trim()
-        );
-        // Sum the quantities for all matches
-        const totalQty = filtered.reduce((sum, item) => sum + Number(item.Quantity), 0);
-        setWarehouseApiQuantity(totalQty);
-      } catch (err) {
-        setWarehouseApiError("Error fetching warehouse quantity");
-      } finally {
-        setWarehouseApiLoading(false);
-      }
-    };
-    if (selectedSection && selectedSection.data && selectedSection.data[0]) {
-      fetchWarehouseApiQuantity();
-    }
-  }, [selectedSection]);
 
   return (
     <div style={{ width: "100%" }}>
@@ -901,14 +867,16 @@ export const AllocatedPartListHrPlan = ({
                       </td>
                       <td style={{ padding: "1.25rem" }}>
                         <div
-                           style={{
+                          style={{
                             display: "grid",
                             gridTemplateColumns: "1fr",
                             gap: "1.25rem",
                             padding: "0.5rem 0",
-                            "@media (min-width: 992px)": {  // Adjust breakpoint as needed
-                              gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
-                            }
+                            "@media (min-width: 992px)": {
+                              // Adjust breakpoint as needed
+                              gridTemplateColumns:
+                                "repeat(auto-fill, minmax(300px, 1fr))",
+                            },
                           }}
                         >
                           {section.data.map((row, rowIndex) => (
@@ -1366,7 +1334,7 @@ export const AllocatedPartListHrPlan = ({
                                         borderRadius: "6px",
                                       }}
                                     >
-                                      {`${row.wareHouse} - ${row.warehouseId}`}
+                                      {`${row.wareHouse} `}
                                     </div>
                                   </div>
                                 </div>
@@ -1437,7 +1405,7 @@ export const AllocatedPartListHrPlan = ({
                                       padding: "0.5rem 1rem",
                                       fontSize: "0.875rem",
                                       fontWeight: 500,
-                                      maxWidth: '150px',
+                                      maxWidth: "150px",
                                     }}
                                   >
                                     <FiEdit size={16} />
@@ -1464,7 +1432,7 @@ export const AllocatedPartListHrPlan = ({
                   color="success"
                   onClick={() => setCompleteConfirmationModal(true)}
                   disabled={sections.length === 0 || !isAllocationCompleted()}
-                  style={{ marginRight: "10px",maxWidth:'30%' }}
+                  style={{ marginRight: "10px", maxWidth: "30%" }}
                 >
                   Complete Allocation
                 </Button>
@@ -1472,8 +1440,7 @@ export const AllocatedPartListHrPlan = ({
                   color="danger"
                   onClick={() => setDeleteConfirmationModal(true)}
                   disabled={sections.length === 0}
-                  style={{maxWidth:'30%' }}
-
+                  style={{ maxWidth: "30%" }}
                 >
                   Cancel Allocation
                 </Button>
@@ -1494,10 +1461,10 @@ export const AllocatedPartListHrPlan = ({
         isOpen={dailyTaskModal}
         toggle={closeDailyTaskModal}
         style={{
-    maxWidth: "80vw",
-    width: "100%",
-    margin: "auto",
-  }}
+          maxWidth: "80vw",
+          width: "100%",
+          margin: "auto",
+        }}
       >
         <ModalHeader toggle={() => setDailyTaskModal(false)}>
           Update Input
@@ -1822,7 +1789,8 @@ export const AllocatedPartListHrPlan = ({
                       Warehouse Name
                     </h5>
                     <div style={{ fontSize: "14px" }}>
-                      {selectedSection?.data[0]?.wareHouse || "N/A"} - {selectedSection?.data[0]?.warehouseId || "N/A"}
+                      {selectedSection?.data[0]?.wareHouse || "N/A"} -{" "}
+                      {/* {selectedSection?.data[0]?.warehouseId || "N/A"} */}
                     </div>
                   </Col>
                 </Row>
@@ -1839,13 +1807,9 @@ export const AllocatedPartListHrPlan = ({
                       Total Quantity in Warehouse
                     </h5>
                     <p style={{ fontSize: "14px", marginBottom: 0 }}>
-                      {warehouseApiLoading
-                        ? "Loading..."
-                        : warehouseApiError
-                        ? warehouseApiError
-                        : warehouseApiQuantity !== null
-                        ? warehouseApiQuantity
-                        : "-"}
+                      {selectedSection?.warehouseQuantity !== undefined
+                        ? selectedSection.warehouseQuantity
+                        : "No data available"}
                     </p>
                   </Col>
                 </Row>
@@ -1919,7 +1883,7 @@ export const AllocatedPartListHrPlan = ({
                   disabled={
                     calculateRemainingQuantity() <= 0 || hasTrackingForToday()
                   }
-                  style={{ maxWidth:'30%' }}
+                  style={{ maxWidth: "30%" }}
                 >
                   Add Daily Input
                 </Button>
@@ -2028,10 +1992,10 @@ export const AllocatedPartListHrPlan = ({
         isOpen={addRowModal}
         toggle={closeAddRowModal}
         style={{
-    maxWidth: "80vw",
-    width: "100%",
-    margin: "auto",
-  }}
+          maxWidth: "80vw",
+          width: "100%",
+          margin: "auto",
+        }}
       >
         <ModalHeader toggle={closeAddRowModal}>Add Input</ModalHeader>
         <ModalBody>
@@ -2272,56 +2236,63 @@ export const AllocatedPartListHrPlan = ({
                       </div>
                     </div>
                   )} */}
-                  <Row>
-  <Col xs={12} sm={12} md={6} lg={4}>
-    {/* Status */}
-    {dailyTracking.length > 0 &&
-      dailyTracking[0].produced !== undefined &&
-      dailyTracking[0].planned !== undefined && (
-        <div className="form-group">
-          <label>Status</label>
-          <div
-            className="form-control"
-            style={{
-              backgroundColor: "#f8f9fa",
-              border: "1px solid #ced4da",
-              padding: "0.375rem 0.75rem",
-              borderRadius: "0.25rem",
-              color: "#495057",
-              height: "42px",
-              display: "flex",
-              alignItems: "center",
-              whiteSpace: "nowrap", // prevent text wrap
-              overflow: "hidden",   // hide overflow
-              textOverflow: "ellipsis", // add ... for long text
-            }}
-          >
-            {(() => {
-              const produced = Number(dailyTracking[0].produced) || 0;
-              const planned = Number(dailyTracking[0].planned) || 0;
+                <Row>
+                  <Col xs={12} sm={12} md={6} lg={12}>
+                    {/* Status */}
+                    {dailyTracking.length > 0 &&
+                      dailyTracking[0].produced !== undefined &&
+                      dailyTracking[0].planned !== undefined && (
+                        <div className="form-group">
+                          <label>Status</label>
+                          <div
+                            className="form-control"
+                            style={{
+                              backgroundColor: "#f8f9fa",
+                              border: "1px solid #ced4da",
+                              padding: "0.375rem 0.75rem",
+                              borderRadius: "0.25rem",
+                              color: "#495057",
+                              height: "42px",
+                              display: "flex",
+                              alignItems: "center",
+                              whiteSpace: "nowrap", // prevent text wrap
+                              overflow: "hidden", // hide overflow
+                              textOverflow: "ellipsis", // add ... for long text
+                            }}
+                          >
+                            {(() => {
+                              const produced =
+                                Number(dailyTracking[0].produced) || 0;
+                              const planned =
+                                Number(dailyTracking[0].planned) || 0;
 
-              if (produced === 0) {
-                return (
-                  <span className="text-danger">
-                    Please Enter Produced Quantity
-                  </span>
-                );
-              }
+                              if (produced === 0) {
+                                return (
+                                  <span className="text-danger">
+                                    Please Enter Produced Quantity
+                                  </span>
+                                );
+                              }
 
-              if (produced === planned) {
-                return <span className="text-primary">On Track</span>;
-              } else if (produced > planned) {
-                return <span className="text-success">Ahead</span>;
-              } else {
-                return <span className="text-danger">Delayed</span>;
-              }
-            })()}
-          </div>
-        </div>
-      )}
-  </Col>
-</Row>
-
+                              if (produced === planned) {
+                                return (
+                                  <span className="text-primary">On Track</span>
+                                );
+                              } else if (produced > planned) {
+                                return (
+                                  <span className="text-success">Ahead</span>
+                                );
+                              } else {
+                                return (
+                                  <span className="text-danger">Delayed</span>
+                                );
+                              }
+                            })()}
+                          </div>
+                        </div>
+                      )}
+                  </Col>
+                </Row>
 
                 {/* Operator */}
                 <div className="form-group">
@@ -2639,8 +2610,11 @@ export const AllocatedPartListHrPlan = ({
                                 color: "red",
                               }}
                             >
-                              {300 +
-                                (warehouseChanges.fromWarehouseChange || 0)}
+                              {/* {300 +
+                                (warehouseChanges.fromWarehouseChange || 0)} */}
+                                {selectedSection?.warehouseQuantity !== undefined
+                        ? selectedSection.warehouseQuantity
+                        : "No data available"}
                             </p>
                             {dailyTracking[0]?.produced > 0 && (
                               <FaArrowDown color="red" />
@@ -2943,8 +2917,11 @@ export const AllocatedPartListHrPlan = ({
                   <strong>From Warehouse:</strong>
                 </Col>
                 <Col md={9}>
-                  {`${selectedSection?.data[0]?.wareHouse || "N/A"} - ${selectedSection?.data[0]?.warehouseId || "N/A"}`} (Quantity:{" "}
-                  {300 + (warehouseChanges.fromWarehouseChange || 0)})
+                  {`${selectedSection?.data[0]?.wareHouse || "N/A"} - ${
+                    selectedSection?.data[0]?.warehouseId || "N/A"
+                  }`}{" "}
+                  (Quantity: {300 + (warehouseChanges.fromWarehouseChange || 0)}
+                  )
                 </Col>
               </Row>
 

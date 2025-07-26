@@ -2044,6 +2044,7 @@ export const PartListHrPlan = ({
             onDeleteSuccess={handleDeleteSuccess}
             onUpdateAllocaitonStatus={onUpdateAllocaitonStatus}
             partManufacturingVariables={partManufacturingVariables}
+            // partsCodeId={partsCodeId}
           />
         )}
         {activeTab === "actual" && !isDataAllocated && (
