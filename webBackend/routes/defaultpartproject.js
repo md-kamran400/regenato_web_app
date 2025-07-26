@@ -160,18 +160,20 @@ partproject.get("/projects", async (req, res) => {
 
     // Fetch projects with only necessary fields
     const projects = await PartListProjectModel.find(query)
-      .select('projectName createdAt projectType costPerUnit timePerUnit machineHours partsLists subAssemblyListFirst assemblyList')
+      .select(
+        "projectName createdAt projectType costPerUnit timePerUnit machineHours partsLists subAssemblyListFirst assemblyList"
+      )
       .lean(); // Use lean() for faster plain JS objects
 
     // Process calculations in memory without saving
-    const processedProjects = projects.map(project => {
+    const processedProjects = projects.map((project) => {
       let totalProjectCost = 0;
       let totalProjectHours = 0;
       const machineHours = {};
 
       // Helper function to process parts list items
       const processItems = (items) => {
-        items.forEach(item => {
+        items.forEach((item) => {
           const costPerUnit = Number(item.costPerUnit) || 0;
           const timePerUnit = Number(item.timePerUnit) || 0;
           const quantity = Number(item.quantity) || 0;
@@ -184,11 +186,12 @@ partproject.get("/projects", async (req, res) => {
 
           // Process manufacturing variables if they exist
           if (Array.isArray(item.manufacturingVariables)) {
-            item.manufacturingVariables.forEach(machine => {
+            item.manufacturingVariables.forEach((machine) => {
               const machineName = machine.name;
               const machineHoursVal = Number(machine.hours) || 0;
               const totalHours = machineHoursVal * quantity;
-              machineHours[machineName] = (machineHours[machineName] || 0) + totalHours;
+              machineHours[machineName] =
+                (machineHours[machineName] || 0) + totalHours;
             });
           }
         });
@@ -196,7 +199,7 @@ partproject.get("/projects", async (req, res) => {
 
       // Process all parts lists
       if (project.partsLists) {
-        project.partsLists.forEach(partsList => {
+        project.partsLists.forEach((partsList) => {
           if (partsList.partsListItems) {
             processItems(partsList.partsListItems);
           }
@@ -205,7 +208,7 @@ partproject.get("/projects", async (req, res) => {
 
       // Process sub assemblies if they exist
       if (project.subAssemblyListFirst) {
-        project.subAssemblyListFirst.forEach(subAssembly => {
+        project.subAssemblyListFirst.forEach((subAssembly) => {
           if (subAssembly.partsListItems) {
             processItems(subAssembly.partsListItems);
           }
@@ -214,12 +217,12 @@ partproject.get("/projects", async (req, res) => {
 
       // Process assemblies if they exist
       if (project.assemblyList) {
-        project.assemblyList.forEach(assembly => {
+        project.assemblyList.forEach((assembly) => {
           if (assembly.partsListItems) {
             processItems(assembly.partsListItems);
           }
           if (assembly.subAssemblies) {
-            assembly.subAssemblies.forEach(subAssembly => {
+            assembly.subAssemblies.forEach((subAssembly) => {
               if (subAssembly.partsListItems) {
                 processItems(subAssembly.partsListItems);
               }
@@ -233,7 +236,7 @@ partproject.get("/projects", async (req, res) => {
         ...project,
         costPerUnit: totalProjectCost,
         timePerUnit: totalProjectHours,
-        machineHours: machineHours
+        machineHours: machineHours,
       };
     });
 
@@ -1115,12 +1118,36 @@ partproject.get(
         return res.status(404).json({ message: "Part List Item not found" });
       }
 
-      // Return allocations in the exact stored order
+      // Fetch warehouse quantity for this part (by partsCodeId)
+      let warehouseQuantity = 0;
+      try {
+        if (partItem.partsCodeId) {
+          const goodsReceiptRes = await axios.get(
+            // "http://182.77.56.228:85/GoodsReceipt/GetGoodsReceipt",
+            `${baseUrl}/api/GetGoodsReceipt`,
+            { timeout: 10000 }
+          );
+          // console.log(goodsReceiptRes.data)
+          const match = goodsReceiptRes.data.find(
+            (item) =>
+              String(item.Itemcode).trim().toLowerCase() ===
+              String(partItem.partsCodeId).trim().toLowerCase()
+          );
+          if (match) {
+            warehouseQuantity = match.Quantity;
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching warehouse quantity:", err.message);
+      }
+
+      // Return allocations in the exact stored order, include warehouseQuantity
       res.status(200).json({
         message: "Allocations retrieved successfully",
         data: (partItem.allocations || []).map((allocation) => ({
           ...allocation.toObject(),
           dailyTracking: allocation.dailyTracking,
+          warehouseQuantity, // include the fetched quantity
         })),
       });
     } catch (error) {
@@ -1316,9 +1343,10 @@ partproject.post(
         dailyPlannedQty = plannedQuantity;
       } else {
         const totalTimeRequired = plannedQuantity * perMachinetotalTime;
-        dailyPlannedQty = totalTimeRequired <= shiftTotalTime
-          ? plannedQuantity
-          : Math.floor(shiftTotalTime / perMachinetotalTime);
+        dailyPlannedQty =
+          totalTimeRequired <= shiftTotalTime
+            ? plannedQuantity
+            : Math.floor(shiftTotalTime / perMachinetotalTime);
       }
 
       dailyPlannedQty = Math.max(1, dailyPlannedQty);
@@ -1385,9 +1413,9 @@ partproject.post(
       const isWorkingDay = (date) => {
         const dateObj = new Date(date);
         if (dateObj.getDay() === 0) return false; // Sunday
-        const dateStr = dateObj.toISOString().split('T')[0];
+        const dateStr = dateObj.toISOString().split("T")[0];
         return !holidays.some(
-          (holiday) => new Date(holiday).toISOString().split('T')[0] === dateStr
+          (holiday) => new Date(holiday).toISOString().split("T")[0] === dateStr
         );
       };
 
@@ -1397,9 +1425,9 @@ partproject.post(
       if (remainingQuantity <= 0) {
         // If production is complete, use the last production date
         const productionDates = allocation.dailyTracking
-          .filter(entry => entry.produced > 0)
-          .map(entry => new Date(entry.date));
-        
+          .filter((entry) => entry.produced > 0)
+          .map((entry) => new Date(entry.date));
+
         if (productionDates.length > 0) {
           actualEndDate = new Date(Math.max(...productionDates));
         }

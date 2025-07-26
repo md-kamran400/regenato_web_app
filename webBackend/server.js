@@ -43,6 +43,7 @@ const assemblyListProject = require("./routes/defaultassembly");
 const {
   storeVariableRouter,
 } = require("./routes/variableRoutes/stores.routes");
+const stagingRoutes = require("./routes/staging/Staging");
 
 // MongoDB connection
 const connect = async () => {
@@ -84,6 +85,7 @@ app.use("/api/subAssembly", subAssemblyRoutes);
 app.use("/api/assmebly", AssemblyRoutes);
 app.use("/api/userManagement", UserRoute);
 app.use("/api/allocation", allocationRoutes);
+app.use('/api', stagingRoutes)
 
 app.get("/api/holidays", async (req, res) => {
   try {
@@ -95,6 +97,7 @@ app.get("/api/holidays", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch data" });
   }
 });
+
 
 cron.schedule(
   "45 23 * * *",
