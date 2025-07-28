@@ -2612,9 +2612,9 @@ export const AllocatedPartListHrPlan = ({
                             >
                               {/* {300 +
                                 (warehouseChanges.fromWarehouseChange || 0)} */}
-                                {selectedSection?.warehouseQuantity !== undefined
-                        ? selectedSection.warehouseQuantity
-                        : "No data available"}
+                              {selectedSection?.warehouseQuantity !== undefined
+                                ? selectedSection.warehouseQuantity
+                                : "No data available"}
                             </p>
                             {dailyTracking[0]?.produced > 0 && (
                               <FaArrowDown color="red" />
