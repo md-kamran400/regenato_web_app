@@ -41,12 +41,10 @@ stagingRoutes.get("/GetGoodsReceiptByPart", async (req, res) => {
         String(partsCodeId).trim().toLowerCase()
     );
     if (!match) {
-      return res
-        .status(404)
-        .json({
-          error: "No matching Itemcode found for partsCodeId",
-          quantity: 0,
-        });
+      return res.status(404).json({
+        error: "No matching Itemcode found for partsCodeId",
+        quantity: 0,
+      });
     }
     res.json({ quantity: match.Quantity, item: match });
   } catch (error) {
