@@ -597,6 +597,32 @@ const ManufacturingVariable = () => {
     }
   };
 
+  // Function to render status badge
+  const renderStatusBadge = (status, allocations, downtimeHistory) => {
+    const badge = getStatusBadge(status);
+    
+    return (
+      <span
+        style={{
+          backgroundColor: badge.color === "green" ? "#d4edda" : 
+                         badge.color === "orange" ? "#fff3cd" : 
+                         badge.color === "red" ? "#f8d7da" : "#e2e3e5",
+          color: badge.color === "green" ? "#155724" : 
+                 badge.color === "orange" ? "#856404" : 
+                 badge.color === "red" ? "#721c24" : "#383d41",
+          padding: "4px 8px",
+          borderRadius: "4px",
+          fontSize: "12px",
+          fontWeight: "bold",
+          display: "inline-block",
+          marginBottom: "4px"
+        }}
+      >
+        {badge.text}
+      </span>
+    );
+  };
+
   // Format date for display
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
@@ -610,6 +636,8 @@ const ManufacturingVariable = () => {
     });
   };
 
+  console.log({selectedMachineDetails});
+  
   return (
     <React.Fragment>
       {/* Manufacturing Table */}
@@ -645,6 +673,38 @@ const ManufacturingVariable = () => {
                   </div>
                 </Col>
               </Row>
+
+              {/* Status Summary */}
+              {manufacturingData.length > 0 && (
+                <div className="mb-3 p-3 bg-light rounded">
+                  <h6 className="mb-2">Machine Status Summary:</h6>
+                  <div className="d-flex gap-3 mb-2">
+                    <span className="badge bg-success">Available: {
+                      manufacturingData.reduce((total, item) => 
+                        total + item.subCategories.filter(machine => 
+                          machine.status === "available" || (!machine.status && machine.isAvailable)
+                        ).length, 0
+                      )
+                    }</span>
+                    <span className="badge bg-warning">Occupied: {
+                      manufacturingData.reduce((total, item) => 
+                        total + item.subCategories.filter(machine => 
+                          machine.status === "occupied" || (!machine.status && !machine.isAvailable)
+                        ).length, 0
+                      )
+                    }</span>
+                    <span className="badge bg-danger">Downtime: {
+                      manufacturingData.reduce((total, item) => 
+                        total + item.subCategories.filter(machine => machine.status === "downtime").length, 0
+                      )
+                    }</span>
+                  </div>
+                  <small className="text-muted">
+                    <strong>Note:</strong> Machine availability is determined by actual completion dates when available. 
+                    If work is completed early, machines become available immediately.
+                  </small>
+                </div>
+              )}
 
               {/* Table */}
               <div className="table-responsive table-card mt-3 mb-1">
@@ -735,32 +795,36 @@ const ManufacturingVariable = () => {
                                         <th>Machine Name</th>
                                         <th>Hourly Rate (INR)</th>
                                         <th>Warehouse</th>
-                                        <th>Status</th>
+                                        <th>Status <small style={{color: '#666', fontWeight: 'normal'}}>(Click for details)</small></th>
                                         <th>Action</th>
                                       </tr>
                                     </thead>
                                     <tbody>
                                       {item.subCategories.map((subCategory) => {
-                                        const status =
-                                          subCategory.status ||
-                                          (subCategory.isAvailable
-                                            ? "available"
-                                            : "occupied");
-                                        const statusBadge =
-                                          getStatusBadge(status);
+                                        // Improved status determination logic
+                                        let status = subCategory.status;
+                                        if (!status) {
+                                          status = subCategory.isAvailable ? "available" : "occupied";
+                                        }
+                                        
+                                        // Debug logging
+                                        console.log(`Machine ${subCategory.name} (${subCategory.subcategoryId}):`, {
+                                          status: subCategory.status,
+                                          isAvailable: subCategory.isAvailable,
+                                          allocations: subCategory.allocations,
+                                          finalStatus: status
+                                        });
 
                                         return (
                                           <tr
                                             key={subCategory.subcategoryId}
                                             style={{
                                               backgroundColor:
-                                                subCategory.status ===
-                                                "occupied"
+                                                status === "occupied"
                                                   ? "#fff3cd"
                                                   : "transparent",
                                               cursor:
-                                                subCategory.status ===
-                                                "occupied"
+                                                status === "occupied"
                                                   ? "pointer"
                                                   : "default",
                                             }}
@@ -777,86 +841,41 @@ const ManufacturingVariable = () => {
                                                 )
                                               }
                                             >
-                                              {subCategory.status ===
-                                              "occupied" ? (
-                                                <span
-                                                  style={{
-                                                    color: "red",
-                                                    fontWeight: "bold",
-                                                  }}
-                                                >
-                                                  Occupied
-                                                  {subCategory.allocations
-                                                    ?.length > 0 && (
-                                                    <small
-                                                      style={{
-                                                        display: "block",
-                                                        fontWeight: "normal",
-                                                      }}
-                                                    >
-                                                      Until:{" "}
-                                                      {formatDate(
-                                                        subCategory
-                                                          .allocations[0]
-                                                          .endDate
-                                                      )}
-                                                    </small>
-                                                  )}
-                                                </span>
-                                              ) : subCategory.status ===
-                                                "downtime" ? (
-                                                <span
-                                                  style={{
-                                                    color: "orange",
-                                                    fontWeight: "bold",
-                                                  }}
-                                                >
-                                                  Downtime
-                                                  {subCategory.downtimeHistory
-                                                    ?.length > 0 && (
-                                                    <>
-                                                      <small
-                                                        style={{
-                                                          display: "block",
-                                                          fontWeight: "normal",
-                                                        }}
-                                                      >
-                                                        Reason:{" "}
-                                                        {
-                                                          subCategory
-                                                            .downtimeHistory[
-                                                            subCategory
-                                                              .downtimeHistory
-                                                              .length - 1
-                                                          ].reason
-                                                        }
-                                                      </small>
-                                                      <small
-                                                        style={{
-                                                          display: "block",
-                                                          fontWeight: "normal",
-                                                        }}
-                                                      >
-                                                        Until:{" "}
-                                                        {formatDate(
-                                                          subCategory
-                                                            .downtimeHistory[
-                                                            subCategory
-                                                              .downtimeHistory
-                                                              .length - 1
-                                                          ].endTime
-                                                        )}
-                                                      </small>
-                                                    </>
-                                                  )}
-                                                </span>
-                                              ) : (
-                                                <span
-                                                  style={{ color: "green" }}
-                                                >
-                                                  Available
-                                                </span>
-                                              )}
+                                              <div>
+                                                {renderStatusBadge(status, subCategory.allocations, subCategory.downtimeHistory)}
+                                                {status === "occupied" && subCategory.allocations?.length > 0 && (
+                                                  <div style={{ fontSize: "11px", color: "#666", marginTop: "2px" }}>
+                                                    Until: {formatDate(
+                                                      subCategory.allocations[0].actualEndDate || 
+                                                      subCategory.allocations[0].endDate
+                                                    )}
+                                                    {subCategory.allocations[0].actualEndDate && (
+                                                      <span style={{ color: "blue" }}>
+                                                        {" "}(Actual)
+                                                      </span>
+                                                    )}
+                                                    {subCategory.allocations[0].isCompletedEarly && (
+                                                      <span style={{ color: "green", fontWeight: "bold" }}>
+                                                        {" "}✓ Completed Early
+                                                      </span>
+                                                    )}
+                                                    {subCategory.allocations[0].plannedEndDate && subCategory.allocations[0].actualEndDate && (
+                                                      <div style={{ fontSize: "10px", color: "#999", marginTop: "1px" }}>
+                                                        Planned: {formatDate(subCategory.allocations[0].plannedEndDate)}
+                                                      </div>
+                                                    )}
+                                                  </div>
+                                                )}
+                                                {status === "downtime" && subCategory.downtimeHistory?.length > 0 && (
+                                                  <div style={{ fontSize: "11px", color: "#666", marginTop: "2px" }}>
+                                                    Reason: {subCategory.downtimeHistory[subCategory.downtimeHistory.length - 1].reason}
+                                                    <br />
+                                                    Until: {formatDate(
+                                                      subCategory.downtimeHistory[subCategory.downtimeHistory.length - 1].endTime
+                                                    )}
+                                                  </div>
+                                                )}
+                                              </div>
                                             </td>
                                             <td className="d-flex gap-2">
                                               <button
@@ -1347,16 +1366,65 @@ const ManufacturingVariable = () => {
                   <thead>
                     <tr>
                       <th>Start Date</th>
-                      <th>End Date</th>
+                      <th>Planned End Date</th>
+                      <th>Actual End Date</th>
+                      <th>Status</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {selectedMachineDetails.allocations.map((alloc, index) => (
-                      <tr key={index}>
-                        <td>{new Date(alloc.startDate).toLocaleString()}</td>
-                        <td>{new Date(alloc.endDate).toLocaleString()}</td>
-                      </tr>
-                    ))}
+                    {selectedMachineDetails.allocations.map((alloc, index) => {
+  // Safely handle actualEndDate
+  let actualEndDate = null;
+  if (alloc.actualEndDate) {
+    try {
+      actualEndDate = new Date(alloc.actualEndDate);
+      // Check if the date is valid
+      if (isNaN(actualEndDate.getTime())) {
+        actualEndDate = null;
+      }
+    } catch (error) {
+      console.error('Error parsing actualEndDate in frontend:', error);
+      actualEndDate = null;
+    }
+  }
+  
+  const plannedEndDate = new Date(alloc.endDate);
+  const isEarly = actualEndDate && actualEndDate < plannedEndDate;
+  const effectiveEndDate = actualEndDate || plannedEndDate;
+  
+  // Debug logging to understand the allocation data structure
+  console.log('Allocation data in frontend:', {
+    index,
+    startDate: alloc.startDate,
+    endDate: alloc.endDate,
+    actualEndDate: alloc.actualEndDate,
+    parsedActualEndDate: actualEndDate,
+    hasActualEndDate: alloc.hasOwnProperty('actualEndDate'),
+    actualEndDateType: typeof alloc.actualEndDate,
+    isEarly,
+    effectiveEndDate
+  });
+
+  return (
+    <tr key={index}>
+      <td>{formatDate(alloc.startDate)}</td>
+      <td>{formatDate(alloc.endDate)}</td>
+      <td>{actualEndDate ? formatDate(actualEndDate) : "Not completed"}</td>
+      <td>
+        {actualEndDate
+          ? <span className="badge bg-success">Completed</span>
+          : <span className="badge bg-warning">In Progress</span>
+        }
+        {isEarly && (
+          <div style={{ color: "green", fontSize: "12px", fontWeight: "bold" }}>
+            ✓ Completed Early
+          </div>
+        )}
+      </td>
+    </tr>
+  );
+})}
+
                   </tbody>
                 </table>
               ) : (

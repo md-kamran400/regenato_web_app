@@ -1711,8 +1711,8 @@ export const AllocatedPartListHrPlan = ({
                             new Date(actulEndDateData.actualEndDate),
                             highlightDates
                           ) < 0
-                            ? "text-danger" // Red for negative numbers
-                            : "text-success" // Green for positive numbers
+                            ? "text-success" // Red for negative numbers
+                            : "text-danger" // Green for positive numbers
                         }
                       >
                         {getWorkingDaysDifference(
