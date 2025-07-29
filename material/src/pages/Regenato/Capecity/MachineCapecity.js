@@ -202,7 +202,7 @@ const MachineCapacity = () => {
                 ...alloc,
                 allocations: alloc.allocations.filter((machineAlloc) => {
                   const allocStartDate = parseISO(machineAlloc.startDate);
-                  const allocEndDate = parseISO(machineAlloc.endDate);
+                  const allocEndDate = parseISO(machineAlloc.actualEndDate || machineAlloc.endDate);
 
                   // Check if allocation date range overlaps with selected date range
                   return (
@@ -256,7 +256,7 @@ const MachineCapacity = () => {
         alloc.allocations.forEach((machineAlloc) => {
           if (machineAlloc.machineId === machineId) {
             const allocStartDate = parseISO(machineAlloc.startDate);
-            const allocEndDate = parseISO(machineAlloc.endDate);
+            const allocEndDate = parseISO(machineAlloc.actualEndDate || machineAlloc.endDate);
 
             // Check if allocation date range overlaps with selected date range
             if (

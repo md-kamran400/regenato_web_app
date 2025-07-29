@@ -46,7 +46,7 @@ const TimeLine = () => {
             project.allocations.forEach((part) => {
               part.allocations.forEach((allocation) => {
                 const startDate = new Date(allocation.startDate);
-                const endDate = new Date(allocation.endDate);
+                const endDate = new Date(allocation.actualEndDate || allocation.endDate);
 
                 // Create allocation event
                 allocationEvents.push({

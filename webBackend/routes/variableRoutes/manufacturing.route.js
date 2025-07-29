@@ -127,8 +127,7 @@ manufacturRouter.delete("/:id", async (req, res) => {
 manufacturRouter.post("/:id/subcategories", async (req, res) => {
   try {
     const { id } = req.params;
-    const { subcategoryId, name, hourlyRate, wareHouse, warehouseId } =
-      req.body;
+    const { subcategoryId, name, hourlyRate, wareHouse, warehouseId } = req.body;
 
     // Validate required fields
     if (!subcategoryId || !name || hourlyRate === undefined || !wareHouse) {
@@ -167,7 +166,7 @@ manufacturRouter.post("/:id/subcategories", async (req, res) => {
       status: "available",
       unavailableUntil: null,
       allocations: [],
-      downtimeHistory: [],
+      downtimeHistory: []
     };
 
     // Add the subcategory to the manufacturing entry
@@ -426,45 +425,26 @@ manufacturRouter.get("/category/:categoryId", async (req, res) => {
         `${process.env.BASE_URL}/api/defpartproject/all-allocations`
       );
       allocationData = response.data?.data || [];
-
+      
       // Debug: Log the structure of the first few allocations
-      console.log("Allocation data structure sample:", {
+      console.log('Allocation data structure sample:', {
         totalProjects: allocationData.length,
-        firstProject: allocationData[0]
-          ? {
-              projectName: allocationData[0].projectName,
-              allocationsCount: allocationData[0].allocations?.length || 0,
-              firstAllocation: allocationData[0].allocations?.[0]
-                ? {
-                    partName: allocationData[0].allocations[0].partName,
-                    processName: allocationData[0].allocations[0].processName,
-                    allocationsCount:
-                      allocationData[0].allocations[0].allocations?.length || 0,
-                    firstMachineAllocation: allocationData[0].allocations[0]
-                      .allocations?.[0]
-                      ? {
-                          machineId:
-                            allocationData[0].allocations[0].allocations[0]
-                              .machineId,
-                          startDate:
-                            allocationData[0].allocations[0].allocations[0]
-                              .startDate,
-                          endDate:
-                            allocationData[0].allocations[0].allocations[0]
-                              .endDate,
-                          actualEndDate:
-                            allocationData[0].allocations[0].allocations[0]
-                              .actualEndDate,
-                          hasActualEndDate:
-                            allocationData[0].allocations[0].allocations[0].hasOwnProperty(
-                              "actualEndDate"
-                            ),
-                        }
-                      : null,
-                  }
-                : null,
-            }
-          : null,
+        firstProject: allocationData[0] ? {
+          projectName: allocationData[0].projectName,
+          allocationsCount: allocationData[0].allocations?.length || 0,
+          firstAllocation: allocationData[0].allocations?.[0] ? {
+            partName: allocationData[0].allocations[0].partName,
+            processName: allocationData[0].allocations[0].processName,
+            allocationsCount: allocationData[0].allocations[0].allocations?.length || 0,
+            firstMachineAllocation: allocationData[0].allocations[0].allocations?.[0] ? {
+              machineId: allocationData[0].allocations[0].allocations[0].machineId,
+              startDate: allocationData[0].allocations[0].allocations[0].startDate,
+              endDate: allocationData[0].allocations[0].allocations[0].endDate,
+              actualEndDate: allocationData[0].allocations[0].allocations[0].actualEndDate,
+              hasActualEndDate: allocationData[0].allocations[0].allocations[0].hasOwnProperty('actualEndDate')
+            } : null
+          } : null
+        } : null
       });
     } catch (error) {
       console.error("Error fetching allocations:", error.message);
@@ -472,22 +452,22 @@ manufacturRouter.get("/category/:categoryId", async (req, res) => {
 
     // 3. Create a map of current allocations by machineId
     const currentAllocations = new Map();
-    allocationData.forEach((project) => {
-      project.allocations?.forEach((process) => {
-        process.allocations?.forEach((alloc) => {
+    allocationData.forEach(project => {
+      project.allocations?.forEach(process => {
+        process.allocations?.forEach(alloc => {
           if (alloc.machineId) {
             const allocStart = new Date(alloc.startDate);
-
+            
             // Debug logging to understand the data structure
-            console.log("Processing allocation:", {
+            console.log('Processing allocation:', {
               machineId: alloc.machineId,
               startDate: alloc.startDate,
               endDate: alloc.endDate,
               actualEndDate: alloc.actualEndDate,
-              hasActualEndDate: alloc.hasOwnProperty("actualEndDate"),
-              actualEndDateType: typeof alloc.actualEndDate,
+              hasActualEndDate: alloc.hasOwnProperty('actualEndDate'),
+              actualEndDateType: typeof alloc.actualEndDate
             });
-
+            
             // Safely handle actualEndDate - it might be undefined, null, or a valid date
             let actualEndDate = null;
             if (alloc.actualEndDate) {
@@ -498,18 +478,18 @@ manufacturRouter.get("/category/:categoryId", async (req, res) => {
                   actualEndDate = null;
                 }
               } catch (error) {
-                console.error("Error parsing actualEndDate:", error);
+                console.error('Error parsing actualEndDate:', error);
                 actualEndDate = null;
               }
             }
-
+            
             // Prioritize actualEndDate over endDate for more accurate availability
             const allocEnd = actualEndDate || new Date(alloc.endDate);
-
+            
             if (!currentAllocations.has(alloc.machineId)) {
               currentAllocations.set(alloc.machineId, []);
             }
-
+            
             currentAllocations.get(alloc.machineId).push({
               startDate: allocStart,
               endDate: allocEnd,
@@ -517,8 +497,7 @@ manufacturRouter.get("/category/:categoryId", async (req, res) => {
               actualEndDate: actualEndDate,
               projectName: project.projectName,
               partName: alloc.partName || process.partName,
-              isCompletedEarly:
-                actualEndDate && actualEndDate < new Date(alloc.endDate),
+              isCompletedEarly: actualEndDate && actualEndDate < new Date(alloc.endDate)
             });
           }
         });
@@ -528,14 +507,12 @@ manufacturRouter.get("/category/:categoryId", async (req, res) => {
     let updated = false;
 
     // 4. Process each machine
-    manufacturingEntry.subCategories.forEach((machine) => {
+    manufacturingEntry.subCategories.forEach(machine => {
       const machineId = machine.subcategoryId;
-      const hasActiveDowntime = machine.downtimeHistory?.some((downtime) => {
+      const hasActiveDowntime = machine.downtimeHistory?.some(downtime => {
         const dtStart = new Date(downtime.startTime);
         const dtEnd = downtime.endTime ? new Date(downtime.endTime) : null;
-        return (
-          !downtime.isCompleted && dtStart <= now && (!dtEnd || dtEnd > now)
-        );
+        return !downtime.isCompleted && dtStart <= now && (!dtEnd || dtEnd > now);
       });
 
       if (hasActiveDowntime) {
@@ -543,10 +520,8 @@ manufacturRouter.get("/category/:categoryId", async (req, res) => {
         if (machine.status !== "downtime") {
           machine.status = "downtime";
           machine.isAvailable = false;
-          machine.unavailableUntil = machine.downtimeHistory.find(
-            (d) =>
-              new Date(d.startTime) <= now &&
-              (!d.endTime || new Date(d.endTime) > now)
+          machine.unavailableUntil = machine.downtimeHistory.find(d => 
+            new Date(d.startTime) <= now && (!d.endTime || new Date(d.endTime) > now)
           ).endTime;
           updated = true;
         }
@@ -555,73 +530,58 @@ manufacturRouter.get("/category/:categoryId", async (req, res) => {
       } else {
         // Check for active allocations using actualEndDate when available
         const machineAllocations = currentAllocations.get(machineId) || [];
-        const activeAllocations = machineAllocations.filter((alloc) => {
+        const activeAllocations = machineAllocations.filter(alloc => {
           const startDate = alloc.startDate;
           // Use actualEndDate if available, otherwise use planned endDate
           const effectiveEndDate = alloc.actualEndDate || alloc.plannedEndDate;
           const isActive = now >= startDate && now <= effectiveEndDate;
-
+          
           // Debug logging for machine status
           console.log(`Machine ${machineId}:`, {
             startDate: startDate.toISOString(),
             plannedEndDate: alloc.plannedEndDate.toISOString(),
-            actualEndDate: alloc.actualEndDate
-              ? alloc.actualEndDate.toISOString()
-              : "Not set",
+            actualEndDate: alloc.actualEndDate ? alloc.actualEndDate.toISOString() : 'Not set',
             effectiveEndDate: effectiveEndDate.toISOString(),
             isActive,
-            isCompletedEarly: alloc.isCompletedEarly,
+            isCompletedEarly: alloc.isCompletedEarly
           });
-
+          
           return isActive;
         });
 
         if (activeAllocations.length > 0) {
           // Machine is occupied
-          if (
-            machine.status !== "occupied" ||
-            JSON.stringify(machine.allocations) !==
-              JSON.stringify(activeAllocations)
-          ) {
+          if (machine.status !== "occupied" || 
+              JSON.stringify(machine.allocations) !== JSON.stringify(activeAllocations)) {
             machine.status = "occupied";
             machine.isAvailable = false;
             machine.unavailableUntil = null;
-            machine.allocations = activeAllocations.map((alloc) => ({
+            machine.allocations = activeAllocations.map(alloc => ({
               startDate: alloc.startDate.toISOString(),
-              endDate: (
-                alloc.actualEndDate || alloc.plannedEndDate
-              ).toISOString(), // Use actualEndDate if available
+              endDate: (alloc.actualEndDate || alloc.plannedEndDate).toISOString(), // Use actualEndDate if available
               plannedEndDate: alloc.plannedEndDate.toISOString(),
-              actualEndDate: alloc.actualEndDate
-                ? alloc.actualEndDate.toISOString()
-                : null,
+              actualEndDate: alloc.actualEndDate ? alloc.actualEndDate.toISOString() : null,
               projectName: alloc.projectName,
               partName: alloc.partName,
-              isCompletedEarly: alloc.isCompletedEarly,
+              isCompletedEarly: alloc.isCompletedEarly
             }));
-
+            
             // Debug: Log the stored allocation data
-            console.log("Stored allocation data for machine:", machineId, {
+            console.log('Stored allocation data for machine:', machineId, {
               allocationsCount: machine.allocations.length,
-              firstAllocation: machine.allocations[0]
-                ? {
-                    startDate: machine.allocations[0].startDate,
-                    endDate: machine.allocations[0].endDate,
-                    plannedEndDate: machine.allocations[0].plannedEndDate,
-                    actualEndDate: machine.allocations[0].actualEndDate,
-                    hasActualEndDate:
-                      machine.allocations[0].hasOwnProperty("actualEndDate"),
-                  }
-                : null,
+              firstAllocation: machine.allocations[0] ? {
+                startDate: machine.allocations[0].startDate,
+                endDate: machine.allocations[0].endDate,
+                plannedEndDate: machine.allocations[0].plannedEndDate,
+                actualEndDate: machine.allocations[0].actualEndDate,
+                hasActualEndDate: machine.allocations[0].hasOwnProperty('actualEndDate')
+              } : null
             });
             updated = true;
           }
         } else {
           // Machine is available
-          if (
-            machine.status !== "available" ||
-            machine.allocations?.length > 0
-          ) {
+          if (machine.status !== "available" || machine.allocations?.length > 0) {
             machine.status = "available";
             machine.isAvailable = true;
             machine.unavailableUntil = null;
@@ -633,12 +593,8 @@ manufacturRouter.get("/category/:categoryId", async (req, res) => {
 
       // Update downtime history completion status
       if (machine.downtimeHistory?.length > 0) {
-        machine.downtimeHistory = machine.downtimeHistory.map((downtime) => {
-          if (
-            !downtime.isCompleted &&
-            downtime.endTime &&
-            new Date(downtime.endTime) <= now
-          ) {
+        machine.downtimeHistory = machine.downtimeHistory.map(downtime => {
+          if (!downtime.isCompleted && downtime.endTime && new Date(downtime.endTime) <= now) {
             return { ...downtime, isCompleted: true };
           }
           return downtime;
@@ -656,12 +612,13 @@ manufacturRouter.get("/category/:categoryId", async (req, res) => {
     });
   } catch (error) {
     console.error("Error in /category/:categoryId:", error);
-    res.status(500).json({
+    res.status(500).json({ 
       error: "Internal Server Error",
-      details: error.message,
+      details: error.message 
     });
   }
 });
+
 
 manufacturRouter.get("/all-category-ids", async (req, res) => {
   try {

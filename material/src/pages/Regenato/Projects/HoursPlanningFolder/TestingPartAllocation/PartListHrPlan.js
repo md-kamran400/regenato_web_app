@@ -185,7 +185,7 @@ export const PartListHrPlan = ({
                   }
                   machineAllocations[alloc.machineId].push({
                     startDate: new Date(alloc.startDate),
-                    endDate: new Date(alloc.endDate),
+                    endDate: new Date(alloc.actualEndDate || alloc.endDate),
                     projectName: project.projectName,
                     partName: process.partName,
                     processName: process.processName,
@@ -206,7 +206,7 @@ export const PartListHrPlan = ({
                     }
                     operatorAllocations[operatorId].push({
                       startDate: new Date(alloc.startDate),
-                      endDate: new Date(alloc.endDate),
+                      endDate: new Date(alloc.actualEndDate || alloc.endDate),
                       projectName: project.projectName,
                       partName: process.partName,
                       processName: process.processName,
@@ -451,7 +451,7 @@ export const PartListHrPlan = ({
     const conflictingAllocation = operatorAllocations[operatorId].find(
       (alloc) => {
         const allocStart = new Date(alloc.startDate);
-        const allocEnd = new Date(alloc.endDate);
+        const allocEnd = new Date(alloc.actualEndDate || alloc.endDate);
 
         // Set hours to start of day for proper date comparison
         allocStart.setHours(0, 0, 0, 0);

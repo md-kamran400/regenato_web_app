@@ -47,6 +47,7 @@ const manufacturingSchema = mongoose.Schema({
         {
           startDate: { type: Date, required: true },
           endDate: { type: Date, required: true },
+          actualEndDate: { type: Date, default: null },
           projectName: String,
           partName: String,
         },
