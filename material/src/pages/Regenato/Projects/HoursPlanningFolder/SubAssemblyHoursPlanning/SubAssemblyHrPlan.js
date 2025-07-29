@@ -159,7 +159,7 @@ export const SubAssemblyHrPlan = ({
                   }
                   machineAllocations[alloc.machineId].push({
                     startDate: new Date(alloc.startDate),
-                    endDate: new Date(alloc.endDate),
+                    endDate: new Date(alloc.actualEndDate || alloc.endDate),
                     projectName: project.projectName,
                     partName: process.partName,
                     processName: process.processName,
@@ -180,7 +180,7 @@ export const SubAssemblyHrPlan = ({
                     }
                     operatorAllocations[operatorId].push({
                       startDate: new Date(alloc.startDate),
-                      endDate: new Date(alloc.endDate),
+                      endDate: new Date(alloc.actualEndDate || alloc.endDate),
                       projectName: project.projectName,
                       partName: process.partName,
                       processName: process.processName,

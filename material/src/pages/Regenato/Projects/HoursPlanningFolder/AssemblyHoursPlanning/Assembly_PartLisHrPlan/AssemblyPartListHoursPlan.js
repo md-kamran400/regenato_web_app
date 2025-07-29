@@ -160,7 +160,7 @@ export const AssemblyPartListHoursPlan = ({
                   }
                   machineAllocations[alloc.machineId].push({
                     startDate: new Date(alloc.startDate),
-                    endDate: new Date(alloc.endDate),
+                    endDate: new Date(alloc.actualEndDate || alloc.endDate),
                     projectName: project.projectName,
                     partName: process.partName,
                     processName: process.processName,
@@ -181,7 +181,7 @@ export const AssemblyPartListHoursPlan = ({
                     }
                     operatorAllocations[operatorId].push({
                       startDate: new Date(alloc.startDate),
-                      endDate: new Date(alloc.endDate),
+                      endDate: new Date(alloc.actualEndDate || alloc.endDate),
                       projectName: project.projectName,
                       partName: process.partName,
                       processName: process.processName,
@@ -215,7 +215,7 @@ export const AssemblyPartListHoursPlan = ({
 
     const conflictingAllocation = allocatedMachines[machineId].find((alloc) => {
       const allocStart = new Date(alloc.startDate);
-      const allocEnd = new Date(alloc.endDate);
+              const allocEnd = new Date(alloc.actualEndDate || alloc.endDate);
 
       return (
         (parsedStart >= allocStart && parsedStart <= allocEnd) ||
@@ -403,7 +403,7 @@ export const AssemblyPartListHoursPlan = ({
     const conflictingAllocation = operatorAllocations[operatorId].find(
       (alloc) => {
         const allocStart = new Date(alloc.startDate);
-        const allocEnd = new Date(alloc.endDate);
+        const allocEnd = new Date(alloc.actualEndDate || alloc.endDate);
 
         return (
           (parsedStart >= allocStart && parsedStart <= allocEnd) ||
