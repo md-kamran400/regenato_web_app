@@ -458,22 +458,11 @@ manufacturRouter.get("/category/:categoryId", async (req, res) => {
           if (alloc.machineId) {
             const allocStart = new Date(alloc.startDate);
             
-            // Debug logging to understand the data structure
-            console.log('Processing allocation:', {
-              machineId: alloc.machineId,
-              startDate: alloc.startDate,
-              endDate: alloc.endDate,
-              actualEndDate: alloc.actualEndDate,
-              hasActualEndDate: alloc.hasOwnProperty('actualEndDate'),
-              actualEndDateType: typeof alloc.actualEndDate
-            });
-            
-            // Safely handle actualEndDate - it might be undefined, null, or a valid date
+            // Safely handle actualEndDate
             let actualEndDate = null;
             if (alloc.actualEndDate) {
               try {
                 actualEndDate = new Date(alloc.actualEndDate);
-                // Check if the date is valid
                 if (isNaN(actualEndDate.getTime())) {
                   actualEndDate = null;
                 }
@@ -483,7 +472,7 @@ manufacturRouter.get("/category/:categoryId", async (req, res) => {
               }
             }
             
-            // Prioritize actualEndDate over endDate for more accurate availability
+            // Prioritize actualEndDate over endDate
             const allocEnd = actualEndDate || new Date(alloc.endDate);
             
             if (!currentAllocations.has(alloc.machineId)) {
@@ -493,7 +482,7 @@ manufacturRouter.get("/category/:categoryId", async (req, res) => {
             currentAllocations.get(alloc.machineId).push({
               startDate: allocStart,
               endDate: allocEnd,
-              plannedEndDate: new Date(alloc.endDate), // Keep original planned end date
+              plannedEndDate: new Date(alloc.endDate),
               actualEndDate: actualEndDate,
               projectName: project.projectName,
               partName: alloc.partName || process.partName,
