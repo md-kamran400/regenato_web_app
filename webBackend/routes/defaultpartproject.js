@@ -1118,38 +1118,69 @@ partproject.get(
         return res.status(404).json({ message: "Part List Item not found" });
       }
 
-      // Fetch warehouse quantity for this part (by partsCodeId)
-      let warehouseQuantity = 0;
+      // Fetch warehouse quantity for this part with dual validation
       try {
         if (partItem.partsCodeId) {
+          console.log(`Fetching warehouse quantity for part with partsCodeId: ${partItem.partsCodeId}`);
           const goodsReceiptRes = await axios.get(
-            // "http://182.77.56.228:85/GoodsReceipt/GetGoodsReceipt",
             `${baseUrl}/api/GetGoodsReceipt`,
             { timeout: 10000 }
           );
-          // console.log(goodsReceiptRes.data)
-          const match = goodsReceiptRes.data.find(
-            (item) =>
-              String(item.Itemcode).trim().toLowerCase() ===
-              String(partItem.partsCodeId).trim().toLowerCase()
+          
+          console.log(`Received ${goodsReceiptRes.data.length} items from GetGoodsReceipt API`);
+          
+          // Process each allocation to find and store matching warehouse quantity
+          const updatedAllocations = await Promise.all(
+            partItem.allocations.map(async (allocation) => {
+              let warehouseQuantity = 0;
+              
+              if (allocation.warehouseId) {
+                // Find matching item with dual validation:
+                // 1. Itemcode matches partsCodeId
+                // 2. WhsCode matches warehouseId
+                const match = goodsReceiptRes.data.find(
+                  (item) =>
+                    String(item.Itemcode).trim().toLowerCase() ===
+                    String(partItem.partsCodeId).trim().toLowerCase() &&
+                    String(item.WhsCode).trim().toLowerCase() ===
+                    String(allocation.warehouseId).trim().toLowerCase()
+                );
+                
+                if (match) {
+                  warehouseQuantity = match.Quantity;
+                  console.log(`✅ Found matching warehouse quantity: ${warehouseQuantity}`);
+                  
+                  // Update the allocation's warehouseQuantity in the database
+                  allocation.warehouseQuantity = warehouseQuantity;
+                }
+              }
+              
+              return allocation;
+            })
           );
-          if (match) {
-            warehouseQuantity = match.Quantity;
-          }
+
+          // Save the updated allocations with warehouse quantities
+          await project.save();
+          
+          // Return the updated allocations
+          res.status(200).json({
+            message: "Allocations retrieved successfully",
+            data: partItem.allocations,
+          });
+        } else {
+          console.log(`⚠️ No partsCodeId found for part item`);
+          res.status(200).json({
+            message: "Allocations retrieved successfully",
+            data: partItem.allocations,
+          });
         }
       } catch (err) {
         console.error("Error fetching warehouse quantity:", err.message);
+        res.status(200).json({
+          message: "Allocations retrieved successfully",
+          data: partItem.allocations,
+        });
       }
-
-      // Return allocations in the exact stored order, include warehouseQuantity
-      res.status(200).json({
-        message: "Allocations retrieved successfully",
-        data: (partItem.allocations || []).map((allocation) => ({
-          ...allocation.toObject(),
-          dailyTracking: allocation.dailyTracking,
-          warehouseQuantity, // include the fetched quantity
-        })),
-      });
     } catch (error) {
       console.error("Error retrieving allocations:", error);
       res.status(500).json({ message: "Server error", error: error.message });

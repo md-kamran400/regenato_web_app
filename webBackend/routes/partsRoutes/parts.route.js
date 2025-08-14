@@ -654,6 +654,8 @@ PartRoutes.post("/:_id/manufacturingVariables", async (req, res) => {
         req.body.hours && req.body.hourlyRate
           ? req.body.hours * req.body.hourlyRate
           : req.body.totalRate,
+      wareHouse: req.body.wareHouse,
+      warehouseId: req.body.warehouseId,
     };
 
     const updatedPart = await PartsModel.findByIdAndUpdate(

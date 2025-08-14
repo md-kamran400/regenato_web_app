@@ -635,6 +635,8 @@ PartsExcelRoutes.post("/:_id/manufacturingVariables", async (req, res) => {
       totalRate: req.body.hours * req.body.hourlyRate,
       isSpecialday: req.body.isSpecialday || false, // Explicitly include
       SpecialDayTotalMinutes: req.body.SpecialDayTotalMinutes || 0, // Explicitly include
+      wareHouse: req.body.wareHouse,
+      warehouseId: req.body.warehouseId,
     };
 
     const updatedPart = await PartsModel.findByIdAndUpdate(
