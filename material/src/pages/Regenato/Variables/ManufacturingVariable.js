@@ -76,7 +76,7 @@ const ManufacturingVariable = () => {
     name: "",
     hourlyRate: "",
     wareHouse: "",
-    warehouseId: ""
+    warehouseId: "",
   });
   const [lastUsedId, setLastUsedId] = useState("");
 
@@ -100,7 +100,7 @@ const ManufacturingVariable = () => {
         name: item.name,
         hourlyRate: item.hourlyRate,
         wareHouse: item.wareHouse,
-        warehouseId: item.warehouseId || ""
+        warehouseId: item.warehouseId || "",
       });
       setEditingSubId(item._id); // Set the ID of the item being edited
     } else {
@@ -109,7 +109,7 @@ const ManufacturingVariable = () => {
         name: "",
         hourlyRate: "",
         wareHouse: "",
-        warehouseId: ""
+        warehouseId: "",
       });
       setEditingSubId(null); // Reset the ID if no item is selected
     }
@@ -204,15 +204,18 @@ const ManufacturingVariable = () => {
           throw new Error("Failed to fetch warehouse locations");
         const data = await response.json();
 
-        // Extract all unique locations from all stores as objects with label and warehouseId
         const locations = [];
-        data.forEach(store => {
+        data.forEach((store) => {
           if (store.Name && store.Name.length > 0) {
-            store.Name.forEach(name => {
-              locations.push({ label: name, warehouseId: store.categoryId });
+            store.Name.forEach((name) => {
+              locations.push({
+                label: `${store.categoryId} -   ${name}`,
+                warehouseId: store.categoryId,
+              });
             });
           }
         });
+
         setWarehouseLocations(locations);
       } catch (error) {
         console.error("Error fetching warehouse locations:", error);
@@ -226,7 +229,6 @@ const ManufacturingVariable = () => {
     setLoading(true);
     setError(null);
     try {
-      // Fetch manufacturing data for each category
       const manufacturingResponse = await fetch(
         `${process.env.REACT_APP_BASE_URL}/api/manufacturing`
       );
@@ -236,14 +238,14 @@ const ManufacturingVariable = () => {
 
       const manufacturingData = await manufacturingResponse.json();
 
-      // For each manufacturing entry, fetch the latest status
+      // For each manufacturing entry, fetch the latest status with allocations
       const updatedData = await Promise.all(
         manufacturingData.map(async (item) => {
           const statusResponse = await fetch(
             `${process.env.REACT_APP_BASE_URL}/api/manufacturing/category/${item.categoryId}`
           );
           if (!statusResponse.ok) {
-            return item; // Return original if status check fails
+            return item;
           }
           const statusData = await statusResponse.json();
           return {
@@ -381,14 +383,24 @@ const ManufacturingVariable = () => {
           body: JSON.stringify(subFormData),
         }
       );
-      if (!response.ok) throw new Error("Failed to add machine");
 
-      await fetchManufacturing(); // Update the UI
-      toast.success("Machine Added Successfully!"); // Show success toast
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.msg || "Failed to add machine");
+      }
+
+      await fetchManufacturing();
+      toast.success("Machine Added Successfully!");
       setModalAddSub(false);
-      setSubFormData({ subcategoryId: "", name: "", hourlyRate: "", wareHouse: "", warehouseId: "" });
+      setSubFormData({
+        subcategoryId: "",
+        name: "",
+        hourlyRate: "",
+        wareHouse: "",
+        warehouseId: "",
+      });
     } catch (error) {
-      toast.error(error.message || "Failed to add machine");
+      toast.error(error.message); // Show backend message
     } finally {
       setPosting(false);
     }
@@ -417,7 +429,13 @@ const ManufacturingVariable = () => {
       setIsEditModalOpen(false); // Close the edit modal
 
       // Reset form
-      setSubFormData({ subcategoryId: "", name: "", hourlyRate: "", wareHouse: "", warehouseId: "" });
+      setSubFormData({
+        subcategoryId: "",
+        name: "",
+        hourlyRate: "",
+        wareHouse: "",
+        warehouseId: "",
+      });
     } catch (error) {
       toast.error(error.message || "Failed to update machine"); // Error message
     } finally {
@@ -597,30 +615,22 @@ const ManufacturingVariable = () => {
     }
   };
 
-  // Function to render status badge
-  const renderStatusBadge = (status, allocations, downtimeHistory) => {
-    const badge = getStatusBadge(status);
-    
-    return (
-      <span
-        style={{
-          backgroundColor: badge.color === "green" ? "#d4edda" : 
-                         badge.color === "orange" ? "#fff3cd" : 
-                         badge.color === "red" ? "#f8d7da" : "#e2e3e5",
-          color: badge.color === "green" ? "#155724" : 
-                 badge.color === "orange" ? "#856404" : 
-                 badge.color === "red" ? "#721c24" : "#383d41",
-          padding: "4px 8px",
-          borderRadius: "4px",
-          fontSize: "12px",
-          fontWeight: "bold",
-          display: "inline-block",
-          marginBottom: "4px"
-        }}
-      >
-        {badge.text}
-      </span>
-    );
+  const renderStatusBadge = (status) => {
+    const badgeMap = {
+      occupied: { text: "Occupied", className: "badge bg-warning text-dark" },
+      available: {
+        text: "Available",
+        className: "badge bg-success text-white",
+      },
+      downtime: { text: "Downtime", className: "badge bg-danger text-white" },
+    };
+
+    const badge = badgeMap[status?.toLowerCase()] || {
+      text: status,
+      className: "badge bg-secondary text-white",
+    };
+
+    return <span className={badge.className}>{badge.text}</span>;
   };
 
   // Format date for display
@@ -636,12 +646,12 @@ const ManufacturingVariable = () => {
     });
   };
 
-  console.log({selectedMachineDetails});
-  
+  console.log({ selectedMachineDetails });
+
   return (
     <React.Fragment>
       {/* Manufacturing Table */}
-      <Row style={{marginBottom:'3rem'}}>
+      <Row style={{ marginBottom: "3rem" }}>
         <Col lg={12}>
           <Card style={{ marginBottom: "10rem" }}>
             <CardHeader>
@@ -679,29 +689,48 @@ const ManufacturingVariable = () => {
                 <div className="mb-3 p-3 bg-light rounded">
                   <h6 className="mb-2">Machine Status Summary:</h6>
                   <div className="d-flex gap-3 mb-2">
-                    <span className="badge bg-success">Available: {
-                      manufacturingData.reduce((total, item) => 
-                        total + item.subCategories.filter(machine => 
-                          machine.status === "available" || (!machine.status && machine.isAvailable)
-                        ).length, 0
-                      )
-                    }</span>
-                    <span className="badge bg-warning">Occupied: {
-                      manufacturingData.reduce((total, item) => 
-                        total + item.subCategories.filter(machine => 
-                          machine.status === "occupied" || (!machine.status && !machine.isAvailable)
-                        ).length, 0
-                      )
-                    }</span>
-                    <span className="badge bg-danger">Downtime: {
-                      manufacturingData.reduce((total, item) => 
-                        total + item.subCategories.filter(machine => machine.status === "downtime").length, 0
-                      )
-                    }</span>
+                    <span className="badge bg-success">
+                      Available:{" "}
+                      {manufacturingData.reduce(
+                        (total, item) =>
+                          total +
+                          item.subCategories.filter(
+                            (machine) =>
+                              machine.status === "available" ||
+                              (!machine.status && machine.isAvailable)
+                          ).length,
+                        0
+                      )}
+                    </span>
+                    <span className="badge bg-warning">
+                      Occupied:{" "}
+                      {manufacturingData.reduce(
+                        (total, item) =>
+                          total +
+                          item.subCategories.filter(
+                            (machine) =>
+                              machine.status === "occupied" ||
+                              (!machine.status && !machine.isAvailable)
+                          ).length,
+                        0
+                      )}
+                    </span>
+                    <span className="badge bg-danger">
+                      Downtime:{" "}
+                      {manufacturingData.reduce(
+                        (total, item) =>
+                          total +
+                          item.subCategories.filter(
+                            (machine) => machine.status === "downtime"
+                          ).length,
+                        0
+                      )}
+                    </span>
                   </div>
                   <small className="text-muted">
-                    <strong>Note:</strong> Machine availability is determined by actual completion dates when available. 
-                    If work is completed early, machines become available immediately.
+                    <strong>Note:</strong> Machine availability is determined by
+                    actual completion dates when available. If work is completed
+                    early, machines become available immediately.
                   </small>
                 </div>
               )}
@@ -795,7 +824,17 @@ const ManufacturingVariable = () => {
                                         <th>Machine Name</th>
                                         <th>Hourly Rate (INR)</th>
                                         <th>Warehouse</th>
-                                        <th>Status <small style={{color: '#666', fontWeight: 'normal'}}>(Click for details)</small></th>
+                                        <th>
+                                          Status{" "}
+                                          <small
+                                            style={{
+                                              color: "#666",
+                                              fontWeight: "normal",
+                                            }}
+                                          >
+                                            (Click for details)
+                                          </small>
+                                        </th>
                                         <th>Action</th>
                                       </tr>
                                     </thead>
@@ -804,16 +843,23 @@ const ManufacturingVariable = () => {
                                         // Improved status determination logic
                                         let status = subCategory.status;
                                         if (!status) {
-                                          status = subCategory.isAvailable ? "available" : "occupied";
+                                          status = subCategory.isAvailable
+                                            ? "available"
+                                            : "occupied";
                                         }
-                                        
+
                                         // Debug logging
-                                        console.log(`Machine ${subCategory.name} (${subCategory.subcategoryId}):`, {
-                                          status: subCategory.status,
-                                          isAvailable: subCategory.isAvailable,
-                                          allocations: subCategory.allocations,
-                                          finalStatus: status
-                                        });
+                                        console.log(
+                                          `Machine ${subCategory.name} (${subCategory.subcategoryId}):`,
+                                          {
+                                            status: subCategory.status,
+                                            isAvailable:
+                                              subCategory.isAvailable,
+                                            allocations:
+                                              subCategory.allocations,
+                                            finalStatus: status,
+                                          }
+                                        );
 
                                         return (
                                           <tr
@@ -842,39 +888,173 @@ const ManufacturingVariable = () => {
                                               }
                                             >
                                               <div>
-                                                {renderStatusBadge(status, subCategory.allocations, subCategory.downtimeHistory)}
-                                                {status === "occupied" && subCategory.allocations?.length > 0 && (
-                                                  <div style={{ fontSize: "11px", color: "#666", marginTop: "2px" }}>
-                                                    Until: {formatDate(
-                                                      subCategory.allocations[0].actualEndDate || 
-                                                      subCategory.allocations[0].endDate
-                                                    )}
-                                                    {subCategory.allocations[0].actualEndDate && (
-                                                      <span style={{ color: "blue" }}>
-                                                        {" "}(Actual)
-                                                      </span>
-                                                    )}
-                                                    {subCategory.allocations[0].isCompletedEarly && (
-                                                      <span style={{ color: "green", fontWeight: "bold" }}>
-                                                        {" "}✓ Completed Early
-                                                      </span>
-                                                    )}
-                                                    {subCategory.allocations[0].plannedEndDate && subCategory.allocations[0].actualEndDate && (
-                                                      <div style={{ fontSize: "10px", color: "#999", marginTop: "1px" }}>
-                                                        Planned: {formatDate(subCategory.allocations[0].plannedEndDate)}
-                                                      </div>
-                                                    )}
-                                                  </div>
+                                                {renderStatusBadge(
+                                                  status,
+                                                  subCategory.allocations,
+                                                  subCategory.downtimeHistory
                                                 )}
-                                                {status === "downtime" && subCategory.downtimeHistory?.length > 0 && (
-                                                  <div style={{ fontSize: "11px", color: "#666", marginTop: "2px" }}>
-                                                    Reason: {subCategory.downtimeHistory[subCategory.downtimeHistory.length - 1].reason}
-                                                    <br />
-                                                    Until: {formatDate(
-                                                      subCategory.downtimeHistory[subCategory.downtimeHistory.length - 1].endTime
-                                                    )}
-                                                  </div>
-                                                )}
+                                                {/* {status === "occupied" &&
+                                                  subCategory.allocations
+                                                    ?.length > 0 && (
+                                                    <div
+                                                      style={{
+                                                        fontSize: "11px",
+                                                        color: "#666",
+                                                        marginTop: "2px",
+                                                      }}
+                                                    >
+                                                      Until:{" "}
+                                                      {formatDate(
+                                                        subCategory
+                                                          .allocations[0]
+                                                          .actualEndDate ||
+                                                          subCategory
+                                                            .allocations[0]
+                                                            .endDate
+                                                      )}
+                                                      {subCategory
+                                                        .allocations[0]
+                                                        .actualEndDate && (
+                                                        <span
+                                                          style={{
+                                                            color: "blue",
+                                                          }}
+                                                        >
+                                                          {" "}
+                                                          (Actual)
+                                                        </span>
+                                                      )}
+                                                      {subCategory
+                                                        .allocations[0]
+                                                        .isCompletedEarly && (
+                                                        <span
+                                                          style={{
+                                                            color: "green",
+                                                            fontWeight: "bold",
+                                                          }}
+                                                        >
+                                                          {" "}
+                                                          ✓ Completed Early
+                                                        </span>
+                                                      )}
+                                                      {subCategory
+                                                        .allocations[0]
+                                                        .plannedEndDate &&
+                                                        subCategory
+                                                          .allocations[0]
+                                                          .actualEndDate && (
+                                                          <div
+                                                            style={{
+                                                              fontSize: "10px",
+                                                              color: "#999",
+                                                              marginTop: "1px",
+                                                            }}
+                                                          >
+                                                            Planned:{" "}
+                                                            {formatDate(
+                                                              subCategory
+                                                                .allocations[0]
+                                                                .plannedEndDate
+                                                            )}
+                                                          </div>
+                                                        )}
+                                                    </div>
+                                                  )} */}
+                                                {status === "occupied" &&
+                                                  subCategory.allocations
+                                                    ?.length > 0 && (
+                                                    <div
+                                                      style={{
+                                                        fontSize: "11px",
+                                                        color: "#666",
+                                                        marginTop: "2px",
+                                                      }}
+                                                    >
+                                                      Until:{" "}
+                                                      {formatDate(
+                                                        subCategory
+                                                          .allocations[0]
+                                                          .actualEndDate ||
+                                                          subCategory
+                                                            .allocations[0]
+                                                            .endDate
+                                                      )}
+                                                      {subCategory
+                                                        .allocations[0]
+                                                        .actualEndDate && (
+                                                        <span
+                                                          style={{
+                                                            color: "blue",
+                                                          }}
+                                                        >
+                                                          {" "}
+                                                          (Actual)
+                                                        </span>
+                                                      )}
+                                                      {subCategory
+                                                        .allocations[0]
+                                                        .isCompletedEarly && (
+                                                        <span
+                                                          style={{
+                                                            color: "green",
+                                                            fontWeight: "bold",
+                                                          }}
+                                                        >
+                                                          {" "}
+                                                          ✓ Completed Early
+                                                        </span>
+                                                      )}
+                                                      {subCategory
+                                                        .allocations[0]
+                                                        .plannedEndDate && (
+                                                        <div
+                                                          style={{
+                                                            fontSize: "10px",
+                                                            color: "#999",
+                                                            marginTop: "1px",
+                                                          }}
+                                                        >
+                                                          Planned:{" "}
+                                                          {formatDate(
+                                                            subCategory
+                                                              .allocations[0]
+                                                              .plannedEndDate
+                                                          )}
+                                                        </div>
+                                                      )}
+                                                    </div>
+                                                  )}
+                                                {status === "downtime" &&
+                                                  subCategory.downtimeHistory
+                                                    ?.length > 0 && (
+                                                    <div
+                                                      style={{
+                                                        fontSize: "11px",
+                                                        color: "#666",
+                                                        marginTop: "2px",
+                                                      }}
+                                                    >
+                                                      Reason:{" "}
+                                                      {
+                                                        subCategory
+                                                          .downtimeHistory[
+                                                          subCategory
+                                                            .downtimeHistory
+                                                            .length - 1
+                                                        ].reason
+                                                      }
+                                                      <br />
+                                                      Until:{" "}
+                                                      {formatDate(
+                                                        subCategory
+                                                          .downtimeHistory[
+                                                          subCategory
+                                                            .downtimeHistory
+                                                            .length - 1
+                                                        ].endTime
+                                                      )}
+                                                    </div>
+                                                  )}
                                               </div>
                                             </td>
                                             <td className="d-flex gap-2">
@@ -1180,12 +1360,18 @@ const ManufacturingVariable = () => {
               <Autocomplete
                 options={warehouseLocations}
                 getOptionLabel={(option) => option.label}
-                value={warehouseLocations.find(opt => opt.label === subFormData.wareHouse && opt.warehouseId === subFormData.warehouseId) || null}
+                value={
+                  warehouseLocations.find(
+                    (opt) =>
+                      opt.label === subFormData.wareHouse &&
+                      opt.warehouseId === subFormData.warehouseId
+                  ) || null
+                }
                 onChange={(event, newValue) => {
-                  setSubFormData(prev => ({
+                  setSubFormData((prev) => ({
                     ...prev,
                     wareHouse: newValue ? newValue.label : "",
-                    warehouseId: newValue ? newValue.warehouseId : ""
+                    warehouseId: newValue ? newValue.warehouseId : "",
                   }));
                 }}
                 renderInput={(params) => (
@@ -1264,12 +1450,18 @@ const ManufacturingVariable = () => {
               <Autocomplete
                 options={warehouseLocations}
                 getOptionLabel={(option) => option.label}
-                value={warehouseLocations.find(opt => opt.label === subFormData.wareHouse && opt.warehouseId === subFormData.warehouseId) || null}
+                value={
+                  warehouseLocations.find(
+                    (opt) =>
+                      opt.label === subFormData.wareHouse &&
+                      opt.warehouseId === subFormData.warehouseId
+                  ) || null
+                }
                 onChange={(event, newValue) => {
-                  setSubFormData(prev => ({
+                  setSubFormData((prev) => ({
                     ...prev,
                     wareHouse: newValue ? newValue.label : "",
-                    warehouseId: newValue ? newValue.warehouseId : ""
+                    warehouseId: newValue ? newValue.warehouseId : "",
                   }));
                 }}
                 renderInput={(params) => (
@@ -1373,58 +1565,76 @@ const ManufacturingVariable = () => {
                   </thead>
                   <tbody>
                     {selectedMachineDetails.allocations.map((alloc, index) => {
-  // Safely handle actualEndDate
-  let actualEndDate = null;
-  if (alloc.actualEndDate) {
-    try {
-      actualEndDate = new Date(alloc.actualEndDate);
-      // Check if the date is valid
-      if (isNaN(actualEndDate.getTime())) {
-        actualEndDate = null;
-      }
-    } catch (error) {
-      console.error('Error parsing actualEndDate in frontend:', error);
-      actualEndDate = null;
-    }
-  }
-  
-  const plannedEndDate = new Date(alloc.endDate);
-  const isEarly = actualEndDate && actualEndDate < plannedEndDate;
-  const effectiveEndDate = actualEndDate || plannedEndDate;
-  
-  // Debug logging to understand the allocation data structure
-  console.log('Allocation data in frontend:', {
-    index,
-    startDate: alloc.startDate,
-    endDate: alloc.endDate,
-    actualEndDate: alloc.actualEndDate,
-    parsedActualEndDate: actualEndDate,
-    hasActualEndDate: alloc.hasOwnProperty('actualEndDate'),
-    actualEndDateType: typeof alloc.actualEndDate,
-    isEarly,
-    effectiveEndDate
-  });
+                      // Safely handle actualEndDate
+                      let actualEndDate = null;
+                      if (alloc.actualEndDate) {
+                        try {
+                          actualEndDate = new Date(alloc.actualEndDate);
+                          // Check if the date is valid
+                          if (isNaN(actualEndDate.getTime())) {
+                            actualEndDate = null;
+                          }
+                        } catch (error) {
+                          console.error(
+                            "Error parsing actualEndDate in frontend:",
+                            error
+                          );
+                          actualEndDate = null;
+                        }
+                      }
 
-  return (
-    <tr key={index}>
-      <td>{formatDate(alloc.startDate)}</td>
-      <td>{formatDate(alloc.endDate)}</td>
-      <td>{actualEndDate ? formatDate(actualEndDate) : "Not completed"}</td>
-      <td>
-        {actualEndDate
-          ? <span className="badge bg-success">Completed</span>
-          : <span className="badge bg-warning">In Progress</span>
-        }
-        {isEarly && (
-          <div style={{ color: "green", fontSize: "12px", fontWeight: "bold" }}>
-            ✓ Completed Early
-          </div>
-        )}
-      </td>
-    </tr>
-  );
-})}
+                      const plannedEndDate = new Date(alloc.endDate);
+                      const isEarly =
+                        actualEndDate && actualEndDate < plannedEndDate;
+                      const effectiveEndDate = actualEndDate || plannedEndDate;
 
+                      // Debug logging to understand the allocation data structure
+                      console.log("Allocation data in frontend:", {
+                        index,
+                        startDate: alloc.startDate,
+                        endDate: alloc.endDate,
+                        actualEndDate: alloc.actualEndDate,
+                        parsedActualEndDate: actualEndDate,
+                        hasActualEndDate: alloc.hasOwnProperty("actualEndDate"),
+                        actualEndDateType: typeof alloc.actualEndDate,
+                        isEarly,
+                        effectiveEndDate,
+                      });
+
+                      return (
+                        <tr key={index}>
+                          <td>{formatDate(alloc.startDate)}</td>
+                          <td>{formatDate(alloc.endDate)}</td>
+                          <td>
+                            {actualEndDate
+                              ? formatDate(actualEndDate)
+                              : "Not completed"}
+                          </td>
+                          <td>
+                            {actualEndDate ? (
+                              <span className="badge bg-success">
+                                Completed
+                              </span>
+                            ) : (
+                              <span className="badge bg-warning">
+                                In Progress
+                              </span>
+                            )}
+                            {isEarly && (
+                              <div
+                                style={{
+                                  color: "green",
+                                  fontSize: "12px",
+                                  fontWeight: "bold",
+                                }}
+                              >
+                                ✓ Completed Early
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               ) : (

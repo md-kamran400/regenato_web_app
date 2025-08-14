@@ -76,7 +76,7 @@
     }
   }
    .badge {
-    background-color: #6c757d !important;
+    /* background-color: #6c757d !important; */
     color: white !important;
     padding: 2px 4px !important;
     font-size: 7pt !important;

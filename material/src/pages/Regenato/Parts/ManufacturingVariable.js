@@ -155,42 +155,49 @@ const ManufacturingVariable = ({
   //   useEffect(() => {
 
   const tog_edit = (item = null) => {
-    if (item) {
-      const hours = parseFloat(item.hours);
-      let selectedOption = "hours";
-      let inputValue = hours.toString();
+  if (item) {
+    const hours = parseFloat(item.hours);
+    let selectedOption = "hours";
+    let inputValue = hours.toString();
 
-      if (hours >= 24) {
-        selectedOption = "days";
-        inputValue = (hours / 24).toString();
-      } else if (hours < 1) {
-        selectedOption = "minutes";
-        inputValue = (hours * 60).toString();
-      }
-
-      setFormData({
-        ...item,
-        hours: hours.toFixed(2),
-        isSpecialday: item.isSpecialday || false, // Add this
-        SpecialDayTotalMinutes: item.SpecialDayTotalMinutes || 0, // Add this
-      });
-      setSelectedOptionEdit(selectedOption);
-      setInputValueEdit(inputValue);
-      setEditId(item._id);
-    } else {
-      setFormData({
-        categoryId: "",
-        name: "",
-        hours: "",
-        hourlyRate: "",
-        totalRate: "",
-        isSpecialday: false, // Add this
-        SpecialDayTotalMinutes: 0, // Add this
-      });
-      setEditId(null);
+    if (hours >= 24) {
+      selectedOption = "days";
+      inputValue = (hours / 24).toString();
+    } else if (hours < 1) {
+      selectedOption = "minutes";
+      inputValue = (hours * 60).toString();
     }
-    setModalEdit(!modal_edit);
-  };
+
+    // Find the manufacturing variable to get its subcategories
+    const selectedVariable = manufacturingVariables.find(
+      v => v.categoryId === item.categoryId
+    );
+    
+    setSubMachineOptions(selectedVariable?.subCategories || []);
+
+    setFormData({
+      ...item,
+      hours: hours.toFixed(2),
+      isSpecialday: item.isSpecialday || false,
+      SpecialDayTotalMinutes: item.SpecialDayTotalMinutes || 0,
+    });
+    setSelectedOptionEdit(selectedOption);
+    setInputValueEdit(inputValue);
+    setEditId(item._id);
+  } else {
+    setFormData({
+      categoryId: "",
+      name: "",
+      hours: "",
+      hourlyRate: "",
+      totalRate: "",
+      isSpecialday: false,
+      SpecialDayTotalMinutes: 0,
+    });
+    setEditId(null);
+  }
+  setModalEdit(!modal_edit);
+};
 
   const fetchManufacturingData = useCallback(async () => {
     setLoading(true);
@@ -760,6 +767,7 @@ const ManufacturingVariable = ({
                 </th> */}
                 <th>ID</th>
                 <th>Name</th>
+                <th>Special Machine</th>
                 {/* <th>Time</th> */}
                 <th>Minutes (M)</th>
                 <th>Hourly Rate (INR)</th>
@@ -779,6 +787,7 @@ const ManufacturingVariable = ({
                   </td> */}
                   <td>{item.categoryId}</td>
                   <td>{item.name}</td>
+                  <td>{item.SubMachineName || "N/A"}</td>
                   {/* <td>{item.times || "-"}</td> */}
                   <td>{formatTime(item.hours)}</td>
                   <td>{item.hourlyRate}</td>
@@ -1105,194 +1114,174 @@ const ManufacturingVariable = ({
         </ModalBody>
       </Modal>
 
-      {/* edit  modal */}
-      <Modal isOpen={modal_edit} toggle={tog_edit}>
-        <ModalHeader toggle={tog_edit}>
-          Edit Manufacturing Variables
-        </ModalHeader>
-        <ModalBody>
-          <form onSubmit={handleEditSubmit}>
-            <div className="mb-3">
-              <label htmlFor="categoryId" className="form-label">
-                Category ID
-              </label>
-              <input
-                type="text"
-                className="form-control"
-                name="categoryId"
-                value={formData.categoryId}
-                onChange={handleChange}
-                required
-              />
-            </div>
-            <div className="mb-3">
-              <label htmlFor="name" className="form-label">
-                Name
-              </label>
+     {/* edit  modal */}
+    <Modal isOpen={modal_edit} toggle={tog_edit}>
+      <ModalHeader toggle={tog_edit}>
+        Edit Manufacturing Variables
+      </ModalHeader>
+      <ModalBody>
+        <form onSubmit={handleEditSubmit}>
+          <div className="mb-3">
+            <label htmlFor="categoryId" className="form-label">
+              Category ID
+            </label>
+            <input
+              type="text"
+              className="form-control"
+              name="categoryId"
+              value={formData.categoryId}
+              onChange={handleChange}
+              required
+            />
+          </div>
+          
+           <div className="mb-3">
+        <label htmlFor="name" className="form-label">
+          Name
+        </label>
+        <Autocomplete
+          options={manufacturingVariables}
+          getOptionLabel={(option) =>
+            `${option.categoryId} - ${option.name}`
+          }
+          onChange={(event, newValue) => {
+            handleAutocompleteChange(event, newValue);
+            // Update the sub-machine options when name changes
+            setSubMachineOptions(newValue?.subCategories || []);
+          }}
+          value={manufacturingVariables.find(item => item.categoryId === formData.categoryId) || null}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              label="Select Manufacturing Variables"
+              variant="outlined"
+            />
+          )}
+        />
+      </div>
 
-              <input
-                type="number "
-                className="form-control"
-                id="name"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-              />
-            </div>
+      {/* Sub Machine Selection - Always show this, even if empty */}
+      <div className="mb-3">
+        <label htmlFor="subMachine" className="form-label">
+          Specify Machine
+        </label>
+        <Autocomplete
+          options={subMachineOptions}
+          getOptionLabel={(option) =>
+            `${option.subcategoryId} - ${option.name}`
+          }
+          onChange={handleSubMachineChange}
+          value={subMachineOptions.find(item => item.name === formData.SubMachineName) || null}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              label="Select Specify Machine"
+              variant="outlined"
+            />
+          )}
+          disabled={subMachineOptions.length === 0}
+        />
+      </div>
 
-            {/* <div className="mb-3">
-              <label htmlFor="hours" className="form-label">
-                Enter Time
-              </label>
-              <div class="time-input">
-                <input
-                  type="number"
-                  min="0"
-                  max="24"
-                  placeholder="00"
-                  name="time-hours"
-                  value={formData["time-hours"]}
-                  onChange={handleChange}
-                  required
-                />
-                <h2>:</h2>
-                <input
-                  type="number"
-                  min="0"
-                  max="59"
-                  placeholder="00"
-                  name="time-minutes"
-                  value={formData["time-minutes"]}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-              <div class="time-labels">
-                <span>Hour</span>
-                <span>Minute</span>
-              </div>
-            </div> */}
-            <div className="mb-3">
-              <label htmlFor="time-select">Time</label>
-              <div className="input-group">
-                <input
-                  type="number"
-                  className="form-control"
-                  id="time-input-edit"
-                  value={inputValueEdit}
-                  onChange={handleInputChangeEdit}
-                  placeholder={`Enter ${selectedOptionEdit} value`}
-                />
-
-                <select
-                  id="time-select-edit"
-                  onChange={(e) => {
-                    handleSelectChangeEdit(e);
-                    setSelectedOptionEdit(e.target.value);
-                  }}
-                  value={selectedOptionEdit}
-                  className="form-select"
-                >
-                  <option value="">-- Select --</option>
-                  <option value="days">Days</option>
-                  <option value="hours">Hours</option>
-                  <option value="minutes">Minutes</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="mb-3">
-              <label htmlFor="hours" className="form-label">
-                Hours
-              </label>
+          <div className="mb-3">
+            <label htmlFor="time-select">Time</label>
+            <div className="input-group">
               <input
                 type="number"
                 className="form-control"
-                name="hours"
-                value={Math.round(formData.hours)}
-                readOnly
-                required
+                id="time-input-edit"
+                value={inputValueEdit}
+                onChange={handleInputChangeEdit}
+                placeholder={`Enter ${selectedOptionEdit} value`}
               />
-            </div>
-            <div className="mb-3">
-              <label htmlFor="hourlyRate" className="form-label">
-                Hourly Rate
-              </label>
-              <input
-                type="number"
-                className="form-control"
-                name="hourlyRate"
-                value={Math.round(formData.hourlyRate || "")}
-                onChange={handleChange}
-                required
-              />
-            </div>
-            <div className="mb-3">
-              <label htmlFor="totalRate" className="form-label">
-                Total Rate
-              </label>
-              <input
-                type="number"
-                className="form-control"
-                name="totalRate"
-                value={Math.round(formData.totalRate)}
-                readOnly
-                required
-              />
-            </div>
-            {/* isSpecialday checkbox */}
-            <div className="mb-3 form-check">
-              <input
-                type="checkbox"
-                className="form-check-input"
-                id="isSpecialday"
-                checked={formData.isSpecialday || false}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    isSpecialday: e.target.checked,
-                    SpecialDayTotalMinutes: e.target.checked ? formData.SpecialDayTotalMinutes : 0,
-                  })
-                }
-              />
-              <label className="form-check-label" htmlFor="isSpecialday">
-                Special Day Calculation
-              </label>
-            </div>
 
-            {/* Conditional SpecialDayTotalMinutes input */}
-            {/* {formData.isSpecialday && (
-              <div className="mb-3">
-                <label htmlFor="SpecialDayTotalMinutes" className="form-label">
-                  Total Days
-                </label>
-                <input
-                  type="number"
-                  className="form-control"
-                  id="SpecialDayTotalMinutes"
-                  min="0"
-                  value={formData.SpecialDayTotalMinutes}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      SpecialDayTotalMinutes: e.target.value,
-                    })
-                  }
-                  required={formData.isSpecialday}
-                />
-              </div>
-            )} */}
-            <ModalFooter>
-              <Button type="submit" color="primary" disabled={posting}>
-                Update
-              </Button>
-              <Button type="button" color="secondary" onClick={tog_edit}>
-                Cancel
-              </Button>
-            </ModalFooter>
-          </form>
-        </ModalBody>
-      </Modal>
+              <select
+                id="time-select-edit"
+                onChange={(e) => {
+                  handleSelectChangeEdit(e);
+                  setSelectedOptionEdit(e.target.value);
+                }}
+                value={selectedOptionEdit}
+                className="form-select"
+              >
+                <option value="">-- Select --</option>
+                <option value="days">Days</option>
+                <option value="hours">Hours</option>
+                <option value="minutes">Minutes</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="mb-3">
+            <label htmlFor="hours" className="form-label">
+              Hours
+            </label>
+            <input
+              type="number"
+              className="form-control"
+              name="hours"
+              value={Math.round(formData.hours)}
+              readOnly
+              required
+            />
+          </div>
+          <div className="mb-3">
+            <label htmlFor="hourlyRate" className="form-label">
+              Hourly Rate
+            </label>
+            <input
+              type="number"
+              className="form-control"
+              name="hourlyRate"
+              value={Math.round(formData.hourlyRate || "")}
+              onChange={handleChange}
+              required
+            />
+          </div>
+          <div className="mb-3">
+            <label htmlFor="totalRate" className="form-label">
+              Total Rate
+            </label>
+            <input
+              type="number"
+              className="form-control"
+              name="totalRate"
+              value={Math.round(formData.totalRate)}
+              readOnly
+              required
+            />
+          </div>
+          {/* isSpecialday checkbox */}
+          <div className="mb-3 form-check">
+            <input
+              type="checkbox"
+              className="form-check-input"
+              id="isSpecialday"
+              checked={formData.isSpecialday || false}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  isSpecialday: e.target.checked,
+                  SpecialDayTotalMinutes: e.target.checked ? formData.SpecialDayTotalMinutes : 0,
+                })
+              }
+            />
+            <label className="form-check-label" htmlFor="isSpecialday">
+              Special Day Calculation
+            </label>
+          </div>
+
+          <ModalFooter>
+            <Button type="submit" color="primary" disabled={posting}>
+              Update
+            </Button>
+            <Button type="button" color="secondary" onClick={tog_edit}>
+              Cancel
+            </Button>
+          </ModalFooter>
+        </form>
+      </ModalBody>
+    </Modal>
 
       {/* Delete modal */}
       <Modal isOpen={modal_delete} toggle={tog_delete} centered>

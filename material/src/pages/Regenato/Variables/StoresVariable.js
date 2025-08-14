@@ -80,7 +80,7 @@ const StoresVariable = () => {
 
   const handleNameChange = (e) => {
     // const names = e.target.value.split(",").map((name) => name.trim());
-   const names = e.target.value.split(",").map((name) => name.trim());
+    const names = e.target.value.split(",").map((name) => name.trim());
     setFormData((prev) => ({
       ...prev,
       Name: names,
@@ -200,7 +200,11 @@ const StoresVariable = () => {
                     color="success"
                     className="add-btn me-1"
                     onClick={() => {
-                      generateNextId(storeData);
+                      setFormData({
+                        categoryId: "",
+                        Name: [],
+                        location: [],
+                      });
                       setModalOpen(true);
                     }}
                   >
@@ -327,8 +331,9 @@ const StoresVariable = () => {
                     type="text"
                     name="categoryId"
                     value={formData.categoryId}
-                    readOnly
-                    className="form-control bg-light"
+                    onChange={handleChange}
+                    placeholder="Enter ID manually"
+                    className="form-control"
                   />
                 </FormGroup>
               </Col>
@@ -339,7 +344,7 @@ const StoresVariable = () => {
               <Input
                 type="text"
                 name="Name"
-                value={formData.Name} 
+                value={formData.Name}
                 onChange={handleNameChange}
                 placeholder="Enter names"
                 className="form-control"
@@ -351,7 +356,7 @@ const StoresVariable = () => {
               <Input
                 type="text"
                 name="location"
-                value={formData.location} 
+                value={formData.location}
                 onChange={handleLocationChange}
                 placeholder="Enter locations"
                 className="form-control"
