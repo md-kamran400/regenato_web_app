@@ -74,6 +74,7 @@ export const AllocatedPartListHrPlan = ({
   const [isUpdating, setIsUpdating] = useState(false);
   const [isDateBlocked, setIsDateBlocked] = useState(false);
   const [highlightDates, setHighlightDates] = useState([]);
+  const [goodsReceiptData, setGoodsReceiptData] = useState([]);
 
   const [disableDates, setDisableDates] = useState([]);
   const [warehouseChanges, setWarehouseChanges] = useState({
@@ -133,6 +134,11 @@ export const AllocatedPartListHrPlan = ({
     fetchHighlightDates();
   }, []);
 
+  // Fetch goods receipt data when component mounts
+  useEffect(() => {
+    fetchGoodsReceiptData();
+  }, []);
+
   const getExcludedDates = () => {
     if (
       !selectedSection?.data[0]?.startDate ||
@@ -177,7 +183,6 @@ export const AllocatedPartListHrPlan = ({
               allocationId: item._id,
               title: item.processName,
               isSpecialDay: processInfo?.isSpecialday || false,
-              warehouseQuantity: item.warehouseQuantity, // <-- add this
               data: item.allocations.map((allocation) => {
                 // Ensure we have valid values for calculation
                 const shiftTotalTime = allocation.shiftTotalTime || 510; // Default to 8.5 hours in minutes if not set
@@ -213,6 +218,8 @@ export const AllocatedPartListHrPlan = ({
                   shiftTotalTime: allocation.shiftTotalTime,
                   perMachinetotalTime: allocation.perMachinetotalTime,
                   isProcessCompleted: allocation.isProcessCompleted || false,
+                  warehouseQuantity: allocation.warehouseQuantity || 0, // Add warehouse quantity from allocation
+                  partsCodeId: item.partsCodeId || null, // Add partsCodeId from the item
                 };
               }),
             };
@@ -595,6 +602,44 @@ export const AllocatedPartListHrPlan = ({
     }
   };
 
+  // Function to fetch goods receipt data
+  const fetchGoodsReceiptData = async () => {
+    try {
+      console.log("Fetching goods receipt data...");
+      const response = await axios.get(
+        `${process.env.REACT_APP_BASE_URL}/api/GetGoodsReceipt`
+      );
+      console.log("Goods receipt data received:", response.data);
+      setGoodsReceiptData(response.data || []);
+    } catch (error) {
+      console.error("Error fetching goods receipt data:", error);
+      setGoodsReceiptData([]);
+    }
+  };
+
+  // Function to get matching warehouse quantity
+  const getMatchingWarehouseQuantity = (partsCodeId, warehouseId) => {
+    if (!goodsReceiptData || goodsReceiptData.length === 0) {
+      console.log("No goods receipt data available");
+      return null;
+    }
+
+    console.log("Searching for:", { partsCodeId, warehouseId });
+    console.log("Available goods receipt data:", goodsReceiptData);
+
+    const matchingItem = goodsReceiptData.find(
+      (item) => item.Itemcode === partsCodeId && item.WhsCode === warehouseId
+    );
+
+    if (matchingItem) {
+      console.log("Found matching item:", matchingItem);
+      return matchingItem.Quantity;
+    } else {
+      console.log("No matching item found");
+      return null;
+    }
+  };
+
   // Add this function to check if all processes are completed
   const isAllocationCompleted = () => {
     if (sections.length === 0) return false;
@@ -658,21 +703,45 @@ export const AllocatedPartListHrPlan = ({
               allocationId: item._id,
               title: item.processName,
               isSpecialDay: processInfo?.isSpecialday || false,
-              data: item.allocations.map((allocation) => ({
-                trackingId: allocation._id,
-                plannedQty: allocation.plannedQuantity,
-                startDate: moment(allocation.startDate).format("DD MMM YYYY"),
-                endDate: moment(allocation.endDate).format("DD MMM YYYY"),
-                machineId: allocation.machineId,
-                shift: allocation.shift,
-                plannedTime: `${allocation.plannedTime} min`,
-                operator: allocation.operator,
-                actualEndDate: allocation.actualEndDate || allocation.endDate,
-                dailyPlannedQty: allocation.dailyPlannedQty,
-                shiftTotalTime: allocation.shiftTotalTime,
-                perMachinetotalTime: allocation.perMachinetotalTime,
-                isProcessCompleted: allocation.isProcessCompleted || false,
-              })),
+              data: item.allocations.map((allocation) => {
+                // Ensure we have valid values for calculation
+                const shiftTotalTime = allocation.shiftTotalTime || 510;
+                const perMachinetotalTime = allocation.perMachinetotalTime || 1;
+                const plannedQuantity = allocation.plannedQuantity || 0;
+
+                // Calculate daily planned quantity
+                let dailyPlannedQty;
+                if (perMachinetotalTime <= 0) {
+                  dailyPlannedQty = plannedQuantity;
+                } else {
+                  const totalTimeRequired =
+                    plannedQuantity * perMachinetotalTime;
+                  dailyPlannedQty =
+                    totalTimeRequired <= shiftTotalTime
+                      ? plannedQuantity
+                      : Math.floor(shiftTotalTime / perMachinetotalTime);
+                }
+
+                return {
+                  trackingId: allocation._id,
+                  plannedQty: allocation.plannedQuantity,
+                  startDate: moment(allocation.startDate).format("DD MMM YYYY"),
+                  endDate: moment(allocation.endDate).format("DD MMM YYYY"),
+                  machineId: allocation.machineId,
+                  wareHouse: allocation?.wareHouse || "N/A",
+                  warehouseId: allocation?.warehouseId || "N/A",
+                  shift: allocation.shift,
+                  plannedTime: `${allocation.plannedTime} min`,
+                  operator: allocation.operator,
+                  actualEndDate: allocation.actualEndDate || allocation.endDate,
+                  dailyPlannedQty: dailyPlannedQty,
+                  shiftTotalTime: allocation.shiftTotalTime,
+                  perMachinetotalTime: allocation.perMachinetotalTime,
+                  isProcessCompleted: allocation.isProcessCompleted || false,
+                  warehouseQuantity: allocation.warehouseQuantity || 0,
+                  partsCodeId: item.partsCodeId || null,
+                };
+              }),
             };
           });
           setSections(formattedSections);
@@ -1790,7 +1859,7 @@ export const AllocatedPartListHrPlan = ({
                     </h5>
                     <div style={{ fontSize: "14px" }}>
                       {selectedSection?.data[0]?.wareHouse || "N/A"} -{" "}
-                      {/* {selectedSection?.data[0]?.warehouseId || "N/A"} */}
+                      {selectedSection?.data[0]?.warehouseId || "N/A"}
                     </div>
                   </Col>
                 </Row>
@@ -1807,9 +1876,24 @@ export const AllocatedPartListHrPlan = ({
                       Total Quantity in Warehouse
                     </h5>
                     <p style={{ fontSize: "14px", marginBottom: 0 }}>
-                      {selectedSection?.warehouseQuantity !== undefined
-                        ? selectedSection.warehouseQuantity
-                        : "No data available"}
+                      {(() => {
+                        const partsCodeId =
+                          selectedSection?.data?.[0]?.partsCodeId;
+                        const warehouseId =
+                          selectedSection?.data?.[0]?.warehouseId;
+
+                        if (!partsCodeId || !warehouseId) {
+                          return "N/A";
+                        }
+
+                        const matchingQuantity = getMatchingWarehouseQuantity(
+                          partsCodeId,
+                          warehouseId
+                        );
+                        return matchingQuantity !== null
+                          ? matchingQuantity
+                          : "N/A";
+                      })()}
                     </p>
                   </Col>
                 </Row>
@@ -1921,21 +2005,21 @@ export const AllocatedPartListHrPlan = ({
                         <td>
                           {task.dailyStatus === "On Track" ? (
                             <span
-                              className="badge bg-primary-subtle text-primary"
+                              className="badge bg-primary text-white"
                               style={{ fontSize: "13px" }}
                             >
                               On Track
                             </span>
                           ) : task.dailyStatus === "Delayed" ? (
                             <span
-                              className="badge bg-danger-subtle text-danger"
+                              className="badge bg-danger text-white"
                               style={{ fontSize: "13px" }}
                             >
                               Delayed
                             </span>
                           ) : task.dailyStatus === "Ahead" ? (
                             <span
-                              className="badge bg-success-subtle text-success"
+                              className="badge bg-success text-white"
                               style={{ fontSize: "13px" }}
                             >
                               Ahead
@@ -1944,7 +2028,7 @@ export const AllocatedPartListHrPlan = ({
                             task.produced == null ||
                             task.produced === 0 ? (
                             <span
-                              className="badge bg-secondary-subtle text-secondary"
+                              className="badge bg-secondary text-white"
                               style={{ fontSize: "13px" }}
                             >
                               Not Started
@@ -2610,11 +2694,33 @@ export const AllocatedPartListHrPlan = ({
                                 color: "red",
                               }}
                             >
-                              {/* {300 +
-                                (warehouseChanges.fromWarehouseChange || 0)} */}
-                              {selectedSection?.warehouseQuantity !== undefined
-                                ? selectedSection.warehouseQuantity
-                                : "No data available"}
+                              {(() => {
+                                const partsCodeId =
+                                  selectedSection?.data?.[0]?.partsCodeId;
+                                const warehouseId =
+                                  selectedSection?.data?.[0]?.warehouseId;
+
+                                if (!partsCodeId || !warehouseId) {
+                                  return "N/A";
+                                }
+
+                                const matchingQuantity =
+                                  getMatchingWarehouseQuantity(
+                                    partsCodeId,
+                                    warehouseId
+                                  );
+                                const baseQuantity =
+                                  matchingQuantity !== null
+                                    ? matchingQuantity
+                                    : 0;
+                                const adjustedQuantity =
+                                  baseQuantity +
+                                  (warehouseChanges.fromWarehouseChange || 0);
+
+                                return adjustedQuantity > 0
+                                  ? adjustedQuantity
+                                  : "N/A";
+                              })()}
                             </p>
                             {dailyTracking[0]?.produced > 0 && (
                               <FaArrowDown color="red" />
@@ -2920,7 +3026,27 @@ export const AllocatedPartListHrPlan = ({
                   {`${selectedSection?.data[0]?.wareHouse || "N/A"} - ${
                     selectedSection?.data[0]?.warehouseId || "N/A"
                   }`}{" "}
-                  (Quantity: {300 + (warehouseChanges.fromWarehouseChange || 0)}
+                  (Quantity:{" "}
+                  {(() => {
+                    const partsCodeId = selectedSection?.data?.[0]?.partsCodeId;
+                    const warehouseId = selectedSection?.data?.[0]?.warehouseId;
+
+                    if (!partsCodeId || !warehouseId) {
+                      return "N/A";
+                    }
+
+                    const matchingQuantity = getMatchingWarehouseQuantity(
+                      partsCodeId,
+                      warehouseId
+                    );
+                    const baseQuantity =
+                      matchingQuantity !== null ? matchingQuantity : 0;
+                    const adjustedQuantity =
+                      baseQuantity +
+                      (warehouseChanges.fromWarehouseChange || 0);
+
+                    return adjustedQuantity > 0 ? adjustedQuantity : "N/A";
+                  })()}
                   )
                 </Col>
               </Row>
