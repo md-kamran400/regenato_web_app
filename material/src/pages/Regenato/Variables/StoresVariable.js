@@ -27,6 +27,7 @@ const StoresVariable = () => {
     categoryId: "",
     Name: [],
     location: [],
+    quantity: "",
   });
   const [posting, setPosting] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
@@ -118,6 +119,7 @@ const StoresVariable = () => {
         categoryId: "",
         Name: [],
         location: [],
+        quantity: "",
       });
     } catch (error) {
       console.error("Error adding store variable:", error);
@@ -152,6 +154,7 @@ const StoresVariable = () => {
       categoryId: store.categoryId,
       Name: store.Name,
       location: store.location,
+      quantity: store.quantity,
     });
     setEditModalOpen(true);
   };
@@ -204,6 +207,7 @@ const StoresVariable = () => {
                         categoryId: "",
                         Name: [],
                         location: [],
+                        quantity: "",
                       });
                       setModalOpen(true);
                     }}
@@ -231,6 +235,7 @@ const StoresVariable = () => {
                       <th>ID</th>
                       <th>Names</th>
                       <th>Location</th>
+                      <th>Quantity</th>
                       <th>Action</th>
                     </tr>
                   </thead>
@@ -277,6 +282,7 @@ const StoresVariable = () => {
                               getFirstLocation(store)
                             )}
                           </td>
+                          <td>{store.quantity}</td>
                           <td>
                             <div className="d-flex gap-2">
                               <Button
@@ -363,6 +369,18 @@ const StoresVariable = () => {
               />
             </FormGroup>
 
+            <FormGroup className="mb-3">
+                  <Label className="form-label">ID</Label>
+                  <Input
+                    type="text"
+                    name="quantity"
+                    value={formData.quantity}
+                    onChange={handleChange}
+                    placeholder="Enter ID manually"
+                    className="form-control"
+                  />
+                </FormGroup>
+
             <ModalFooter className="border-top-0 pt-3">
               <Button
                 color="light"
@@ -423,7 +441,7 @@ const StoresVariable = () => {
                 className="form-control"
               />
             </FormGroup>
-
+            {/* quantity */}
             <FormGroup className="mb-3">
               <Label className="form-label">Locations</Label>
               <Input
@@ -433,6 +451,18 @@ const StoresVariable = () => {
                 onChange={handleLocationChange}
                 placeholder="Enter locations"
                 className="form-control"
+              />
+            </FormGroup>
+
+            <FormGroup className="mb-3">
+              <Label className="form-label">Quantity</Label>
+              <Input
+                type="text"
+                name="quantity"
+                value={formData.quantity}
+                onChange={handleChange}
+                placeholder="Enter quantity"
+                className="form-control bg-light"
               />
             </FormGroup>
 

@@ -22,6 +22,9 @@ const DuplicateModal = React.lazy(() =>
 const AddProductionOrderModal = React.lazy(() =>
   import("./ListReusableModals/AddProductionOrderModal")
 );
+const CheckModuleModal = React.lazy(() =>
+  import("./ListReusableModals/CheckModuleModal")
+);
 import Select from "react-select";
 // third party impprts
 
@@ -128,6 +131,7 @@ const List = () => {
   const [modal_duplicate, setModalDuplicate] = useState(false);
   const [itemToDuplicate, setItemToDuplicate] = useState(null);
   const userRole = localStorage.getItem("userRole");
+  const [modal_checkModule, setModalCheckModule] = useState(false);
 
   // Replace the existing handleDuplicateProject function with these:
   const handleDuplicateClick = (item) => {
@@ -194,6 +198,9 @@ const List = () => {
 
   const toggleModalPO = () => {
     setSeondModalList(!secondModalList);
+  };
+  const toggleCheckModule = () => {
+    setModalCheckModule(!modal_checkModule);
   };
   // function to toggle edit the modal
   const toggleEditModal = (item = null) => {
@@ -733,6 +740,13 @@ const List = () => {
                   >
                     <i className="ri-add-line align-bottom me-1"></i> Add PO
                   </Button>
+                  <Button
+                    className="btn btn-warning flex-fill"
+                    onClick={toggleCheckModule}
+                    style={{ minWidth: "120px" }}
+                  >
+                    <i className="ri-add-line align-bottom me-1"></i> Sync Po
+                  </Button>
                 </>
               )}
             </div>
@@ -797,6 +811,9 @@ const List = () => {
                 <Button className="btn btn-primary" onClick={toggleModalPO}>
                   <i className="ri-add-line align-bottom me-1"></i> Add PO
                 </Button>
+                <Button className="btn btn-warning" onClick={toggleCheckModule}>
+                  <i className="ri-add-line align-bottom me-1"></i> Sync PO
+                </Button>
               </div>
             )}
 
@@ -858,6 +875,12 @@ const List = () => {
                   <Button className="btn btn-primary" onClick={toggleModalPO}>
                     <i className="ri-add-line align-bottom me-1"></i> Add
                     Production Order
+                  </Button>
+                  <Button
+                    className="btn btn-warning"
+                    onClick={toggleCheckModule}
+                  >
+                    <i className="ri-add-line align-bottom me-1"></i> Sync Po
                   </Button>
                 </>
               )}
@@ -1119,6 +1142,13 @@ const List = () => {
           onSuccess={(duplicatedProject) => {
             setprojectListsData((prev) => [...prev, duplicatedProject]);
           }}
+        />
+      </Suspense>
+
+      <Suspense fallback={<div>Loading...</div>}>
+        <CheckModuleModal
+          isOpen={modal_checkModule}
+          toggle={toggleCheckModule}
         />
       </Suspense>
     </React.Fragment>
