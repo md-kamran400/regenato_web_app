@@ -85,7 +85,7 @@ app.use("/api/subAssembly", subAssemblyRoutes);
 app.use("/api/assmebly", AssemblyRoutes);
 app.use("/api/userManagement", UserRoute);
 app.use("/api/allocation", allocationRoutes);
-app.use('/api', stagingRoutes)
+app.use("/api", stagingRoutes);
 
 app.get("/api/holidays", async (req, res) => {
   try {
@@ -98,55 +98,259 @@ app.get("/api/holidays", async (req, res) => {
   }
 });
 
+// cron.schedule(
+//   "45 23 * * *",
+//   async () => {
+//     try {
+//       const today = new Date();
+//       const todayDateStr = today.toISOString().split("T")[0]; // YYYY-MM-DD
+
+//       const allProjects = await PartListProjectModel.find();
+
+//       for (const project of allProjects) {
+//         let projectModified = false;
+
+//         // Function to process parts items (reusable for all three types)
+//         const processPartsItems = (partsItems) => {
+//           for (const partItem of partsItems) {
+//             for (const process of partItem.allocations) {
+//               for (const allocation of process.allocations) {
+//                 const startDate = new Date(allocation.startDate);
+//                 const endDate = new Date(allocation.endDate);
+
+//                 if (today >= startDate && today <= endDate) {
+//                   const exists = allocation.dailyTracking.some((entry) => {
+//                     const entryDateStr = new Date(entry.date)
+//                       .toISOString()
+//                       .split("T")[0];
+//                     return entryDateStr === todayDateStr;
+//                   });
+
+//                   if (!exists) {
+//                     console.log(
+//                       `Auto adding tracking for Allocation: ${allocation._id}`
+//                     );
+
+//                     allocation.dailyTracking.push({
+//                       date: today,
+//                       planned: allocation.dailyPlannedQty || 0,
+//                       produced: 0,
+//                       operator: "Auto-Generated",
+//                       dailyStatus: "Delayed", // Set default status to Delayed as requested
+//                     });
+//                     return true; // Indicates modification was made
+//                   }
+//                 }
+//               }
+//             }
+//           }
+//           return false; // No modifications made
+//         };
+
+//         // Process partsLists
+//         for (const partsList of project.partsLists) {
+//           if (processPartsItems(partsList.partsListItems)) {
+//             projectModified = true;
+//           }
+//         }
+
+//         // Process subAssemblyListFirst
+//         for (const subAssembly of project.subAssemblyListFirst) {
+//           if (processPartsItems(subAssembly.partsListItems)) {
+//             projectModified = true;
+//           }
+//         }
+
+//         // Process assemblyList
+//         for (const assembly of project.assemblyList) {
+//           // Process assembly's direct parts
+//           if (processPartsItems(assembly.partsListItems)) {
+//             projectModified = true;
+//           }
+
+//           // Process assembly's subAssemblies parts
+//           for (const subAssembly of assembly.subAssemblies) {
+//             if (processPartsItems(subAssembly.partsListItems)) {
+//               projectModified = true;
+//             }
+//           }
+//         }
+
+//         // Save only if modifications done
+//         if (projectModified) {
+//           await project.save();
+//           console.log(`Project ${project._id} updated with auto-tracking`);
+//         }
+//       }
+//     } catch (error) {
+//       console.error("Error in Auto Daily Tracking Cron:", error);
+//     }
+//   },
+//   {
+//     timezone: "Asia/Kolkata",
+//   }
+// );
+
+// =====================
+
+// cron.schedule(
+//   "45 23 * * *",
+//   async () => {
+//     try {
+//       // Get today's date in YYYY-MM-DD format
+//       const today = new Date();
+//       const todayDateStr = today.toISOString().split("T")[0];
+
+//       const allProjects = await PartListProjectModel.find();
+
+//       // Helper function to process a list of part items
+//       const processPartsItems = (partsItems) => {
+//         let modified = false;
+
+//         for (const partItem of partsItems) {
+//           for (const process of partItem.allocations) {
+//             for (const allocation of process.allocations) {
+//               const startDate = new Date(allocation.startDate);
+//               const endDate = new Date(allocation.endDate);
+
+//               // Only process allocations that are active today
+//               if (today >= startDate && today <= endDate) {
+//                 const exists = allocation.dailyTracking.some((entry) => {
+//                   const entryDateStr = new Date(entry.date)
+//                     .toISOString()
+//                     .split("T")[0];
+//                   return entryDateStr === todayDateStr;
+//                 });
+
+//                 // If today's tracking is missing, auto-generate
+//                 if (!exists) {
+//                   // console.log(
+//                   //   ` Auto adding tracking for Allocation: ${allocation._id}`
+//                   // );
+
+//                   allocation.dailyTracking.push({
+//                     date: today,
+//                     planned: allocation.dailyPlannedQty || 0,
+//                     produced: 0,
+//                     operator: "Auto-Generated",
+//                     dailyStatus: "Delayed", // Default status for auto entries
+//                   });
+//                   modified = true;
+//                 }
+//               }
+//             }
+//           }
+//         }
+
+//         return modified;
+//       };
+
+//       for (const project of allProjects) {
+//         let projectModified = false;
+
+//         // Process partsLists
+//         for (const partsList of project.partsLists) {
+//           if (processPartsItems(partsList.partsListItems)) {
+//             projectModified = true;
+//           }
+//         }
+
+//         // Process subAssemblyListFirst
+//         for (const subAssembly of project.subAssemblyListFirst) {
+//           if (processPartsItems(subAssembly.partsListItems)) {
+//             projectModified = true;
+//           }
+//         }
+
+//         // Process assemblyList and its subAssemblies
+//         for (const assembly of project.assemblyList) {
+//           if (processPartsItems(assembly.partsListItems)) {
+//             projectModified = true;
+//           }
+//           for (const subAssembly of assembly.subAssemblies) {
+//             if (processPartsItems(subAssembly.partsListItems)) {
+//               projectModified = true;
+//             }
+//           }
+//         }
+
+//         // Save only if any modification was made
+//         if (projectModified) {
+//           await project.save();
+//           console.log(`Project ${project._id} updated with auto-tracking`);
+//         }
+//       }
+
+//       console.log("✅ Auto Daily Tracking Cron finished");
+//     } catch (error) {
+//       console.error("Error in Auto Daily Tracking Cron:", error);
+//     }
+//   },
+//   {
+//     timezone: "Asia/Kolkata",
+//   }
+// );
+
 
 cron.schedule(
   "45 23 * * *",
   async () => {
     try {
       const today = new Date();
-      const todayDateStr = today.toISOString().split("T")[0]; // YYYY-MM-DD
+      const todayDateStr = today.toISOString().split("T")[0];
+
+      console.log(`Auto Daily Tracking Cron started for ${todayDateStr}`);
 
       const allProjects = await PartListProjectModel.find();
 
-      for (const project of allProjects) {
-        let projectModified = false;
+      const processPartsItems = (partsItems) => {
+        let modified = false;
 
-        // Function to process parts items (reusable for all three types)
-        const processPartsItems = (partsItems) => {
-          for (const partItem of partsItems) {
-            for (const process of partItem.allocations) {
-              for (const allocation of process.allocations) {
-                const startDate = new Date(allocation.startDate);
-                const endDate = new Date(allocation.endDate);
+        for (const partItem of partsItems) {
+          for (const process of partItem.allocations) {
+            for (const allocation of process.allocations) {
+              const startDate = new Date(allocation.startDate);
+              const endDate = new Date(allocation.endDate);
 
-                if (today >= startDate && today <= endDate) {
-                  const exists = allocation.dailyTracking.some((entry) => {
-                    const entryDateStr = new Date(entry.date)
-                      .toISOString()
-                      .split("T")[0];
-                    return entryDateStr === todayDateStr;
+              // Loop from allocation startDate until yesterday (not today)
+              let current = new Date(startDate);
+              while (current < today && current <= endDate) {
+                const currentDateStr = current.toISOString().split("T")[0];
+
+                const exists = allocation.dailyTracking.some((entry) => {
+                  const entryDateStr = new Date(entry.date)
+                    .toISOString()
+                    .split("T")[0];
+                  return entryDateStr === currentDateStr;
+                });
+
+                if (!exists) {
+                  console.log(
+                    `Auto adding tracking for Allocation: ${allocation._id} on ${currentDateStr}`
+                  );
+
+                  allocation.dailyTracking.push({
+                    date: new Date(current),
+                    planned: allocation.dailyPlannedQty || 0,
+                    produced: 0,
+                    operator: "Auto-Generated",
+                    dailyStatus: "Delayed",
                   });
-
-                  if (!exists) {
-                    console.log(
-                      `Auto adding tracking for Allocation: ${allocation._id}`
-                    );
-
-                    allocation.dailyTracking.push({
-                      date: today,
-                      planned: allocation.dailyPlannedQty || 0,
-                      produced: 0,
-                      operator: "Auto-Generated",
-                      dailyStatus: "Delayed", // Set default status to Delayed as requested
-                    });
-                    return true; // Indicates modification was made
-                  }
+                  modified = true;
                 }
+
+                // Move to next day
+                current.setDate(current.getDate() + 1);
               }
             }
           }
-          return false; // No modifications made
-        };
+        }
+
+        return modified;
+      };
+
+      for (const project of allProjects) {
+        let projectModified = false;
 
         // Process partsLists
         for (const partsList of project.partsLists) {
@@ -162,14 +366,11 @@ cron.schedule(
           }
         }
 
-        // Process assemblyList
+        // Process assemblyList & subAssemblies
         for (const assembly of project.assemblyList) {
-          // Process assembly's direct parts
           if (processPartsItems(assembly.partsListItems)) {
             projectModified = true;
           }
-
-          // Process assembly's subAssemblies parts
           for (const subAssembly of assembly.subAssemblies) {
             if (processPartsItems(subAssembly.partsListItems)) {
               projectModified = true;
@@ -177,12 +378,13 @@ cron.schedule(
           }
         }
 
-        // Save only if modifications done
         if (projectModified) {
           await project.save();
           console.log(`Project ${project._id} updated with auto-tracking`);
         }
       }
+
+      console.log("Auto Daily Tracking Cron finished");
     } catch (error) {
       console.error("Error in Auto Daily Tracking Cron:", error);
     }
@@ -191,6 +393,7 @@ cron.schedule(
     timezone: "Asia/Kolkata",
   }
 );
+
 
 // ===================
 // Start Server
