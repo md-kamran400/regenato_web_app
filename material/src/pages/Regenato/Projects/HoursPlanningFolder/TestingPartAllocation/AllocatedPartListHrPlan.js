@@ -89,16 +89,22 @@ export const AllocatedPartListHrPlan = ({
       const wareHouseName = selectedSection.data[0].wareHouse;
       const categoryId = wareHouseName.split(" - ")[0]; // take "01"
 
-      console.log(categoryId)
+      console.log("Fetching warehouse data for categoryId:", categoryId);
       axios
         .get(`${process.env.REACT_APP_BASE_URL}/api/storesVariable/category/${categoryId}`)
         .then((res) => {
+          console.log("Warehouse data received:", res.data);
           setWarehouseData(res.data);
-          console.log(res.data)
         })
-
         .catch((err) => {
           console.error("Error fetching warehouse data:", err);
+          // Set default warehouse data if fetch fails
+          setWarehouseData({
+            categoryId: categoryId,
+            Name: [wareHouseName],
+            location: ["Unknown"],
+            quantity: [0]
+          });
         });
     }
   }, [selectedSection]);
@@ -159,6 +165,46 @@ export const AllocatedPartListHrPlan = ({
   useEffect(() => {
     fetchGoodsReceiptData();
   }, []);
+
+  // Function to refresh warehouse data
+  const refreshWarehouseData = async () => {
+    if (selectedSection?.data?.[0]?.wareHouse) {
+      const wareHouseName = selectedSection.data[0].wareHouse;
+      const categoryId = wareHouseName.split(" - ")[0];
+      
+      try {
+        const response = await axios.get(
+          `${process.env.REACT_APP_BASE_URL}/api/storesVariable/category/${categoryId}`
+        );
+        setWarehouseData(response.data);
+        toast.success("Warehouse data refreshed successfully!");
+      } catch (error) {
+        console.error("Error refreshing warehouse data:", error);
+        toast.error("Failed to refresh warehouse data");
+      }
+    }
+  };
+
+  // Function to check if warehouse quantity is sufficient
+  const isWarehouseQuantitySufficient = (requiredQuantity) => {
+    const availableQuantity = warehouseData?.quantity?.[0] || 0;
+    return availableQuantity >= requiredQuantity;
+  };
+
+  // Function to get warehouse quantity warning
+  const getWarehouseQuantityWarning = () => {
+    const availableQuantity = warehouseData?.quantity?.[0] || 0;
+    const producedQuantity = dailyTracking[0]?.produced || 0;
+    
+    if (availableQuantity === 0) {
+      return { type: "error", message: "Warehouse is empty!" };
+    } else if (availableQuantity < producedQuantity) {
+      return { type: "warning", message: `Insufficient warehouse quantity. Available: ${availableQuantity}, Required: ${producedQuantity}` };
+    } else if (availableQuantity <= 10) {
+      return { type: "warning", message: "Warehouse quantity is running low!" };
+    }
+    return null;
+  };
 
   const getExcludedDates = () => {
     if (
@@ -344,61 +390,23 @@ export const AllocatedPartListHrPlan = ({
     setAddRowModal(false);
   };
 
-  // const handleDailyTrackingChange = (index, field, value) => {
-  //   if (field === "produced") {
-  //     const remainingQty = calculateRemainingQuantity();
-  //     const numericValue = Number(value) || 0;
-
-  //     // If the new value exceeds remaining quantity
-  //     if (numericValue > remainingQty) {
-  //       toast.error(
-  //         `Produced quantity cannot exceed remaining quantity (${remainingQty})`
-  //       );
-
-  //       // Keep the previous value (don't update the state)
-  //       return;
-  //     }
-  //   }
-
-  //   setDailyTracking((prev) => {
-  //     const updated = [...prev];
-
-  //     // SAFETY CHECK
-  //     if (!updated[index]) {
-  //       console.warn(`Index ${index} is undefined`);
-  //       return prev;
-  //     }
-
-  //     updated[index][field] = value;
-
-  //     if (field === "produced") {
-  //       const produced = Number(value) || 0;
-  //       const planned =
-  //         Number(updated[index].planned) ||
-  //         Number(selectedSection?.data[0]?.dailyPlannedQty) ||
-  //         0;
-
-  //       if (produced === planned) {
-  //         updated[index].dailyStatus = "On Track";
-  //       } else if (produced > planned) {
-  //         updated[index].dailyStatus = "Ahead";
-  //       } else {
-  //         updated[index].dailyStatus = "Delayed";
-  //       }
-  //     }
-
-  //     return updated;
-  //   });
-  // };
-
   const handleDailyTrackingChange = (index, field, value) => {
     if (field === "produced") {
       const remainingQty = calculateRemainingQuantity();
       const numericValue = Number(value) || 0;
+      const availableWarehouseQty = warehouseData?.quantity?.[0] || 0;
 
       if (numericValue > remainingQty) {
         toast.error(
           `Produced quantity cannot exceed remaining quantity (${remainingQty})`
+        );
+        return;
+      }
+
+      // Check if produced quantity exceeds available warehouse quantity
+      if (numericValue > availableWarehouseQty) {
+        toast.error(
+          `Produced quantity cannot exceed available warehouse quantity (${availableWarehouseQty})`
         );
         return;
       }
@@ -478,6 +486,32 @@ export const AllocatedPartListHrPlan = ({
         `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/allocations/${allocationId}/allocations/${trackingId}/dailyTracking`,
         trackingData
       );
+
+      // Update warehouse quantity after successful daily tracking update
+      if (dailyTracking[0]?.produced > 0 && selectedSection?.data[0]?.warehouseId) {
+        try {
+          const warehouseUpdateResponse = await axios.put(
+            `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/update-warehouse-quantity`,
+            {
+              warehouseId: selectedSection.data[0].warehouseId,
+              quantityToReduce: dailyTracking[0].produced
+            }
+          );
+
+          // Update local warehouse data state
+          if (warehouseUpdateResponse.data.success) {
+            setWarehouseData(prevData => ({
+              ...prevData,
+              quantity: [warehouseUpdateResponse.data.data.newQuantity]
+            }));
+            
+            toast.success(`Warehouse quantity updated: ${warehouseUpdateResponse.data.data.previousQuantity} → ${warehouseUpdateResponse.data.data.newQuantity}`);
+          }
+        } catch (warehouseError) {
+          console.error("Error updating warehouse quantity:", warehouseError);
+          toast.warning("Daily tracking updated but warehouse quantity update failed.");
+        }
+      }
 
       if (onUpdateAllocaitonStatus) {
         onUpdateAllocaitonStatus(response.data);
@@ -1864,6 +1898,20 @@ export const AllocatedPartListHrPlan = ({
                   }}
                 >
                   From Warehouse
+                  <Button
+                    color="link"
+                    size="sm"
+                    onClick={refreshWarehouseData}
+                    style={{
+                      float: "right",
+                      padding: "0",
+                      margin: "0",
+                      color: "#4f46e5",
+                      textDecoration: "none"
+                    }}
+                  >
+                    <i className="ri-refresh-line"></i>
+                  </Button>
                 </h4>
 
                 <Row>
@@ -2228,7 +2276,7 @@ export const AllocatedPartListHrPlan = ({
                       dailyTracking.length > 0 ? dailyTracking[0].produced : ""
                     }
                     placeholder="Enter Produced Quantity"
-                    max={calculateRemainingQuantity()}
+                    max={Math.min(calculateRemainingQuantity(), warehouseData?.quantity?.[0] || 0)}
                     onChange={(e) =>
                       handleDailyTrackingChange(0, "produced", e.target.value)
                     }
@@ -2262,7 +2310,7 @@ export const AllocatedPartListHrPlan = ({
                     }}
                   >
                     <CiCircleInfo size={18} color="#64748b" />
-                    This will automatically update warehouse quantities below
+                    Max allowed: {Math.min(calculateRemainingQuantity(), warehouseData?.quantity?.[0] || 0)} units
                   </p>
                 </div>
               </div>
@@ -2652,6 +2700,20 @@ export const AllocatedPartListHrPlan = ({
                       }}
                     >
                       From Warehouse
+                      <Button
+                        color="link"
+                        size="sm"
+                        onClick={refreshWarehouseData}
+                        style={{
+                          float: "right",
+                          padding: "0",
+                          margin: "0",
+                          color: "#4f46e5",
+                          textDecoration: "none"
+                        }}
+                      >
+                        <i className="ri-refresh-line"></i>
+                      </Button>
                     </h4>
 
                     <Row>
@@ -2709,13 +2771,41 @@ export const AllocatedPartListHrPlan = ({
                               style={{ textAlign: "left", marginTop: "5px" }}
                             >
                               <span style={{ color: "red", fontSize: "13px" }}>
-                                Reduced by {dailyTracking[0]?.produced} units
+                                Will be reduced by {dailyTracking[0]?.produced} units
+                              </span>
+                              <br />
+                              <span style={{ color: "red", fontSize: "12px", fontWeight: "bold" }}>
+                                New quantity: {Math.max(0, (warehouseData?.quantity?.[0] ?? 0) - dailyTracking[0]?.produced)}
                               </span>
                             </div>
                           )}
                         </div>
                       </Col>
                     </Row>
+                    
+                    {/* Warehouse Quantity Warning */}
+                    {(() => {
+                      const warning = getWarehouseQuantityWarning();
+                      if (warning) {
+                        return (
+                          <Row className="mt-3">
+                            <Col md={12}>
+                              <div style={{
+                                backgroundColor: warning.type === "error" ? "#f8d7da" : "#fff3cd",
+                                border: `1px solid ${warning.type === "error" ? "#f5c6cb" : "#ffeaa7"}`,
+                                borderRadius: "6px",
+                                padding: "10px",
+                                color: warning.type === "error" ? "#721c24" : "#856404"
+                              }}>
+                                <i className={`ri-${warning.type === "error" ? "error-warning" : "alert"}-line me-2`}></i>
+                                {warning.message}
+                              </div>
+                            </Col>
+                          </Row>
+                        );
+                      }
+                      return null;
+                    })()}
                   </Container>
                 </Col>
 
@@ -3038,6 +3128,49 @@ export const AllocatedPartListHrPlan = ({
                   {200 + (warehouseChanges.toWarehouseChange || 0)})
                 </Col>
               </Row>
+
+              {/* Add warehouse quantity change summary */}
+              {dailyTracking[0]?.produced > 0 && (
+                <Row className="mb-2">
+                  <Col md={12}>
+                    <div style={{
+                      backgroundColor: "#f8f9fa",
+                      padding: "15px",
+                      borderRadius: "8px",
+                      border: "1px solid #dee2e6"
+                    }}>
+                      <h6 style={{ color: "#495057", marginBottom: "10px" }}>
+                        <i className="ri-information-line me-2"></i>
+                        Warehouse Quantity Changes
+                      </h6>
+                      <Row>
+                        <Col md={6}>
+                          <strong style={{ color: "#dc3545" }}>From Warehouse:</strong>
+                          <br />
+                          <span style={{ color: "#dc3545" }}>
+                            {warehouseData?.quantity?.[0] ?? "N/A"} → {Math.max(0, (warehouseData?.quantity?.[0] ?? 0) - dailyTracking[0]?.produced)}
+                          </span>
+                          <br />
+                          <small style={{ color: "#6c757d" }}>
+                            (-{dailyTracking[0]?.produced} units)
+                          </small>
+                        </Col>
+                        <Col md={6}>
+                          <strong style={{ color: "#198754" }}>To Warehouse:</strong>
+                          <br />
+                          <span style={{ color: "#198754" }}>
+                            200 → {200 + dailyTracking[0]?.produced}
+                          </span>
+                          <br />
+                          <small style={{ color: "#6c757d" }}>
+                            (+{dailyTracking[0]?.produced} units)
+                          </small>
+                        </Col>
+                      </Row>
+                    </div>
+                  </Col>
+                </Row>
+              )}
             </div>
           </div>
 
