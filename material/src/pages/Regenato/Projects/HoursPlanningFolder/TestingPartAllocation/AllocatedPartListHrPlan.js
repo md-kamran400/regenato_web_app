@@ -81,6 +81,27 @@ export const AllocatedPartListHrPlan = ({
     fromWarehouseChange: 0,
     toWarehouseChange: 0,
   });
+  const [warehouseData, setWarehouseData] = useState(null);
+
+    useEffect(() => {
+    if (selectedSection?.data?.[0]?.wareHouse) {
+      // Example: "01 - General Warehouse"
+      const wareHouseName = selectedSection.data[0].wareHouse;
+      const categoryId = wareHouseName.split(" - ")[0]; // take "01"
+
+      console.log(categoryId)
+      axios
+        .get(`${process.env.REACT_APP_BASE_URL}/api/storesVariable/category/${categoryId}`)
+        .then((res) => {
+          setWarehouseData(res.data);
+          console.log(res.data)
+        })
+
+        .catch((err) => {
+          console.error("Error fetching warehouse data:", err);
+        });
+    }
+  }, [selectedSection]);
 
   useEffect(() => {
     const disableDatesArray = [];
@@ -1858,8 +1879,8 @@ export const AllocatedPartListHrPlan = ({
                       Warehouse Name
                     </h5>
                     <div style={{ fontSize: "14px" }}>
-                      {selectedSection?.data[0]?.wareHouse || "N/A"} -{" "}
-                      {selectedSection?.data[0]?.warehouseId || "N/A"}
+                      {selectedSection?.data[0]?.wareHouse || "N/A"}
+                      {/* {selectedSection?.data[0]?.warehouseId || "N/A"} */}
                     </div>
                   </Col>
                 </Row>
@@ -1876,24 +1897,7 @@ export const AllocatedPartListHrPlan = ({
                       Total Quantity in Warehouse
                     </h5>
                     <p style={{ fontSize: "14px", marginBottom: 0 }}>
-                      {(() => {
-                        const partsCodeId =
-                          selectedSection?.data?.[0]?.partsCodeId;
-                        const warehouseId =
-                          selectedSection?.data?.[0]?.warehouseId;
-
-                        if (!partsCodeId || !warehouseId) {
-                          return "N/A";
-                        }
-
-                        const matchingQuantity = getMatchingWarehouseQuantity(
-                          partsCodeId,
-                          warehouseId
-                        );
-                        return matchingQuantity !== null
-                          ? matchingQuantity
-                          : "N/A";
-                      })()}
+                       {warehouseData?.quantity?.[0] ?? "N/A"}
                     </p>
                   </Col>
                 </Row>
@@ -2694,33 +2698,7 @@ export const AllocatedPartListHrPlan = ({
                                 color: "red",
                               }}
                             >
-                              {(() => {
-                                const partsCodeId =
-                                  selectedSection?.data?.[0]?.partsCodeId;
-                                const warehouseId =
-                                  selectedSection?.data?.[0]?.warehouseId;
-
-                                if (!partsCodeId || !warehouseId) {
-                                  return "N/A";
-                                }
-
-                                const matchingQuantity =
-                                  getMatchingWarehouseQuantity(
-                                    partsCodeId,
-                                    warehouseId
-                                  );
-                                const baseQuantity =
-                                  matchingQuantity !== null
-                                    ? matchingQuantity
-                                    : 0;
-                                const adjustedQuantity =
-                                  baseQuantity +
-                                  (warehouseChanges.fromWarehouseChange || 0);
-
-                                return adjustedQuantity > 0
-                                  ? adjustedQuantity
-                                  : "N/A";
-                              })()}
+                              {warehouseData?.quantity?.[0] ?? "N/A"}
                             </p>
                             {dailyTracking[0]?.produced > 0 && (
                               <FaArrowDown color="red" />
