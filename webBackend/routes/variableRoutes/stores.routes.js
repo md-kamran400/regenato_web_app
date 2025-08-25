@@ -35,6 +35,21 @@ storeVariableRouter.get("/:id", async (req, res) => {
   }
 });
 
+// Get a single store variable by categoryId
+storeVariableRouter.get("/category/:categoryId", async (req, res) => {
+  try {
+    const storeVariable = await StoreVariableModal.findOne({
+      categoryId: req.params.categoryId,
+    });
+    if (!storeVariable)
+      return res.status(404).json({ error: "Store variable not found" });
+    res.json(storeVariable);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+
 // Update a store variable by _id
 storeVariableRouter.put("/:id", async (req, res) => {
   try {
