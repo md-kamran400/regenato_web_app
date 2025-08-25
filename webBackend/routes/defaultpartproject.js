@@ -1851,4 +1851,62 @@ partproject.get("/daily-tracking", async (req, res) => {
   }
 });
 
+// Add this new route after the existing daily tracking route
+partproject.put(
+  "/projects/:projectId/partsLists/:partsListId/partsListItems/:partListItemId/update-warehouse-quantity",
+  async (req, res) => {
+    try {
+      const { projectId, partsListId, partListItemId } = req.params;
+      const { warehouseId, quantityToReduce } = req.body;
+
+      if (!warehouseId || quantityToReduce === undefined) {
+        return res.status(400).json({ 
+          error: "warehouseId and quantityToReduce are required" 
+        });
+      }
+
+      // Find the store variable by categoryId (warehouseId)
+      const StoreVariableModal = require("../model/storemodel");
+      const storeVariable = await StoreVariableModal.findOne({
+        categoryId: warehouseId
+      });
+
+      if (!storeVariable) {
+        return res.status(404).json({ 
+          error: "Warehouse not found" 
+        });
+      }
+
+      // Update the quantity array - reduce the first quantity by the produced amount
+      if (storeVariable.quantity && storeVariable.quantity.length > 0) {
+        const currentQuantity = storeVariable.quantity[0] || 0;
+        const newQuantity = Math.max(0, currentQuantity - quantityToReduce);
+        storeVariable.quantity[0] = newQuantity;
+        
+        await storeVariable.save();
+        
+        res.status(200).json({
+          message: "Warehouse quantity updated successfully",
+          data: {
+            warehouseId,
+            previousQuantity: currentQuantity,
+            newQuantity: newQuantity,
+            reducedBy: quantityToReduce
+          }
+        });
+      } else {
+        res.status(400).json({ 
+          error: "No quantity data found for this warehouse" 
+        });
+      }
+    } catch (error) {
+      console.error("Error updating warehouse quantity:", error);
+      res.status(500).json({ 
+        error: "Server error", 
+        details: error.message 
+      });
+    }
+  }
+);
+
 module.exports = partproject;
