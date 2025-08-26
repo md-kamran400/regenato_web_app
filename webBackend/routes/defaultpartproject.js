@@ -1860,51 +1860,115 @@ partproject.put(
       const { warehouseId, quantityToReduce } = req.body;
 
       if (!warehouseId || quantityToReduce === undefined) {
-        return res.status(400).json({ 
-          error: "warehouseId and quantityToReduce are required" 
+        return res.status(400).json({
+          success: false,
+          error: "warehouseId and quantityToReduce are required",
         });
       }
 
-      // Find the store variable by categoryId (warehouseId)
       const StoreVariableModal = require("../model/storemodel");
       const storeVariable = await StoreVariableModal.findOne({
-        categoryId: warehouseId
+        categoryId: warehouseId,
       });
 
       if (!storeVariable) {
-        return res.status(404).json({ 
-          error: "Warehouse not found" 
-        });
+        return res.status(404).json({ success: false, error: "Warehouse not found" });
       }
 
-      // Update the quantity array - reduce the first quantity by the produced amount
       if (storeVariable.quantity && storeVariable.quantity.length > 0) {
-        const currentQuantity = storeVariable.quantity[0] || 0;
-        const newQuantity = Math.max(0, currentQuantity - quantityToReduce);
+        const currentQuantity = Number(storeVariable.quantity[0] || 0);
+        const reduceBy = Number(quantityToReduce || 0);
+        const newQuantity = Math.max(0, currentQuantity - reduceBy);
         storeVariable.quantity[0] = newQuantity;
-        
+
         await storeVariable.save();
-        
+
         res.status(200).json({
+          success: true,
           message: "Warehouse quantity updated successfully",
           data: {
             warehouseId,
             previousQuantity: currentQuantity,
             newQuantity: newQuantity,
-            reducedBy: quantityToReduce
-          }
+            reducedBy: reduceBy,
+          },
         });
       } else {
-        res.status(400).json({ 
-          error: "No quantity data found for this warehouse" 
-        });
+        res.status(400).json({ success: false, error: "No quantity data found for this warehouse" });
       }
     } catch (error) {
       console.error("Error updating warehouse quantity:", error);
-      res.status(500).json({ 
-        error: "Server error", 
-        details: error.message 
+      res.status(500).json({ success: false, error: "Server error", details: error.message });
+    }
+  }
+);
+
+// New: transfer quantity between two warehouses (decrement from 'fromWarehouseId', increment 'toWarehouseId')
+partproject.put(
+  "/projects/:projectId/partsLists/:partsListId/partsListItems/:partListItemId/transfer-warehouse-quantity",
+  async (req, res) => {
+    try {
+      const { projectId, partsListId, partListItemId } = req.params;
+      const { fromWarehouseId, toWarehouseId, quantity } = req.body;
+
+      if (!toWarehouseId || quantity === undefined) {
+        return res.status(400).json({
+          success: false,
+          error: "toWarehouseId and quantity are required. fromWarehouseId is optional (last process).",
+        });
+      }
+
+      const StoreVariableModal = require("../model/storemodel");
+
+      // Fetch both warehouses
+      const [toWarehouse, fromWarehouse] = await Promise.all([
+        StoreVariableModal.findOne({ categoryId: toWarehouseId }),
+        fromWarehouseId ? StoreVariableModal.findOne({ categoryId: fromWarehouseId }) : Promise.resolve(null),
+      ]);
+
+      if (!toWarehouse) {
+        return res.status(404).json({ success: false, error: "To warehouse not found" });
+      }
+
+      const qty = Number(quantity || 0);
+
+      // Decrement TO warehouse (current process output warehouse)
+      if (!Array.isArray(toWarehouse.quantity) || toWarehouse.quantity.length === 0) {
+        toWarehouse.quantity = [0];
+      }
+      const toPrev = Number(toWarehouse.quantity[0] || 0);
+      const toNew = Math.max(0, toPrev - qty);
+      toWarehouse.quantity[0] = toNew;
+
+      // Increment FROM warehouse (next process input warehouse) if provided
+      let fromPrev = null;
+      let fromNew = null;
+      if (fromWarehouse) {
+        if (!Array.isArray(fromWarehouse.quantity) || fromWarehouse.quantity.length === 0) {
+          fromWarehouse.quantity = [0];
+        }
+        fromPrev = Number(fromWarehouse.quantity[0] || 0);
+        fromNew = fromPrev + qty;
+        fromWarehouse.quantity[0] = fromNew;
+      }
+
+      // Save changes
+      await Promise.all([toWarehouse.save(), fromWarehouse ? fromWarehouse.save() : Promise.resolve()]);
+
+      return res.status(200).json({
+        success: true,
+        message: "Transfer completed",
+        data: {
+          toWarehouse: { id: toWarehouseId, previousQuantity: toPrev, newQuantity: toNew },
+          fromWarehouse: fromWarehouseId
+            ? { id: fromWarehouseId, previousQuantity: fromPrev, newQuantity: fromNew }
+            : null,
+          transferred: qty,
+        },
       });
+    } catch (error) {
+      console.error("Error transferring warehouse quantity:", error);
+      return res.status(500).json({ success: false, error: "Server error", details: error.message });
     }
   }
 );
