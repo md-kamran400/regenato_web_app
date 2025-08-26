@@ -82,6 +82,11 @@ export const AllocatedPartListHrPlan = ({
     toWarehouseChange: 0,
   });
   const [warehouseData, setWarehouseData] = useState(null);
+  const [selectedSectionIndex, setSelectedSectionIndex] = useState(null);
+  const [toWarehouseData, setToWarehouseData] = useState(null);
+  const [fromWarehouseData, setFromWarehouseData] = useState(null);
+  const [toWarehouseId, setToWarehouseId] = useState(null);
+  const [fromWarehouseId, setFromWarehouseId] = useState(null);
 
     useEffect(() => {
     if (selectedSection?.data?.[0]?.wareHouse) {
@@ -168,32 +173,49 @@ export const AllocatedPartListHrPlan = ({
 
   // Function to refresh warehouse data
   const refreshWarehouseData = async () => {
-    if (selectedSection?.data?.[0]?.wareHouse) {
-      const wareHouseName = selectedSection.data[0].wareHouse;
-      const categoryId = wareHouseName.split(" - ")[0];
-      
-      try {
-        const response = await axios.get(
-          `${process.env.REACT_APP_BASE_URL}/api/storesVariable/category/${categoryId}`
+    try {
+      const requests = [];
+      // Refresh current (To) warehouse
+      if (selectedSection?.data?.[0]?.wareHouse) {
+        const currentCategoryId = selectedSection.data[0].wareHouse.split(" - ")[0];
+        requests.push(
+          axios
+            .get(`${process.env.REACT_APP_BASE_URL}/api/storesVariable/category/${currentCategoryId}`)
+            .then((res) => setToWarehouseData(res.data))
         );
-        setWarehouseData(response.data);
-        toast.success("Warehouse data refreshed successfully!");
-      } catch (error) {
-        console.error("Error refreshing warehouse data:", error);
-        toast.error("Failed to refresh warehouse data");
       }
+      // Refresh next (From) warehouse if exists
+      if (
+        selectedSectionIndex !== null &&
+        Array.isArray(sections) &&
+        sections[selectedSectionIndex + 1]?.data?.[0]?.wareHouse
+      ) {
+        const nextCategoryId = sections[selectedSectionIndex + 1].data[0].wareHouse.split(" - ")[0];
+        requests.push(
+          axios
+            .get(`${process.env.REACT_APP_BASE_URL}/api/storesVariable/category/${nextCategoryId}`)
+            .then((res) => setFromWarehouseData(res.data))
+        );
+      }
+      if (requests.length) {
+        await Promise.all(requests);
+        toast.success("Warehouse data refreshed successfully!");
+      }
+    } catch (error) {
+      console.error("Error refreshing warehouse data:", error);
+      toast.error("Failed to refresh warehouse data");
     }
   };
 
   // Function to check if warehouse quantity is sufficient
   const isWarehouseQuantitySufficient = (requiredQuantity) => {
-    const availableQuantity = warehouseData?.quantity?.[0] || 0;
+    const availableQuantity = toWarehouseData?.quantity?.[0] || 0;
     return availableQuantity >= requiredQuantity;
   };
 
   // Function to get warehouse quantity warning
   const getWarehouseQuantityWarning = () => {
-    const availableQuantity = warehouseData?.quantity?.[0] || 0;
+    const availableQuantity = toWarehouseData?.quantity?.[0] || 0;
     const producedQuantity = dailyTracking[0]?.produced || 0;
     
     if (availableQuantity === 0) {
@@ -341,6 +363,7 @@ export const AllocatedPartListHrPlan = ({
     const currentIndex = sections.findIndex(
       (s) => s.allocationId === section.allocationId
     );
+    setSelectedSectionIndex(currentIndex);
     let currentTotal = 200; // Start with initial total
 
     // Sum up planned quantities from previous processes
@@ -394,7 +417,7 @@ export const AllocatedPartListHrPlan = ({
     if (field === "produced") {
       const remainingQty = calculateRemainingQuantity();
       const numericValue = Number(value) || 0;
-      const availableWarehouseQty = warehouseData?.quantity?.[0] || 0;
+      const availableWarehouseQty = toWarehouseData?.quantity?.[0] || 0;
 
       if (numericValue > remainingQty) {
         toast.error(
@@ -412,6 +435,7 @@ export const AllocatedPartListHrPlan = ({
       }
 
       // Calculate warehouse changes
+      // decrement current (To), increment next (From)
       setWarehouseChanges({
         fromWarehouseChange: -numericValue,
         toWarehouseChange: numericValue,
@@ -487,28 +511,55 @@ export const AllocatedPartListHrPlan = ({
         trackingData
       );
 
-      // Update warehouse quantity after successful daily tracking update
+      // Update warehouse quantities after successful daily tracking update
       if (dailyTracking[0]?.produced > 0 && selectedSection?.data[0]?.warehouseId) {
-        try {
-          const warehouseUpdateResponse = await axios.put(
-            `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/update-warehouse-quantity`,
-            {
-              warehouseId: selectedSection.data[0].warehouseId,
-              quantityToReduce: dailyTracking[0].produced
-            }
-          );
+        const producedQty = Number(dailyTracking[0].produced) || 0;
+        const currentWarehouseId = selectedSection.data[0].warehouseId;
+        const nextWarehouseId = sections[selectedSectionIndex + 1]?.data?.[0]?.warehouseId || null;
 
-          // Update local warehouse data state
-          if (warehouseUpdateResponse.data.success) {
-            setWarehouseData(prevData => ({
-              ...prevData,
-              quantity: [warehouseUpdateResponse.data.data.newQuantity]
-            }));
-            
-            toast.success(`Warehouse quantity updated: ${warehouseUpdateResponse.data.data.previousQuantity} → ${warehouseUpdateResponse.data.data.newQuantity}`);
+        try {
+          if (nextWarehouseId) {
+            // Transfer: decrement current (To in API), increment next (From in API)
+            const transferRes = await axios.put(
+              `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/transfer-warehouse-quantity`,
+              {
+                toWarehouseId: currentWarehouseId,
+                fromWarehouseId: nextWarehouseId,
+                quantity: producedQty,
+              }
+            );
+
+            if (transferRes.data?.success) {
+              // Update local states
+              setToWarehouseData((prev) => ({
+                ...(prev || {}),
+                quantity: [Math.max(0, ((prev?.quantity?.[0] ?? 0) - producedQty))],
+              }));
+              setFromWarehouseData((prev) => ({
+                ...(prev || {}),
+                quantity: [((prev?.quantity?.[0] ?? 0) + producedQty)],
+              }));
+              toast.success("Warehouse quantities transferred successfully");
+            }
+          } else {
+            // Last process: only decrement current warehouse
+            const decRes = await axios.put(
+              `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/update-warehouse-quantity`,
+              {
+                warehouseId: currentWarehouseId,
+                quantityToReduce: producedQty,
+              }
+            );
+            if (decRes.data?.success) {
+              setToWarehouseData((prev) => ({
+                ...(prev || {}),
+                quantity: [Math.max(0, ((prev?.quantity?.[0] ?? 0) - producedQty))],
+              }));
+              toast.success("Warehouse quantity updated successfully");
+            }
           }
         } catch (warehouseError) {
-          console.error("Error updating warehouse quantity:", warehouseError);
+          console.error("Error updating warehouse quantities:", warehouseError);
           toast.warning("Daily tracking updated but warehouse quantity update failed.");
         }
       }
@@ -823,6 +874,71 @@ export const AllocatedPartListHrPlan = ({
       null
     );
   };
+
+  // Helper to fetch store by category id
+  const fetchStoreByCategoryId = async (categoryId) => {
+    const res = await axios.get(
+      `${process.env.REACT_APP_BASE_URL}/api/storesVariable/category/${categoryId}`
+    );
+    return res.data;
+  };
+
+  // Determine current (To) and next (From) warehouses when selection changes
+  useEffect(() => {
+    const loadWarehouses = async () => {
+      try {
+        if (!selectedSection?.data?.[0]) return;
+
+        // Current selection (To warehouse)
+        const currentWareHouseStr = selectedSection.data[0].wareHouse; // e.g., "01 - General Warehouse"
+        const currentWarehouseId = selectedSection.data[0].warehouseId; // category id string for API
+        setToWarehouseId(currentWarehouseId || null);
+
+        if (currentWareHouseStr) {
+          const currentCategoryId = currentWareHouseStr.split(" - ")[0];
+          try {
+            const toData = await fetchStoreByCategoryId(currentCategoryId);
+            setToWarehouseData(toData);
+          } catch (e) {
+            setToWarehouseData({ categoryId: currentCategoryId, quantity: [0] });
+          }
+        } else {
+          setToWarehouseData(null);
+        }
+
+        // Next process (From warehouse)
+        if (
+          selectedSectionIndex !== null &&
+          Array.isArray(sections) &&
+          sections[selectedSectionIndex + 1]?.data?.[0]
+        ) {
+          const nextRow = sections[selectedSectionIndex + 1].data[0];
+          const nextWareHouseStr = nextRow.wareHouse;
+          const nextWarehouseId = nextRow.warehouseId;
+          setFromWarehouseId(nextWarehouseId || null);
+
+          if (nextWareHouseStr) {
+            const nextCategoryId = nextWareHouseStr.split(" - ")[0];
+            try {
+              const fromData = await fetchStoreByCategoryId(nextCategoryId);
+              setFromWarehouseData(fromData);
+            } catch (e) {
+              setFromWarehouseData({ categoryId: nextCategoryId, quantity: [0] });
+            }
+          } else {
+            setFromWarehouseData(null);
+          }
+        } else {
+          // No next process (last process)
+          setFromWarehouseId(null);
+          setFromWarehouseData(null);
+        }
+      } catch (err) {
+        console.error("Error loading warehouses:", err);
+      }
+    };
+    loadWarehouses();
+  }, [selectedSection, selectedSectionIndex, sections]);
 
   return (
     <div style={{ width: "100%" }}>
@@ -1945,7 +2061,7 @@ export const AllocatedPartListHrPlan = ({
                       Total Quantity in Warehouse
                     </h5>
                     <p style={{ fontSize: "14px", marginBottom: 0 }}>
-                       {warehouseData?.quantity?.[0] ?? "N/A"}
+                       {toWarehouseData?.quantity?.[0] ?? "N/A"}
                     </p>
                   </Col>
                 </Row>
@@ -1986,7 +2102,7 @@ export const AllocatedPartListHrPlan = ({
                     >
                       Warehouse Name
                     </h5>
-                    <div style={{ fontSize: "14px" }}>{"WareHouse-Floor2"}</div>
+                    <div style={{ fontSize: "14px" }}>{sections[selectedSectionIndex + 1]?.data?.[0]?.wareHouse || (sections[selectedSectionIndex + 1] ? "N/A" : "N/A")}</div>
                   </Col>
                 </Row>
                 <Row className="mt-4">
@@ -2001,7 +2117,7 @@ export const AllocatedPartListHrPlan = ({
                     >
                       Total Quantity in Warehouse
                     </h5>
-                    <p style={{ fontSize: "14px", marginBottom: 0 }}>200</p>
+                    <p style={{ fontSize: "14px", marginBottom: 0 }}>{fromWarehouseData?.quantity?.[0] ?? (sections[selectedSectionIndex + 1] ? "N/A" : "N/A")}</p>
                   </Col>
                 </Row>
               </Container>
@@ -2276,7 +2392,7 @@ export const AllocatedPartListHrPlan = ({
                       dailyTracking.length > 0 ? dailyTracking[0].produced : ""
                     }
                     placeholder="Enter Produced Quantity"
-                    max={Math.min(calculateRemainingQuantity(), warehouseData?.quantity?.[0] || 0)}
+                    max={Math.min(calculateRemainingQuantity(), toWarehouseData?.quantity?.[0] || 0)}
                     onChange={(e) =>
                       handleDailyTrackingChange(0, "produced", e.target.value)
                     }
@@ -2310,7 +2426,7 @@ export const AllocatedPartListHrPlan = ({
                     }}
                   >
                     <CiCircleInfo size={18} color="#64748b" />
-                    Max allowed: {Math.min(calculateRemainingQuantity(), warehouseData?.quantity?.[0] || 0)} units
+                    Max allowed: {Math.min(calculateRemainingQuantity(), toWarehouseData?.quantity?.[0] || 0)} units
                   </p>
                 </div>
               </div>
@@ -2760,7 +2876,7 @@ export const AllocatedPartListHrPlan = ({
                                 color: "red",
                               }}
                             >
-                              {warehouseData?.quantity?.[0] ?? "N/A"}
+                              {toWarehouseData?.quantity?.[0] ?? "N/A"}
                             </p>
                             {dailyTracking[0]?.produced > 0 && (
                               <FaArrowDown color="red" />
@@ -2774,9 +2890,9 @@ export const AllocatedPartListHrPlan = ({
                                 Will be reduced by {dailyTracking[0]?.produced} units
                               </span>
                               <br />
-                              <span style={{ color: "red", fontSize: "12px", fontWeight: "bold" }}>
-                                New quantity: {Math.max(0, (warehouseData?.quantity?.[0] ?? 0) - dailyTracking[0]?.produced)}
-                              </span>
+                              {/* <span style={{ color: "red", fontSize: "12px", fontWeight: "bold" }}>
+                                New quantity: {Math.max(0, (toWarehouseData?.quantity?.[0] ?? 0) - dailyTracking[0]?.produced)}
+                              </span> */}
                             </div>
                           )}
                         </div>
@@ -2845,7 +2961,7 @@ export const AllocatedPartListHrPlan = ({
                           Warehouse Name
                         </h5>
                         <div style={{ fontSize: "14px" }}>
-                          {"WareHouse-Floor2"}
+                          {sections[selectedSectionIndex + 1]?.data?.[0]?.wareHouse || (sections[selectedSectionIndex + 1] ? "N/A" : "N/A")}
                         </div>
                       </Col>
                     </Row>
@@ -2877,7 +2993,7 @@ export const AllocatedPartListHrPlan = ({
                                 color: "green",
                               }}
                             >
-                              {200 + (warehouseChanges.toWarehouseChange || 0)}
+                              {(fromWarehouseData?.quantity?.[0] ?? "N/A")}
                             </p>
                             {dailyTracking[0]?.produced > 0 && (
                               <FaArrowUp color="green" />
@@ -3093,7 +3209,7 @@ export const AllocatedPartListHrPlan = ({
                 <Col md={9}>
                   {`${selectedSection?.data[0]?.wareHouse || "N/A"} - ${
                     selectedSection?.data[0]?.warehouseId || "N/A"
-                  }`}{" "}
+                  }`} {" "}
                   (Quantity:{" "}
                   {(() => {
                     const partsCodeId = selectedSection?.data?.[0]?.partsCodeId;
@@ -3110,8 +3226,7 @@ export const AllocatedPartListHrPlan = ({
                     const baseQuantity =
                       matchingQuantity !== null ? matchingQuantity : 0;
                     const adjustedQuantity =
-                      baseQuantity +
-                      (warehouseChanges.fromWarehouseChange || 0);
+                      baseQuantity + (warehouseChanges.fromWarehouseChange || 0);
 
                     return adjustedQuantity > 0 ? adjustedQuantity : "N/A";
                   })()}
@@ -3124,8 +3239,8 @@ export const AllocatedPartListHrPlan = ({
                   <strong>To Warehouse:</strong>
                 </Col>
                 <Col md={9}>
-                  {"WareHouse-Floor2"} (Quantity:{" "}
-                  {200 + (warehouseChanges.toWarehouseChange || 0)})
+                  {`${sections[selectedSectionIndex + 1]?.data?.[0]?.wareHouse || "N/A"}`} (Quantity:{" "}
+                  {(fromWarehouseData?.quantity?.[0] ?? 0) + (warehouseChanges.toWarehouseChange || 0)})
                 </Col>
               </Row>
 
@@ -3148,22 +3263,22 @@ export const AllocatedPartListHrPlan = ({
                           <strong style={{ color: "#dc3545" }}>From Warehouse:</strong>
                           <br />
                           <span style={{ color: "#dc3545" }}>
-                            {warehouseData?.quantity?.[0] ?? "N/A"} → {Math.max(0, (warehouseData?.quantity?.[0] ?? 0) - dailyTracking[0]?.produced)}
+                            {(toWarehouseData?.quantity?.[0] ?? 0)} → {Math.max(0, (toWarehouseData?.quantity?.[0] ?? 0) + (warehouseChanges.fromWarehouseChange || 0))}
                           </span>
                           <br />
                           <small style={{ color: "#6c757d" }}>
-                            (-{dailyTracking[0]?.produced} units)
+                            ({warehouseChanges.fromWarehouseChange || 0} units)
                           </small>
                         </Col>
                         <Col md={6}>
                           <strong style={{ color: "#198754" }}>To Warehouse:</strong>
                           <br />
                           <span style={{ color: "#198754" }}>
-                            200 → {200 + dailyTracking[0]?.produced}
+                            {fromWarehouseData?.quantity?.[0] ?? (sections[selectedSectionIndex + 1] ? "N/A" : "-")} → {(fromWarehouseData?.quantity?.[0] ?? 0) + (warehouseChanges.toWarehouseChange || 0)}
                           </span>
                           <br />
                           <small style={{ color: "#6c757d" }}>
-                            (+{dailyTracking[0]?.produced} units)
+                            (+{warehouseChanges.toWarehouseChange || 0} units)
                           </small>
                         </Col>
                       </Row>
