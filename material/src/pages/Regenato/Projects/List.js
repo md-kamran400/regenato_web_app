@@ -246,49 +246,94 @@ const List = () => {
     setModal_NaemEdit(!modal_NaemEdit);
   };
 
+  // const fetchData = useCallback(
+  //   async (page = 1, pageSize = itemsPerPage) => {
+  //     setIsLoading(true);
+  //     setError(null);
+  //     try {
+  //       const response = await fetch(
+  //         `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects?filterType=${filterType}&page=${page}&limit=${pageSize}`
+  //       );
+
+  //       if (!response.ok) throw new Error("Failed to fetch data");
+
+  //       const data = await response.json();
+
+  //       // Handle different response structures
+  //       const projects = Array.isArray(data)
+  //         ? data
+  //         : Array.isArray(data.projects)
+  //         ? data.projects
+  //         : Array.isArray(data.data)
+  //         ? data.data
+  //         : [];
+
+  //       setprojectListsData(projects);
+
+  //       // Handle pagination metadata
+  //       const totalItems = data.total || data.totalCount || projects.length;
+  //       const calculatedTotalPages = Math.ceil(totalItems / itemsPerPage);
+  //       setTotalPages(calculatedTotalPages);
+
+  //       if (initialLoad) {
+  //         setFilterType("");
+  //         setInitialLoad(false);
+  //       }
+  //     } catch (err) {
+  //       console.error("Fetch error:", err);
+  //       setError(err.message);
+  //       setprojectListsData([]);
+  //     } finally {
+  //       setIsLoading(false);
+  //     }
+  //   },
+  //   [filterType, initialLoad, itemsPerPage]
+  // );
+
   const fetchData = useCallback(
-    async (page = 1, pageSize = itemsPerPage) => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const response = await fetch(
-          `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects?filterType=${filterType}&page=${page}&limit=${pageSize}`
-        );
+  async (page = 1, pageSize = itemsPerPage) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects?filterType=${filterType}&page=${page}&limit=${pageSize}`
+      );
 
-        if (!response.ok) throw new Error("Failed to fetch data");
+      if (!response.ok) throw new Error("Failed to fetch data");
 
-        const data = await response.json();
+      const data = await response.json();
 
-        // Handle different response structures
-        const projects = Array.isArray(data)
-          ? data
-          : Array.isArray(data.projects)
-          ? data.projects
-          : Array.isArray(data.data)
-          ? data.data
-          : [];
+      const projects = Array.isArray(data)
+        ? data
+        : Array.isArray(data.projects)
+        ? data.projects
+        : Array.isArray(data.data)
+        ? data.data
+        : [];
 
-        setprojectListsData(projects);
+      // ✅ sort newest first
+      projects.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-        // Handle pagination metadata
-        const totalItems = data.total || data.totalCount || projects.length;
-        const calculatedTotalPages = Math.ceil(totalItems / itemsPerPage);
-        setTotalPages(calculatedTotalPages);
+      setprojectListsData(projects);
 
-        if (initialLoad) {
-          setFilterType("");
-          setInitialLoad(false);
-        }
-      } catch (err) {
-        console.error("Fetch error:", err);
-        setError(err.message);
-        setprojectListsData([]);
-      } finally {
-        setIsLoading(false);
+      const totalItems = data.total || data.totalCount || projects.length;
+      const calculatedTotalPages = Math.ceil(totalItems / itemsPerPage);
+      setTotalPages(calculatedTotalPages);
+
+      if (initialLoad) {
+        setFilterType("");
+        setInitialLoad(false);
       }
-    },
-    [filterType, initialLoad, itemsPerPage]
-  );
+    } catch (err) {
+      console.error("Fetch error:", err);
+      setError(err.message);
+      setprojectListsData([]);
+    } finally {
+      setIsLoading(false);
+    }
+  },
+  [filterType, initialLoad, itemsPerPage]
+);
 
   const filteredData = useMemo(() => {
     // If searchTerm is empty and no filterType, return all projects directly

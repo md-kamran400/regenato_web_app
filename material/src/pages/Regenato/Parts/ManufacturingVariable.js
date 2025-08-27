@@ -622,7 +622,8 @@ const ManufacturingVariable = ({
           body: JSON.stringify({
             ...formData,
             totalRate: formData.hourlyRate * formData.hours, // Recalculate totalRate here
-            isSpecialday: e.target.checked,
+            // isSpecialday: e.target.checked,
+            isSpecialday: formData.isSpecialday,
             SpecialDayTotalMinutes: e.target.checked ? formData.SpecialDayTotalMinutes : 0,
           }),
         }
@@ -1262,7 +1263,7 @@ const ManufacturingVariable = ({
                 setFormData({
                   ...formData,
                   isSpecialday: e.target.checked,
-                  SpecialDayTotalMinutes: e.target.checked ? formData.SpecialDayTotalMinutes : 0,
+                  // SpecialDayTotalMinutes: e.target.checked ? formData.SpecialDayTotalMinutes : 0,
                 })
               }
             />
