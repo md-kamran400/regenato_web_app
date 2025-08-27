@@ -656,29 +656,59 @@ PartsExcelRoutes.post("/:_id/manufacturingVariables", async (req, res) => {
 });
 
 // PUT - Update an Manufacturing Variable within a part
+// PartsExcelRoutes.put(
+//   "/:_id/manufacturingVariables/:variableId",
+//   async (req, res) => {
+//     try {
+//       const updatedPart = await PartsModel.findOneAndUpdate(
+//         {
+//           _id: req.params._id,
+//           "manufacturingVariables._id": req.params.variableId,
+//         },
+//         { $set: { "manufacturingVariables.$": req.body } },
+//         { new: true }
+//       );
+//       if (!updatedPart) {
+//         return res
+//           .status(404)
+//           .json({ message: "Part or manufacturing variable not found" });
+//       }
+//       res.status(200).json(updatedPart);
+//     } catch (error) {
+//       res.status(400).json({ message: error.message });
+//     }
+//   }
+// );
+
 PartsExcelRoutes.put(
   "/:_id/manufacturingVariables/:variableId",
   async (req, res) => {
     try {
+      const updateFields = {};
+
+      if (req.body.name !== undefined) updateFields["manufacturingVariables.$.name"] = req.body.name;
+      if (req.body.hours !== undefined) updateFields["manufacturingVariables.$.hours"] = req.body.hours;
+      if (req.body.hourlyRate !== undefined) updateFields["manufacturingVariables.$.hourlyRate"] = req.body.hourlyRate;
+      if (req.body.isSpecialday !== undefined) updateFields["manufacturingVariables.$.isSpecialday"] = req.body.isSpecialday;
+      if (req.body.SpecialDayTotalMinutes !== undefined) updateFields["manufacturingVariables.$.SpecialDayTotalMinutes"] = req.body.SpecialDayTotalMinutes;
+
       const updatedPart = await PartsModel.findOneAndUpdate(
-        {
-          _id: req.params._id,
-          "manufacturingVariables._id": req.params.variableId,
-        },
-        { $set: { "manufacturingVariables.$": req.body } },
+        { _id: req.params._id, "manufacturingVariables._id": req.params.variableId },
+        { $set: updateFields },
         { new: true }
       );
+
       if (!updatedPart) {
-        return res
-          .status(404)
-          .json({ message: "Part or manufacturing variable not found" });
+        return res.status(404).json({ message: "Part or manufacturing variable not found" });
       }
+
       res.status(200).json(updatedPart);
     } catch (error) {
       res.status(400).json({ message: error.message });
     }
   }
 );
+
 
 // DELETE - Delete an Manufacturing Variable within a part
 PartsExcelRoutes.delete(
