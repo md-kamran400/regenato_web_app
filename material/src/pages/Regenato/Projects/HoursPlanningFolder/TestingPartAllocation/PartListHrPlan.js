@@ -47,6 +47,7 @@ import {
   FiHome,
   FiUser,
 } from "react-icons/fi";
+
 export const PartListHrPlan = ({
   partName,
   manufacturingVariables,
@@ -81,8 +82,67 @@ export const PartListHrPlan = ({
   const [isDataAllocated, setIsDataAllocated] = useState(false);
   const [allocatedMachines, setAllocatedMachines] = useState({});
   const [operatorAllocations, setOperatorAllocations] = useState({});
-  const [blankStoreQty, setBlankStoreQty] = useState(100); // Hardcoded value for Quantity in Blank Store
+  const [blankStoreQty, setBlankStoreQty] = useState(0); // Initialize to 0, will be fetched from API
   const [isApproved, setIsApproved] = useState(false);
+  const [isLoadingBlankStore, setIsLoadingBlankStore] = useState(true);
+  const [blankStoreError, setBlankStoreError] = useState(null);
+  const [blankStoreStatus, setBlankStoreStatus] = useState(null); // 'found', 'not_found', 'wrong_warehouse', 'error'
+
+  // Function to fetch blank store quantity from API
+  const fetchBlankStoreQuantity = async () => {
+    try {
+      setIsLoadingBlankStore(true);
+      setBlankStoreError(null);
+      setBlankStoreStatus(null);
+      
+      const response = await axios.get(`${process.env.REACT_APP_BASE_URL}/api/ClsIncoming`)
+      
+      if (response.data && Array.isArray(response.data)) {
+        // Find the item that matches our part code (ItemCode should match partsCodeId)
+        const item = response.data.find(item => item.ItemCode === partsCodeId);
+        
+        if (item) {
+          // Check if the item is in BLNK warehouse
+          if (item.Warehouse === "BLNK") {
+            const onhandQuantity = parseFloat(item.Onhand) || 0;
+            setBlankStoreQty(onhandQuantity);
+            setBlankStoreStatus('found');
+            console.log(`Found blank store quantity for ItemCode ${partsCodeId}: ${onhandQuantity}`);
+          } else {
+            // Item found but not in BLNK warehouse
+            setBlankStoreQty(0);
+            setBlankStoreStatus('wrong_warehouse');
+            console.log(`Item ${partsCodeId} found but not in BLNK warehouse. Current warehouse: ${item.Warehouse}`);
+          }
+        } else {
+          // Item not found in API response
+          setBlankStoreQty(0);
+          setBlankStoreStatus('not_found');
+          console.log(`ItemCode ${partsCodeId} not found in API response`);
+          console.log('Available ItemCodes:', response.data.map(item => item.ItemCode));
+        }
+      } else {
+        setBlankStoreQty(0);
+        setBlankStoreStatus('error');
+        console.log('Invalid API response format - expected array');
+      }
+    } catch (error) {
+      console.error('Error fetching blank store quantity:', error);
+      setBlankStoreError('Failed to fetch blank store quantity');
+      setBlankStoreQty(0);
+      setBlankStoreStatus('error');
+      toast.error('Failed to fetch blank store quantity from API');
+    } finally {
+      setIsLoadingBlankStore(false);
+    }
+  };
+
+  // Fetch blank store quantity on component mount
+  useEffect(() => {
+    if (partsCodeId) {
+      fetchBlankStoreQuantity();
+    }
+  }, [partsCodeId]);
 
   useEffect(() => {
     fetch(`${process.env.REACT_APP_BASE_URL}/api/eventScheduler/events`)
@@ -1775,6 +1835,22 @@ export const PartListHrPlan = ({
       toast.error("Quantity must be greater than 0.");
       return;
     }
+    if (isLoadingBlankStore) {
+      toast.error("Please wait for blank store quantity to load.");
+      return;
+    }
+    if (blankStoreError) {
+      toast.error("Cannot approve: Failed to fetch blank store quantity. Please retry.");
+      return;
+    }
+    if (blankStoreStatus === 'not_found') {
+      toast.error(`Cannot approve: ItemCode ${partsCodeId} not found in API response.`);
+      return;
+    }
+    if (blankStoreStatus === 'wrong_warehouse') {
+      toast.error(`Cannot approve: ItemCode ${partsCodeId} found but not in BLNK warehouse.`);
+      return;
+    }
     if (blankStoreQty <= 0) {
       toast.error("Quantity in Blank Store must be greater than 0.");
       return;
@@ -1936,32 +2012,95 @@ export const PartListHrPlan = ({
                 >
                   <FaStoreAlt style={{ color: "#f59e0b" }} />
                   <span>Quantity in Blank Store:</span>
+                  {!isLoadingBlankStore && !blankStoreError && (
+                    <FiInfo 
+                      style={{ 
+                        cursor: "pointer", 
+                        fontSize: "12px", 
+                        color: "#64748b",
+                        marginLeft: "4px"
+                      }} 
+                      title={`Fetched from API - ItemCode: ${partsCodeId}, Warehouse: BLNK, Onhand: ${blankStoreQty}`}
+                    />
+                  )}
                 </div>
-                <Input
-                  type="number"
-                  value={blankStoreQty}
-                  min={0}
-                  style={{
-                    width: "120px",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: "6px",
-                    padding: "8px 12px",
-                    fontWeight: 600,
-                    ":focus": {
-                      borderColor: "#4f46e5",
-                      boxShadow: "0 0 0 2px rgba(79, 70, 229, 0.2)",
-                    },
-                  }}
-                  onChange={(e) => {
-                    setBlankStoreQty(Number(e.target.value));
-                    setIsApproved(false);
-                  }}
-                  disabled={isApproved}
-                />
+                {isLoadingBlankStore ? (
+                  <div
+                    style={{
+                      width: "120px",
+                      padding: "8px 12px",
+                      background: "#f8fafc",
+                      border: "1px solid #e2e8f0",
+                      borderRadius: "6px",
+                      fontSize: "14px",
+                      color: "#64748b",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    Loading...
+                  </div>
+                ) : blankStoreError ? (
+                  <div
+                    style={{
+                      width: "120px",
+                      padding: "8px 12px",
+                      background: "#fef2f2",
+                      border: "1px solid #fecaca",
+                      borderRadius: "6px",
+                      fontSize: "14px",
+                      color: "#dc2626",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    Error
+                  </div>
+                ) : (
+                  <Input
+                    type="number"
+                    value={blankStoreQty}
+                    min={0}
+                    style={{
+                      width: "120px",
+                      border: "1px solid #e2e8f0",
+                      borderRadius: "6px",
+                      padding: "8px 12px",
+                      fontWeight: 600,
+                      ":focus": {
+                        borderColor: "#4f46e5",
+                        boxShadow: "0 0 0 2px rgba(79, 70, 229, 0.2)",
+                      },
+                    }}
+                    onChange={(e) => {
+                      setBlankStoreQty(Number(e.target.value));
+                      setIsApproved(false);
+                    }}
+                    disabled={isApproved}
+                    readOnly
+                  />
+                )}
+                {!isLoadingBlankStore && !blankStoreError && (
+                  <Button
+                    color="info"
+                    size="sm"
+                    onClick={fetchBlankStoreQuantity}
+                    style={{
+                      padding: "4px 8px",
+                      fontSize: "12px",
+                      borderRadius: "4px",
+                    }}
+                    title="Refresh blank store quantity"
+                  >
+                    ↻
+                  </Button>
+                )}
                 <Button
                   color={isApproved ? "success" : "primary"}
                   onClick={openApproveModal}
-                  disabled={isApproved}
+                  disabled={isApproved || isLoadingBlankStore || blankStoreError || blankStoreStatus !== 'found' || quantity > blankStoreQty}
                   style={{
                     display: "flex",
                     alignItems: "center",
@@ -1987,6 +2126,93 @@ export const PartListHrPlan = ({
                   )}
                 </Button>
               </div>
+
+              {/* API Status Indicator */}
+              {isLoadingBlankStore && (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    padding: "8px 12px",
+                    background: "#fef3c7",
+                    borderRadius: "6px",
+                    borderLeft: "4px solid #f59e0b",
+                  }}
+                >
+                  <div style={{ fontSize: "12px", color: "#92400e" }}>
+                    🔄 Fetching blank store quantity from API...
+                  </div>
+                </div>
+              )}
+              {blankStoreError && (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    padding: "8px 12px",
+                    background: "#fef2f2",
+                    borderRadius: "6px",
+                    borderLeft: "4px solid #dc2626",
+                  }}
+                >
+                  <div style={{ fontSize: "12px", color: "#dc2626" }}>
+                    ❌ Failed to fetch blank store quantity for ItemCode: {partsCodeId}. Click refresh to retry.
+                  </div>
+                </div>
+              )}
+              {!isLoadingBlankStore && !blankStoreError && blankStoreStatus === 'found' && (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    padding: "8px 12px",
+                    background: "#ecfdf5",
+                    borderRadius: "6px",
+                    borderLeft: "4px solid #10b981",
+                  }}
+                >
+                  <div style={{ fontSize: "12px", color: "#065f46" }}>
+                    ✅ Blank store quantity loaded from API (ItemCode: {partsCodeId})
+                  </div>
+                </div>
+              )}
+              {!isLoadingBlankStore && !blankStoreError && blankStoreStatus === 'not_found' && (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    padding: "8px 12px",
+                    background: "#fef3c7",
+                    borderRadius: "6px",
+                    borderLeft: "4px solid #f59e0b",
+                  }}
+                >
+                  <div style={{ fontSize: "12px", color: "#92400e" }}>
+                    ⚠️ ItemCode {partsCodeId} not found in API response
+                  </div>
+                </div>
+              )}
+              {!isLoadingBlankStore && !blankStoreError && blankStoreStatus === 'wrong_warehouse' && (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    padding: "8px 12px",
+                    background: "#fef3c7",
+                    borderRadius: "6px",
+                    borderLeft: "4px solid #f59e0b",
+                  }}
+                >
+                  <div style={{ fontSize: "12px", color: "#92400e" }}>
+                    ⚠️ ItemCode {partsCodeId} found but not in BLNK warehouse
+                  </div>
+                </div>
+              )}
 
               <div
                 style={{
@@ -3472,8 +3698,26 @@ export const PartListHrPlan = ({
           </p>
           <p>
             <strong>Blank Store Quantity:</strong> {blankStoreQty}
+            {isLoadingBlankStore && <span style={{ color: "#f59e0b" }}> (Loading...)</span>}
+            {blankStoreError && <span style={{ color: "#dc2626" }}> (Error)</span>}
           </p>
-          {quantity <= blankStoreQty ? (
+          {isLoadingBlankStore ? (
+            <p style={{ color: "#f59e0b" }}>
+              Please wait for blank store quantity to load...
+            </p>
+          ) : blankStoreError ? (
+            <p style={{ color: "#dc2626" }}>
+              Cannot approve: Failed to fetch blank store quantity.
+            </p>
+          ) : blankStoreStatus === 'not_found' ? (
+            <p style={{ color: "#dc2626" }}>
+              Cannot approve: ItemCode {partsCodeId} not found in API response.
+            </p>
+          ) : blankStoreStatus === 'wrong_warehouse' ? (
+            <p style={{ color: "#dc2626" }}>
+              Cannot approve: ItemCode {partsCodeId} found but not in BLNK warehouse.
+            </p>
+          ) : quantity <= blankStoreQty ? (
             <p style={{ color: "green" }}>
               The required quantity is available in blank store.
             </p>
@@ -3487,7 +3731,7 @@ export const PartListHrPlan = ({
           <Button
             color="primary"
             onClick={handleApprove}
-            disabled={quantity > blankStoreQty}
+            disabled={quantity > blankStoreQty || isLoadingBlankStore || blankStoreError || blankStoreStatus !== 'found'}
           >
             Confirm Approval
           </Button>
