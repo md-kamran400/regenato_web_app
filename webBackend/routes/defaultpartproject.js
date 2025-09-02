@@ -1772,74 +1772,174 @@ partproject.get("/all-allocations", async (req, res) => {
 
 partproject.get("/daily-tracking", async (req, res) => {
   try {
-    // Find all projects and project only the necessary fields
+    // Load projects as lean objects for performance
     const projects = await PartListProjectModel.find({}).lean();
 
-    // Function to extract daily tracking from allocations
-    const extractDailyTracking = (allocations, projectName) => {
-      return allocations.flatMap((allocation) =>
-        allocation.allocations.flatMap((alloc) =>
-          alloc.dailyTracking.map((track) => ({
-            ...track,
-            projectName: projectName,
-            partName: allocation.partName,
-            processName: allocation.processName,
-            processId: allocation.processId,
-            partsCodeId: allocation.partsCodeId,
-            splitNumber: alloc.splitNumber,
-            machineId: alloc.machineId,
-            shift: alloc.shift,
-            operator: alloc.operator,
-          }))
-        )
-      );
+    // Lazily load store variables and BLNK stock once for the whole response
+    const [storeVars, clsIncomingRes] = await Promise.all([
+      (async () => {
+        try {
+          const StoreVariableModal = require("../model/storemodel");
+          return await StoreVariableModal.find({}).lean();
+        } catch (e) {
+          return [];
+        }
+      })(),
+      (async () => {
+        try {
+          const resp = await axios.get(`${baseUrl}/api/ClsIncoming`, {
+            timeout: 10000,
+          });
+          return Array.isArray(resp.data) ? resp.data : [];
+        } catch (e) {
+          return [];
+        }
+      })(),
+    ]);
+
+    // Build quick lookup maps
+    const storeQtyByWarehouseId = new Map();
+    for (const sv of storeVars) {
+      const qty = Array.isArray(sv.quantity) && sv.quantity.length > 0 ? Number(sv.quantity[0] || 0) : 0;
+      storeQtyByWarehouseId.set(String(sv.categoryId).trim(), qty);
+    }
+
+    const blnkQtyByItemCode = new Map();
+    for (const item of clsIncomingRes) {
+      try {
+        const code = String(item.ItemCode || item.Itemcode || "").trim();
+        const wh = String(item.Warehouse || item.WhsCode || "").trim().toUpperCase();
+        const onhand = Number(item.Onhand || item.Quantity || 0) || 0;
+        if (code && wh === "BLNK") {
+          blnkQtyByItemCode.set(code, onhand);
+        }
+      } catch (_) {
+        // ignore bad rows
+      }
+    }
+
+    // Helper to extract enriched daily tracking from a single part (with processes/allocations)
+    const extractFromPart = (part, projectName) => {
+      const results = [];
+      const processes = Array.isArray(part.allocations) ? part.allocations : [];
+      for (let pIdx = 0; pIdx < processes.length; pIdx++) {
+        const process = processes[pIdx];
+        const allocs = Array.isArray(process.allocations) ? process.allocations : [];
+
+        // Determine FROM warehouse info using previous process (or BLNK for first process)
+        let fromWarehouseName = null;
+        let fromWarehouseId = null;
+        let fromWarehouseQty = 0;
+
+        if (pIdx > 0) {
+          const prevProcess = processes[pIdx - 1];
+          const prevAlloc = Array.isArray(prevProcess.allocations) && prevProcess.allocations.length > 0
+            ? prevProcess.allocations[0]
+            : null;
+          fromWarehouseName = prevAlloc?.wareHouse || null;
+          fromWarehouseId = prevAlloc?.warehouseId || null;
+          // Prefer previously computed/stored quantity if present, else store map fallback
+          if (typeof prevAlloc?.warehouseQuantity === "number") {
+            fromWarehouseQty = Number(prevAlloc.warehouseQuantity) || 0;
+          } else if (fromWarehouseId && storeQtyByWarehouseId.has(String(fromWarehouseId))) {
+            fromWarehouseQty = storeQtyByWarehouseId.get(String(fromWarehouseId)) || 0;
+          } else {
+            fromWarehouseQty = 0;
+          }
+        } else {
+          // First process pulls from BLNK by business rule
+          fromWarehouseName = "BLNK";
+          const code = String(part.partsCodeId || part.partscodeid || "").trim();
+          fromWarehouseQty = (code && blnkQtyByItemCode.has(code)) ? blnkQtyByItemCode.get(code) : 0;
+        }
+
+        for (const alloc of allocs) {
+          const toWarehouseName = alloc?.wareHouse || null;
+          const toMachineId = alloc?.machineId || null;
+          const toShift = alloc?.shift || null;
+          const splitNo = alloc?.splitNumber || null;
+          const operator = alloc?.operator || null;
+
+          const tracks = Array.isArray(alloc.dailyTracking) ? alloc.dailyTracking : [];
+          for (const track of tracks) {
+            const produced = Number(track.produced || 0) || 0;
+            const remaining = Math.max(0, Number(fromWarehouseQty || 0) - produced);
+
+            results.push({
+              ...track,
+              projectName: projectName,
+              partName: process.partName,
+              processName: process.processName,
+              processId: process.processId,
+              partsCodeId: process.partsCodeId,
+              splitNumber: splitNo,
+              machineId: toMachineId,
+              shift: toShift,
+              operator: operator,
+              fromWarehouse: fromWarehouseName,
+              toWarehouse: toWarehouseName,
+              wareHouseTotalQty: Number(fromWarehouseQty || 0),
+              wareHouseremainingQty: Number(remaining || 0),
+            });
+          }
+        }
+      }
+      return results;
     };
 
-    // Process all projects and collect all daily tracking
-    const allDailyTracking = projects.flatMap((project) => {
-      const projectTracking = [];
-
-      // Extract from parts lists
-      if (project.partsLists) {
-        project.partsLists.forEach((partsList) => {
-          partsList.partsListItems.forEach((part) => {
-            if (part.allocations) {
-              projectTracking.push(
-                ...extractDailyTracking(part.allocations, project.projectName)
+    // Collect from projects: partsLists, subAssemblyListFirst, assemblyList
+    const allDailyTracking = [];
+    for (const project of projects) {
+      // Parts lists
+      if (Array.isArray(project.partsLists)) {
+        for (const partsList of project.partsLists) {
+          if (Array.isArray(partsList.partsListItems)) {
+            for (const part of partsList.partsListItems) {
+              allDailyTracking.push(
+                ...extractFromPart(part, project.projectName)
               );
             }
-          });
-        });
+          }
+        }
       }
 
-      // Extract from sub assemblies
-      if (project.subAssemblyListFirst) {
-        project.subAssemblyListFirst.forEach((subAssembly) => {
-          subAssembly.partsListItems.forEach((part) => {
-            if (part.allocations) {
-              projectTracking.push(
-                ...extractDailyTracking(part.allocations, project.projectName)
+      // Sub assemblies
+      if (Array.isArray(project.subAssemblyListFirst)) {
+        for (const subAssembly of project.subAssemblyListFirst) {
+          if (Array.isArray(subAssembly.partsListItems)) {
+            for (const part of subAssembly.partsListItems) {
+              allDailyTracking.push(
+                ...extractFromPart(part, project.projectName)
               );
             }
-          });
-        });
+          }
+        }
       }
 
-      // Extract from assemblies
-      if (project.assemblyList) {
-        project.assemblyList.forEach((assembly) => {
-          assembly.partsListItems.forEach((part) => {
-            if (part.allocations) {
-              projectTracking.push(
-                ...extractDailyTracking(part.allocations, project.projectName)
+      // Assemblies and their subAssemblies
+      if (Array.isArray(project.assemblyList)) {
+        for (const assembly of project.assemblyList) {
+          if (Array.isArray(assembly.partsListItems)) {
+            for (const part of assembly.partsListItems) {
+              allDailyTracking.push(
+                ...extractFromPart(part, project.projectName)
               );
             }
-          });
-        });
+          }
+          if (Array.isArray(assembly.subAssemblies)) {
+            for (const sub of assembly.subAssemblies) {
+              if (Array.isArray(sub.partsListItems)) {
+                for (const part of sub.partsListItems) {
+                  allDailyTracking.push(
+                    ...extractFromPart(part, project.projectName)
+                  );
+                }
+              }
+            }
+          }
+        }
       }
-
-      return projectTracking;
-    });
+    }
 
     res.json({
       count: allDailyTracking.length,

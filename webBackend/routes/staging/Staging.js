@@ -34,6 +34,23 @@ stagingRoutes.get("/Production/Product", async (req, res) => {
   }
 });
 
+stagingRoutes.get("/ClsIncoming", async (req, res) => {
+  try {
+    const response = await axios.get(
+      "http://182.77.56.228:85/api/ClsIncoming",
+      {
+        timeout: 10000,
+      }
+    );
+    res.json(response.data);
+  } catch (error) {
+    console.error("Error fetching GoodsReceipt:", error.message);
+    res.status(500).json({ error: "Failed to fetch data from external API" });
+  }
+});
+
+// 
+
 stagingRoutes.get("/GetGoodsReceiptByPart", async (req, res) => {
   try {
     const { partsCodeId } = req.query;
