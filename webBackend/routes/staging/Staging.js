@@ -4,10 +4,27 @@ const axios = require("axios");
 
 const stagingRoutes = express.Router();
 
-stagingRoutes.get("/GetGoodsReceipt", async (req, res) => {
+// http://182.77.56.228:90/GoodsReceipt/GetGoodsReceipt
+stagingRoutes.get("/GoodsReceipt/GetGoodsReceipt", async (req, res) => {
   try {
     const response = await axios.get(
-      "http://182.77.56.228:85/GoodsReceipt/GetGoodsReceipt",
+      "http://182.77.56.228:90/GoodsReceipt/GetGoodsReceipt",
+      {
+        timeout: 10000,
+      }
+    );
+    res.json(response.data);
+  } catch (error) {
+    console.error("Error fetching GoodsReceipt:", error.message);
+    res.status(500).json({ error: "Failed to fetch data from external API" });
+  }
+});
+
+// http://182.77.56.228:90/GoodsIssue/GetGoodsIssue
+stagingRoutes.get("/GoodsIssue/GetGoodsIssue", async (req, res) => {
+  try {
+    const response = await axios.get(
+      "http://182.77.56.228:90/GoodsIssue/GetGoodsIssue",
       {
         timeout: 10000,
       }
@@ -70,8 +87,6 @@ stagingRoutes.get("/ClsIncoming", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch data from external API" });
   }
 });
-
-// 
 
 stagingRoutes.get("/GetGoodsReceiptByPart", async (req, res) => {
   try {
