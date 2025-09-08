@@ -403,6 +403,32 @@ manufacturRouter.put(
   }
 );
 
+// Cache for allocations data to avoid repeated expensive queries
+let allocationsCache = null;
+let cacheTimestamp = null;
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+const getAllocationsData = async () => {
+  const now = Date.now();
+  
+  // Return cached data if it's still valid
+  if (allocationsCache && cacheTimestamp && (now - cacheTimestamp) < CACHE_DURATION) {
+    return allocationsCache;
+  }
+  
+  try {
+    const response = await axios.get(
+      `${process.env.BASE_URL}/api/defpartproject/all-allocations`
+    );
+    allocationsCache = response.data?.data || [];
+    cacheTimestamp = now;
+    return allocationsCache;
+  } catch (error) {
+    console.error("Error fetching allocations:", error.message);
+    return allocationsCache || []; // Return stale cache if available
+  }
+};
+
 manufacturRouter.get("/category/:categoryId", async (req, res) => {
   try {
     const { categoryId } = req.params;
@@ -418,37 +444,8 @@ manufacturRouter.get("/category/:categoryId", async (req, res) => {
       return res.status(404).json({ msg: "Manufacturing entry not found" });
     }
 
-    // 2. Get all allocations data
-    let allocationData = [];
-    try {
-      const response = await axios.get(
-        `${process.env.BASE_URL}/api/defpartproject/all-allocations`
-      );
-      allocationData = response.data?.data || [];
-      
-      // Debug: Log the structure of the first few allocations
-      console.log('Allocation data structure sample:', {
-        totalProjects: allocationData.length,
-        firstProject: allocationData[0] ? {
-          projectName: allocationData[0].projectName,
-          allocationsCount: allocationData[0].allocations?.length || 0,
-          firstAllocation: allocationData[0].allocations?.[0] ? {
-            partName: allocationData[0].allocations[0].partName,
-            processName: allocationData[0].allocations[0].processName,
-            allocationsCount: allocationData[0].allocations[0].allocations?.length || 0,
-            firstMachineAllocation: allocationData[0].allocations[0].allocations?.[0] ? {
-              machineId: allocationData[0].allocations[0].allocations[0].machineId,
-              startDate: allocationData[0].allocations[0].allocations[0].startDate,
-              endDate: allocationData[0].allocations[0].allocations[0].endDate,
-              actualEndDate: allocationData[0].allocations[0].allocations[0].actualEndDate,
-              hasActualEndDate: allocationData[0].allocations[0].allocations[0].hasOwnProperty('actualEndDate')
-            } : null
-          } : null
-        } : null
-      });
-    } catch (error) {
-      console.error("Error fetching allocations:", error.message);
-    }
+    // 2. Get allocations data (with caching)
+    const allocationData = await getAllocationsData();
 
     // 3. Create a map of current allocations by machineId
     const currentAllocations = new Map();
@@ -525,16 +522,6 @@ manufacturRouter.get("/category/:categoryId", async (req, res) => {
           const effectiveEndDate = alloc.actualEndDate || alloc.plannedEndDate;
           const isActive = now >= startDate && now <= effectiveEndDate;
           
-          // Debug logging for machine status
-          console.log(`Machine ${machineId}:`, {
-            startDate: startDate.toISOString(),
-            plannedEndDate: alloc.plannedEndDate.toISOString(),
-            actualEndDate: alloc.actualEndDate ? alloc.actualEndDate.toISOString() : 'Not set',
-            effectiveEndDate: effectiveEndDate.toISOString(),
-            isActive,
-            isCompletedEarly: alloc.isCompletedEarly
-          });
-          
           return isActive;
         });
 
@@ -554,18 +541,6 @@ manufacturRouter.get("/category/:categoryId", async (req, res) => {
               partName: alloc.partName,
               isCompletedEarly: alloc.isCompletedEarly
             }));
-            
-            // Debug: Log the stored allocation data
-            console.log('Stored allocation data for machine:', machineId, {
-              allocationsCount: machine.allocations.length,
-              firstAllocation: machine.allocations[0] ? {
-                startDate: machine.allocations[0].startDate,
-                endDate: machine.allocations[0].endDate,
-                plannedEndDate: machine.allocations[0].plannedEndDate,
-                actualEndDate: machine.allocations[0].actualEndDate,
-                hasActualEndDate: machine.allocations[0].hasOwnProperty('actualEndDate')
-              } : null
-            });
             updated = true;
           }
         } else {
@@ -608,6 +583,58 @@ manufacturRouter.get("/category/:categoryId", async (req, res) => {
   }
 });
 
+
+// Optimized endpoint for getting machine allocations without full category processing
+manufacturRouter.get("/machine-allocations", async (req, res) => {
+  try {
+    const allocationData = await getAllocationsData();
+    
+    // Create a simplified map of machine allocations
+    const machineAllocations = new Map();
+    allocationData.forEach(project => {
+      project.allocations?.forEach(alloc => {
+        if (alloc.machineId) {
+          if (!machineAllocations.has(alloc.machineId)) {
+            machineAllocations.set(alloc.machineId, []);
+          }
+          
+          const allocStart = new Date(alloc.startDate);
+          let actualEndDate = null;
+          if (alloc.actualEndDate) {
+            try {
+              actualEndDate = new Date(alloc.actualEndDate);
+              if (isNaN(actualEndDate.getTime())) {
+                actualEndDate = null;
+              }
+            } catch (error) {
+              actualEndDate = null;
+            }
+          }
+          
+          const allocEnd = actualEndDate || new Date(alloc.endDate);
+          
+          machineAllocations.get(alloc.machineId).push({
+            startDate: allocStart,
+            endDate: allocEnd,
+            plannedEndDate: new Date(alloc.endDate),
+            actualEndDate: actualEndDate,
+            projectName: project.projectName,
+            partName: alloc.partName,
+            isCompletedEarly: actualEndDate && actualEndDate < new Date(alloc.endDate)
+          });
+        }
+      });
+    });
+
+    res.status(200).json({
+      msg: "Machine allocations retrieved successfully",
+      machineAllocations: Object.fromEntries(machineAllocations)
+    });
+  } catch (error) {
+    console.error("Error fetching machine allocations:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
 
 manufacturRouter.get("/all-category-ids", async (req, res) => {
   try {

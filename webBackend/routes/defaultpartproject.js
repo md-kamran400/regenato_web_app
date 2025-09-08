@@ -1338,6 +1338,20 @@ partproject.post(
         dailyStatus,
         wareHouseTotalQty,
         wareHouseremainingQty,
+        // Additional fields for complete tracking
+        projectName,
+        partName,
+        processName,
+        fromWarehouse,
+        fromWarehouseQty,
+        fromWarehouseRemainingQty,
+        toWarehouse,
+        toWarehouseQty,
+        toWarehouseRemainingQty,
+        remaining,
+        machineId,
+        shift,
+        partsCodeId
       } = req.body;
 
       if (!date || produced === undefined) {
@@ -1392,7 +1406,7 @@ partproject.post(
         date,
         planned: dailyPlannedQty,
         produced: Number(produced),
-        operator,
+        operator: operator || allocation.operator,
         dailyStatus:
           dailyStatus ||
           (produced > dailyPlannedQty
@@ -1402,6 +1416,20 @@ partproject.post(
             : "On Track"),
         wareHouseTotalQty: Number(wareHouseTotalQty) || 0,
         wareHouseremainingQty: Number(wareHouseremainingQty) || 0,
+        // Additional fields for complete tracking
+        projectName: projectName || project.projectName,
+        partName: partName || partItem.partName,
+        processName: processName || process.processName,
+        fromWarehouse: fromWarehouse || allocation.fromWarehouse,
+        fromWarehouseQty: Number(fromWarehouseQty) || 0,
+        fromWarehouseRemainingQty: Number(fromWarehouseRemainingQty) || 0,
+        toWarehouse: toWarehouse || allocation.wareHouse,
+        toWarehouseQty: Number(toWarehouseQty) || 0,
+        toWarehouseRemainingQty: Number(toWarehouseRemainingQty) || 0,
+        remaining: Number(remaining) || 0,
+        machineId: machineId || allocation.machineId,
+        shift: shift || allocation.shift,
+        partsCodeId: partsCodeId || partItem.partsCodeId
       };
 
       if (existingEntryIndex >= 0) {
@@ -1727,18 +1755,24 @@ partproject.put(
 
 partproject.get("/all-allocations", async (req, res) => {
   try {
+    // Optimize the query by selecting only necessary fields and reducing populate operations
     const projects = await PartListProjectModel.find({})
+      .select("projectName partsLists subAssemblyListFirst assemblyList")
       .populate({
-        path: "subAssemblyListFirst.partsListItems.allocations",
+        path: "partsLists.partsListItems.allocations",
+        select: "machineId startDate endDate actualEndDate partName"
       })
       .populate({
         path: "subAssemblyListFirst.partsListItems.allocations",
+        select: "machineId startDate endDate actualEndDate partName"
       })
       .populate({
         path: "assemblyList.partsListItems.allocations",
+        select: "machineId startDate endDate actualEndDate partName"
       })
       .populate({
         path: "assemblyList.subAssemblies.partsListItems.allocations",
+        select: "machineId startDate endDate actualEndDate partName"
       });
 
     // Extract allocations with projectName
@@ -1772,182 +1806,26 @@ partproject.get("/all-allocations", async (req, res) => {
 
 partproject.get("/daily-tracking", async (req, res) => {
   try {
-    // Load projects as lean objects for performance
-    const projects = await PartListProjectModel.find({}).lean();
+    const projects = await PartListProjectModel.find();
 
-    // Lazily load store variables and BLNK stock once for the whole response
-    const [storeVars, clsIncomingRes] = await Promise.all([
-      (async () => {
-        try {
-          const StoreVariableModal = require("../model/storemodel");
-          return await StoreVariableModal.find({}).lean();
-        } catch (e) {
-          return [];
-        }
-      })(),
-      (async () => {
-        try {
-          const resp = await axios.get(`${baseUrl}/api/ClsIncoming`, {
-            timeout: 10000,
+    let allDailyTracking = [];
+
+    projects.forEach(project => {
+      project.partsLists.forEach(partsList => {
+        partsList.partsListItems.forEach(part => {
+          part.allocations.forEach(allocation => {
+            if (allocation.dailyTracking && allocation.dailyTracking.length > 0) {
+              allDailyTracking = allDailyTracking.concat(allocation.dailyTracking);
+            }
           });
-          return Array.isArray(resp.data) ? resp.data : [];
-        } catch (e) {
-          return [];
-        }
-      })(),
-    ]);
-
-    // Build quick lookup maps
-    const storeQtyByWarehouseId = new Map();
-    for (const sv of storeVars) {
-      const qty = Array.isArray(sv.quantity) && sv.quantity.length > 0 ? Number(sv.quantity[0] || 0) : 0;
-      storeQtyByWarehouseId.set(String(sv.categoryId).trim(), qty);
-    }
-
-    const blnkQtyByItemCode = new Map();
-    for (const item of clsIncomingRes) {
-      try {
-        const code = String(item.ItemCode || item.Itemcode || "").trim();
-        const wh = String(item.Warehouse || item.WhsCode || "").trim().toUpperCase();
-        const onhand = Number(item.Onhand || item.Quantity || 0) || 0;
-        if (code && wh === "BLNK") {
-          blnkQtyByItemCode.set(code, onhand);
-        }
-      } catch (_) {
-        // ignore bad rows
-      }
-    }
-
-    // Helper to extract enriched daily tracking from a single part (with processes/allocations)
-    const extractFromPart = (part, projectName) => {
-      const results = [];
-      const processes = Array.isArray(part.allocations) ? part.allocations : [];
-      for (let pIdx = 0; pIdx < processes.length; pIdx++) {
-        const process = processes[pIdx];
-        const allocs = Array.isArray(process.allocations) ? process.allocations : [];
-
-        // Determine FROM warehouse info using previous process (or BLNK for first process)
-        let fromWarehouseName = null;
-        let fromWarehouseId = null;
-        let fromWarehouseQty = 0;
-
-        if (pIdx > 0) {
-          const prevProcess = processes[pIdx - 1];
-          const prevAlloc = Array.isArray(prevProcess.allocations) && prevProcess.allocations.length > 0
-            ? prevProcess.allocations[0]
-            : null;
-          fromWarehouseName = prevAlloc?.wareHouse || null;
-          fromWarehouseId = prevAlloc?.warehouseId || null;
-          // Prefer previously computed/stored quantity if present, else store map fallback
-          if (typeof prevAlloc?.warehouseQuantity === "number") {
-            fromWarehouseQty = Number(prevAlloc.warehouseQuantity) || 0;
-          } else if (fromWarehouseId && storeQtyByWarehouseId.has(String(fromWarehouseId))) {
-            fromWarehouseQty = storeQtyByWarehouseId.get(String(fromWarehouseId)) || 0;
-          } else {
-            fromWarehouseQty = 0;
-          }
-        } else {
-          // First process pulls from BLNK by business rule
-          fromWarehouseName = "BLNK";
-          const code = String(part.partsCodeId || part.partscodeid || "").trim();
-          fromWarehouseQty = (code && blnkQtyByItemCode.has(code)) ? blnkQtyByItemCode.get(code) : 0;
-        }
-
-        for (const alloc of allocs) {
-          const toWarehouseName = alloc?.wareHouse || null;
-          const toMachineId = alloc?.machineId || null;
-          const toShift = alloc?.shift || null;
-          const splitNo = alloc?.splitNumber || null;
-          const operator = alloc?.operator || null;
-
-          const tracks = Array.isArray(alloc.dailyTracking) ? alloc.dailyTracking : [];
-          for (const track of tracks) {
-            const produced = Number(track.produced || 0) || 0;
-            const remaining = Math.max(0, Number(fromWarehouseQty || 0) - produced);
-
-            results.push({
-              ...track,
-              projectName: projectName,
-              partName: process.partName,
-              processName: process.processName,
-              processId: process.processId,
-              partsCodeId: process.partsCodeId,
-              splitNumber: splitNo,
-              machineId: toMachineId,
-              shift: toShift,
-              operator: operator,
-              fromWarehouse: fromWarehouseName,
-              toWarehouse: toWarehouseName,
-              wareHouseTotalQty: Number(fromWarehouseQty || 0),
-              wareHouseremainingQty: Number(remaining || 0),
-            });
-          }
-        }
-      }
-      return results;
-    };
-
-    // Collect from projects: partsLists, subAssemblyListFirst, assemblyList
-    const allDailyTracking = [];
-    for (const project of projects) {
-      // Parts lists
-      if (Array.isArray(project.partsLists)) {
-        for (const partsList of project.partsLists) {
-          if (Array.isArray(partsList.partsListItems)) {
-            for (const part of partsList.partsListItems) {
-              allDailyTracking.push(
-                ...extractFromPart(part, project.projectName)
-              );
-            }
-          }
-        }
-      }
-
-      // Sub assemblies
-      if (Array.isArray(project.subAssemblyListFirst)) {
-        for (const subAssembly of project.subAssemblyListFirst) {
-          if (Array.isArray(subAssembly.partsListItems)) {
-            for (const part of subAssembly.partsListItems) {
-              allDailyTracking.push(
-                ...extractFromPart(part, project.projectName)
-              );
-            }
-          }
-        }
-      }
-
-      // Assemblies and their subAssemblies
-      if (Array.isArray(project.assemblyList)) {
-        for (const assembly of project.assemblyList) {
-          if (Array.isArray(assembly.partsListItems)) {
-            for (const part of assembly.partsListItems) {
-              allDailyTracking.push(
-                ...extractFromPart(part, project.projectName)
-              );
-            }
-          }
-          if (Array.isArray(assembly.subAssemblies)) {
-            for (const sub of assembly.subAssemblies) {
-              if (Array.isArray(sub.partsListItems)) {
-                for (const part of sub.partsListItems) {
-                  allDailyTracking.push(
-                    ...extractFromPart(part, project.projectName)
-                  );
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-
-    res.json({
-      count: allDailyTracking.length,
-      dailyTracking: allDailyTracking,
+        });
+      });
     });
+
+    res.status(200).json(allDailyTracking);
   } catch (error) {
-    console.error("Error fetching all daily tracking:", error);
-    res.status(500).json({ message: "Server error", error: error.message });
+    console.error("Error fetching daily tracking:", error);
+    res.status(500).json({ message: "Server Error", error });
   }
 });
 

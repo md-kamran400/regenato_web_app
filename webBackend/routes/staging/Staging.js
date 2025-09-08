@@ -22,7 +22,7 @@ stagingRoutes.get("/GetGoodsReceipt", async (req, res) => {
 stagingRoutes.get("/Production/Product", async (req, res) => {
   try {
     const response = await axios.get(
-      "http://182.77.56.228:85/Production/Product",
+      "http://182.77.56.228:90/Production/Product",
       {
         timeout: 10000,
       }
@@ -33,6 +33,28 @@ stagingRoutes.get("/Production/Product", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch data from external API" });
   }
 });
+
+// http://182.77.56.228:90/Inventory/PostInventory
+stagingRoutes.post("/Inventory/PostInventory", async (req, res) => {
+  try {
+    const response = await axios.post(
+      "http://182.77.56.228:90/Inventory/PostInventory",
+      req.body,
+      {
+        timeout: 10000,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+    
+    res.json(response.data);
+  } catch (error) {
+    console.error("Error posting inventory:", error.message);
+    res.status(500).json({ error: "Failed to post inventory data" });
+  }
+});
+
 
 stagingRoutes.get("/ClsIncoming", async (req, res) => {
   try {

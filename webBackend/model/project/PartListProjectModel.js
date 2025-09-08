@@ -59,6 +59,16 @@ const AllocationPlanningSchema = new mongoose.Schema(
         warehouseQuantity: {
           type: Number,
         },
+        fromWarehouse: {
+          type: String,
+        },
+        fromWarehouseId: {
+          type: String,
+        },
+        fromWarehouseQuantity: {
+          type: Number,
+          default: 0,
+        },
         shift: {
           type: String,
           required: true,
@@ -113,7 +123,52 @@ const AllocationPlanningSchema = new mongoose.Schema(
               type: Number,
             },
             wareHouseremainingQty:{
-              type:Number,
+              type: Number,
+            },
+            // Additional fields for complete tracking
+            projectName: {
+              type: String,
+            },
+            partName: {
+              type: String,
+            },
+            processName: {
+              type: String,
+            },
+            fromWarehouse: {
+              type: String,
+            },
+            fromWarehouseQty: {
+              type: Number,
+              default: 0,
+            },
+            fromWarehouseRemainingQty: {
+              type: Number,
+              default: 0,
+            },
+            toWarehouse: {
+              type: String,
+            },
+            toWarehouseQty: {
+              type: Number,
+              default: 0,
+            },
+            toWarehouseRemainingQty: {
+              type: Number,
+              default: 0,
+            },
+            remaining: {
+              type: Number,
+              default: 0,
+            },
+            machineId: {
+              type: String,
+            },
+            shift: {
+              type: String,
+            },
+            partsCodeId: {
+              type: String,
             }
           },
         ],

@@ -44,6 +44,7 @@ const {
   storeVariableRouter,
 } = require("./routes/variableRoutes/stores.routes");
 const stagingRoutes = require("./routes/staging/Staging");
+const { InventoryRouter } = require("./routes/variableRoutes/inventory.route");
 
 // MongoDB connection
 const connect = async () => {
@@ -86,6 +87,8 @@ app.use("/api/assmebly", AssemblyRoutes);
 app.use("/api/userManagement", UserRoute);
 app.use("/api/allocation", allocationRoutes);
 app.use("/api", stagingRoutes);
+app.use("/api/InventoryVaraible", InventoryRouter);
+
 
 app.get("/api/holidays", async (req, res) => {
   try {
