@@ -40,7 +40,8 @@ export const AllocatedPartListHrPlan = ({
   onDeleteSuccess,
   onUpdateAllocaitonStatus,
   partManufacturingVariables,
-  // partsCodeId
+  // partsCodeId,
+  partName,
 }) => {
   const userRole = localStorage.getItem("userRole");
   const [sections, setSections] = useState([]);
@@ -88,6 +89,7 @@ export const AllocatedPartListHrPlan = ({
   const [toWarehouseId, setToWarehouseId] = useState(null);
   const [fromWarehouseId, setFromWarehouseId] = useState(null);
 
+  console.log(partName)
     useEffect(() => {
     if (selectedSection?.data?.[0]?.wareHouse) {
       // Example: "01 - General Warehouse"
@@ -483,119 +485,168 @@ export const AllocatedPartListHrPlan = ({
 
     return totalQuantity - totalProduced;
   };
+  
 
-  const submitDailyTracking = async () => {
-    setIsUpdating(true);
-    try {
-      if (!selectedSection || !selectedSection.data.length) {
-        toast.error("No allocation selected.");
-        return;
-      }
-
-      const allocationId = selectedSection.allocationId;
-      const trackingId = selectedSection.data[0]?.trackingId;
-
-      if (!allocationId || !trackingId) {
-        toast.error("Allocation or Tracking ID is missing.");
-        return;
-      }
-
-      const trackingData = {
-        ...dailyTracking[0],
-        wareHouseTotalQty: warehouseQuantities.total,
-        wareHouseremainingQty: warehouseQuantities.remaining,
-      };
-
-      const response = await axios.post(
-        `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/allocations/${allocationId}/allocations/${trackingId}/dailyTracking`,
-        trackingData
-      );
-
-      // Update warehouse quantities after successful daily tracking update
-      if (dailyTracking[0]?.produced > 0 && selectedSection?.data[0]?.warehouseId) {
-        const producedQty = Number(dailyTracking[0].produced) || 0;
-        const currentWarehouseId = selectedSection.data[0].warehouseId;
-        const nextWarehouseId = sections[selectedSectionIndex + 1]?.data?.[0]?.warehouseId || null;
-
-        try {
-          if (nextWarehouseId) {
-            // Transfer: decrement current (To in API), increment next (From in API)
-            const transferRes = await axios.put(
-              `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/transfer-warehouse-quantity`,
-              {
-                toWarehouseId: currentWarehouseId,
-                fromWarehouseId: nextWarehouseId,
-                quantity: producedQty,
-              }
-            );
-
-            if (transferRes.data?.success) {
-              // Update local states
-              setToWarehouseData((prev) => ({
-                ...(prev || {}),
-                quantity: [Math.max(0, ((prev?.quantity?.[0] ?? 0) - producedQty))],
-              }));
-              setFromWarehouseData((prev) => ({
-                ...(prev || {}),
-                quantity: [((prev?.quantity?.[0] ?? 0) + producedQty)],
-              }));
-              toast.success("Warehouse quantities transferred successfully");
-            }
-          } else {
-            // Last process: only decrement current warehouse
-            const decRes = await axios.put(
-              `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/update-warehouse-quantity`,
-              {
-                warehouseId: currentWarehouseId,
-                quantityToReduce: producedQty,
-              }
-            );
-            if (decRes.data?.success) {
-              setToWarehouseData((prev) => ({
-                ...(prev || {}),
-                quantity: [Math.max(0, ((prev?.quantity?.[0] ?? 0) - producedQty))],
-              }));
-              toast.success("Warehouse quantity updated successfully");
-            }
-          }
-        } catch (warehouseError) {
-          console.error("Error updating warehouse quantities:", warehouseError);
-          toast.warning("Daily tracking updated but warehouse quantity update failed.");
-        }
-      }
-
-      if (onUpdateAllocaitonStatus) {
-        onUpdateAllocaitonStatus(response.data);
-      }
-
-      toast.success("Daily Tracking Updated Successfully!");
-
-      const updatedResponse = await axios.get(
-        `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/allocations/${allocationId}/allocations/${trackingId}/dailyTracking`
-      );
-
-      setExistingDailyTracking(updatedResponse.data.dailyTracking || []);
-      setactulEndDateData(updatedResponse.data);
-
-      // Reset the form
-      setDailyTracking([
-        {
-          date: "",
-          planned: selectedSection.data[0].dailyPlannedQty || 0,
-          produced: 0,
-          dailyStatus: "On Track",
-          operator: selectedSection.data[0].operator || "",
-        },
-      ]);
-
-      closeAddRowModal();
-    } catch (error) {
-      toast.error("Failed to update daily tracking.");
-      console.error("Error updating daily tracking:", error);
-    } finally {
-      setIsUpdating(false);
+const submitDailyTracking = async () => {
+  setIsUpdating(true);
+  try {
+    if (!selectedSection || !selectedSection.data.length) {
+      toast.error("No allocation selected.");
+      return;
     }
-  };
+
+    const allocationId = selectedSection.allocationId;
+    const trackingId = selectedSection.data[0]?.trackingId;
+
+    if (!allocationId || !trackingId) {
+      toast.error("Allocation or Tracking ID is missing.");
+      return;
+    }
+
+    const trackingData = {
+      ...dailyTracking[0],
+      wareHouseTotalQty: warehouseQuantities.total,
+      wareHouseremainingQty: warehouseQuantities.remaining,
+      // Additional fields for complete tracking
+      projectName: sections[0]?.projectName || 'N/A',
+      partName: partName || 'N/A',
+      processName: selectedSection?.title || 'N/A',
+      fromWarehouse: selectedSection?.data[0]?.wareHouse || 'N/A',
+      fromWarehouseId: selectedSection?.data[0]?.warehouseId || null,
+      fromWarehouseQty: toWarehouseData?.quantity?.[0] || 0,
+      fromWarehouseRemainingQty: Math.max(0, (toWarehouseData?.quantity?.[0] || 0) - (dailyTracking[0]?.produced || 0)),
+      toWarehouse: sections[selectedSectionIndex + 1]?.data?.[0]?.wareHouse || 'N/A',
+      toWarehouseId: sections[selectedSectionIndex + 1]?.data?.[0]?.warehouseId || null,
+      toWarehouseQty: fromWarehouseData?.quantity?.[0] || 0,
+      toWarehouseRemainingQty: Math.max(0, (fromWarehouseData?.quantity?.[0] || 0) + (dailyTracking[0]?.produced || 0)),
+      remaining: calculateRemainingQuantity(),
+      machineId: selectedSection?.data[0]?.machineId || 'N/A',
+      shift: selectedSection?.data[0]?.shift || 'N/A',
+      partsCodeId: selectedSection?.data[0]?.partsCodeId || 'N/A'
+    };
+
+    const response = await axios.post(
+      `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/allocations/${allocationId}/allocations/${trackingId}/dailyTracking`,
+      trackingData
+    );
+
+    // Post to inventory API
+    if (dailyTracking[0]?.produced > 0) {
+  try {
+    const inventoryData = {
+      DocDate: dailyTracking[0].date,
+      ItemCode: selectedSection.data[0]?.partsCodeId || "",
+      Dscription: partName || "",
+      Quantity: Number(dailyTracking[0].produced) || 0,
+      WhsCode: sections[selectedSectionIndex + 1]?.data?.[0]?.warehouseId || "",
+      FromWhsCod: selectedSection.data[0]?.warehouseId || ""
+    };
+
+    // Post to first route
+    await axios.post(
+      `${process.env.REACT_APP_BASE_URL}/api/Inventory/PostInventory`,
+      inventoryData
+    );
+
+    // Post to second route
+    await axios.post(
+      `${process.env.REACT_APP_BASE_URL}/api/InventoryVaraible/PostInventoryVaraibleVaraible`,
+      inventoryData
+    );
+
+    console.log("Inventory data posted successfully to both routes");
+  } catch (inventoryError) {
+    console.error("Error posting to inventory:", inventoryError);
+    toast.warning("Daily tracking updated but inventory update failed.");
+  }
+}
+
+
+    // Update warehouse quantities after successful daily tracking update
+    if (dailyTracking[0]?.produced > 0 && selectedSection?.data[0]?.warehouseId) {
+      const producedQty = Number(dailyTracking[0].produced) || 0;
+      const currentWarehouseId = selectedSection.data[0].warehouseId;
+      const nextWarehouseId = sections[selectedSectionIndex + 1]?.data?.[0]?.warehouseId || null;
+
+      try {
+        if (nextWarehouseId) {
+          // Transfer: decrement current (To in API), increment next (From in API)
+          const transferRes = await axios.put(
+            `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/transfer-warehouse-quantity`,
+            {
+              toWarehouseId: currentWarehouseId,
+              fromWarehouseId: nextWarehouseId,
+              quantity: producedQty,
+            }
+          );
+
+          if (transferRes.data?.success) {
+            // Update local states
+            setToWarehouseData((prev) => ({
+              ...(prev || {}),
+              quantity: [Math.max(0, ((prev?.quantity?.[0] ?? 0) - producedQty))],
+            }));
+            setFromWarehouseData((prev) => ({
+              ...(prev || {}),
+              quantity: [((prev?.quantity?.[0] ?? 0) + producedQty)],
+            }));
+            toast.success("Warehouse quantities transferred successfully");
+          }
+        } else {
+          // Last process: only decrement current warehouse
+          const decRes = await axios.put(
+            `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/update-warehouse-quantity`,
+            {
+              warehouseId: currentWarehouseId,
+              quantityToReduce: producedQty,
+            }
+          );
+          if (decRes.data?.success) {
+            setToWarehouseData((prev) => ({
+              ...(prev || {}),
+              quantity: [Math.max(0, ((prev?.quantity?.[0] ?? 0) - producedQty))],
+            }));
+            toast.success("Warehouse quantity updated successfully");
+          }
+        }
+      } catch (warehouseError) {
+        console.error("Error updating warehouse quantities:", warehouseError);
+        toast.warning("Daily tracking updated but warehouse quantity update failed.");
+      }
+    }
+
+    if (onUpdateAllocaitonStatus) {
+      onUpdateAllocaitonStatus(response.data);
+    }
+
+    toast.success("Daily Tracking Updated Successfully!");
+
+    const updatedResponse = await axios.get(
+      `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/allocations/${allocationId}/allocations/${trackingId}/dailyTracking`
+    );
+
+    setExistingDailyTracking(updatedResponse.data.dailyTracking || []);
+    setactulEndDateData(updatedResponse.data);
+
+    // Reset the form
+    setDailyTracking([
+      {
+        date: "",
+        planned: selectedSection.data[0].dailyPlannedQty || 0,
+        produced: 0,
+        dailyStatus: "On Track",
+        operator: selectedSection.data[0].operator || "",
+      },
+    ]);
+
+    closeAddRowModal();
+  } catch (error) {
+    toast.error("Failed to update daily tracking.");
+    console.error("Error updating daily tracking:", error);
+  } finally {
+    setIsUpdating(false);
+  }
+};
 
   const closeDailyTaskModal = () => {
     setDailyTaskModal(false);
@@ -1951,8 +2002,8 @@ export const AllocatedPartListHrPlan = ({
                             new Date(actulEndDateData.actualEndDate),
                             highlightDates
                           ) < 0
-                            ? "text-success" // Red for negative numbers
-                            : "text-danger" // Green for positive numbers
+                            ? "text-danger" // Red for negative numbers
+                            : "text-success" // Green for positive numbers
                         }
                       >
                         {getWorkingDaysDifference(
@@ -2127,7 +2178,7 @@ export const AllocatedPartListHrPlan = ({
         <ModalBody className="mt-3 p-1">
           <div>
             <div className="d-flex justify-content-between align-items-center mb-3">
-              <h5 style={{ margin: 0 }}>Previous Tracking Data</h5>
+              <h5 style={{ margin: 0 }}>Production Tracking Summary</h5>
               {selectedSection && (
                 <Button
                   color="primary"
@@ -2142,6 +2193,41 @@ export const AllocatedPartListHrPlan = ({
               )}
             </div>
 
+            {/* Production Summary Card */}
+            <div className="card mb-3" style={{ backgroundColor: "#f8f9fa", border: "1px solid #dee2e6" }}>
+              <div className="card-body">
+                <h6 className="card-title mb-3">Production Overview</h6>
+                <div className="row">
+                  <div className="col-md-3">
+                    <strong>Project:</strong> {sections[0]?.projectName || 'N/A'}
+                  </div>
+                  <div className="col-md-3">
+                    <strong>Part Name:</strong> {partName || 'N/A'}
+                  </div>
+                  <div className="col-md-3">
+                    <strong>Process:</strong> {selectedSection?.title || 'N/A'}
+                  </div>
+                  <div className="col-md-3">
+                    <strong>Machine:</strong> {selectedSection?.data[0]?.machineId || 'N/A'}
+                  </div>
+                </div>
+                <div className="row mt-2">
+                  <div className="col-md-3">
+                    <strong>Operator:</strong> {selectedSection?.data[0]?.operator || 'N/A'}
+                  </div>
+                  <div className="col-md-3">
+                    <strong>Shift:</strong> {selectedSection?.data[0]?.shift || 'N/A'}
+                  </div>
+                  <div className="col-md-3">
+                    <strong>From WH:</strong> {selectedSection?.data[0]?.wareHouse || 'N/A'}
+                  </div>
+                  <div className="col-md-3">
+                    <strong>To WH:</strong> {sections[selectedSectionIndex + 1]?.data?.[0]?.wareHouse || 'N/A'}
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div className="table-responsive">
               <table className="table table-striped vertical-lines horizontals-lines">
                 <thead style={{ backgroundColor: "#f3f4f6" }}>
@@ -2149,16 +2235,23 @@ export const AllocatedPartListHrPlan = ({
                     <th>Date</th>
                     <th>Planned</th>
                     <th>Produced</th>
-                    <th>Warehouse Total</th>
-                    <th>Warehouse Remaining</th>
+                    <th>From WH</th>
+                    <th>From WH Qty</th>
+                    <th>From WH Remaining</th>
+                    <th>To WH</th>
+                    <th>To WH Qty</th>
+                    <th>To WH Remaining</th>
                     <th>Status</th>
+                    <th>Remaining</th>
+                    <th>Machine</th>
+                    <th>Shift</th>
                     <th>Operator</th>
                   </tr>
                 </thead>
                 <tbody>
                   {!existingDailyTracking.length ? (
                     <tr>
-                      <td colSpan="5" className="text-center">
+                      <td colSpan="14" className="text-center">
                         No daily tracking data available
                       </td>
                     </tr>
@@ -2166,10 +2259,14 @@ export const AllocatedPartListHrPlan = ({
                     existingDailyTracking.map((task, index) => (
                       <tr key={index}>
                         <td>{moment(task.date).format("DD MMM YYYY")}</td>
-                        <td>{task.planned}</td>
-                        <td>{task.produced}</td>
-                        <td>{task.wareHouseTotalQty || "N/A"}</td>
-                        <td>{task.wareHouseremainingQty || "N/A"}</td>
+                        <td>{task.planned || 0}</td>
+                        <td>{task.produced || 0}</td>
+                        <td>{task.fromWarehouse || "N/A"}</td>
+                        <td>{task.fromWarehouseQty || 0}</td>
+                        <td>{task.fromWarehouseRemainingQty || 0}</td>
+                        <td>{task.toWarehouse || "N/A"}</td>
+                        <td>{task.toWarehouseQty || 0}</td>
+                        <td>{task.toWarehouseRemainingQty || 0}</td>
                         <td>
                           {task.dailyStatus === "On Track" ? (
                             <span
@@ -2203,7 +2300,10 @@ export const AllocatedPartListHrPlan = ({
                             </span>
                           ) : null}
                         </td>
-                        <td>{task.operator}</td>
+                        <td>{task.remaining || 0}</td>
+                        <td>{task.machineId || "N/A"}</td>
+                        <td>{task.shift || "N/A"}</td>
+                        <td>{task.operator || "N/A"}</td>
                       </tr>
                     ))
                   )}
@@ -3317,3 +3417,4 @@ export const AllocatedPartListHrPlan = ({
     </div>
   );
 };
+

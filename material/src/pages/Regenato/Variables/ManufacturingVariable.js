@@ -685,7 +685,7 @@ const ManufacturingVariable = () => {
               </Row>
 
               {/* Status Summary */}
-              {manufacturingData.length > 0 && (
+              {/* {manufacturingData.length > 0 && (
                 <div className="mb-3 p-3 bg-light rounded">
                   <h6 className="mb-2">Machine Status Summary:</h6>
                   <div className="d-flex gap-3 mb-2">
@@ -733,7 +733,7 @@ const ManufacturingVariable = () => {
                     early, machines become available immediately.
                   </small>
                 </div>
-              )}
+              )} */}
 
               {/* Table */}
               <div className="table-responsive table-card mt-3 mb-1">

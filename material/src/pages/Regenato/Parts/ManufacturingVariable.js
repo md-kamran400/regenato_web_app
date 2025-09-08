@@ -30,6 +30,7 @@ const ManufacturingVariable = ({
   const [posting, setPosting] = useState(false);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [variablesLoading, setVariablesLoading] = useState(true);
   const [manufacturingVariables, setmanufacturingVariables] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [shipmentvars, setshipmentvars] = useState([]);
@@ -46,6 +47,8 @@ const ManufacturingVariable = ({
   const [unit, setUnit] = useState("minutes");
 
   const [subMachineOptions, setSubMachineOptions] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filteredData, setFilteredData] = useState([]);
 
   // Form state
   // const [formData, setFormData] = useState({
@@ -226,12 +229,6 @@ const ManufacturingVariable = ({
     }
   }, [partDetails, fetchManufacturingData]);
 
-  useEffect(() => {
-    if (partDetails && partDetails._id) {
-      fetchManufacturingData();
-    }
-  }, [partDetails, fetchManufacturingData]);
-
   // If you want to ensure the data is sorted even after local updates:
   // useEffect(() => {
   //   const sortedData = [...manufacturingData].sort((a, b) => {
@@ -270,6 +267,20 @@ const ManufacturingVariable = ({
     onTotalCountUpdateHours(total);
   }, [manufacturingData]);
 
+  // Filter data based on search term
+  useEffect(() => {
+    if (!searchTerm.trim()) {
+      setFilteredData(manufacturingData);
+    } else {
+      const filtered = manufacturingData.filter(item =>
+        item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.categoryId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (item.SubMachineName && item.SubMachineName.toLowerCase().includes(searchTerm.toLowerCase()))
+      );
+      setFilteredData(filtered);
+    }
+  }, [manufacturingData, searchTerm]);
+
   const totalRate = formData.hourlyRate * formData.hours;
 
   // Add this state variable
@@ -306,8 +317,10 @@ const ManufacturingVariable = ({
     }
   };
 
+  // Fetch manufacturing variables and shipment variables in a single effect
   useEffect(() => {
-    const fetchRmVariables = async () => {
+    const fetchVariables = async () => {
+      setVariablesLoading(true);
       try {
         const response = await fetch(
           `${process.env.REACT_APP_BASE_URL}/api/manufacturing`
@@ -317,32 +330,15 @@ const ManufacturingVariable = ({
         }
         const data = await response.json();
         setmanufacturingVariables(data);
+        setshipmentvars(data); // Same data for both
       } catch (error) {
-        console.error("Error fetching RM variables:", error);
+        console.error("Error fetching manufacturing variables:", error);
+      } finally {
+        setVariablesLoading(false);
       }
     };
 
-    fetchRmVariables();
-  }, []);
-
-  //   fetch snipment variable
-  useEffect(() => {
-    const fetchShipment = async () => {
-      try {
-        const response = await fetch(
-          `${process.env.REACT_APP_BASE_URL}/api/manufacturing`
-        );
-        if (!response.ok) {
-          throw new Error(`Error: ${response.statusText}`);
-        }
-        const data = await response.json();
-        setshipmentvars(data);
-      } catch (error) {
-        console.error("Error fetching RM variables:", error);
-      }
-    };
-
-    fetchShipment();
+    fetchVariables();
   }, []);
 
   const handleAutocompleteChangestatic = (event, newValue) => {
@@ -673,12 +669,19 @@ const ManufacturingVariable = ({
   };
 
   // Render loading state or error if any
-  if (loading) {
-    return <div>Loading...</div>;
+  if (loading || variablesLoading) {
+    return (
+      <div className="text-center p-4">
+        <div className="spinner-border text-primary" role="status">
+          <span className="visually-hidden">Loading...</span>
+        </div>
+        <p className="mt-2">Loading manufacturing data...</p>
+      </div>
+    );
   }
 
   if (error) {
-    return <div>Error: {error}</div>;
+    return <div className="alert alert-danger">Error: {error}</div>;
   }
 
   // Calculate total rate based on fetched data
@@ -745,7 +748,9 @@ const ManufacturingVariable = ({
               <input
                 type="text"
                 className="form-control"
-                placeholder="Search..."
+                placeholder="Search by name, ID, or machine..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
               />
               <i className="ri-search-line search-icon"></i>
             </div>
@@ -773,13 +778,13 @@ const ManufacturingVariable = ({
                 <th>Minutes (M)</th>
                 <th>Hourly Rate (INR)</th>
                 <th>Total Rate</th>
-                <th>Batch Process</th>
+                <th>Job Work</th>
                 <th>Action</th>
                 <th>Reorder</th>
               </tr>
             </thead>
             <tbody>
-              {manufacturingData.map((item, index) => (
+              {filteredData.map((item, index) => (
                 <tr key={item._id}>
                   {/* <td>
                     <div className="form-check">
@@ -831,7 +836,7 @@ const ManufacturingVariable = ({
                         className="btn btn-sm btn-primary"
                         onClick={() => handleReorder(item._id, "down")}
                         disabled={
-                          index === manufacturingData.length - 1 || posting
+                          index === filteredData.length - 1 || posting
                         }
                       >
                         ↓
@@ -993,7 +998,7 @@ const ManufacturingVariable = ({
                 }
               />
               <label className="form-check-label" htmlFor="isSpecialday">
-                Batch Process (Set Fixed Time for all Quantities)
+                Job Work (Set Fixed Time for all Quantities)
               </label>
             </div>
 
@@ -1191,7 +1196,7 @@ const ManufacturingVariable = ({
                 type="number"
                 className="form-control"
                 id="time-input-edit"
-                value={inputValueEdit}
+                value={Math.round(inputValueEdit)}
                 onChange={handleInputChangeEdit}
                 placeholder={`Enter ${selectedOptionEdit} value`}
               />
@@ -1268,7 +1273,7 @@ const ManufacturingVariable = ({
               }
             />
             <label className="form-check-label" htmlFor="isSpecialday">
-              Special Day Calculation
+              Job Work (Set Fixed Time for all Quantities)
             </label>
           </div>
 

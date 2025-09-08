@@ -2271,6 +2271,7 @@ export const PartListHrPlan = ({
             onUpdateAllocaitonStatus={onUpdateAllocaitonStatus}
             partManufacturingVariables={partManufacturingVariables}
             // partsCodeId={partsCodeId}
+            partName={partName}
           />
         )}
         {activeTab === "actual" && !isDataAllocated && (

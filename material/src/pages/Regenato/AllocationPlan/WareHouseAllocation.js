@@ -24,14 +24,44 @@ const WareHouseAllocation = () => {
   const [warehouseFilter, setWarehouseFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [projectFilter, setProjectFilter] = useState("all");
+  const [warehouseData, setWarehouseData] = useState(new Map());
 
   const warehouseOptions = ["WH-F1", "WH-F2", "WH-F3", "WH-F4", "WH-F5"];
+
+  // Fetch warehouse data for mapping categoryId to warehouse names
+  useEffect(() => {
+    const fetchWarehouseData = async () => {
+      try {
+        const response = await fetch(
+          `${process.env.REACT_APP_BASE_URL}/api/storesVariable`
+        );
+        if (response.ok) {
+          const warehouses = await response.json();
+          const warehouseMap = new Map();
+          warehouses.forEach(warehouse => {
+            if (warehouse.categoryId && warehouse.Name && warehouse.Name.length > 0) {
+              warehouseMap.set(warehouse.categoryId, {
+                name: warehouse.Name[0],
+                location: warehouse.location && warehouse.location.length > 0 ? warehouse.location[0] : 'N/A',
+                quantity: warehouse.quantity && warehouse.quantity.length > 0 ? warehouse.quantity[0] : 0
+              });
+            }
+          });
+          setWarehouseData(warehouseMap);
+        }
+      } catch (err) {
+        console.error("Error fetching warehouse data:", err);
+      }
+    };
+
+    fetchWarehouseData();
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const response = await fetch(
-          `${process.env.REACT_APP_BASE_URL}/api/defpartproject/daily-tracking`
+          `${process.env.REACT_APP_BASE_URL}/api/defpartproject/all-allocations`
         );
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -48,22 +78,136 @@ const WareHouseAllocation = () => {
     fetchData();
   }, []);
 
+  // Extract daily tracking data from allocations structure
+  const extractDailyTrackingData = (allocationsData) => {
+    if (!allocationsData || !Array.isArray(allocationsData)) return [];
+    
+    const allDailyTracking = [];
+    
+    allocationsData.forEach(project => {
+      if (project.allocations && Array.isArray(project.allocations)) {
+        project.allocations.forEach(allocation => {
+          if (allocation.allocations && Array.isArray(allocation.allocations)) {
+            allocation.allocations.forEach(alloc => {
+              if (alloc.dailyTracking && Array.isArray(alloc.dailyTracking)) {
+                alloc.dailyTracking.forEach(tracking => {
+                  allDailyTracking.push({
+                    ...tracking,
+                    projectName: project.projectName,
+                    partName: allocation.partName,
+                    processName: allocation.processName,
+                    processId: allocation.processId,
+                    partsCodeId: allocation.partsCodeId,
+                    machineId: alloc.machineId,
+                    shift: alloc.shift,
+                    operator: alloc.operator,
+                    planned: alloc.dailyPlannedQty || 0,
+                    // Map warehouse data
+                    fromWarehouse: tracking.fromWarehouse || alloc.wareHouse,
+                    fromWarehouseId: alloc.warehouseId,
+                    fromWarehouseQty: tracking.fromWarehouseQty || alloc.fromWarehouseQuantity || 0,
+                    fromWarehouseRemainingQty: tracking.fromWarehouseRemainingQty || 0,
+                    toWarehouse: tracking.toWarehouse || 'N/A',
+                    toWarehouseQty: tracking.toWarehouseQty || 0,
+                    toWarehouseRemainingQty: tracking.toWarehouseRemainingQty || 0,
+                    remaining: tracking.remaining || 0,
+                    wareHouseTotalQty: tracking.wareHouseTotalQty || 0,
+                    wareHouseremainingQty: tracking.wareHouseremainingQty || 0
+                  });
+                });
+              }
+            });
+          }
+        });
+      }
+    });
+    
+    return allDailyTracking;
+  };
+
+  // Process the data from all-allocations API
+  const dailyTrackingData = data?.data ? extractDailyTrackingData(data.data) : [];
+
   // Get unique project names for filter dropdown
-  const projectOptions = data?.dailyTracking
-    ? [...new Set(data.dailyTracking.map(item => item.projectName))].filter(Boolean)
+  const projectOptions = dailyTrackingData
+    ? [...new Set(dailyTrackingData.map(item => item.projectName))].filter(Boolean)
     : [];
 
+  // Get unique warehouse names for filter dropdown
+  const warehouseOptionsFromData = dailyTrackingData
+    ? [...new Set(dailyTrackingData.flatMap(item => [
+        item.fromWarehouse, 
+        item.toWarehouse
+      ]).filter(Boolean))].sort()
+    : [];
+
+  // Get unique statuses for filter dropdown
+  const statusOptions = dailyTrackingData
+    ? [...new Set(dailyTrackingData.map(item => item.dailyStatus))].filter(Boolean)
+    : [];
+
+  // Helper function to get warehouse name from categoryId
+  const getWarehouseName = (categoryId) => {
+    if (!categoryId) return 'N/A';
+    const warehouse = warehouseData.get(categoryId);
+    return warehouse ? warehouse.name : categoryId;
+  };
+
+  // Helper function to get warehouse quantity from categoryId
+  const getWarehouseQuantity = (categoryId) => {
+    if (!categoryId) return 0;
+    const warehouse = warehouseData.get(categoryId);
+    return warehouse ? warehouse.quantity : 0;
+  };
+
+  // Process and enrich the data
+  const processedData = dailyTrackingData?.map(item => {
+    // Prefer explicitly posted names/ids; fall back to lookup by id
+    const fromWarehouseId = item.fromWarehouseId || item.fromWarehouse; // supports older payloads
+    const toWarehouseId = item.toWarehouseId || item.toWarehouse;
+
+    const fromWHName = item.fromWarehouse || getWarehouseName(fromWarehouseId);
+    const toWHName = item.toWarehouse || getWarehouseName(toWarehouseId);
+
+    const fromWHQuantity =
+      typeof item.fromWarehouseQty === 'number'
+        ? item.fromWarehouseQty
+        : getWarehouseQuantity(fromWarehouseId);
+    const toWHQuantity =
+      typeof item.toWarehouseQty === 'number'
+        ? item.toWarehouseQty
+        : getWarehouseQuantity(toWarehouseId);
+
+    const fromWHRemaining =
+      typeof item.fromWarehouseRemainingQty === 'number'
+        ? item.fromWarehouseRemainingQty
+        : Math.max(0, (fromWHQuantity || 0) - (item.produced || 0));
+    const toWHRemaining =
+      typeof item.toWarehouseRemainingQty === 'number'
+        ? item.toWarehouseRemainingQty
+        : (toWHQuantity || 0) + (item.produced || 0);
+
+    return {
+      ...item,
+      fromWarehouseId,
+      toWarehouseId,
+      fromWarehouseName: fromWHName,
+      toWarehouseName: toWHName,
+      fromWarehouseQuantity: fromWHQuantity,
+      toWarehouseQuantity: toWHQuantity,
+      fromWarehouseRemainingQty: fromWHRemaining,
+      toWarehouseRemainingQty: toWHRemaining,
+      remainingQuantity: Math.max(0, (item.wareHouseTotalQty || 0) - (item.produced || 0))
+    };
+  }) || [];
+
   // Filter data based on warehouse, status, and project
-  const filteredData = data?.dailyTracking?.filter(item => {
-    // Get warehouse values (fall back to WH-F1/WH-F2 if not specified)
-    const fromWH = item.fromWarehouse || "WH-F1";
-    const toWH = item.toWarehouse || "WH-F2";
-    
+  const filteredData = processedData.filter(item => {
     // Warehouse filter logic - match either from or to warehouse
     const warehouseMatch = 
       warehouseFilter === "all" || 
-      fromWH === warehouseFilter || 
-      toWH === warehouseFilter;
+      item.fromWarehouseName === warehouseFilter || 
+      item.toWarehouseName === warehouseFilter;
     
     // Status filter logic
     const statusMatch = 
@@ -76,7 +220,7 @@ const WareHouseAllocation = () => {
       item.projectName === projectFilter;
     
     return warehouseMatch && statusMatch && projectMatch;
-  }) || [];
+  });
 
   // Pagination logic
   const indexOfLastItem = currentPage * itemsPerPage;
@@ -86,6 +230,7 @@ const WareHouseAllocation = () => {
 
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
+  console.log('Current items from all-allocations API:', currentItems)
   if (loading) {
     return (
       <div className="text-center my-5">
@@ -103,7 +248,7 @@ const WareHouseAllocation = () => {
     );
   }
 
-  if (!data || !data.dailyTracking || data.dailyTracking.length === 0) {
+  if (!data || !data.data || dailyTrackingData.length === 0) {
     return (
       <Alert color="info" className="m-3">
         No warehouse allocation data available.
@@ -131,7 +276,7 @@ const WareHouseAllocation = () => {
                   className="form-control-sm"
                 >
                   <option value="all">All Warehouses</option>
-                  {warehouseOptions.map(wh => (
+                  {warehouseOptionsFromData.map(wh => (
                     <option key={wh} value={wh}>{wh}</option>
                   ))}
                 </Input>
@@ -163,9 +308,11 @@ const WareHouseAllocation = () => {
                   className="form-control-sm"
                 >
                   <option value="all">All Statuses</option>
-                  <option value="ahead">Ahead</option>
-                  <option value="behind">Behind</option>
-                  <option value="on track">On Track</option>
+                  {statusOptions.map(status => (
+                    <option key={status} value={status.toLowerCase()}>
+                      {status}
+                    </option>
+                  ))}
                 </Input>
               </Col>
             </Row>
@@ -184,44 +331,44 @@ const WareHouseAllocation = () => {
                 <th>Planned</th>
                 <th>Produced</th>
                 <th>From WH</th>
+                <th>From WH Qty</th>
+                <th>From WH Remaining Qty</th>
                 <th>To WH</th>
+                <th>To WH Qty</th>
+                <th>To WH Remaining Qty</th>
                 <th>Status</th>
-                <th>Total Qty</th>
-                <th>Remaining</th>
+                {/* <th>Remaining</th> */}
                 <th>Machine</th>
                 <th>Shift</th>
+                <th>Date</th>
               </tr>
             </thead>
             <tbody>
-              {currentItems.map((item, index) => {
-                // Get warehouse values with fallbacks
-                const fromWH = item.fromWarehouse || "WH-F1";
-                const toWH = item.toWarehouse || "WH-F2";
-                
-                return (
-                  <tr key={item._id || index}>
-                    <td className="text-nowrap">{item.projectName}</td>
-                    <td className="text-nowrap">{item.partName}</td>
-                    <td className="text-nowrap">
-                      {item.processName} ({item.processId})
-                    </td>
-                    <td>{item.operator}</td>
-                    <td>{item.planned}</td>
-                    <td>{item.produced}</td>
-                    <td>{fromWH}</td>
-                    <td>{toWH}</td>
-                    <td>
-                      <Badge color={getStatusBadgeColor(item.dailyStatus)} pill>
-                        {item.dailyStatus}
-                      </Badge>
-                    </td>
-                    <td>{item.wareHouseTotalQty}</td>
-                    <td>{item.wareHouseremainingQty}</td>
-                    <td>{item.machineId}</td>
-                    <td>{item.shift}</td>
-                  </tr>
-                );
-              })}
+              {currentItems.map((item, index) => (
+                <tr key={index}>
+                  <td>{item.projectName || 'N/A'}</td>
+                  <td>{item.partName || 'N/A'}</td>
+                  <td>{item.processName || 'N/A'}</td>
+                  <td>{item.operator || 'N/A'}</td>
+                  <td>{item.planned || 0}</td>
+                  <td>{item.produced || 0}</td>
+                  <td>{(item.fromWarehouse ?? item.fromWarehouseName) || 'N/A'}</td>
+                  <td>{(item.fromWarehouseQty ?? item.fromWarehouseQuantity) ?? 0}</td>
+                  <td>{item.fromWarehouseRemainingQty ?? 0}</td>
+                  <td>{(item.toWarehouse ?? item.toWarehouseName) || 'N/A'}</td>
+                  <td>{(item.toWarehouseQty ?? item.toWarehouseQuantity) ?? 0}</td>
+                  <td>{item.toWarehouseRemainingQty ?? 0}</td>
+                  <td>
+                    <Badge color={getStatusBadgeColor(item.dailyStatus)}>
+                      {item.dailyStatus || 'Not Started'}
+                    </Badge>
+                  </td>
+                  {/* <td>{item.remaining || 0}</td> */}
+                  <td>{item.machineId || 'N/A'}</td>
+                  <td>{item.shift || 'N/A'}</td>
+                  <td>{item.date ? new Date(item.date).toLocaleDateString() : 'N/A'}</td>
+                </tr>
+              ))}
             </tbody>
           </Table>
         </div>
@@ -258,15 +405,20 @@ const WareHouseAllocation = () => {
 
 // Helper function to determine badge color based on status
 const getStatusBadgeColor = (status) => {
+  if (!status) return "secondary";
+  
   switch (status.toLowerCase()) {
     case "ahead":
       return "success";
     case "behind":
+    case "delayed":
       return "danger";
     case "on track":
-      return "warning";
-    default:
+      return "primary";
+    case "not started":
       return "secondary";
+    default:
+      return "info";
   }
 };
 

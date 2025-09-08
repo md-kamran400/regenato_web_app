@@ -213,6 +213,7 @@ import ShiftVariable from "./ShiftVariable";
 import { EventScheduler } from "./EventScheduler";
 import InhchargeVariable from "./InhchargeVariable";
 import StoresVariable from "./StoresVariable";
+import InventoryVariable from "./InventoryVariable";
 
 const Variables = () => {
   const [modal_list, setmodal_list] = useState(false);
@@ -271,6 +272,8 @@ const Variables = () => {
         return <InhchargeVariable />;
       case "Stores":
         return <StoresVariable />;
+         case "Inventory":
+        return <InventoryVariable />;
       default:
         return <GeneralVariable />;
     }
@@ -292,6 +295,7 @@ const Variables = () => {
       { id: "EventScheduler", label: "Event Scheduler" },
       { id: "Incharge", label: "Incharge" },
       { id: "Stores", label: "Warehouse" },
+      { id: "Inventory", label: "Inventory" },
     ];
   };
 
