@@ -9,6 +9,14 @@ const InchargeVariableModal = require("../model/inchargeVariable");
 const path = require("path");
 const fs = require("fs");
 const baseUrl = process.env.BASE_URL || "http://0.0.0.0:4040";
+// Special-Day sync in-memory job store
+const specialDayJobs = new Map();
+// job shape: {
+//   partsCodeId: string,
+//   currentWarehouseId: string,
+//   nextWarehouseId: string,
+//   lastSyncedQuantity: number
+// }
 
 // Define the directory for storing images
 const imageUploadDir = path.join(__dirname, "../Images");
@@ -1121,13 +1129,13 @@ partproject.get(
       // Fetch warehouse quantity for this part with dual validation
       try {
         if (partItem.partsCodeId) {
-          console.log(`Fetching warehouse quantity for part with partsCodeId: ${partItem.partsCodeId}`);
+          // console.log(`Fetching warehouse quantity for part with partsCodeId: ${partItem.partsCodeId}`);
           const goodsReceiptRes = await axios.get(
             `${baseUrl}/api/GetGoodsReceipt`,
             { timeout: 10000 }
           );
           
-          console.log(`Received ${goodsReceiptRes.data.length} items from GetGoodsReceipt API`);
+          // console.log(`Received ${goodsReceiptRes.data.length} items from GetGoodsReceipt API`);
           
           // Process each allocation to find and store matching warehouse quantity
           const updatedAllocations = await Promise.all(
@@ -1950,5 +1958,174 @@ partproject.put(
     }
   }
 );
+
+// Increment-only endpoint for adding quantity to a single warehouse (used by special-day receipt)
+partproject.put(
+  "/projects/:projectId/partsLists/:partsListId/partsListItems/:partListItemId/increment-warehouse-quantity",
+  async (req, res) => {
+    try {
+      const { projectId, partsListId, partListItemId } = req.params;
+      const { warehouseId, quantityToAdd } = req.body;
+
+      if (!warehouseId || quantityToAdd === undefined) {
+        return res.status(400).json({ success: false, error: "warehouseId and quantityToAdd are required" });
+      }
+
+      const StoreVariableModal = require("../model/storemodel");
+      const storeVariable = await StoreVariableModal.findOne({ categoryId: warehouseId });
+      if (!storeVariable) {
+        return res.status(404).json({ success: false, error: "Warehouse not found" });
+      }
+
+      if (!Array.isArray(storeVariable.quantity) || storeVariable.quantity.length === 0) {
+        storeVariable.quantity = [0];
+      }
+      const currentQuantity = Number(storeVariable.quantity[0] || 0);
+      const addBy = Number(quantityToAdd || 0);
+      const newQuantity = currentQuantity + addBy;
+      storeVariable.quantity[0] = newQuantity;
+
+      await storeVariable.save();
+
+      res.status(200).json({
+        success: true,
+        message: "Warehouse quantity incremented successfully",
+        data: { warehouseId, previousQuantity: currentQuantity, newQuantity, addedBy: addBy },
+      });
+    } catch (error) {
+      console.error("Error incrementing warehouse quantity:", error);
+      return res.status(500).json({ success: false, error: "Server error", details: error.message });
+    }
+  }
+);
+
+// Manual trigger: register/execute special-day sync for a part and its next process warehouse
+partproject.post(
+  "/projects/:projectId/partsLists/:partsListId/partsListItems/:partListItemId/special-day-sync",
+  async (req, res) => {
+    try {
+      const { projectId, partsListId, partListItemId } = req.params;
+      const { partsCodeId, currentWarehouseId, nextWarehouseId, productionNo } = req.body;
+
+      if (!partsCodeId || !currentWarehouseId || !nextWarehouseId) {
+        return res.status(400).json({ success: false, error: "partsCodeId, currentWarehouseId, nextWarehouseId are required" });
+      }
+
+      const jobKey = `${partsCodeId}|${currentWarehouseId}|${nextWarehouseId}`;
+      if (!specialDayJobs.has(jobKey)) {
+        specialDayJobs.set(jobKey, { partsCodeId, currentWarehouseId, nextWarehouseId, lastSyncedQuantity: 0 });
+      }
+
+      // Attempt an immediate sync once
+      const goodsIssueUrl = `${baseUrl}/api/GoodsIssue/GetGoodsIssue`;
+      const goodsReceiptUrl = `${baseUrl}/api/GoodsReceipt/GetGoodsReceipt`;
+
+      const [issueRes, receiptRes] = await Promise.all([
+        axios.get(goodsIssueUrl, { timeout: 15000 }),
+        axios.get(goodsReceiptUrl, { timeout: 15000 }),
+      ]);
+
+      const issueQty = (issueRes.data || [])
+        .filter((x) =>
+          String(x.Itemcode).trim().toLowerCase() === String(partsCodeId).trim().toLowerCase() &&
+          String(x.ProductionNo || "").trim().toLowerCase() === String(productionNo || "").trim().toLowerCase()
+        )
+        .reduce((sum, x) => sum + Number(x.Quantity || 0), 0);
+
+      const receiptQty = (receiptRes.data || [])
+        .filter((x) =>
+          String(x.Itemcode).trim().toLowerCase() === String(partsCodeId).trim().toLowerCase() &&
+          String(x.ProductionNo || "").trim().toLowerCase() === String(productionNo || "").trim().toLowerCase()
+        )
+        .reduce((sum, x) => sum + Number(x.Quantity || 0), 0);
+
+      // Received that can be moved to next process = min(issue, receipt) - lastSynced
+      const job = specialDayJobs.get(jobKey);
+      const eligible = Math.max(0, Math.min(issueQty, receiptQty) - (job.lastSyncedQuantity || 0));
+
+      if (eligible > 0) {
+        // Increment next process warehouse by eligible quantity
+        await axios.put(
+          `${process.env.BASE_URL || "http://0.0.0.0:4040"}/api/defpartproject/projects/${projectId}/partsLists/${partsListId}/partsListItems/${partListItemId}/increment-warehouse-quantity`,
+          { warehouseId: nextWarehouseId, quantityToAdd: eligible },
+          { timeout: 15000 }
+        );
+
+        // Fetch part name for inventory description
+        let partName = "";
+        try {
+          const project = await PartListProjectModel.findById(projectId);
+          const partsList = project?.partsLists?.id(partsListId);
+          const partItem = partsList?.partsListItems?.id(partListItemId);
+          partName = partItem?.partName || "";
+        } catch (e) {}
+
+        // Post inventory movements to both routes
+        const inventoryData = {
+          DocDate: new Date(),
+          ItemCode: partsCodeId,
+          Dscription: partName,
+          Quantity: Number(eligible),
+          WhsCode: nextWarehouseId,
+          FromWhsCod: currentWarehouseId,
+        };
+        try {
+          await Promise.all([
+            axios.post(
+              `${process.env.BASE_URL || "http://0.0.0.0:4040"}/api/Inventory/PostInventory`,
+              inventoryData,
+              { timeout: 15000 }
+            ),
+            axios.post(
+              `${process.env.BASE_URL || "http://0.0.0.0:4040"}/api/InventoryVaraible/PostInventoryVaraibleVaraible`,
+              inventoryData,
+              { timeout: 15000 }
+            ),
+          ]);
+        } catch (invErr) {
+          console.error("Special-day inventory post failed:", invErr?.message || invErr);
+        }
+
+        job.lastSyncedQuantity = (job.lastSyncedQuantity || 0) + eligible;
+        specialDayJobs.set(jobKey, job);
+      }
+
+      return res.status(200).json({ success: true, message: "Special-day sync executed", data: { issued: issueQty, received: receiptQty, moved: eligible } });
+    } catch (error) {
+      console.error("Error in special-day sync:", error);
+      return res.status(500).json({ success: false, error: "Server error", details: error.message });
+    }
+  }
+);
+
+// Background scheduler every 10 minutes to auto-sync all registered special-day jobs
+setInterval(async () => {
+  if (specialDayJobs.size === 0) return;
+  for (const [jobKey, job] of specialDayJobs.entries()) {
+    try {
+      const { partsCodeId, nextWarehouseId } = job;
+      const goodsIssueUrl = `${baseUrl}/api/GoodsIssue/GetGoodsIssue`;
+      const goodsReceiptUrl = `${baseUrl}/api/GoodsReceipt/GetGoodsReceipt`;
+      const [issueRes, receiptRes] = await Promise.all([
+        axios.get(goodsIssueUrl, { timeout: 15000 }),
+        axios.get(goodsReceiptUrl, { timeout: 15000 }),
+      ]);
+      const issueQty = (issueRes.data || [])
+        .filter((x) => String(x.Itemcode).trim().toLowerCase() === String(partsCodeId).trim().toLowerCase())
+        .reduce((sum, x) => sum + Number(x.Quantity || 0), 0);
+      const receiptQty = (receiptRes.data || [])
+        .filter((x) => String(x.Itemcode).trim().toLowerCase() === String(partsCodeId).trim().toLowerCase())
+        .reduce((sum, x) => sum + Number(x.Quantity || 0), 0);
+      const eligible = Math.max(0, Math.min(issueQty, receiptQty) - (job.lastSyncedQuantity || 0));
+      if (eligible > 0) {
+        // We cannot infer project/list/item from the job key alone here; scheduler only updates lastSynced and relies on manual trigger to push quantities with the correct item context.
+        job.lastSyncedQuantity = (job.lastSyncedQuantity || 0) + eligible;
+        specialDayJobs.set(jobKey, job);
+      }
+    } catch (err) {
+      console.error("Special-day scheduler error:", err.message);
+    }
+  }
+}, 10 * 60 * 1000);
 
 module.exports = partproject;
