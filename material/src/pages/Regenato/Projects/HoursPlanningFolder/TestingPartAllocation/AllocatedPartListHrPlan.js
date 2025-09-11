@@ -560,16 +560,31 @@ const submitDailyTracking = async () => {
     };
 
     // Post to first route
-    await axios.post(
+    const invPostRes = await axios.post(
       `${process.env.REACT_APP_BASE_URL}/api/Inventory/PostInventory`,
       inventoryData
     );
+    try {
+      const respMsg =
+        invPostRes?.data?.message || invPostRes?.data?.Message || invPostRes?.data?.status || "Inventory posted successfully";
+      toast.success(`Inventory PostInventory response: ${typeof respMsg === "string" ? respMsg : JSON.stringify(respMsg)}`);
+    } catch (_) {
+      // Fallback toast to avoid breaking UI if response shape is unexpected
+      toast.success("Inventory PostInventory request completed.");
+    }
 
     // Post to second route
-    await axios.post(
+    const invVarPostRes = await axios.post(
       `${process.env.REACT_APP_BASE_URL}/api/InventoryVaraible/PostInventoryVaraibleVaraible`,
       inventoryData
     );
+    try {
+      const respMsg2 =
+        invVarPostRes?.data?.message || invVarPostRes?.data?.Message || invVarPostRes?.data?.status || "Inventory variable posted successfully";
+      toast.info(`InventoryVaraible response: ${typeof respMsg2 === "string" ? respMsg2 : JSON.stringify(respMsg2)}`);
+    } catch (_) {
+      // Non-blocking
+    }
 
     console.log("Inventory data posted successfully to both routes");
   } catch (inventoryError) {
@@ -997,7 +1012,7 @@ const submitDailyTracking = async () => {
       fetchGoodsMovement();
       // start interval
       if (!jobWorkIntervalRef.current) {
-        jobWorkIntervalRef.current = setInterval(fetchGoodsMovement, 10 * 60 * 1000);
+        jobWorkIntervalRef.current = setInterval(fetchGoodsMovement, 1 * 60 * 1000);
       }
     } else {
       if (jobWorkIntervalRef.current) {
@@ -3558,7 +3573,7 @@ const submitDailyTracking = async () => {
             </div>
             <div className="mt-3">
               <Alert color="info">
-                For Job Work processes, quantities are deducted from current warehouse when issued. They are automatically forwarded to the next process warehouse after receipt is detected (every ~10 minutes). You can also trigger sync now.
+                For Job Work processes, quantities are deducted from current warehouse when issued. They are automatically forwarded to the next process warehouse after receipt is detected (checked about every ~1 minute). You can also trigger sync now.
               </Alert>
             </div>
             <div className="mt-2 d-flex gap-2">
@@ -3608,10 +3623,10 @@ const submitDailyTracking = async () => {
               <tbody>
                 {goodsIssueData
                   .filter((g) => {
-                    // const matchProd = (g.ProductionNo || "").toString().trim().toLowerCase() === (projectNameState || sections[0]?.projectName || "").toString().trim().toLowerCase();
+                    const matchProd = (g.ProductionNo || "").toString().trim().toLowerCase() === (projectNameState || sections[0]?.projectName || "").toString().trim().toLowerCase();
                     const matchItem = String(g.Itemcode).trim() === String(selectedSection?.data?.[0]?.partsCodeId || "");
-                    return matchItem;
-                    // return matchProd && matchItem;
+                    // return matchItem;
+                    return matchProd && matchItem;
                   })
                   .slice(0, 5)
                   .map((g, i) => (
@@ -3625,10 +3640,10 @@ const submitDailyTracking = async () => {
                   ))}
                 {goodsReceiptDataModal
                   .filter((g) => {
-                    // const matchProd = (g.ProductionNo || "").toString().trim().toLowerCase() === (projectNameState || sections[0]?.projectName || "").toString().trim().toLowerCase();
+                    const matchProd = (g.ProductionNo || "").toString().trim().toLowerCase() === (projectNameState || sections[0]?.projectName || "").toString().trim().toLowerCase();
                     const matchItem = String(g.Itemcode).trim() === String(selectedSection?.data?.[0]?.partsCodeId || "");
-                    return matchItem;
-                    // return matchProd && matchItem;
+                    // return matchItem;
+                    return matchProd && matchItem;
                   })
                   .slice(0, 5)
                   .map((g, i) => (
