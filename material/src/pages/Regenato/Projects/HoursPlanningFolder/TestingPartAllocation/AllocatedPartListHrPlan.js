@@ -88,6 +88,7 @@ export const AllocatedPartListHrPlan = ({
   const [fromWarehouseData, setFromWarehouseData] = useState(null);
   const [toWarehouseId, setToWarehouseId] = useState(null);
   const [fromWarehouseId, setFromWarehouseId] = useState(null);
+  const [producedTotalsByTrackingId, setProducedTotalsByTrackingId] = useState({});
 
   const [jobWorkModal, setJobWorkModal] = useState(false);
   const [goodsIssueData, setGoodsIssueData] = useState([]);
@@ -342,6 +343,39 @@ export const AllocatedPartListHrPlan = ({
             }
           }
           setSections(filteredSections);
+          // After sections are set, fetch produced totals for each row/tracking
+          try {
+            const requests = [];
+            filteredSections.forEach((sec) => {
+              (sec.data || []).forEach((row) => {
+                if (row?.trackingId && sec.allocationId) {
+                  const url = `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/allocations/${sec.allocationId}/allocations/${row.trackingId}/dailyTracking`;
+                  requests.push(
+                    axios
+                      .get(url)
+                      .then((res) => {
+                        const daily = res?.data?.dailyTracking || [];
+                        const total = daily.reduce((sum, t) => sum + (Number(t.produced) || 0), 0);
+                        return { trackingId: row.trackingId, total };
+                      })
+                      .catch(() => ({ trackingId: row.trackingId, total: 0 }))
+                  );
+                }
+              });
+            });
+            if (requests.length) {
+              const results = await Promise.all(requests);
+              const map = {};
+              results.forEach(({ trackingId, total }) => {
+                map[trackingId] = total;
+              });
+              setProducedTotalsByTrackingId(map);
+            } else {
+              setProducedTotalsByTrackingId({});
+            }
+          } catch (e) {
+            setProducedTotalsByTrackingId({});
+          }
           // console.log(setSections);
         }
       } catch (error) {
@@ -353,6 +387,12 @@ export const AllocatedPartListHrPlan = ({
 
     fetchAllocations();
   }, [porjectID, partID, partListItemId, partManufacturingVariables]);
+
+  // Helper: total produced for a section (sum of its rows)
+  const getSectionProducedTotal = (section) => {
+    if (!section?.data) return 0;
+    return section.data.reduce((sum, row) => sum + (producedTotalsByTrackingId[row.trackingId] || 0), 0);
+  };
 
   const handleCancelAllocation = async () => {
     try {
@@ -1242,12 +1282,9 @@ const submitDailyTracking = async () => {
                                   }}
                                 >
                                   {(() => {
-                                    const totalProduced = existingDailyTracking.reduce(
-                                      (sum, task) => sum + task.produced,
-                                      0
-                                    );
+                                    const produced = getSectionProducedTotal(section);
                                     const plannedQty = section.data[0]?.plannedQty || 0;
-                                    return `${totalProduced}/${plannedQty}`;
+                                    return `${produced}/${plannedQty}`;
                                   })()}
                                 </span>
                                 <span style={{ color: "#64748b" }}>
@@ -1339,12 +1376,9 @@ const submitDailyTracking = async () => {
                                       }}
                                     >
                                       {(() => {
-                                        const totalProduced = existingDailyTracking.reduce(
-                                          (sum, task) => sum + task.produced,
-                                          0
-                                        );
+                                        const produced = producedTotalsByTrackingId[row.trackingId] || 0;
                                         const plannedQty = row.plannedQty || 0;
-                                        return `${totalProduced}/${plannedQty}`;
+                                        return `${produced}/${plannedQty}`;
                                       })()}
                                     </div>
                                   </div>

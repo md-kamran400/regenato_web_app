@@ -1441,6 +1441,43 @@ export const PartListHrPlan = ({
 
   const handleSubmit = async () => {
     try {
+      // Resolve first process warehouse (WhsCode) using the same strategy as previous approval logic
+      const firstProcessRows = rows[0];
+      let whsCode = "";
+      if (Array.isArray(firstProcessRows)) {
+        for (const r of firstProcessRows) {
+          // Direct fields on row
+          let candidate = (r && (r.warehouseId || r.wareHouseId || r.wareHouse)) || "";
+          if (candidate && candidate !== "N/A") {
+            whsCode = candidate;
+            break;
+          }
+
+          // Fallback: derive from machine options using machineId and first process categoryId
+          if (r && r.machineId) {
+            const firstProcessCategoryId = Array.isArray(manufacturingVariables) && manufacturingVariables.length > 0 ? manufacturingVariables[0]?.categoryId : undefined;
+            const machinesForProcess = (firstProcessCategoryId && machineOptions[firstProcessCategoryId]) ? machineOptions[firstProcessCategoryId] : [];
+            const matchedMachine = Array.isArray(machinesForProcess)
+              ? machinesForProcess.find((m) => m?.subcategoryId === r.machineId)
+              : null;
+            candidate = (matchedMachine && (matchedMachine.warehouseId || matchedMachine.wareHouseId || matchedMachine.wareHouse)) || "";
+            if (candidate && candidate !== "N/A") {
+              whsCode = candidate;
+              break;
+            }
+          }
+        }
+      }
+
+      if (!hasStartDate) {
+        toast.error("Please select a start date before confirming allocation.");
+        return;
+      }
+      if (!whsCode) {
+        toast.error("Warehouse not set for the first process. Ensure start date and machine are selected.");
+        return;
+      }
+
       const flatAllocations = [];
 
       manufacturingVariables.forEach((man, index) => {
@@ -1504,6 +1541,35 @@ export const PartListHrPlan = ({
           "No valid allocations to submit. Please check your inputs."
         );
         return;
+      }
+
+      // Post Inventory movement from BLNK to first process warehouse before allocations
+      try {
+        const today = new Date();
+        const docDate = today.toISOString().split("T")[0];
+        const inventoryPayload = {
+          DocDate: docDate,
+          ItemCode: partsCodeId,
+          Dscription: partName,
+          Quantity: Number(quantity) || 0,
+          WhsCode: whsCode,
+          FromWhsCod: "BLNK",
+        };
+
+        const inventoryUrl = `${process.env.REACT_APP_BASE_URL}/api/Inventory/PostInventory`;
+        const inventoryResp = await axios.post(inventoryUrl, inventoryPayload, {
+          headers: { "Content-Type": "application/json" },
+          timeout: 15000,
+        });
+
+        const invMsg = typeof inventoryResp?.data === "string"
+          ? inventoryResp.data
+          : (inventoryResp?.data?.message || "Inventory posted successfully");
+        toast.success(invMsg);
+      } catch (invErr) {
+        const errMsg = invErr?.response?.data?.error || invErr?.message || "Failed to post Inventory";
+        toast.error(errMsg);
+        return; // Abort allocation submission if inventory post fails
       }
 
       const response = await axios.post(
@@ -1865,83 +1931,11 @@ export const PartListHrPlan = ({
   };
 
   const handleApprove = async () => {
-    try {
-      // Validate first process warehouse (WhsCode)
-      const firstProcessRows = rows[0];
-      let whsCode = "";
-      if (Array.isArray(firstProcessRows)) {
-        for (const r of firstProcessRows) {
-          // Direct fields on row
-          let candidate = (r && (r.warehouseId || r.wareHouseId || r.wareHouse)) || "";
-          if (candidate && candidate !== "N/A") {
-            whsCode = candidate;
-            break;
-          }
-
-          // Fallback: derive from machine options using machineId and first process categoryId
-          if (r && r.machineId) {
-            const firstProcessCategoryId = Array.isArray(manufacturingVariables) && manufacturingVariables.length > 0 ? manufacturingVariables[0]?.categoryId : undefined;
-            const machinesForProcess = (firstProcessCategoryId && machineOptions[firstProcessCategoryId]) ? machineOptions[firstProcessCategoryId] : [];
-            const matchedMachine = Array.isArray(machinesForProcess)
-              ? machinesForProcess.find((m) => m?.subcategoryId === r.machineId)
-              : null;
-            candidate = (matchedMachine && (matchedMachine.warehouseId || matchedMachine.wareHouseId || matchedMachine.wareHouse)) || "";
-            if (candidate && candidate !== "N/A") {
-              whsCode = candidate;
-              break;
-            }
-          }
-        }
-      }
-
-      if (!hasStartDate) {
-        toast.error("Please select a start date before approving.");
-        return;
-      }
-      if (!whsCode) {
-        toast.error("Warehouse not set for the first process. Select start date to auto-fill.");
-        return;
-      }
-
-      // Build payload for /Production/Product
-      const today = new Date();
-      const docDate = today.toISOString().split("T")[0];
-      const payload = {
-        DocDate: docDate,
-        ItemCode: partsCodeId,
-        Dscription: partName,
-        Quantity: Number(quantity) || 0,
-        WhsCode: whsCode,
-        FromWhsCod: "BLNK",
-      };
-
-      // Debug logs for review before posting
-      console.group("[Staging Approval] Payload Preview");
-      console.log("hasStartDate:", hasStartDate);
-      console.log("firstProcessRows:", firstProcessRows);
-      console.log("resolved WhsCode:", whsCode);
-      console.log("partsCodeId:", partsCodeId);
-      console.log("partName:", partName);
-      console.log("quantity (planned):", quantity);
-      console.log("payload:", payload);
-      console.groupEnd();
-
-      // Post to staging endpoint
-      const url = `${process.env.REACT_APP_BASE_URL}/api/Inventory/PostInventory`;
-      const response = await axios.post(url, payload, {
-        headers: { "Content-Type": "application/json" },
-        timeout: 15000,
-      });
-
-      // Success handling: show response in toast and unlock allocation
-      const msg = typeof response?.data === "string" ? response.data : (response?.data?.message || "Staging posted successfully");
-      toast.success(msg);
-      setIsApproved(true);
-      setIsApproveModalOpen(false);
-    } catch (error) {
-      const errMsg = error?.response?.data?.error || error?.message || "Failed to post to Production/Product";
-      toast.error(errMsg);
-    }
+    // Only validation is handled by modal/openApproveModal and button disabled states.
+    // Here we just mark as approved and close the modal.
+    setIsApproved(true);
+    setIsApproveModalOpen(false);
+    toast.success("Approved. You can now confirm allocation.");
   };
 
   return (
