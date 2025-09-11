@@ -51,6 +51,28 @@ stagingRoutes.get("/Production/Product", async (req, res) => {
   }
 });
 
+// http://182.77.56.228:90/Production/Product
+
+stagingRoutes.post("/Production/Product", async (req, res) => {
+  try {
+    const response = await axios.post(
+      "http://182.77.56.228:90/Production/Product",
+      req.body,
+      {
+        timeout: 10000,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+    
+    res.json(response.data);
+  } catch (error) {
+    console.error("Error posting inventory:", error.message);
+    res.status(500).json({ error: "Failed to post inventory data" });
+  }
+});
+
 // http://182.77.56.228:90/Inventory/PostInventory
 stagingRoutes.post("/Inventory/PostInventory", async (req, res) => {
   try {

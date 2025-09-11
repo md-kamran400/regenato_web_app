@@ -2013,7 +2013,11 @@ partproject.post(
 
       const jobKey = `${partsCodeId}|${currentWarehouseId}|${nextWarehouseId}`;
       if (!specialDayJobs.has(jobKey)) {
-        specialDayJobs.set(jobKey, { partsCodeId, currentWarehouseId, nextWarehouseId, lastSyncedQuantity: 0 });
+        specialDayJobs.set(jobKey, { partsCodeId, currentWarehouseId, nextWarehouseId, lastSyncedQuantity: 0, projectId, partsListId, partListItemId, productionNo });
+      } else {
+        // enrich existing job with missing identifiers for scheduler to act
+        const existing = specialDayJobs.get(jobKey) || {};
+        specialDayJobs.set(jobKey, { ...existing, partsCodeId, currentWarehouseId, nextWarehouseId, projectId, partsListId, partListItemId, productionNo, lastSyncedQuantity: existing.lastSyncedQuantity || 0 });
       }
 
       // Attempt an immediate sync once
@@ -2103,7 +2107,7 @@ setInterval(async () => {
   if (specialDayJobs.size === 0) return;
   for (const [jobKey, job] of specialDayJobs.entries()) {
     try {
-      const { partsCodeId, nextWarehouseId } = job;
+      const { partsCodeId, currentWarehouseId, nextWarehouseId, projectId, partsListId, partListItemId, productionNo } = job;
       const goodsIssueUrl = `${baseUrl}/api/GoodsIssue/GetGoodsIssue`;
       const goodsReceiptUrl = `${baseUrl}/api/GoodsReceipt/GetGoodsReceipt`;
       const [issueRes, receiptRes] = await Promise.all([
@@ -2117,8 +2121,58 @@ setInterval(async () => {
         .filter((x) => String(x.Itemcode).trim().toLowerCase() === String(partsCodeId).trim().toLowerCase())
         .reduce((sum, x) => sum + Number(x.Quantity || 0), 0);
       const eligible = Math.max(0, Math.min(issueQty, receiptQty) - (job.lastSyncedQuantity || 0));
-      if (eligible > 0) {
-        // We cannot infer project/list/item from the job key alone here; scheduler only updates lastSynced and relies on manual trigger to push quantities with the correct item context.
+      if (eligible > 0 && projectId && partsListId && partListItemId && nextWarehouseId) {
+        try {
+          // Increment next process warehouse by eligible quantity
+          await axios.put(
+            `${process.env.BASE_URL || "http://0.0.0.0:4040"}/api/defpartproject/projects/${projectId}/partsLists/${partsListId}/partsListItems/${partListItemId}/increment-warehouse-quantity`,
+            { warehouseId: nextWarehouseId, quantityToAdd: eligible },
+            { timeout: 15000 }
+          );
+
+          // Try to get the part name for description
+          let partName = "";
+          try {
+            const PartListProjectModel = require("../model/project/PartListProjectModel");
+            const projectDoc = await PartListProjectModel.findById(projectId);
+            const partsList = projectDoc?.partsLists?.id(partsListId);
+            const partItem = partsList?.partsListItems?.id(partListItemId);
+            partName = partItem?.partName || "";
+          } catch (e) {}
+
+          // Post inventory movements to both routes
+          const inventoryData = {
+            DocDate: new Date(),
+            ItemCode: partsCodeId,
+            Dscription: partName,
+            Quantity: Number(eligible),
+            WhsCode: nextWarehouseId,
+            FromWhsCod: currentWarehouseId,
+          };
+          try {
+            await Promise.all([
+              axios.post(
+                `${process.env.BASE_URL || "http://0.0.0.0:4040"}/api/Inventory/PostInventory`,
+                inventoryData,
+                { timeout: 15000 }
+              ),
+              axios.post(
+                `${process.env.BASE_URL || "http://0.0.0.0:4040"}/api/InventoryVaraible/PostInventoryVaraibleVaraible`,
+                inventoryData,
+                { timeout: 15000 }
+              ),
+            ]);
+          } catch (invErr) {
+            console.error("Special-day inventory post failed:", invErr?.message || invErr);
+          }
+
+          job.lastSyncedQuantity = (job.lastSyncedQuantity || 0) + eligible;
+          specialDayJobs.set(jobKey, job);
+        } catch (e) {
+          console.error("Special-day scheduler quantity push failed:", e?.message || e);
+        }
+      } else if (eligible > 0) {
+        // No context to push quantities, at least update lastSynced to avoid reprocessing same amount
         job.lastSyncedQuantity = (job.lastSyncedQuantity || 0) + eligible;
         specialDayJobs.set(jobKey, job);
       }
@@ -2126,6 +2180,6 @@ setInterval(async () => {
       console.error("Special-day scheduler error:", err.message);
     }
   }
-}, 10 * 60 * 1000);
+}, 1 * 60 * 1000);
 
 module.exports = partproject;
