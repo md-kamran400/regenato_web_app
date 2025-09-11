@@ -89,7 +89,28 @@ export const AllocatedPartListHrPlan = ({
   const [toWarehouseId, setToWarehouseId] = useState(null);
   const [fromWarehouseId, setFromWarehouseId] = useState(null);
 
+  const [jobWorkModal, setJobWorkModal] = useState(false);
+  const [goodsIssueData, setGoodsIssueData] = useState([]);
+  const [goodsReceiptDataModal, setGoodsReceiptDataModal] = useState([]);
+  const [jobWorkLoading, setJobWorkLoading] = useState(false);
+  const [projectNameState, setProjectNameState] = useState("");
+  const [issueStatus, setIssueStatus] = useState({}); // { [itemcode]: { lastQty, status } }
+  const [receiptStatus, setReceiptStatus] = useState({}); // { [itemcode]: { lastQty, status } }
+  const jobWorkIntervalRef = React.useRef(null);
+
   console.log(partName)
+  useEffect(() => {
+    // fetch project name once
+    const fetchProject = async () => {
+      try {
+        const res = await axios.get(`${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}`);
+        setProjectNameState(res.data?.projectName || "");
+      } catch (e) {
+        console.error("Failed to fetch project name", e);
+      }
+    };
+    if (porjectID) fetchProject();
+  }, [porjectID]);
     useEffect(() => {
     if (selectedSection?.data?.[0]?.wareHouse) {
       // Example: "01 - General Warehouse"
@@ -168,10 +189,6 @@ export const AllocatedPartListHrPlan = ({
     fetchHighlightDates();
   }, []);
 
-  // Fetch goods receipt data when component mounts
-  useEffect(() => {
-    fetchGoodsReceiptData();
-  }, []);
 
   // Function to refresh warehouse data
   const refreshWarehouseData = async () => {
@@ -569,7 +586,8 @@ const submitDailyTracking = async () => {
       const nextWarehouseId = sections[selectedSectionIndex + 1]?.data?.[0]?.warehouseId || null;
 
       try {
-        if (nextWarehouseId) {
+        const nextIsSpecialDay = sections[selectedSectionIndex + 1]?.isSpecialDay === true;
+        if (nextWarehouseId && !nextIsSpecialDay) {
           // Transfer: decrement current (To in API), increment next (From in API)
           const transferRes = await axios.put(
             `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/transfer-warehouse-quantity`,
@@ -593,7 +611,7 @@ const submitDailyTracking = async () => {
             toast.success("Warehouse quantities transferred successfully");
           }
         } else {
-          // Last process: only decrement current warehouse
+          // Last process OR next process is special-day: only decrement current warehouse
           const decRes = await axios.put(
             `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/update-warehouse-quantity`,
             {
@@ -606,7 +624,11 @@ const submitDailyTracking = async () => {
               ...(prev || {}),
               quantity: [Math.max(0, ((prev?.quantity?.[0] ?? 0) - producedQty))],
             }));
-            toast.success("Warehouse quantity updated successfully");
+            if (!nextWarehouseId) {
+              toast.success("Warehouse quantity updated successfully");
+            } else {
+              toast.success("Quantity deducted from current warehouse (Job Work)");
+            }
           }
         }
       } catch (warehouseError) {
@@ -723,8 +745,7 @@ const submitDailyTracking = async () => {
     );
   }
 
-  // Add this function to handle completing the allocation
-  //'/projects/:projectId/partsLists/:listId/items/:itemId/complete'
+
   //'/projects/:projectId/subAssemblyListFirst/:listId/items/:itemId/complete'
   const handleCompleteAllocation = async () => {
     setCompletingAllocation(true);
@@ -756,21 +777,6 @@ const submitDailyTracking = async () => {
     } finally {
       setCompletingAllocation(false);
       setCompleteConfirmationModal(false);
-    }
-  };
-
-  // Function to fetch goods receipt data
-  const fetchGoodsReceiptData = async () => {
-    try {
-      console.log("Fetching goods receipt data...");
-      const response = await axios.get(
-        `${process.env.REACT_APP_BASE_URL}/api/GetGoodsReceipt`
-      );
-      console.log("Goods receipt data received:", response.data);
-      setGoodsReceiptData(response.data || []);
-    } catch (error) {
-      console.error("Error fetching goods receipt data:", error);
-      setGoodsReceiptData([]);
     }
   };
 
@@ -933,6 +939,80 @@ const submitDailyTracking = async () => {
     );
     return res.data;
   };
+
+  // Helpers to update Yes/No status for Goods Issue and Goods Receipt
+  const updateIssueStatuses = (dataArray) => {
+    setIssueStatus((prev) => {
+      const next = { ...prev };
+      (dataArray || []).forEach((entry) => {
+        const key = String(entry.Itemcode).trim();
+        const qty = Number(entry.Quantity) || 0;
+        if (!next[key]) {
+          next[key] = { lastQty: qty, status: "Yes" };
+        } else if (next[key].lastQty !== qty) {
+          next[key] = { lastQty: qty, status: "No" };
+        }
+      });
+      return next;
+    });
+  };
+
+  const updateReceiptStatuses = (dataArray) => {
+    setReceiptStatus((prev) => {
+      const next = { ...prev };
+      (dataArray || []).forEach((entry) => {
+        const key = String(entry.Itemcode).trim();
+        const qty = Number(entry.Quantity) || 0;
+        if (!next[key]) {
+          next[key] = { lastQty: qty, status: "Yes" };
+        } else if (next[key].lastQty !== qty) {
+          next[key] = { lastQty: qty, status: "No" };
+        }
+      });
+      return next;
+    });
+  };
+
+  // Auto-refresh Goods Issue/Receipt every 10 minutes while Job Work modal is open
+  useEffect(() => {
+    const fetchGoodsMovement = async () => {
+      try {
+        const [issueRes, receiptRes] = await Promise.all([
+          axios.get(`${process.env.REACT_APP_BASE_URL}/api/GoodsIssue/GetGoodsIssue`),
+          axios.get(`${process.env.REACT_APP_BASE_URL}/api/GoodsReceipt/GetGoodsReceipt`),
+        ]);
+        const issueList = issueRes.data || [];
+        const receiptList = receiptRes.data || [];
+        setGoodsIssueData(issueList);
+        setGoodsReceiptDataModal(receiptList);
+        updateIssueStatuses(issueList);
+        updateReceiptStatuses(receiptList);
+      } catch (e) {
+        console.error("Auto-refresh goods movement failed", e);
+      }
+    };
+
+    if (jobWorkModal) {
+      // immediate fetch on open
+      fetchGoodsMovement();
+      // start interval
+      if (!jobWorkIntervalRef.current) {
+        jobWorkIntervalRef.current = setInterval(fetchGoodsMovement, 10 * 60 * 1000);
+      }
+    } else {
+      if (jobWorkIntervalRef.current) {
+        clearInterval(jobWorkIntervalRef.current);
+        jobWorkIntervalRef.current = null;
+      }
+    }
+
+    return () => {
+      if (jobWorkIntervalRef.current) {
+        clearInterval(jobWorkIntervalRef.current);
+        jobWorkIntervalRef.current = null;
+      }
+    };
+  }, [jobWorkModal]);
 
   // Determine current (To) and next (From) warehouses when selection changes
   useEffect(() => {
@@ -1146,10 +1226,17 @@ const submitDailyTracking = async () => {
                                     fontWeight: 700,
                                   }}
                                 >
-                                  {section.data[0]?.plannedQty || 0}
+                                  {(() => {
+                                    const totalProduced = existingDailyTracking.reduce(
+                                      (sum, task) => sum + task.produced,
+                                      0
+                                    );
+                                    const plannedQty = section.data[0]?.plannedQty || 0;
+                                    return `${totalProduced}/${plannedQty}`;
+                                  })()}
                                 </span>
                                 <span style={{ color: "#64748b" }}>
-                                  planned
+                                  produced/planned
                                 </span>
                               </div>
                             </div>
@@ -1226,7 +1313,7 @@ const submitDailyTracking = async () => {
                                       >
                                         <FiBox size={16} color="#3b82f6" />
                                       </div>
-                                      Planned Quantity
+                                      Production Quantity Progress
                                     </label>
                                     <div
                                       style={{
@@ -1236,7 +1323,14 @@ const submitDailyTracking = async () => {
                                         borderRadius: "6px",
                                       }}
                                     >
-                                      {row.plannedQty}
+                                      {(() => {
+                                        const totalProduced = existingDailyTracking.reduce(
+                                          (sum, task) => sum + task.produced,
+                                          0
+                                        );
+                                        const plannedQty = row.plannedQty || 0;
+                                        return `${totalProduced}/${plannedQty}`;
+                                      })()}
                                     </div>
                                   </div>
 
@@ -1644,7 +1738,7 @@ const submitDailyTracking = async () => {
                                     color={
                                       row.isProcessCompleted
                                         ? "secondary"
-                                        : "success"
+                                        : "primary"
                                     }
                                     onClick={() => {
                                       if (!row.isProcessCompleted) {
@@ -1652,7 +1746,8 @@ const submitDailyTracking = async () => {
                                           ...section,
                                           data: [row],
                                         });
-                                        setCompleteProcess(true);
+                                        setSelectedSectionIndex(index);
+                                        setJobWorkModal(true);
                                       }
                                     }}
                                     disabled={row.isProcessCompleted}
@@ -1674,10 +1769,7 @@ const submitDailyTracking = async () => {
                                         Completed
                                       </>
                                     ) : (
-                                      <>
-                                        <FiCheck size={16} />
-                                        Complete Process
-                                      </>
+                                      <>Update Job Work</>
                                     )}
                                   </Button>
                                 ) : (
@@ -3413,6 +3505,145 @@ const submitDailyTracking = async () => {
             Cancel
           </Button>
         </ModalFooter>
+      </Modal>
+
+      {/* Job Work Modal for Special Day processes */}
+      <Modal
+        isOpen={jobWorkModal}
+        toggle={() => setJobWorkModal(false)}
+        style={{
+          maxWidth: "80vw",
+          width: "100%",
+          margin: "auto",
+        }}
+      >
+        <ModalHeader toggle={() => setJobWorkModal(false)}>Update Job Work</ModalHeader>
+        <ModalBody>
+          <div className="mb-3">
+            <div className="d-flex justify-content-between align-items-center">
+              <h6 className="m-0">Goods Movement Overview</h6>
+              <Button
+                color="link"
+                onClick={async () => {
+                  try {
+                    setJobWorkLoading(true);
+                    const [issueRes, receiptRes] = await Promise.all([
+                      axios.get(`${process.env.REACT_APP_BASE_URL}/api/GoodsIssue/GetGoodsIssue`),
+                      axios.get(`${process.env.REACT_APP_BASE_URL}/api/GoodsReceipt/GetGoodsReceipt`),
+                    ]);
+                    const issueList = issueRes.data || [];
+                    const receiptList = receiptRes.data || [];
+                    setGoodsIssueData(issueList);
+                    setGoodsReceiptDataModal(receiptList);
+                    updateIssueStatuses(issueList);
+                    updateReceiptStatuses(receiptList);
+                    toast.success("Fetched latest Goods Issue/Receipt");
+                  } catch (e) {
+                    console.error(e);
+                    toast.error("Failed to fetch Goods Issue/Receipt");
+                  } finally {
+                    setJobWorkLoading(false);
+                  }
+                }}
+                disabled={jobWorkLoading}
+              >
+                {jobWorkLoading ? "Loading..." : "Refresh"}
+              </Button>
+            </div>
+            <div className="mt-2">
+              <div><strong>Project:</strong> {projectNameState || sections[0]?.projectName || "N/A"}</div>
+              <div><strong>Item Code:</strong> {selectedSection?.data?.[0]?.partsCodeId || sections[selectedSectionIndex]?.data?.[0]?.partsCodeId || "N/A"}</div>
+              <div><strong>From WH:</strong> {selectedSection?.data?.[0]?.wareHouse || "N/A"}</div>
+              <div><strong>To (Next) WH:</strong> {sections[selectedSectionIndex + 1]?.data?.[0]?.wareHouse || "N/A"}</div>
+            </div>
+            <div className="mt-3">
+              <Alert color="info">
+                For Job Work processes, quantities are deducted from current warehouse when issued. They are automatically forwarded to the next process warehouse after receipt is detected (every ~10 minutes). You can also trigger sync now.
+              </Alert>
+            </div>
+            <div className="mt-2 d-flex gap-2">
+              <Button
+                color="primary"
+                onClick={async () => {
+                  try {
+                    const body = {
+                      partsCodeId: selectedSection?.data?.[0]?.partsCodeId || null,
+                      currentWarehouseId: selectedSection?.data?.[0]?.warehouseId || null,
+                      nextWarehouseId: sections[selectedSectionIndex + 1]?.data?.[0]?.warehouseId || null,
+                      productionNo: projectNameState || sections[0]?.projectName || null,
+                    };
+                    if (!body.partsCodeId || !body.currentWarehouseId || !body.nextWarehouseId) {
+                      toast.error("Missing warehouses or part code");
+                      return;
+                    }
+                    await axios.post(
+                      `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/special-day-sync`,
+                      body
+                    );
+                    toast.success("Sync triggered successfully");
+                    await refreshWarehouseData();
+                  } catch (e) {
+                    console.error(e);
+                    toast.error("Failed to trigger sync");
+                  }
+                }}
+              >
+                Sync Now
+              </Button>
+              <Button color="secondary" onClick={() => setJobWorkModal(false)}>Close</Button>
+            </div>
+          </div>
+          {/* Simple preview of matched Issue/Receipt for this part */}
+          <div className="table-responsive">
+            <table className="table table-sm">
+              <thead>
+                <tr>
+                  <th>Type</th>
+                  <th>Itemcode</th>
+                  <th>WhsCode</th>
+                  <th>Quantity</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {goodsIssueData
+                  .filter((g) => {
+                    // const matchProd = (g.ProductionNo || "").toString().trim().toLowerCase() === (projectNameState || sections[0]?.projectName || "").toString().trim().toLowerCase();
+                    const matchItem = String(g.Itemcode).trim() === String(selectedSection?.data?.[0]?.partsCodeId || "");
+                    return matchItem;
+                    // return matchProd && matchItem;
+                  })
+                  .slice(0, 5)
+                  .map((g, i) => (
+                    <tr key={`gi-${i}`}>
+                      <td>Issue</td>
+                      <td>{g.Itemcode}</td>
+                      <td>{g.WhsCode}</td>
+                      <td>{g.Quantity}</td>
+                      <td>{issueStatus[String(g.Itemcode)?.trim()]?.status || "Yes"}</td>
+                    </tr>
+                  ))}
+                {goodsReceiptDataModal
+                  .filter((g) => {
+                    // const matchProd = (g.ProductionNo || "").toString().trim().toLowerCase() === (projectNameState || sections[0]?.projectName || "").toString().trim().toLowerCase();
+                    const matchItem = String(g.Itemcode).trim() === String(selectedSection?.data?.[0]?.partsCodeId || "");
+                    return matchItem;
+                    // return matchProd && matchItem;
+                  })
+                  .slice(0, 5)
+                  .map((g, i) => (
+                    <tr key={`gr-${i}`}>
+                      <td>Receipt</td>
+                      <td>{g.Itemcode}</td>
+                      <td>{g.WhsCode}</td>
+                      <td>{Number(g.Quantity)}</td>
+                      <td>{receiptStatus[String(g.Itemcode)?.trim()]?.status || "Yes"}</td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </div>
+        </ModalBody>
       </Modal>
     </div>
   );

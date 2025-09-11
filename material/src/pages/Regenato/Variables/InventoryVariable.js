@@ -79,7 +79,13 @@ const InventoryVariable = () => {
                     {inventoryData?.length > 0 ? (
                       inventoryData?.map((store) => (
                         <tr key={store._id}>
-                          <td>{store.DocDate}</td>
+                          <td>
+                            {new Date(store.DocDate).toLocaleString("en-GB", {
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric",
+                            })}
+                          </td>
                           <td>{store.ItemCode}</td>
                           <td>{store.Dscription}</td>
                           <td>{store.Quantity}</td>

@@ -389,7 +389,7 @@ const CheckModuleModal = ({ isOpen, toggle }) => {
           return Promise.resolve({ ok: false, _skipped: true });
         }
         const payload = {
-          projectName: prod.ProdName || "",
+          projectName: String(prod.DocNum || ""),
           projectType: "External PO",
           selectedPartId: matchedPart._id,
           selectedPartName: prod.ProdName || matchedPart.partName || "",
@@ -573,10 +573,7 @@ const CheckModuleModal = ({ isOpen, toggle }) => {
                                 onChange={toggleSelectAllAvailable}
                               />
                             </th>
-                            <th>Prod Name</th>
-                            <th>Item Code</th>
-                            <th>Qty</th>
-                            <th>Warehouse</th>
+                            <th>Name</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -585,8 +582,6 @@ const CheckModuleModal = ({ isOpen, toggle }) => {
                               .trim()
                               .toLowerCase();
                             const checked = selectedAvailable.has(code);
-                            const isInParts = partsIdSet.has(code);
-                            const isInProjects = projectsItemCodeSet.has(code);
                             return (
                               <tr key={`a-${idx}`}>
                                 <td>
@@ -597,29 +592,9 @@ const CheckModuleModal = ({ isOpen, toggle }) => {
                                     onChange={() => toggleSelectAvailable(code)}
                                   />
                                 </td>
-                                <td className="fw-semibold">{prod.ProdName}</td>
-                                <td>
-                                  <Badge color="success" className="me-1">
-                                    {prod.ItemCode}
-                                  </Badge>
-
-                                  {isInParts && isInProjects ? (
-                                    <Badge color="info" size="sm">
-                                      Both
-                                    </Badge>
-                                  ) : isInParts ? (
-                                    <Badge color="success" size="sm">
-                                      Parts
-                                    </Badge>
-                                  ) : (
-                                    <Badge color="primary" size="sm">
-                                      zs
-                                    </Badge>
-                                  )}
+                                <td className="fw-semibold">
+                                  {`${prod.ProdName || ""} - ${prod.DocNum || ""}`}
                                 </td>
-
-                                <td>{prod.PlannedQty}</td>
-                                <td>{prod.Warehouse}</td>
                               </tr>
                             );
                           })}
@@ -696,16 +671,8 @@ const CheckModuleModal = ({ isOpen, toggle }) => {
                                 checked={checked}
                                 onChange={() => toggleSelectMissing(code)}
                               />
-                              <span>
-                                {prod.ProdName} -
-                                <span className="ms-1 text-muted">
-                                  {prod.ItemCode}
-                                </span>
-                              </span>
+                              <span>{`${prod.ProdName || ""} - ${prod.DocNum || ""}`}</span>
                             </div>
-                            <Badge color="secondary" pill>
-                              Qty {prod.PlannedQty}
-                            </Badge>
                           </li>
                         );
                       })}
