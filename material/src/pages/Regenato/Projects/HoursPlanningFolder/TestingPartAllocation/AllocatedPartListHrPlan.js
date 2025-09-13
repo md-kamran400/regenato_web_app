@@ -88,7 +88,9 @@ export const AllocatedPartListHrPlan = ({
   const [fromWarehouseData, setFromWarehouseData] = useState(null);
   const [toWarehouseId, setToWarehouseId] = useState(null);
   const [fromWarehouseId, setFromWarehouseId] = useState(null);
-  const [producedTotalsByTrackingId, setProducedTotalsByTrackingId] = useState({});
+  const [producedTotalsByTrackingId, setProducedTotalsByTrackingId] = useState(
+    {}
+  );
 
   const [jobWorkModal, setJobWorkModal] = useState(false);
   const [goodsIssueData, setGoodsIssueData] = useState([]);
@@ -99,12 +101,14 @@ export const AllocatedPartListHrPlan = ({
   const [receiptStatus, setReceiptStatus] = useState({}); // { [itemcode]: { lastQty, status } }
   const jobWorkIntervalRef = React.useRef(null);
 
-  console.log(partName)
+  console.log(partName);
   useEffect(() => {
     // fetch project name once
     const fetchProject = async () => {
       try {
-        const res = await axios.get(`${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}`);
+        const res = await axios.get(
+          `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}`
+        );
         setProjectNameState(res.data?.projectName || "");
       } catch (e) {
         console.error("Failed to fetch project name", e);
@@ -112,7 +116,7 @@ export const AllocatedPartListHrPlan = ({
     };
     if (porjectID) fetchProject();
   }, [porjectID]);
-    useEffect(() => {
+  useEffect(() => {
     if (selectedSection?.data?.[0]?.wareHouse) {
       // Example: "01 - General Warehouse"
       const wareHouseName = selectedSection.data[0].wareHouse;
@@ -120,7 +124,9 @@ export const AllocatedPartListHrPlan = ({
 
       console.log("Fetching warehouse data for categoryId:", categoryId);
       axios
-        .get(`${process.env.REACT_APP_BASE_URL}/api/storesVariable/category/${categoryId}`)
+        .get(
+          `${process.env.REACT_APP_BASE_URL}/api/storesVariable/category/${categoryId}`
+        )
         .then((res) => {
           console.log("Warehouse data received:", res.data);
           setWarehouseData(res.data);
@@ -132,7 +138,7 @@ export const AllocatedPartListHrPlan = ({
             categoryId: categoryId,
             Name: [wareHouseName],
             location: ["Unknown"],
-            quantity: [0]
+            quantity: [0],
           });
         });
     }
@@ -190,17 +196,19 @@ export const AllocatedPartListHrPlan = ({
     fetchHighlightDates();
   }, []);
 
-
   // Function to refresh warehouse data
   const refreshWarehouseData = async () => {
     try {
       const requests = [];
       // Refresh current (To) warehouse
       if (selectedSection?.data?.[0]?.wareHouse) {
-        const currentCategoryId = selectedSection.data[0].wareHouse.split(" - ")[0];
+        const currentCategoryId =
+          selectedSection.data[0].wareHouse.split(" - ")[0];
         requests.push(
           axios
-            .get(`${process.env.REACT_APP_BASE_URL}/api/storesVariable/category/${currentCategoryId}`)
+            .get(
+              `${process.env.REACT_APP_BASE_URL}/api/storesVariable/category/${currentCategoryId}`
+            )
             .then((res) => setToWarehouseData(res.data))
         );
       }
@@ -210,10 +218,13 @@ export const AllocatedPartListHrPlan = ({
         Array.isArray(sections) &&
         sections[selectedSectionIndex + 1]?.data?.[0]?.wareHouse
       ) {
-        const nextCategoryId = sections[selectedSectionIndex + 1].data[0].wareHouse.split(" - ")[0];
+        const nextCategoryId =
+          sections[selectedSectionIndex + 1].data[0].wareHouse.split(" - ")[0];
         requests.push(
           axios
-            .get(`${process.env.REACT_APP_BASE_URL}/api/storesVariable/category/${nextCategoryId}`)
+            .get(
+              `${process.env.REACT_APP_BASE_URL}/api/storesVariable/category/${nextCategoryId}`
+            )
             .then((res) => setFromWarehouseData(res.data))
         );
       }
@@ -235,13 +246,17 @@ export const AllocatedPartListHrPlan = ({
 
   // Function to get warehouse quantity warning
   const getWarehouseQuantityWarning = () => {
-    const availableQuantity = toWarehouseData?.quantity?.[0] || 0;
+    const availableQuantity = toWarehouseData?.quantity?.[0];
+    if (availableQuantity == null) return null;
     const producedQuantity = dailyTracking[0]?.produced || 0;
-    
+
     if (availableQuantity === 0) {
       return { type: "error", message: "Warehouse is empty!" };
     } else if (availableQuantity < producedQuantity) {
-      return { type: "warning", message: `Insufficient warehouse quantity. Available: ${availableQuantity}, Required: ${producedQuantity}` };
+      return {
+        type: "warning",
+        message: `Insufficient warehouse quantity. Available: ${availableQuantity}, Required: ${producedQuantity}`,
+      };
     } else if (availableQuantity <= 10) {
       return { type: "warning", message: "Warehouse quantity is running low!" };
     }
@@ -316,6 +331,8 @@ export const AllocatedPartListHrPlan = ({
                   plannedQty: allocation.plannedQuantity,
                   startDate: moment(allocation.startDate).format("DD MMM YYYY"),
                   endDate: moment(allocation.endDate).format("DD MMM YYYY"),
+                  startTime: allocation.startTime || null,
+                  endTime: allocation.endTime || null,
                   machineId: allocation.machineId,
                   wareHouse: allocation?.wareHouse || "N/A", //warehouseId
                   warehouseId: allocation?.warehouseId || "N/A", //warehouseId
@@ -355,7 +372,10 @@ export const AllocatedPartListHrPlan = ({
                       .get(url)
                       .then((res) => {
                         const daily = res?.data?.dailyTracking || [];
-                        const total = daily.reduce((sum, t) => sum + (Number(t.produced) || 0), 0);
+                        const total = daily.reduce(
+                          (sum, t) => sum + (Number(t.produced) || 0),
+                          0
+                        );
                         return { trackingId: row.trackingId, total };
                       })
                       .catch(() => ({ trackingId: row.trackingId, total: 0 }))
@@ -391,7 +411,10 @@ export const AllocatedPartListHrPlan = ({
   // Helper: total produced for a section (sum of its rows)
   const getSectionProducedTotal = (section) => {
     if (!section?.data) return 0;
-    return section.data.reduce((sum, row) => sum + (producedTotalsByTrackingId[row.trackingId] || 0), 0);
+    return section.data.reduce(
+      (sum, row) => sum + (producedTotalsByTrackingId[row.trackingId] || 0),
+      0
+    );
   };
 
   const handleCancelAllocation = async () => {
@@ -440,7 +463,7 @@ export const AllocatedPartListHrPlan = ({
 
     setDailyTracking([
       {
-        date: "",
+        date: new Date(),
         planned: Number(row.dailyPlannedQty) || 0, // Ensure planned is correctly set
         produced: 0,
         dailyStatus: "On Track",
@@ -449,6 +472,12 @@ export const AllocatedPartListHrPlan = ({
     ]);
 
     setDailyTaskModal(true);
+
+    // Reset warehouse change previews when opening a new row
+    setWarehouseChanges({ fromWarehouseChange: 0, toWarehouseChange: 0 });
+
+    // Clear previous tracking immediately to avoid temporary UI disable
+    setExistingDailyTracking([]);
 
     // Fetch existing daily tracking data
     try {
@@ -476,7 +505,7 @@ export const AllocatedPartListHrPlan = ({
     if (field === "produced") {
       const remainingQty = calculateRemainingQuantity();
       const numericValue = Number(value) || 0;
-      const availableWarehouseQty = toWarehouseData?.quantity?.[0] || 0;
+      const availableWarehouseQty = toWarehouseData?.quantity?.[0];
 
       if (numericValue > remainingQty) {
         toast.error(
@@ -485,8 +514,11 @@ export const AllocatedPartListHrPlan = ({
         return;
       }
 
-      // Check if produced quantity exceeds available warehouse quantity
-      if (numericValue > availableWarehouseQty) {
+      // Check if produced quantity exceeds available warehouse quantity (only when known)
+      if (
+        availableWarehouseQty != null &&
+        numericValue > availableWarehouseQty
+      ) {
         toast.error(
           `Produced quantity cannot exceed available warehouse quantity (${availableWarehouseQty})`
         );
@@ -542,188 +574,226 @@ export const AllocatedPartListHrPlan = ({
 
     return totalQuantity - totalProduced;
   };
-  
 
-const submitDailyTracking = async () => {
-  setIsUpdating(true);
-  try {
-    if (!selectedSection || !selectedSection.data.length) {
-      toast.error("No allocation selected.");
-      return;
-    }
-
-    const allocationId = selectedSection.allocationId;
-    const trackingId = selectedSection.data[0]?.trackingId;
-
-    if (!allocationId || !trackingId) {
-      toast.error("Allocation or Tracking ID is missing.");
-      return;
-    }
-
-    const trackingData = {
-      ...dailyTracking[0],
-      wareHouseTotalQty: warehouseQuantities.total,
-      wareHouseremainingQty: warehouseQuantities.remaining,
-      // Additional fields for complete tracking
-      projectName: sections[0]?.projectName || 'N/A',
-      partName: partName || 'N/A',
-      processName: selectedSection?.title || 'N/A',
-      fromWarehouse: selectedSection?.data[0]?.wareHouse || 'N/A',
-      fromWarehouseId: selectedSection?.data[0]?.warehouseId || null,
-      fromWarehouseQty: toWarehouseData?.quantity?.[0] || 0,
-      fromWarehouseRemainingQty: Math.max(0, (toWarehouseData?.quantity?.[0] || 0) - (dailyTracking[0]?.produced || 0)),
-      toWarehouse: sections[selectedSectionIndex + 1]?.data?.[0]?.wareHouse || 'N/A',
-      toWarehouseId: sections[selectedSectionIndex + 1]?.data?.[0]?.warehouseId || null,
-      toWarehouseQty: fromWarehouseData?.quantity?.[0] || 0,
-      toWarehouseRemainingQty: Math.max(0, (fromWarehouseData?.quantity?.[0] || 0) + (dailyTracking[0]?.produced || 0)),
-      remaining: calculateRemainingQuantity(),
-      machineId: selectedSection?.data[0]?.machineId || 'N/A',
-      shift: selectedSection?.data[0]?.shift || 'N/A',
-      partsCodeId: selectedSection?.data[0]?.partsCodeId || 'N/A'
-    };
-
-    const response = await axios.post(
-      `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/allocations/${allocationId}/allocations/${trackingId}/dailyTracking`,
-      trackingData
-    );
-
-    // Post to inventory API
-    if (dailyTracking[0]?.produced > 0) {
-  try {
-    const inventoryData = {
-      DocDate: dailyTracking[0].date,
-      ItemCode: selectedSection.data[0]?.partsCodeId || "",
-      Dscription: partName || "",
-      Quantity: Number(dailyTracking[0].produced) || 0,
-      WhsCode: sections[selectedSectionIndex + 1]?.data?.[0]?.warehouseId || "",
-      FromWhsCod: selectedSection.data[0]?.warehouseId || ""
-    };
-
-    // Post to first route
-    const invPostRes = await axios.post(
-      `${process.env.REACT_APP_BASE_URL}/api/Inventory/PostInventory`,
-      inventoryData
-    );
+  const submitDailyTracking = async () => {
+    setIsUpdating(true);
     try {
-      const respMsg =
-        invPostRes?.data?.message || invPostRes?.data?.Message || invPostRes?.data?.status || "Inventory posted successfully";
-      toast.success(`Inventory PostInventory response: ${typeof respMsg === "string" ? respMsg : JSON.stringify(respMsg)}`);
-    } catch (_) {
-      // Fallback toast to avoid breaking UI if response shape is unexpected
-      toast.success("Inventory PostInventory request completed.");
-    }
-
-    // Post to second route
-    const invVarPostRes = await axios.post(
-      `${process.env.REACT_APP_BASE_URL}/api/InventoryVaraible/PostInventoryVaraibleVaraible`,
-      inventoryData
-    );
-    try {
-      const respMsg2 =
-        invVarPostRes?.data?.message || invVarPostRes?.data?.Message || invVarPostRes?.data?.status || "Inventory variable posted successfully";
-      toast.info(`InventoryVaraible response: ${typeof respMsg2 === "string" ? respMsg2 : JSON.stringify(respMsg2)}`);
-    } catch (_) {
-      // Non-blocking
-    }
-
-    console.log("Inventory data posted successfully to both routes");
-  } catch (inventoryError) {
-    console.error("Error posting to inventory:", inventoryError);
-    toast.warning("Daily tracking updated but inventory update failed.");
-  }
-}
-
-
-    // Update warehouse quantities after successful daily tracking update
-    if (dailyTracking[0]?.produced > 0 && selectedSection?.data[0]?.warehouseId) {
-      const producedQty = Number(dailyTracking[0].produced) || 0;
-      const currentWarehouseId = selectedSection.data[0].warehouseId;
-      const nextWarehouseId = sections[selectedSectionIndex + 1]?.data?.[0]?.warehouseId || null;
-
-      try {
-        const nextIsSpecialDay = sections[selectedSectionIndex + 1]?.isSpecialDay === true;
-        if (nextWarehouseId && !nextIsSpecialDay) {
-          // Transfer: decrement current (To in API), increment next (From in API)
-          const transferRes = await axios.put(
-            `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/transfer-warehouse-quantity`,
-            {
-              toWarehouseId: currentWarehouseId,
-              fromWarehouseId: nextWarehouseId,
-              quantity: producedQty,
-            }
-          );
-
-          if (transferRes.data?.success) {
-            // Update local states
-            setToWarehouseData((prev) => ({
-              ...(prev || {}),
-              quantity: [Math.max(0, ((prev?.quantity?.[0] ?? 0) - producedQty))],
-            }));
-            setFromWarehouseData((prev) => ({
-              ...(prev || {}),
-              quantity: [((prev?.quantity?.[0] ?? 0) + producedQty)],
-            }));
-            toast.success("Warehouse quantities transferred successfully");
-          }
-        } else {
-          // Last process OR next process is special-day: only decrement current warehouse
-          const decRes = await axios.put(
-            `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/update-warehouse-quantity`,
-            {
-              warehouseId: currentWarehouseId,
-              quantityToReduce: producedQty,
-            }
-          );
-          if (decRes.data?.success) {
-            setToWarehouseData((prev) => ({
-              ...(prev || {}),
-              quantity: [Math.max(0, ((prev?.quantity?.[0] ?? 0) - producedQty))],
-            }));
-            if (!nextWarehouseId) {
-              toast.success("Warehouse quantity updated successfully");
-            } else {
-              toast.success("Quantity deducted from current warehouse (Job Work)");
-            }
-          }
-        }
-      } catch (warehouseError) {
-        console.error("Error updating warehouse quantities:", warehouseError);
-        toast.warning("Daily tracking updated but warehouse quantity update failed.");
+      if (!selectedSection || !selectedSection.data.length) {
+        toast.error("No allocation selected.");
+        return;
       }
+
+      const allocationId = selectedSection.allocationId;
+      const trackingId = selectedSection.data[0]?.trackingId;
+
+      if (!allocationId || !trackingId) {
+        toast.error("Allocation or Tracking ID is missing.");
+        return;
+      }
+
+      const trackingData = {
+        ...dailyTracking[0],
+        wareHouseTotalQty: warehouseQuantities.total,
+        wareHouseremainingQty: warehouseQuantities.remaining,
+        // Additional fields for complete tracking
+        projectName: sections[0]?.projectName || "N/A",
+        partName: partName || "N/A",
+        processName: selectedSection?.title || "N/A",
+        fromWarehouse: selectedSection?.data[0]?.wareHouse || "N/A",
+        fromWarehouseId: selectedSection?.data[0]?.warehouseId || null,
+        fromWarehouseQty: toWarehouseData?.quantity?.[0] || 0,
+        fromWarehouseRemainingQty: Math.max(
+          0,
+          (toWarehouseData?.quantity?.[0] || 0) -
+            (dailyTracking[0]?.produced || 0)
+        ),
+        toWarehouse:
+          sections[selectedSectionIndex + 1]?.data?.[0]?.wareHouse || "N/A",
+        toWarehouseId:
+          sections[selectedSectionIndex + 1]?.data?.[0]?.warehouseId || null,
+        toWarehouseQty: fromWarehouseData?.quantity?.[0] || 0,
+        toWarehouseRemainingQty: Math.max(
+          0,
+          (fromWarehouseData?.quantity?.[0] || 0) +
+            (dailyTracking[0]?.produced || 0)
+        ),
+        remaining: calculateRemainingQuantity(),
+        machineId: selectedSection?.data[0]?.machineId || "N/A",
+        shift: selectedSection?.data[0]?.shift || "N/A",
+        partsCodeId: selectedSection?.data[0]?.partsCodeId || "N/A",
+      };
+
+      const response = await axios.post(
+        `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/allocations/${allocationId}/allocations/${trackingId}/dailyTracking`,
+        trackingData
+      );
+
+      // Post to inventory API
+      if (dailyTracking[0]?.produced > 0) {
+        try {
+          const inventoryData = {
+            DocDate: dailyTracking[0].date,
+            ItemCode: selectedSection.data[0]?.partsCodeId || "",
+            Dscription: partName || "",
+            Quantity: Number(dailyTracking[0].produced) || 0,
+            WhsCode:
+              sections[selectedSectionIndex + 1]?.data?.[0]?.warehouseId || "",
+            FromWhsCod: selectedSection.data[0]?.warehouseId || "",
+          };
+
+          // Post to first route
+          const invPostRes = await axios.post(
+            `${process.env.REACT_APP_BASE_URL}/api/Inventory/PostInventory`,
+            inventoryData
+          );
+          try {
+            const respMsg =
+              invPostRes?.data?.message ||
+              invPostRes?.data?.Message ||
+              invPostRes?.data?.status ||
+              "Inventory posted successfully";
+            toast.success(
+              `Inventory PostInventory response: ${
+                typeof respMsg === "string" ? respMsg : JSON.stringify(respMsg)
+              }`
+            );
+          } catch (_) {
+            // Fallback toast to avoid breaking UI if response shape is unexpected
+            toast.success("Inventory PostInventory request completed.");
+          }
+
+          // Post to second route
+          const invVarPostRes = await axios.post(
+            `${process.env.REACT_APP_BASE_URL}/api/InventoryVaraible/PostInventoryVaraibleVaraible`,
+            inventoryData
+          );
+          try {
+            const respMsg2 =
+              invVarPostRes?.data?.message ||
+              invVarPostRes?.data?.Message ||
+              invVarPostRes?.data?.status ||
+              "Inventory variable posted successfully";
+            toast.info(
+              `InventoryVaraible response: ${
+                typeof respMsg2 === "string"
+                  ? respMsg2
+                  : JSON.stringify(respMsg2)
+              }`
+            );
+          } catch (_) {
+            // Non-blocking
+          }
+
+          console.log("Inventory data posted successfully to both routes");
+        } catch (inventoryError) {
+          console.error("Error posting to inventory:", inventoryError);
+          toast.warning("Daily tracking updated but inventory update failed.");
+        }
+      }
+
+      // Update warehouse quantities after successful daily tracking update
+      if (
+        dailyTracking[0]?.produced > 0 &&
+        selectedSection?.data[0]?.warehouseId
+      ) {
+        const producedQty = Number(dailyTracking[0].produced) || 0;
+        const currentWarehouseId = selectedSection.data[0].warehouseId;
+        const nextWarehouseId =
+          sections[selectedSectionIndex + 1]?.data?.[0]?.warehouseId || null;
+
+        try {
+          const nextIsSpecialDay =
+            sections[selectedSectionIndex + 1]?.isSpecialDay === true;
+          if (nextWarehouseId && !nextIsSpecialDay) {
+            // Transfer: decrement current (To in API), increment next (From in API)
+            const transferRes = await axios.put(
+              `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/transfer-warehouse-quantity`,
+              {
+                toWarehouseId: currentWarehouseId,
+                fromWarehouseId: nextWarehouseId,
+                quantity: producedQty,
+              }
+            );
+
+            if (transferRes.data?.success) {
+              // Update local states
+              setToWarehouseData((prev) => ({
+                ...(prev || {}),
+                quantity: [
+                  Math.max(0, (prev?.quantity?.[0] ?? 0) - producedQty),
+                ],
+              }));
+              setFromWarehouseData((prev) => ({
+                ...(prev || {}),
+                quantity: [(prev?.quantity?.[0] ?? 0) + producedQty],
+              }));
+              toast.success("Warehouse quantities transferred successfully");
+            }
+          } else {
+            // Last process OR next process is special-day: only decrement current warehouse
+            const decRes = await axios.put(
+              `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/update-warehouse-quantity`,
+              {
+                warehouseId: currentWarehouseId,
+                quantityToReduce: producedQty,
+              }
+            );
+            if (decRes.data?.success) {
+              setToWarehouseData((prev) => ({
+                ...(prev || {}),
+                quantity: [
+                  Math.max(0, (prev?.quantity?.[0] ?? 0) - producedQty),
+                ],
+              }));
+              if (!nextWarehouseId) {
+                toast.success("Warehouse quantity updated successfully");
+              } else {
+                toast.success(
+                  "Quantity deducted from current warehouse (Job Work)"
+                );
+              }
+            }
+          }
+        } catch (warehouseError) {
+          console.error("Error updating warehouse quantities:", warehouseError);
+          toast.warning(
+            "Daily tracking updated but warehouse quantity update failed."
+          );
+        }
+      }
+
+      if (onUpdateAllocaitonStatus) {
+        onUpdateAllocaitonStatus(response.data);
+      }
+
+      toast.success("Daily Tracking Updated Successfully!");
+
+      const updatedResponse = await axios.get(
+        `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/allocations/${allocationId}/allocations/${trackingId}/dailyTracking`
+      );
+
+      setExistingDailyTracking(updatedResponse.data.dailyTracking || []);
+      setactulEndDateData(updatedResponse.data);
+
+      // Reset the form
+      setDailyTracking([
+        {
+          date: "",
+          planned: selectedSection.data[0].dailyPlannedQty || 0,
+          produced: 0,
+          dailyStatus: "On Track",
+          operator: selectedSection.data[0].operator || "",
+        },
+      ]);
+
+      closeAddRowModal();
+    } catch (error) {
+      toast.error("Failed to update daily tracking.");
+      console.error("Error updating daily tracking:", error);
+    } finally {
+      setIsUpdating(false);
     }
-
-    if (onUpdateAllocaitonStatus) {
-      onUpdateAllocaitonStatus(response.data);
-    }
-
-    toast.success("Daily Tracking Updated Successfully!");
-
-    const updatedResponse = await axios.get(
-      `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/allocations/${allocationId}/allocations/${trackingId}/dailyTracking`
-    );
-
-    setExistingDailyTracking(updatedResponse.data.dailyTracking || []);
-    setactulEndDateData(updatedResponse.data);
-
-    // Reset the form
-    setDailyTracking([
-      {
-        date: "",
-        planned: selectedSection.data[0].dailyPlannedQty || 0,
-        produced: 0,
-        dailyStatus: "On Track",
-        operator: selectedSection.data[0].operator || "",
-      },
-    ]);
-
-    closeAddRowModal();
-  } catch (error) {
-    toast.error("Failed to update daily tracking.");
-    console.error("Error updating daily tracking:", error);
-  } finally {
-    setIsUpdating(false);
-  }
-};
+  };
 
   const closeDailyTaskModal = () => {
     setDailyTaskModal(false);
@@ -799,7 +869,6 @@ const submitDailyTracking = async () => {
       date1.getDate() === date2.getDate()
     );
   }
-
 
   //'/projects/:projectId/subAssemblyListFirst/:listId/items/:itemId/complete'
   const handleCompleteAllocation = async () => {
@@ -945,6 +1014,8 @@ const submitDailyTracking = async () => {
                   plannedQty: allocation.plannedQuantity,
                   startDate: moment(allocation.startDate).format("DD MMM YYYY"),
                   endDate: moment(allocation.endDate).format("DD MMM YYYY"),
+                  startTime: allocation.startTime || null,
+                  endTime: allocation.endTime || null,
                   machineId: allocation.machineId,
                   wareHouse: allocation?.wareHouse || "N/A",
                   warehouseId: allocation?.warehouseId || "N/A",
@@ -1033,8 +1104,12 @@ const submitDailyTracking = async () => {
     const fetchGoodsMovement = async () => {
       try {
         const [issueRes, receiptRes] = await Promise.all([
-          axios.get(`${process.env.REACT_APP_BASE_URL}/api/GoodsIssue/GetGoodsIssue`),
-          axios.get(`${process.env.REACT_APP_BASE_URL}/api/GoodsReceipt/GetGoodsReceipt`),
+          axios.get(
+            `${process.env.REACT_APP_BASE_URL}/api/GoodsIssue/GetGoodsIssue`
+          ),
+          axios.get(
+            `${process.env.REACT_APP_BASE_URL}/api/GoodsReceipt/GetGoodsReceipt`
+          ),
         ]);
         const issueList = issueRes.data || [];
         const receiptList = receiptRes.data || [];
@@ -1052,7 +1127,10 @@ const submitDailyTracking = async () => {
       fetchGoodsMovement();
       // start interval
       if (!jobWorkIntervalRef.current) {
-        jobWorkIntervalRef.current = setInterval(fetchGoodsMovement, 1 * 60 * 1000);
+        jobWorkIntervalRef.current = setInterval(
+          fetchGoodsMovement,
+          1 * 60 * 1000
+        );
       }
     } else {
       if (jobWorkIntervalRef.current) {
@@ -1086,7 +1164,10 @@ const submitDailyTracking = async () => {
             const toData = await fetchStoreByCategoryId(currentCategoryId);
             setToWarehouseData(toData);
           } catch (e) {
-            setToWarehouseData({ categoryId: currentCategoryId, quantity: [0] });
+            setToWarehouseData({
+              categoryId: currentCategoryId,
+              quantity: [0],
+            });
           }
         } else {
           setToWarehouseData(null);
@@ -1109,7 +1190,10 @@ const submitDailyTracking = async () => {
               const fromData = await fetchStoreByCategoryId(nextCategoryId);
               setFromWarehouseData(fromData);
             } catch (e) {
-              setFromWarehouseData({ categoryId: nextCategoryId, quantity: [0] });
+              setFromWarehouseData({
+                categoryId: nextCategoryId,
+                quantity: [0],
+              });
             }
           } else {
             setFromWarehouseData(null);
@@ -1282,8 +1366,10 @@ const submitDailyTracking = async () => {
                                   }}
                                 >
                                   {(() => {
-                                    const produced = getSectionProducedTotal(section);
-                                    const plannedQty = section.data[0]?.plannedQty || 0;
+                                    const produced =
+                                      getSectionProducedTotal(section);
+                                    const plannedQty =
+                                      section.data[0]?.plannedQty || 0;
                                     return `${produced}/${plannedQty}`;
                                   })()}
                                 </span>
@@ -1376,7 +1462,10 @@ const submitDailyTracking = async () => {
                                       }}
                                     >
                                       {(() => {
-                                        const produced = producedTotalsByTrackingId[row.trackingId] || 0;
+                                        const produced =
+                                          producedTotalsByTrackingId[
+                                            row.trackingId
+                                          ] || 0;
                                         const plannedQty = row.plannedQty || 0;
                                         return `${produced}/${plannedQty}`;
                                       })()}
@@ -1388,7 +1477,7 @@ const submitDailyTracking = async () => {
                                     style={{
                                       backgroundColor: "#FAFFFF",
                                       borderRadius: "8px",
-                                      padding: "1.5rem",
+                                      padding: ".5rem",
                                       boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
                                     }}
                                   >
@@ -1438,7 +1527,7 @@ const submitDailyTracking = async () => {
                                             color: "#64748b",
                                           }}
                                         >
-                                          Start:
+                                          Start Date & Time :
                                         </span>
                                         <span
                                           style={{
@@ -1449,6 +1538,18 @@ const submitDailyTracking = async () => {
                                           {moment(row.startDate).format(
                                             "DD MMM YYYY"
                                           )}
+                                          {row.startTime || row.endTime ? (
+                                        <span
+                                          style={{
+                                            color: "#64748b",
+                                            marginLeft: "6px",
+                                          }}
+                                        >
+                                          {row.startTime || "--:--"}
+                                          {/* {row.endTime || "--:--"} */}
+                                          
+                                        </span>
+                                      ) : null}
                                         </span>
                                       </div>
                                       <div
@@ -1464,7 +1565,7 @@ const submitDailyTracking = async () => {
                                             color: "#64748b",
                                           }}
                                         >
-                                          End:
+                                          End Date & Time :
                                         </span>
                                         <span
                                           style={{
@@ -1475,6 +1576,17 @@ const submitDailyTracking = async () => {
                                           {moment(row.endDate).format(
                                             "DD MMM YYYY"
                                           )}
+                                          {row.startTime || row.endTime ? (
+                                        <span
+                                          style={{
+                                            color: "#64748b",
+                                            marginLeft: "6px",
+                                          }}
+                                        >
+                                          {row.endTime || "--:--"}
+                                          
+                                        </span>
+                                      ) : null}
                                         </span>
                                       </div>
                                     </div>
@@ -1588,7 +1700,18 @@ const submitDailyTracking = async () => {
                                         borderRadius: "6px",
                                       }}
                                     >
-                                      {row.shift}
+                                      {row.shift}{" "}
+                                      {/* {row.startTime || row.endTime ? (
+                                        <span
+                                          style={{
+                                            color: "#64748b",
+                                            marginLeft: "6px",
+                                          }}
+                                        >
+                                          ({row.startTime || "--:--"} -{" "}
+                                          {row.endTime || "--:--"})
+                                        </span>
+                                      ) : null} */}
                                     </div>
                                   </div>
                                 </div>
@@ -1766,6 +1889,9 @@ const submitDailyTracking = async () => {
                                         padding: "0.5rem",
                                         backgroundColor: "#f8fafc",
                                         borderRadius: "6px",
+                                        wordBreak: "break-word",
+                                        // maxWidth: "8ch",
+                                        whiteSpace: "normal",
                                       }}
                                     >
                                       {`${row.wareHouse} `}
@@ -2215,7 +2341,7 @@ const submitDailyTracking = async () => {
                       padding: "0",
                       margin: "0",
                       color: "#4f46e5",
-                      textDecoration: "none"
+                      textDecoration: "none",
                     }}
                   >
                     <i className="ri-refresh-line"></i>
@@ -2253,7 +2379,7 @@ const submitDailyTracking = async () => {
                       Total Quantity in Warehouse
                     </h5>
                     <p style={{ fontSize: "14px", marginBottom: 0 }}>
-                       {toWarehouseData?.quantity?.[0] ?? "N/A"}
+                      {toWarehouseData?.quantity?.[0] ?? "N/A"}
                     </p>
                   </Col>
                 </Row>
@@ -2294,7 +2420,11 @@ const submitDailyTracking = async () => {
                     >
                       Warehouse Name
                     </h5>
-                    <div style={{ fontSize: "14px" }}>{sections[selectedSectionIndex + 1]?.data?.[0]?.wareHouse || (sections[selectedSectionIndex + 1] ? "N/A" : "N/A")}</div>
+                    <div style={{ fontSize: "14px" }}>
+                      {sections[selectedSectionIndex + 1]?.data?.[0]
+                        ?.wareHouse ||
+                        (sections[selectedSectionIndex + 1] ? "N/A" : "N/A")}
+                    </div>
                   </Col>
                 </Row>
                 <Row className="mt-4">
@@ -2309,7 +2439,10 @@ const submitDailyTracking = async () => {
                     >
                       Total Quantity in Warehouse
                     </h5>
-                    <p style={{ fontSize: "14px", marginBottom: 0 }}>{fromWarehouseData?.quantity?.[0] ?? (sections[selectedSectionIndex + 1] ? "N/A" : "N/A")}</p>
+                    <p style={{ fontSize: "14px", marginBottom: 0 }}>
+                      {fromWarehouseData?.quantity?.[0] ??
+                        (sections[selectedSectionIndex + 1] ? "N/A" : "N/A")}
+                    </p>
                   </Col>
                 </Row>
               </Container>
@@ -2335,35 +2468,48 @@ const submitDailyTracking = async () => {
             </div>
 
             {/* Production Summary Card */}
-            <div className="card mb-3" style={{ backgroundColor: "#f8f9fa", border: "1px solid #dee2e6" }}>
+            <div
+              className="card mb-3"
+              style={{
+                backgroundColor: "#f8f9fa",
+                border: "1px solid #dee2e6",
+              }}
+            >
               <div className="card-body">
                 <h6 className="card-title mb-3">Production Overview</h6>
                 <div className="row">
                   <div className="col-md-3">
-                    <strong>Project:</strong> {sections[0]?.projectName || 'N/A'}
+                    <strong>Project:</strong>{" "}
+                    {sections[0]?.projectName || "N/A"}
                   </div>
                   <div className="col-md-3">
-                    <strong>Part Name:</strong> {partName || 'N/A'}
+                    <strong>Part Name:</strong> {partName || "N/A"}
                   </div>
                   <div className="col-md-3">
-                    <strong>Process:</strong> {selectedSection?.title || 'N/A'}
+                    <strong>Process:</strong> {selectedSection?.title || "N/A"}
                   </div>
                   <div className="col-md-3">
-                    <strong>Machine:</strong> {selectedSection?.data[0]?.machineId || 'N/A'}
+                    <strong>Machine:</strong>{" "}
+                    {selectedSection?.data[0]?.machineId || "N/A"}
                   </div>
                 </div>
                 <div className="row mt-2">
                   <div className="col-md-3">
-                    <strong>Operator:</strong> {selectedSection?.data[0]?.operator || 'N/A'}
+                    <strong>Operator:</strong>{" "}
+                    {selectedSection?.data[0]?.operator || "N/A"}
                   </div>
                   <div className="col-md-3">
-                    <strong>Shift:</strong> {selectedSection?.data[0]?.shift || 'N/A'}
+                    <strong>Shift:</strong>{" "}
+                    {selectedSection?.data[0]?.shift || "N/A"}
                   </div>
                   <div className="col-md-3">
-                    <strong>From WH:</strong> {selectedSection?.data[0]?.wareHouse || 'N/A'}
+                    <strong>From WH:</strong>{" "}
+                    {selectedSection?.data[0]?.wareHouse || "N/A"}
                   </div>
                   <div className="col-md-3">
-                    <strong>To WH:</strong> {sections[selectedSectionIndex + 1]?.data?.[0]?.wareHouse || 'N/A'}
+                    <strong>To WH:</strong>{" "}
+                    {sections[selectedSectionIndex + 1]?.data?.[0]?.wareHouse ||
+                      "N/A"}
                   </div>
                 </div>
               </div>
@@ -2633,7 +2779,14 @@ const submitDailyTracking = async () => {
                       dailyTracking.length > 0 ? dailyTracking[0].produced : ""
                     }
                     placeholder="Enter Produced Quantity"
-                    max={Math.min(calculateRemainingQuantity(), toWarehouseData?.quantity?.[0] || 0)}
+                    max={
+                      toWarehouseData?.quantity?.[0] != null
+                        ? Math.min(
+                            calculateRemainingQuantity(),
+                            toWarehouseData.quantity[0]
+                          )
+                        : calculateRemainingQuantity()
+                    }
                     onChange={(e) =>
                       handleDailyTrackingChange(0, "produced", e.target.value)
                     }
@@ -2667,7 +2820,14 @@ const submitDailyTracking = async () => {
                     }}
                   >
                     <CiCircleInfo size={18} color="#64748b" />
-                    Max allowed: {Math.min(calculateRemainingQuantity(), toWarehouseData?.quantity?.[0] || 0)} units
+                    Max allowed:{" "}
+                    {toWarehouseData?.quantity?.[0] != null
+                      ? Math.min(
+                          calculateRemainingQuantity(),
+                          toWarehouseData.quantity[0]
+                        )
+                      : calculateRemainingQuantity()}{" "}
+                    units
                   </p>
                 </div>
               </div>
@@ -3066,7 +3226,7 @@ const submitDailyTracking = async () => {
                           padding: "0",
                           margin: "0",
                           color: "#4f46e5",
-                          textDecoration: "none"
+                          textDecoration: "none",
                         }}
                       >
                         <i className="ri-refresh-line"></i>
@@ -3128,7 +3288,8 @@ const submitDailyTracking = async () => {
                               style={{ textAlign: "left", marginTop: "5px" }}
                             >
                               <span style={{ color: "red", fontSize: "13px" }}>
-                                Will be reduced by {dailyTracking[0]?.produced} units
+                                Will be reduced by {dailyTracking[0]?.produced}{" "}
+                                units
                               </span>
                               <br />
                               {/* <span style={{ color: "red", fontSize: "12px", fontWeight: "bold" }}>
@@ -3139,7 +3300,7 @@ const submitDailyTracking = async () => {
                         </div>
                       </Col>
                     </Row>
-                    
+
                     {/* Warehouse Quantity Warning */}
                     {(() => {
                       const warning = getWarehouseQuantityWarning();
@@ -3147,14 +3308,32 @@ const submitDailyTracking = async () => {
                         return (
                           <Row className="mt-3">
                             <Col md={12}>
-                              <div style={{
-                                backgroundColor: warning.type === "error" ? "#f8d7da" : "#fff3cd",
-                                border: `1px solid ${warning.type === "error" ? "#f5c6cb" : "#ffeaa7"}`,
-                                borderRadius: "6px",
-                                padding: "10px",
-                                color: warning.type === "error" ? "#721c24" : "#856404"
-                              }}>
-                                <i className={`ri-${warning.type === "error" ? "error-warning" : "alert"}-line me-2`}></i>
+                              <div
+                                style={{
+                                  backgroundColor:
+                                    warning.type === "error"
+                                      ? "#f8d7da"
+                                      : "#fff3cd",
+                                  border: `1px solid ${
+                                    warning.type === "error"
+                                      ? "#f5c6cb"
+                                      : "#ffeaa7"
+                                  }`,
+                                  borderRadius: "6px",
+                                  padding: "10px",
+                                  color:
+                                    warning.type === "error"
+                                      ? "#721c24"
+                                      : "#856404",
+                                }}
+                              >
+                                <i
+                                  className={`ri-${
+                                    warning.type === "error"
+                                      ? "error-warning"
+                                      : "alert"
+                                  }-line me-2`}
+                                ></i>
                                 {warning.message}
                               </div>
                             </Col>
@@ -3202,7 +3381,11 @@ const submitDailyTracking = async () => {
                           Warehouse Name
                         </h5>
                         <div style={{ fontSize: "14px" }}>
-                          {sections[selectedSectionIndex + 1]?.data?.[0]?.wareHouse || (sections[selectedSectionIndex + 1] ? "N/A" : "N/A")}
+                          {sections[selectedSectionIndex + 1]?.data?.[0]
+                            ?.wareHouse ||
+                            (sections[selectedSectionIndex + 1]
+                              ? "N/A"
+                              : "N/A")}
                         </div>
                       </Col>
                     </Row>
@@ -3234,7 +3417,7 @@ const submitDailyTracking = async () => {
                                 color: "green",
                               }}
                             >
-                              {(fromWarehouseData?.quantity?.[0] ?? "N/A")}
+                              {fromWarehouseData?.quantity?.[0] ?? "N/A"}
                             </p>
                             {dailyTracking[0]?.produced > 0 && (
                               <FaArrowUp color="green" />
@@ -3450,7 +3633,7 @@ const submitDailyTracking = async () => {
                 <Col md={9}>
                   {`${selectedSection?.data[0]?.wareHouse || "N/A"} - ${
                     selectedSection?.data[0]?.warehouseId || "N/A"
-                  }`} {" "}
+                  }`}{" "}
                   (Quantity:{" "}
                   {(() => {
                     const partsCodeId = selectedSection?.data?.[0]?.partsCodeId;
@@ -3467,7 +3650,8 @@ const submitDailyTracking = async () => {
                     const baseQuantity =
                       matchingQuantity !== null ? matchingQuantity : 0;
                     const adjustedQuantity =
-                      baseQuantity + (warehouseChanges.fromWarehouseChange || 0);
+                      baseQuantity +
+                      (warehouseChanges.fromWarehouseChange || 0);
 
                     return adjustedQuantity > 0 ? adjustedQuantity : "N/A";
                   })()}
@@ -3480,8 +3664,14 @@ const submitDailyTracking = async () => {
                   <strong>To Warehouse:</strong>
                 </Col>
                 <Col md={9}>
-                  {`${sections[selectedSectionIndex + 1]?.data?.[0]?.wareHouse || "N/A"}`} (Quantity:{" "}
-                  {(fromWarehouseData?.quantity?.[0] ?? 0) + (warehouseChanges.toWarehouseChange || 0)})
+                  {`${
+                    sections[selectedSectionIndex + 1]?.data?.[0]?.wareHouse ||
+                    "N/A"
+                  }`}{" "}
+                  (Quantity:{" "}
+                  {(fromWarehouseData?.quantity?.[0] ?? 0) +
+                    (warehouseChanges.toWarehouseChange || 0)}
+                  )
                 </Col>
               </Row>
 
@@ -3489,22 +3679,31 @@ const submitDailyTracking = async () => {
               {dailyTracking[0]?.produced > 0 && (
                 <Row className="mb-2">
                   <Col md={12}>
-                    <div style={{
-                      backgroundColor: "#f8f9fa",
-                      padding: "15px",
-                      borderRadius: "8px",
-                      border: "1px solid #dee2e6"
-                    }}>
+                    <div
+                      style={{
+                        backgroundColor: "#f8f9fa",
+                        padding: "15px",
+                        borderRadius: "8px",
+                        border: "1px solid #dee2e6",
+                      }}
+                    >
                       <h6 style={{ color: "#495057", marginBottom: "10px" }}>
                         <i className="ri-information-line me-2"></i>
                         Warehouse Quantity Changes
                       </h6>
                       <Row>
                         <Col md={6}>
-                          <strong style={{ color: "#dc3545" }}>From Warehouse:</strong>
+                          <strong style={{ color: "#dc3545" }}>
+                            From Warehouse:
+                          </strong>
                           <br />
                           <span style={{ color: "#dc3545" }}>
-                            {(toWarehouseData?.quantity?.[0] ?? 0)} → {Math.max(0, (toWarehouseData?.quantity?.[0] ?? 0) + (warehouseChanges.fromWarehouseChange || 0))}
+                            {toWarehouseData?.quantity?.[0] ?? 0} →{" "}
+                            {Math.max(
+                              0,
+                              (toWarehouseData?.quantity?.[0] ?? 0) +
+                                (warehouseChanges.fromWarehouseChange || 0)
+                            )}
                           </span>
                           <br />
                           <small style={{ color: "#6c757d" }}>
@@ -3512,10 +3711,18 @@ const submitDailyTracking = async () => {
                           </small>
                         </Col>
                         <Col md={6}>
-                          <strong style={{ color: "#198754" }}>To Warehouse:</strong>
+                          <strong style={{ color: "#198754" }}>
+                            To Warehouse:
+                          </strong>
                           <br />
                           <span style={{ color: "#198754" }}>
-                            {fromWarehouseData?.quantity?.[0] ?? (sections[selectedSectionIndex + 1] ? "N/A" : "-")} → {(fromWarehouseData?.quantity?.[0] ?? 0) + (warehouseChanges.toWarehouseChange || 0)}
+                            {fromWarehouseData?.quantity?.[0] ??
+                              (sections[selectedSectionIndex + 1]
+                                ? "N/A"
+                                : "-")}{" "}
+                            →{" "}
+                            {(fromWarehouseData?.quantity?.[0] ?? 0) +
+                              (warehouseChanges.toWarehouseChange || 0)}
                           </span>
                           <br />
                           <small style={{ color: "#6c757d" }}>
@@ -3566,7 +3773,9 @@ const submitDailyTracking = async () => {
           margin: "auto",
         }}
       >
-        <ModalHeader toggle={() => setJobWorkModal(false)}>Update Job Work</ModalHeader>
+        <ModalHeader toggle={() => setJobWorkModal(false)}>
+          Update Job Work
+        </ModalHeader>
         <ModalBody>
           <div className="mb-3">
             <div className="d-flex justify-content-between align-items-center">
@@ -3577,8 +3786,12 @@ const submitDailyTracking = async () => {
                   try {
                     setJobWorkLoading(true);
                     const [issueRes, receiptRes] = await Promise.all([
-                      axios.get(`${process.env.REACT_APP_BASE_URL}/api/GoodsIssue/GetGoodsIssue`),
-                      axios.get(`${process.env.REACT_APP_BASE_URL}/api/GoodsReceipt/GetGoodsReceipt`),
+                      axios.get(
+                        `${process.env.REACT_APP_BASE_URL}/api/GoodsIssue/GetGoodsIssue`
+                      ),
+                      axios.get(
+                        `${process.env.REACT_APP_BASE_URL}/api/GoodsReceipt/GetGoodsReceipt`
+                      ),
                     ]);
                     const issueList = issueRes.data || [];
                     const receiptList = receiptRes.data || [];
@@ -3600,14 +3813,32 @@ const submitDailyTracking = async () => {
               </Button>
             </div>
             <div className="mt-2">
-              <div><strong>Project:</strong> {projectNameState || sections[0]?.projectName || "N/A"}</div>
-              <div><strong>Item Code:</strong> {selectedSection?.data?.[0]?.partsCodeId || sections[selectedSectionIndex]?.data?.[0]?.partsCodeId || "N/A"}</div>
-              <div><strong>From WH:</strong> {selectedSection?.data?.[0]?.wareHouse || "N/A"}</div>
-              <div><strong>To (Next) WH:</strong> {sections[selectedSectionIndex + 1]?.data?.[0]?.wareHouse || "N/A"}</div>
+              <div>
+                <strong>Project:</strong>{" "}
+                {projectNameState || sections[0]?.projectName || "N/A"}
+              </div>
+              <div>
+                <strong>Item Code:</strong>{" "}
+                {selectedSection?.data?.[0]?.partsCodeId ||
+                  sections[selectedSectionIndex]?.data?.[0]?.partsCodeId ||
+                  "N/A"}
+              </div>
+              <div>
+                <strong>From WH:</strong>{" "}
+                {selectedSection?.data?.[0]?.wareHouse || "N/A"}
+              </div>
+              <div>
+                <strong>To (Next) WH:</strong>{" "}
+                {sections[selectedSectionIndex + 1]?.data?.[0]?.wareHouse ||
+                  "N/A"}
+              </div>
             </div>
             <div className="mt-3">
               <Alert color="info">
-                For Job Work processes, quantities are deducted from current warehouse when issued. They are automatically forwarded to the next process warehouse after receipt is detected (checked about every ~1 minute). You can also trigger sync now.
+                For Job Work processes, quantities are deducted from current
+                warehouse when issued. They are automatically forwarded to the
+                next process warehouse after receipt is detected (checked about
+                every ~1 minute). You can also trigger sync now.
               </Alert>
             </div>
             <div className="mt-2 d-flex gap-2">
@@ -3616,12 +3847,21 @@ const submitDailyTracking = async () => {
                 onClick={async () => {
                   try {
                     const body = {
-                      partsCodeId: selectedSection?.data?.[0]?.partsCodeId || null,
-                      currentWarehouseId: selectedSection?.data?.[0]?.warehouseId || null,
-                      nextWarehouseId: sections[selectedSectionIndex + 1]?.data?.[0]?.warehouseId || null,
-                      productionNo: projectNameState || sections[0]?.projectName || null,
+                      partsCodeId:
+                        selectedSection?.data?.[0]?.partsCodeId || null,
+                      currentWarehouseId:
+                        selectedSection?.data?.[0]?.warehouseId || null,
+                      nextWarehouseId:
+                        sections[selectedSectionIndex + 1]?.data?.[0]
+                          ?.warehouseId || null,
+                      productionNo:
+                        projectNameState || sections[0]?.projectName || null,
                     };
-                    if (!body.partsCodeId || !body.currentWarehouseId || !body.nextWarehouseId) {
+                    if (
+                      !body.partsCodeId ||
+                      !body.currentWarehouseId ||
+                      !body.nextWarehouseId
+                    ) {
                       toast.error("Missing warehouses or part code");
                       return;
                     }
@@ -3639,7 +3879,9 @@ const submitDailyTracking = async () => {
               >
                 Sync Now
               </Button>
-              <Button color="secondary" onClick={() => setJobWorkModal(false)}>Close</Button>
+              <Button color="secondary" onClick={() => setJobWorkModal(false)}>
+                Close
+              </Button>
             </div>
           </div>
           {/* Simple preview of matched Issue/Receipt for this part */}
@@ -3657,8 +3899,15 @@ const submitDailyTracking = async () => {
               <tbody>
                 {goodsIssueData
                   .filter((g) => {
-                    const matchProd = (g.ProductionNo || "").toString().trim().toLowerCase() === (projectNameState || sections[0]?.projectName || "").toString().trim().toLowerCase();
-                    const matchItem = String(g.Itemcode).trim() === String(selectedSection?.data?.[0]?.partsCodeId || "");
+                    const matchProd =
+                      (g.ProductionNo || "").toString().trim().toLowerCase() ===
+                      (projectNameState || sections[0]?.projectName || "")
+                        .toString()
+                        .trim()
+                        .toLowerCase();
+                    const matchItem =
+                      String(g.Itemcode).trim() ===
+                      String(selectedSection?.data?.[0]?.partsCodeId || "");
                     // return matchItem;
                     return matchProd && matchItem;
                   })
@@ -3669,13 +3918,23 @@ const submitDailyTracking = async () => {
                       <td>{g.Itemcode}</td>
                       <td>{g.WhsCode}</td>
                       <td>{g.Quantity}</td>
-                      <td>{issueStatus[String(g.Itemcode)?.trim()]?.status || "Yes"}</td>
+                      <td>
+                        {issueStatus[String(g.Itemcode)?.trim()]?.status ||
+                          "Yes"}
+                      </td>
                     </tr>
                   ))}
                 {goodsReceiptDataModal
                   .filter((g) => {
-                    const matchProd = (g.ProductionNo || "").toString().trim().toLowerCase() === (projectNameState || sections[0]?.projectName || "").toString().trim().toLowerCase();
-                    const matchItem = String(g.Itemcode).trim() === String(selectedSection?.data?.[0]?.partsCodeId || "");
+                    const matchProd =
+                      (g.ProductionNo || "").toString().trim().toLowerCase() ===
+                      (projectNameState || sections[0]?.projectName || "")
+                        .toString()
+                        .trim()
+                        .toLowerCase();
+                    const matchItem =
+                      String(g.Itemcode).trim() ===
+                      String(selectedSection?.data?.[0]?.partsCodeId || "");
                     // return matchItem;
                     return matchProd && matchItem;
                   })
@@ -3686,7 +3945,10 @@ const submitDailyTracking = async () => {
                       <td>{g.Itemcode}</td>
                       <td>{g.WhsCode}</td>
                       <td>{Number(g.Quantity)}</td>
-                      <td>{receiptStatus[String(g.Itemcode)?.trim()]?.status || "Yes"}</td>
+                      <td>
+                        {receiptStatus[String(g.Itemcode)?.trim()]?.status ||
+                          "Yes"}
+                      </td>
                     </tr>
                   ))}
               </tbody>
@@ -3697,4 +3959,3 @@ const submitDailyTracking = async () => {
     </div>
   );
 };
-

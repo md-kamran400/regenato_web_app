@@ -815,61 +815,125 @@ const PartsTable = React.memo(
       return `${totalMinutes} m`;
     };
 
-    const getStatusDisplay = (item) => {
-      // First check if the item has a status from the API
-      if (item.status === "Completed") {
-        return {
-          text: "Completed",
-          class: "badge bg-success text-white",
-        };
-      }
+    // const getStatusDisplay = (item) => {
+    //   // First check if the item has a status from the API
+    //   if (item.status === "Completed") {
+    //     return {
+    //       text: "Completed",
+    //       class: "badge bg-success text-white",
+    //     };
+    //   }
 
-      if (!item.allocations || item.allocations.length === 0) {
-        return {
-          text: "Not Allocated",
-          class: "badge bg-info text-white",
-        };
-      }
+    //   if (!item.allocations || item.allocations.length === 0) {
+    //     return {
+    //       text: "Not Allocated",
+    //       class: "badge bg-info text-white",
+    //     };
+    //   }
 
-      const process = item.allocations[0];
-      if (!process.allocations || process.allocations.length === 0) {
-        return {
-          text: "Not Allocated",
-          class: "badge bg-info text-white",
-        };
-      }
+    //   const process = item.allocations[0];
+    //   if (!process.allocations || process.allocations.length === 0) {
+    //     return {
+    //       text: "Not Allocated",
+    //       class: "badge bg-info text-white",
+    //     };
+    //   }
 
-      const allocation = process.allocations[0];
+    //   const allocation = process.allocations[0];
 
-      // If there's daily tracking data
-      if (allocation.dailyTracking && allocation.dailyTracking.length > 0) {
-        const lastTracking =
-          allocation.dailyTracking[allocation.dailyTracking.length - 1];
+    //   // If there's daily tracking data
+    //   if (allocation.dailyTracking && allocation.dailyTracking.length > 0) {
+    //     const lastTracking =
+    //       allocation.dailyTracking[allocation.dailyTracking.length - 1];
 
-        if (lastTracking.dailyStatus === "Delayed") {
-          return {
-            text: "Delayed",
-            class: "badge bg-danger text-white",
-          };
-        } else if (lastTracking.dailyStatus === "Ahead") {
-          return {
-            text: "Ahead",
-            class: "badge bg-success-subtle text-success",
-          };
-        } else if (lastTracking.dailyStatus === "On Track") {
-          return {
-            text: "On Track",
-            class: "badge bg-primary text-white",
-          };
-        }
-      }
+    //     if (lastTracking.dailyStatus === "Delayed") {
+    //       return {
+    //         text: "Delayed",
+    //         class: "badge bg-danger text-white",
+    //       };
+    //     } else if (lastTracking.dailyStatus === "Ahead") {
+    //       return {
+    //         text: "Ahead",
+    //         class: "badge bg-success-subtle text-success",
+    //       };
+    //     } else if (lastTracking.dailyStatus === "On Track") {
+    //       return {
+    //         text: "On Track",
+    //         class: "badge bg-primary text-white",
+    //       };
+    //     }
+    //   }
 
-      // Fallback to the status stored in the item
-      return {
-        text: item.status || "Not Allocated",
-        class: item.statusClass || "badge bg-info text-white",
-      };
+    //   // Fallback to the status stored in the item
+    //   return {
+    //     text: item.status || "Not Allocated",
+    //     class: item.statusClass || "badge bg-info text-white",
+    //   };
+    // };
+
+const getStatusDisplay = (item) => {
+  // If completed, always show completed
+  if (item.status === "Completed") {
+    return {
+      text: "Completed",
+      class: "badge bg-success text-white",
     };
+  }
+
+  // If no allocations at all
+  if (!item.allocations || item.allocations.length === 0) {
+    return {
+      text: "Not Allocated",
+      class: "badge bg-info text-white",
+    };
+  }
+
+  const process = item.allocations[0];
+  if (!process.allocations || process.allocations.length === 0) {
+    return {
+      text: "Not Allocated",
+      class: "badge bg-info text-white",
+    };
+  }
+
+  const allocation = process.allocations[0];
+
+  // ✅ If allocated but no daily tracking yet → show "Allocated"
+  if (!allocation.dailyTracking || allocation.dailyTracking.length === 0) {
+    return {
+      text: "Allocated",
+      class: "badge bg-warning text-dark",
+    };
+  }
+
+  // If there is tracking, show last status
+  const lastTracking =
+    allocation.dailyTracking[allocation.dailyTracking.length - 1];
+
+  if (lastTracking.dailyStatus === "Delayed") {
+    return {
+      text: "Delayed",
+      class: "badge bg-danger text-white",
+    };
+  } else if (lastTracking.dailyStatus === "Ahead") {
+    return {
+      text: "Ahead",
+      class: "badge bg-success-subtle text-success",
+    };
+  } else if (lastTracking.dailyStatus === "On Track") {
+    return {
+      text: "On Track",
+      class: "badge bg-primary text-white",
+    };
+  }
+
+  // fallback
+  return {
+    text: "Allocated",
+    class: "badge bg-warning text-dark",
+  };
+};
+
 
     const filteredPartsListItems =
       statusFilter === "all"
@@ -951,7 +1015,7 @@ const PartsTable = React.memo(
               <option value="Delayed">Delayed</option>
               <option value="Ahead">Ahead</option>
               <option value="Allocated">Allocated</option>
-              <option value="Completed">Completed</option> {/* ✅ New Option */}
+              <option value="Completed">Completed</option> 
             </Input>
           </div>
 

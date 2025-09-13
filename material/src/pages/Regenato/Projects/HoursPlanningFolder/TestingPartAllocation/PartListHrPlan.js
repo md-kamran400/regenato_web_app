@@ -47,6 +47,7 @@ import {
   FiHome,
   FiUser,
 } from "react-icons/fi";
+import { Spinner } from "reactstrap";
 
 export const PartListHrPlan = ({
   partName,
@@ -86,7 +87,8 @@ export const PartListHrPlan = ({
   const [isApproved, setIsApproved] = useState(false);
   const [isLoadingBlankStore, setIsLoadingBlankStore] = useState(true);
   const [blankStoreError, setBlankStoreError] = useState(null);
-  const [blankStoreStatus, setBlankStoreStatus] = useState(null); // 'found', 'not_found', 'wrong_warehouse', 'error'
+  const [blankStoreStatus, setBlankStoreStatus] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Function to fetch blank store quantity from API
   const fetchBlankStoreQuantity = async () => {
@@ -94,44 +96,55 @@ export const PartListHrPlan = ({
       setIsLoadingBlankStore(true);
       setBlankStoreError(null);
       setBlankStoreStatus(null);
-      
-      const response = await axios.get(`${process.env.REACT_APP_BASE_URL}/api/ClsIncoming`)
-      
+
+      const response = await axios.get(
+        `${process.env.REACT_APP_BASE_URL}/api/ClsIncoming`
+      );
+
       if (response.data && Array.isArray(response.data)) {
         // Find the item that matches our part code (ItemCode should match partsCodeId)
-        const item = response.data.find(item => item.ItemCode === partsCodeId);
-        
+        const item = response.data.find(
+          (item) => item.ItemCode === partsCodeId
+        );
+
         if (item) {
           // Check if the item is in BLNK warehouse
           if (item.Warehouse === "BLNK") {
             const onhandQuantity = parseFloat(item.Onhand) || 0;
             setBlankStoreQty(onhandQuantity);
-            setBlankStoreStatus('found');
-            console.log(`Found blank store quantity for ItemCode ${partsCodeId}: ${onhandQuantity}`);
+            setBlankStoreStatus("found");
+            console.log(
+              `Found blank store quantity for ItemCode ${partsCodeId}: ${onhandQuantity}`
+            );
           } else {
             // Item found but not in BLNK warehouse
             setBlankStoreQty(0);
-            setBlankStoreStatus('wrong_warehouse');
-            console.log(`Item ${partsCodeId} found but not in BLNK warehouse. Current warehouse: ${item.Warehouse}`);
+            setBlankStoreStatus("wrong_warehouse");
+            console.log(
+              `Item ${partsCodeId} found but not in BLNK warehouse. Current warehouse: ${item.Warehouse}`
+            );
           }
         } else {
           // Item not found in API response
           setBlankStoreQty(0);
-          setBlankStoreStatus('not_found');
+          setBlankStoreStatus("not_found");
           console.log(`ItemCode ${partsCodeId} not found in API response`);
-          console.log('Available ItemCodes:', response.data.map(item => item.ItemCode));
+          console.log(
+            "Available ItemCodes:",
+            response.data.map((item) => item.ItemCode)
+          );
         }
       } else {
         setBlankStoreQty(0);
-        setBlankStoreStatus('error');
-        console.log('Invalid API response format - expected array');
+        setBlankStoreStatus("error");
+        console.log("Invalid API response format - expected array");
       }
     } catch (error) {
-      console.error('Error fetching blank store quantity:', error);
-      setBlankStoreError('Failed to fetch blank store quantity');
+      console.error("Error fetching blank store quantity:", error);
+      setBlankStoreError("Failed to fetch blank store quantity");
       setBlankStoreQty(0);
-      setBlankStoreStatus('error');
-      toast.error('Failed to fetch blank store quantity from API');
+      setBlankStoreStatus("error");
+      toast.error("Failed to fetch blank store quantity from API");
     } finally {
       setIsLoadingBlankStore(false);
     }
@@ -1447,7 +1460,8 @@ export const PartListHrPlan = ({
       if (Array.isArray(firstProcessRows)) {
         for (const r of firstProcessRows) {
           // Direct fields on row
-          let candidate = (r && (r.warehouseId || r.wareHouseId || r.wareHouse)) || "";
+          let candidate =
+            (r && (r.warehouseId || r.wareHouseId || r.wareHouse)) || "";
           if (candidate && candidate !== "N/A") {
             whsCode = candidate;
             break;
@@ -1455,12 +1469,24 @@ export const PartListHrPlan = ({
 
           // Fallback: derive from machine options using machineId and first process categoryId
           if (r && r.machineId) {
-            const firstProcessCategoryId = Array.isArray(manufacturingVariables) && manufacturingVariables.length > 0 ? manufacturingVariables[0]?.categoryId : undefined;
-            const machinesForProcess = (firstProcessCategoryId && machineOptions[firstProcessCategoryId]) ? machineOptions[firstProcessCategoryId] : [];
+            const firstProcessCategoryId =
+              Array.isArray(manufacturingVariables) &&
+              manufacturingVariables.length > 0
+                ? manufacturingVariables[0]?.categoryId
+                : undefined;
+            const machinesForProcess =
+              firstProcessCategoryId && machineOptions[firstProcessCategoryId]
+                ? machineOptions[firstProcessCategoryId]
+                : [];
             const matchedMachine = Array.isArray(machinesForProcess)
               ? machinesForProcess.find((m) => m?.subcategoryId === r.machineId)
               : null;
-            candidate = (matchedMachine && (matchedMachine.warehouseId || matchedMachine.wareHouseId || matchedMachine.wareHouse)) || "";
+            candidate =
+              (matchedMachine &&
+                (matchedMachine.warehouseId ||
+                  matchedMachine.wareHouseId ||
+                  matchedMachine.wareHouse)) ||
+              "";
             if (candidate && candidate !== "N/A") {
               whsCode = candidate;
               break;
@@ -1474,7 +1500,9 @@ export const PartListHrPlan = ({
         return;
       }
       if (!whsCode) {
-        toast.error("Warehouse not set for the first process. Ensure start date and machine are selected.");
+        toast.error(
+          "Warehouse not set for the first process. Ensure start date and machine are selected."
+        );
         return;
       }
 
@@ -1562,12 +1590,16 @@ export const PartListHrPlan = ({
           timeout: 15000,
         });
 
-        const invMsg = typeof inventoryResp?.data === "string"
-          ? inventoryResp.data
-          : (inventoryResp?.data?.message || "Inventory posted successfully");
+        const invMsg =
+          typeof inventoryResp?.data === "string"
+            ? inventoryResp.data
+            : inventoryResp?.data?.message || "Inventory posted successfully";
         toast.success(invMsg);
       } catch (invErr) {
-        const errMsg = invErr?.response?.data?.error || invErr?.message || "Failed to post Inventory";
+        const errMsg =
+          invErr?.response?.data?.error ||
+          invErr?.message ||
+          "Failed to post Inventory";
         toast.error(errMsg);
         return; // Abort allocation submission if inventory post fails
       }
@@ -1906,15 +1938,21 @@ export const PartListHrPlan = ({
       return;
     }
     if (blankStoreError) {
-      toast.error("Cannot approve: Failed to fetch blank store quantity. Please retry.");
+      toast.error(
+        "Cannot approve: Failed to fetch blank store quantity. Please retry."
+      );
       return;
     }
-    if (blankStoreStatus === 'not_found') {
-      toast.error(`Cannot approve: ItemCode ${partsCodeId} not found in API response.`);
+    if (blankStoreStatus === "not_found") {
+      toast.error(
+        `Cannot approve: ItemCode ${partsCodeId} not found in API response.`
+      );
       return;
     }
-    if (blankStoreStatus === 'wrong_warehouse') {
-      toast.error(`Cannot approve: ItemCode ${partsCodeId} found but not in BLNK warehouse.`);
+    if (blankStoreStatus === "wrong_warehouse") {
+      toast.error(
+        `Cannot approve: ItemCode ${partsCodeId} found but not in BLNK warehouse.`
+      );
       return;
     }
     if (blankStoreQty <= 0) {
@@ -2081,13 +2119,13 @@ export const PartListHrPlan = ({
                   <FaStoreAlt style={{ color: "#f59e0b" }} />
                   <span>Quantity in Blank Store:</span>
                   {!isLoadingBlankStore && !blankStoreError && (
-                    <FiInfo 
-                      style={{ 
-                        cursor: "pointer", 
-                        fontSize: "12px", 
+                    <FiInfo
+                      style={{
+                        cursor: "pointer",
+                        fontSize: "12px",
                         color: "#64748b",
-                        marginLeft: "4px"
-                      }} 
+                        marginLeft: "4px",
+                      }}
                       title={`Fetched from API - ItemCode: ${partsCodeId}, Warehouse: BLNK, Onhand: ${blankStoreQty}`}
                     />
                   )}
@@ -2168,7 +2206,13 @@ export const PartListHrPlan = ({
                 <Button
                   color={isApproved ? "success" : "primary"}
                   onClick={openApproveModal}
-                  disabled={isApproved || isLoadingBlankStore || blankStoreError || blankStoreStatus !== 'found' || quantity > blankStoreQty}
+                  disabled={
+                    isApproved ||
+                    isLoadingBlankStore ||
+                    blankStoreError ||
+                    blankStoreStatus !== "found" ||
+                    quantity > blankStoreQty
+                  }
                   style={{
                     display: "flex",
                     alignItems: "center",
@@ -2180,7 +2224,7 @@ export const PartListHrPlan = ({
                     ":hover": {
                       transform: "translateY(-1px)",
                     },
-                    maxWidth:'150px'
+                    maxWidth: "150px",
                   }}
                 >
                   {isApproved ? (
@@ -2226,61 +2270,69 @@ export const PartListHrPlan = ({
                   }}
                 >
                   <div style={{ fontSize: "12px", color: "#dc2626" }}>
-                    ❌ Failed to fetch blank store quantity for ItemCode: {partsCodeId}. Click refresh to retry.
+                    ❌ Failed to fetch blank store quantity for ItemCode:{" "}
+                    {partsCodeId}. Click refresh to retry.
                   </div>
                 </div>
               )}
-              {!isLoadingBlankStore && !blankStoreError && blankStoreStatus === 'found' && (
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px",
-                    padding: "8px 12px",
-                    background: "#ecfdf5",
-                    borderRadius: "6px",
-                    borderLeft: "4px solid #10b981",
-                  }}
-                >
-                  <div style={{ fontSize: "12px", color: "#065f46" }}>
-                    ✅ Blank store quantity loaded from API (ItemCode: {partsCodeId})
+              {!isLoadingBlankStore &&
+                !blankStoreError &&
+                blankStoreStatus === "found" && (
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      padding: "8px 12px",
+                      background: "#ecfdf5",
+                      borderRadius: "6px",
+                      borderLeft: "4px solid #10b981",
+                    }}
+                  >
+                    <div style={{ fontSize: "12px", color: "#065f46" }}>
+                      ✅ Blank store quantity loaded from API (ItemCode:{" "}
+                      {partsCodeId})
+                    </div>
                   </div>
-                </div>
-              )}
-              {!isLoadingBlankStore && !blankStoreError && blankStoreStatus === 'not_found' && (
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px",
-                    padding: "8px 12px",
-                    background: "#fef3c7",
-                    borderRadius: "6px",
-                    borderLeft: "4px solid #f59e0b",
-                  }}
-                >
-                  <div style={{ fontSize: "12px", color: "#92400e" }}>
-                    ⚠️ ItemCode {partsCodeId} not found in API response
+                )}
+              {!isLoadingBlankStore &&
+                !blankStoreError &&
+                blankStoreStatus === "not_found" && (
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      padding: "8px 12px",
+                      background: "#fef3c7",
+                      borderRadius: "6px",
+                      borderLeft: "4px solid #f59e0b",
+                    }}
+                  >
+                    <div style={{ fontSize: "12px", color: "#92400e" }}>
+                      ⚠️ ItemCode {partsCodeId} not found in API response
+                    </div>
                   </div>
-                </div>
-              )}
-              {!isLoadingBlankStore && !blankStoreError && blankStoreStatus === 'wrong_warehouse' && (
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px",
-                    padding: "8px 12px",
-                    background: "#fef3c7",
-                    borderRadius: "6px",
-                    borderLeft: "4px solid #f59e0b",
-                  }}
-                >
-                  <div style={{ fontSize: "12px", color: "#92400e" }}>
-                    ⚠️ ItemCode {partsCodeId} found but not in BLNK warehouse
+                )}
+              {!isLoadingBlankStore &&
+                !blankStoreError &&
+                blankStoreStatus === "wrong_warehouse" && (
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      padding: "8px 12px",
+                      background: "#fef3c7",
+                      borderRadius: "6px",
+                      borderLeft: "4px solid #f59e0b",
+                    }}
+                  >
+                    <div style={{ fontSize: "12px", color: "#92400e" }}>
+                      ⚠️ ItemCode {partsCodeId} found but not in BLNK warehouse
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
               <div
                 style={{
@@ -3425,7 +3477,9 @@ export const PartListHrPlan = ({
                                         wareHouse: newValue
                                           ? newValue.wareHouse
                                           : "",
-                                        warehouseId: newValue ? newValue.warehouseId : "",
+                                        warehouseId: newValue
+                                          ? newValue.warehouseId
+                                          : "",
                                       };
 
                                       if (
@@ -3735,16 +3789,37 @@ export const PartListHrPlan = ({
         <ModalFooter>
           <Button
             color="primary"
-            onClick={() => {
-              handleSubmit();
-              setIsConfirmationModalOpen(false);
+            onClick={async () => {
+              setIsSubmitting(true);
+              try {
+                await handleSubmit(); // assume this is async
+                setIsConfirmationModalOpen(false); // close only after success
+              } catch (err) {
+                console.error(err);
+                toast.error("Something went wrong!");
+              } finally {
+                setIsSubmitting(false);
+              }
             }}
+            disabled={isSubmitting} // disable button while loading
           >
-            Confirm
+            {isSubmitting ? (
+              <span className="d-flex align-items-center gap-2">
+                <Spinner
+                  style={{ width: "0.6rem", height: "0.6rem" }}
+                  color="light"
+                />
+                Processing...
+              </span>
+            ) : (
+              "Confirm"
+            )}
           </Button>
+
           <Button
             color="secondary"
             onClick={() => setIsConfirmationModalOpen(false)}
+            disabled={isSubmitting} // optional
           >
             Cancel
           </Button>
@@ -3767,8 +3842,12 @@ export const PartListHrPlan = ({
           </p>
           <p>
             <strong>Blank Store Quantity:</strong> {blankStoreQty}
-            {isLoadingBlankStore && <span style={{ color: "#f59e0b" }}> (Loading...)</span>}
-            {blankStoreError && <span style={{ color: "#dc2626" }}> (Error)</span>}
+            {isLoadingBlankStore && (
+              <span style={{ color: "#f59e0b" }}> (Loading...)</span>
+            )}
+            {blankStoreError && (
+              <span style={{ color: "#dc2626" }}> (Error)</span>
+            )}
           </p>
           {isLoadingBlankStore ? (
             <p style={{ color: "#f59e0b" }}>
@@ -3778,13 +3857,14 @@ export const PartListHrPlan = ({
             <p style={{ color: "#dc2626" }}>
               Cannot approve: Failed to fetch blank store quantity.
             </p>
-          ) : blankStoreStatus === 'not_found' ? (
+          ) : blankStoreStatus === "not_found" ? (
             <p style={{ color: "#dc2626" }}>
               Cannot approve: ItemCode {partsCodeId} not found in API response.
             </p>
-          ) : blankStoreStatus === 'wrong_warehouse' ? (
+          ) : blankStoreStatus === "wrong_warehouse" ? (
             <p style={{ color: "#dc2626" }}>
-              Cannot approve: ItemCode {partsCodeId} found but not in BLNK warehouse.
+              Cannot approve: ItemCode {partsCodeId} found but not in BLNK
+              warehouse.
             </p>
           ) : quantity <= blankStoreQty ? (
             <p style={{ color: "green" }}>
@@ -3800,7 +3880,12 @@ export const PartListHrPlan = ({
           <Button
             color="primary"
             onClick={handleApprove}
-            disabled={quantity > blankStoreQty || isLoadingBlankStore || blankStoreError || blankStoreStatus !== 'found'}
+            disabled={
+              quantity > blankStoreQty ||
+              isLoadingBlankStore ||
+              blankStoreError ||
+              blankStoreStatus !== "found"
+            }
           >
             Confirm Approval
           </Button>
