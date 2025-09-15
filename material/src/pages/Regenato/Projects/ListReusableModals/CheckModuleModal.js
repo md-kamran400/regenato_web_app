@@ -15,7 +15,6 @@ import { toast } from "react-toastify";
 const CheckModuleModal = ({ isOpen, toggle, onSuccess,existingProjects }) => {
   const [products, setProducts] = useState([]);
   const [parts, setParts] = useState([]);
-  const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
@@ -52,7 +51,7 @@ const CheckModuleModal = ({ isOpen, toggle, onSuccess,existingProjects }) => {
       const pageSize = 100;
       let hasMore = true;
 
-      while (hasMore && allParts.length < 2000) {
+      while (hasMore) {
         const partsRes = await fetch(
           `${process.env.REACT_APP_BASE_URL}/api/parts?page=${page}&limit=${pageSize}`
         );
@@ -66,20 +65,14 @@ const CheckModuleModal = ({ isOpen, toggle, onSuccess,existingProjects }) => {
         } else {
           allParts.push(...partsArray);
           page++;
-          setFetchProgress(40 + (allParts.length / 2000) * 25);
+          // progress tick without hard cap
+          setFetchProgress((prev) => Math.min(65, prev + 0.5));
         }
       }
       setParts(allParts);
       setFetchProgress(65);
 
-      // Step 3: Fetch projects data
-      setFetchProgress(70);
-      const projectsRes = await fetch(
-        `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects`
-      );
-      if (!projectsRes.ok) throw new Error("Failed to fetch projects");
-      const projectsData = await projectsRes.json();
-      setProjects(Array.isArray(projectsData) ? projectsData : []);
+      // Step 3: Finalize
       setFetchProgress(90);
 
       setIsInitialized(true);
@@ -100,7 +93,6 @@ const CheckModuleModal = ({ isOpen, toggle, onSuccess,existingProjects }) => {
       setIsInitialized(false);
       setParts([]);
       setProducts([]);
-      setProjects([]);
       setSelectedMissing(new Set());
       setSelectedAvailable(new Set());
     }
@@ -115,62 +107,62 @@ const CheckModuleModal = ({ isOpen, toggle, onSuccess,existingProjects }) => {
     return set;
   }, [parts]);
 
-  const projectsItemCodeSet = useMemo(() => {
+  // Existing project names (PO numbers) passed from parent
+  const existingProjectNameSet = useMemo(() => {
     const set = new Set();
-    for (const proj of projects) {
-      if (proj && proj.selectedPartId) {
-        // Find the part by _id to get its ItemCode
-        const part = parts.find((p) => p._id === proj.selectedPartId);
-        if (part && part.id) {
-          set.add(String(part.id).trim().toLowerCase());
-        }
-      }
+    for (const p of existingProjects || []) {
+      const name = String(p.projectName || "").trim().toLowerCase();
+      if (name) set.add(name);
     }
     return set;
-  }, [projects, parts]);
+  }, [existingProjects]);
 
-  const filteredProducts = useMemo(() => {
-    if (!query || query.trim() === "") return products;
-    const q = query.toLowerCase().trim();
-    if (q.length < 2) return products;
+  // Query intent: numeric => DocNum (left), otherwise => ItemCode (right)
+  const queryFlags = useMemo(() => {
+    const q = String(query || "").trim().toLowerCase();
+    const isDocQuery = q.length >= 2 && /^\d+$/.test(q);
+    const isItemCodeQuery = q.length >= 2 && !isDocQuery;
+    return { q, isDocQuery, isItemCodeQuery };
+  }, [query]);
 
-    return products.filter((prod) => {
-      const name = String(prod.ProdName || "").toLowerCase();
-      const code = String(prod.ItemCode || "").toLowerCase();
-      const doc = String(prod.DocNum || "").toLowerCase();
-      if (name === q || code === q || doc === q) return true;
-      return name.includes(q) || code.includes(q) || doc.includes(q);
-    });
-  }, [products, query]);
+  // Right: Not available parts by ItemCode only
+  const missing = useMemo(() => {
+    const { q, isDocQuery, isItemCodeQuery } = queryFlags;
+    const source = isDocQuery
+      ? products
+      : isItemCodeQuery
+      ? products.filter((prod) =>
+          String(prod.ItemCode || "").toLowerCase().includes(q)
+        )
+      : products;
 
-  // Updated categorization logic
-  const { available, missing } = useMemo(() => {
-    if (filteredProducts.length === 0) return { available: [], missing: [] };
-    if (partsIdSet.size === 0 && projectsItemCodeSet.size === 0)
-      return { available: [], missing: filteredProducts };
-
-    const availableList = [];
-    const missingList = [];
-
-    for (const prod of filteredProducts) {
-      const code = String(prod.ItemCode || "")
-        .trim()
-        .toLowerCase();
+    const list = [];
+    for (const prod of source) {
+      const code = String(prod.ItemCode || "").trim().toLowerCase();
       if (!code) continue;
-
-      // Check if available in parts OR already in projects
-      const isInParts = partsIdSet.has(code);
-      const isInProjects = projectsItemCodeSet.has(code);
-
-      if (isInParts || isInProjects) {
-        availableList.push(prod);
-      } else {
-        missingList.push(prod);
-      }
+      if (!partsIdSet.has(code)) list.push(prod);
     }
+    return list;
+  }, [products, partsIdSet, queryFlags]);
 
-    return { available: availableList, missing: missingList };
-  }, [filteredProducts, partsIdSet, projectsItemCodeSet]);
+  // Left: Not available PO (can create) -> ItemCode exists in parts AND DocNum not in existing projects
+  const available = useMemo(() => {
+    const { q, isDocQuery, isItemCodeQuery } = queryFlags;
+    const source = isItemCodeQuery
+      ? products
+      : isDocQuery
+      ? products.filter((prod) => String(prod.DocNum ?? "").toLowerCase() === q)
+      : products;
+
+    const list = [];
+    for (const prod of source) {
+      const code = String(prod.ItemCode || "").trim().toLowerCase();
+      const doc = String(prod.DocNum || "").trim().toLowerCase();
+      if (!code || !doc) continue;
+      if (partsIdSet.has(code) && !existingProjectNameSet.has(doc)) list.push(prod);
+    }
+    return list;
+  }, [products, partsIdSet, existingProjectNameSet, queryFlags]);
 
   const currentMissingCodes = useMemo(
     () =>
@@ -216,7 +208,7 @@ const CheckModuleModal = ({ isOpen, toggle, onSuccess,existingProjects }) => {
   const currentAvailableCodes = useMemo(
     () =>
       available.map((p) =>
-        String(p.ItemCode || "")
+        String(p.DocNum || "")
           .trim()
           .toLowerCase()
       ),
@@ -229,8 +221,8 @@ const CheckModuleModal = ({ isOpen, toggle, onSuccess,existingProjects }) => {
     [currentAvailableCodes, selectedAvailable]
   );
 
-  const toggleSelectAvailable = (code) => {
-    const normalized = String(code || "")
+  const toggleSelectAvailable = (docNum) => {
+    const normalized = String(docNum || "")
       .trim()
       .toLowerCase();
     setSelectedAvailable((prev) => {
@@ -353,110 +345,6 @@ const CheckModuleModal = ({ isOpen, toggle, onSuccess,existingProjects }) => {
     }
   };
 
-  // const handleAddSelectedPOs = async () => {
-  //   if (selectedAvailable.size === 0 || isCreatingPOs) return;
-  //   setIsCreatingPOs(true);
-  //   try {
-  //     const idToPart = new Map(
-  //       parts.map((p) => [
-  //         String(p.id || "")
-  //           .trim()
-  //           .toLowerCase(),
-  //         p,
-  //       ])
-  //     );
-
-  //     const selectedProducts = available.filter((prod) =>
-  //       selectedAvailable.has(
-  //         String(prod.ItemCode || "")
-  //           .trim()
-  //           .toLowerCase()
-  //       )
-  //     );
-
-  //     if (selectedProducts.length === 0) {
-  //       toast.info("No products selected.");
-  //       setIsCreatingPOs(false);
-  //       return;
-  //     }
-
-  //     const requests = selectedProducts.map((prod) => {
-  //       const code = String(prod.ItemCode || "")
-  //         .trim()
-  //         .toLowerCase();
-  //       const matchedPart = idToPart.get(code);
-  //       if (!matchedPart || !matchedPart._id) {
-  //         return Promise.resolve({ ok: false, _skipped: true });
-  //       }
-  //       const payload = {
-  //         projectName: String(prod.DocNum || ""),
-  //         projectType: "External PO",
-  //         selectedPartId: matchedPart._id,
-  //         selectedPartName: prod.ProdName || matchedPart.partName || "",
-  //         partQuantity: prod.PlannedQty || 0,
-  //       };
-  //       return fetch(
-  //         `${process.env.REACT_APP_BASE_URL}/api/defpartproject/production_part`,
-  //         {
-  //           method: "POST",
-  //           headers: { "Content-Type": "application/json" },
-  //           body: JSON.stringify(payload),
-  //         }
-  //       );
-  //     });
-
-  //     const results = await Promise.allSettled(requests);
-  //     let successCount = 0;
-  //     let skipped = 0;
-  //     let failed = 0;
-
-  //     for (const r of results) {
-  //       if (r.status === "fulfilled") {
-  //         if (r.value._skipped) skipped++;
-  //         else if (r.value.ok) successCount++;
-  //         else failed++;
-  //       } else failed++;
-  //     }
-
-  //     if (successCount) {
-  //       toast.success(`Created ${successCount} project(s).`);
-
-  //       // 🔑 fetch newly created projects and pass them to parent
-  //       try {
-  //         const newRes = await fetch(
-  //           `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects`
-  //         );
-  //         if (newRes.ok) {
-  //           const allProjects = await newRes.json();
-  //           // Take latest N = successCount projects (since they’re sorted by createdAt usually)
-  //           const justCreated = allProjects
-  //             .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-  //             .slice(0, successCount);
-
-  //           if (onSuccess) onSuccess(justCreated);
-  //         }
-  //       } catch (err) {
-  //         console.error("Failed to fetch new projects:", err);
-  //       }
-  //     }
-
-  //     if (skipped) toast.info(`${skipped} item(s) skipped (no matching part).`);
-  //     if (failed) toast.error(`${failed} creation(s) failed.`);
-
-  //     // Clear selections
-  //     setSelectedAvailable(new Set());
-
-  //     // Refresh modal data internally
-  //     setTimeout(() => {
-  //       setIsInitialized(false);
-  //       fetchDataOptimized();
-  //     }, 1000);
-  //   } catch (err) {
-  //     toast.error(`Add PO failed: ${err.message}`);
-  //   } finally {
-  //     setIsCreatingPOs(false);
-  //   }
-  // };
 
   const handleAddSelectedPOs = async () => {
   if (selectedAvailable.size === 0 || isCreatingPOs) return;
@@ -481,11 +369,7 @@ const CheckModuleModal = ({ isOpen, toggle, onSuccess,existingProjects }) => {
     // ✅ Filter out already existing POs
     const selectedProducts = available.filter((prod) => {
       const poName = String(prod.DocNum || "").trim().toLowerCase();
-      return (
-        selectedAvailable.has(
-          String(prod.ItemCode || "").trim().toLowerCase()
-        ) && !existingNames.has(poName)
-      );
+      return selectedAvailable.has(poName) && !existingNames.has(poName);
     });
 
     if (selectedProducts.length === 0) {
@@ -613,13 +497,13 @@ const CheckModuleModal = ({ isOpen, toggle, onSuccess,existingProjects }) => {
           </div>
           <div className="d-flex align-items-center gap-2">
             <Badge color="success" pill>
-              Available: {available.length}
+              Not Available PO: {available.length}
             </Badge>
             <Badge color="danger" pill>
-              Not Available: {missing.length}
+              Not Available Parts: {missing.length}
             </Badge>
             <Badge color="info" pill>
-              Total: {filteredProducts.length}
+              Total: {available.length + missing.length}
             </Badge>
           </div>
         </div>
@@ -652,7 +536,7 @@ const CheckModuleModal = ({ isOpen, toggle, onSuccess,existingProjects }) => {
               <div className="card h-100" style={{ height: "100%" }}>
                 <div className="card-header bg-success-subtle d-flex justify-content-between align-items-center">
                   <div className="d-flex align-items-center gap-2">
-                    <strong>Available (Parts + Projects)</strong>
+                    <strong>Not Available PO (createable)</strong>
                     <Badge color="success">{available.length}</Badge>
                   </div>
                   <div className="d-flex align-items-center gap-3">
@@ -704,7 +588,7 @@ const CheckModuleModal = ({ isOpen, toggle, onSuccess,existingProjects }) => {
                   ) : (
                     <div className="table-responsive">
                       <table className="table table-sm table-hover mb-0">
-                        <thead className="table-light">
+                        {/* <thead className="table-light">
                           <tr>
                             <th style={{ width: "36px" }}>
                               <input
@@ -716,13 +600,13 @@ const CheckModuleModal = ({ isOpen, toggle, onSuccess,existingProjects }) => {
                             </th>
                             <th>Name</th>
                           </tr>
-                        </thead>
+                        </thead> */}
                         <tbody>
                           {available.map((prod, idx) => {
-                            const code = String(prod.ItemCode || "")
+                            const key = String(prod.DocNum || "")
                               .trim()
                               .toLowerCase();
-                            const checked = selectedAvailable.has(code);
+                            const checked = selectedAvailable.has(key);
                             return (
                               <tr key={`a-${idx}`}>
                                 <td>
@@ -730,13 +614,11 @@ const CheckModuleModal = ({ isOpen, toggle, onSuccess,existingProjects }) => {
                                     className="form-check-input"
                                     type="checkbox"
                                     checked={checked}
-                                    onChange={() => toggleSelectAvailable(code)}
+                                    onChange={() => toggleSelectAvailable(key)}
                                   />
                                 </td>
                                 <td className="fw-semibold">
-                                  {`${prod.ProdName || ""} - ${
-                                    prod.DocNum || ""
-                                  }`}
+                                  {`${prod.ProdName || ""} - ${prod.DocNum || ""}`}
                                 </td>
                               </tr>
                             );
@@ -752,7 +634,7 @@ const CheckModuleModal = ({ isOpen, toggle, onSuccess,existingProjects }) => {
               <div className="card h-100" style={{ height: "100%" }}>
                 <div className="card-header bg-danger-subtle d-flex justify-content-between align-items-center">
                   <div className="d-flex align-items-center gap-2">
-                    <strong>Not Available (Missing from Both)</strong>
+                    <strong>Not Available Parts</strong>
                     <Badge color="danger">{missing.length}</Badge>
                   </div>
                   <div className="d-flex align-items-center gap-3">
@@ -814,9 +696,7 @@ const CheckModuleModal = ({ isOpen, toggle, onSuccess,existingProjects }) => {
                                 checked={checked}
                                 onChange={() => toggleSelectMissing(code)}
                               />
-                              <span>{`${prod.ProdName || ""} - ${
-                                prod.DocNum || ""
-                              }`}</span>
+                              <span>{`${prod.ProdName || ""} - ${String(prod.ItemCode || "")}`}</span>
                             </div>
                           </li>
                         );
