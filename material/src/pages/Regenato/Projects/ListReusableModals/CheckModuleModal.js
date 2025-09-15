@@ -12,7 +12,7 @@ import {
 } from "reactstrap";
 import { toast } from "react-toastify";
 
-const CheckModuleModal = ({ isOpen, toggle }) => {
+const CheckModuleModal = ({ isOpen, toggle, onSuccess,existingProjects }) => {
   const [products, setProducts] = useState([]);
   const [parts, setParts] = useState([]);
   const [projects, setProjects] = useState([]);
@@ -353,88 +353,221 @@ const CheckModuleModal = ({ isOpen, toggle }) => {
     }
   };
 
+  // const handleAddSelectedPOs = async () => {
+  //   if (selectedAvailable.size === 0 || isCreatingPOs) return;
+  //   setIsCreatingPOs(true);
+  //   try {
+  //     const idToPart = new Map(
+  //       parts.map((p) => [
+  //         String(p.id || "")
+  //           .trim()
+  //           .toLowerCase(),
+  //         p,
+  //       ])
+  //     );
+
+  //     const selectedProducts = available.filter((prod) =>
+  //       selectedAvailable.has(
+  //         String(prod.ItemCode || "")
+  //           .trim()
+  //           .toLowerCase()
+  //       )
+  //     );
+
+  //     if (selectedProducts.length === 0) {
+  //       toast.info("No products selected.");
+  //       setIsCreatingPOs(false);
+  //       return;
+  //     }
+
+  //     const requests = selectedProducts.map((prod) => {
+  //       const code = String(prod.ItemCode || "")
+  //         .trim()
+  //         .toLowerCase();
+  //       const matchedPart = idToPart.get(code);
+  //       if (!matchedPart || !matchedPart._id) {
+  //         return Promise.resolve({ ok: false, _skipped: true });
+  //       }
+  //       const payload = {
+  //         projectName: String(prod.DocNum || ""),
+  //         projectType: "External PO",
+  //         selectedPartId: matchedPart._id,
+  //         selectedPartName: prod.ProdName || matchedPart.partName || "",
+  //         partQuantity: prod.PlannedQty || 0,
+  //       };
+  //       return fetch(
+  //         `${process.env.REACT_APP_BASE_URL}/api/defpartproject/production_part`,
+  //         {
+  //           method: "POST",
+  //           headers: { "Content-Type": "application/json" },
+  //           body: JSON.stringify(payload),
+  //         }
+  //       );
+  //     });
+
+  //     const results = await Promise.allSettled(requests);
+  //     let successCount = 0;
+  //     let skipped = 0;
+  //     let failed = 0;
+
+  //     for (const r of results) {
+  //       if (r.status === "fulfilled") {
+  //         if (r.value._skipped) skipped++;
+  //         else if (r.value.ok) successCount++;
+  //         else failed++;
+  //       } else failed++;
+  //     }
+
+  //     if (successCount) {
+  //       toast.success(`Created ${successCount} project(s).`);
+
+  //       // 🔑 fetch newly created projects and pass them to parent
+  //       try {
+  //         const newRes = await fetch(
+  //           `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects`
+  //         );
+  //         if (newRes.ok) {
+  //           const allProjects = await newRes.json();
+  //           // Take latest N = successCount projects (since they’re sorted by createdAt usually)
+  //           const justCreated = allProjects
+  //             .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+  //             .slice(0, successCount);
+
+  //           if (onSuccess) onSuccess(justCreated);
+  //         }
+  //       } catch (err) {
+  //         console.error("Failed to fetch new projects:", err);
+  //       }
+  //     }
+
+  //     if (skipped) toast.info(`${skipped} item(s) skipped (no matching part).`);
+  //     if (failed) toast.error(`${failed} creation(s) failed.`);
+
+  //     // Clear selections
+  //     setSelectedAvailable(new Set());
+
+  //     // Refresh modal data internally
+  //     setTimeout(() => {
+  //       setIsInitialized(false);
+  //       fetchDataOptimized();
+  //     }, 1000);
+  //   } catch (err) {
+  //     toast.error(`Add PO failed: ${err.message}`);
+  //   } finally {
+  //     setIsCreatingPOs(false);
+  //   }
+  // };
+
   const handleAddSelectedPOs = async () => {
-    if (selectedAvailable.size === 0 || isCreatingPOs) return;
-    setIsCreatingPOs(true);
-    try {
-      const idToPart = new Map(
-        parts.map((p) => [
-          String(p.id || "")
-            .trim()
-            .toLowerCase(),
-          p,
-        ])
-      );
+  if (selectedAvailable.size === 0 || isCreatingPOs) return;
+  setIsCreatingPOs(true);
+  try {
+    // ✅ Build set of existing PO names
+    const existingNames = new Set(
+      (existingProjects || []).map((p) =>
+        String(p.projectName || "").trim().toLowerCase()
+      )
+    );
 
-      const selectedProducts = available.filter((prod) =>
-        selectedAvailable.has(
-          String(prod.ItemCode || "")
-            .trim()
-            .toLowerCase()
-        )
-      );
-
-      if (selectedProducts.length === 0) {
-        toast.info("No products selected.");
-        setIsCreatingPOs(false);
-        return;
-      }
-
-      const requests = selectedProducts.map((prod) => {
-        const code = String(prod.ItemCode || "")
+    const idToPart = new Map(
+      parts.map((p) => [
+        String(p.id || "")
           .trim()
-          .toLowerCase();
-        const matchedPart = idToPart.get(code);
-        if (!matchedPart || !matchedPart._id) {
-          return Promise.resolve({ ok: false, _skipped: true });
-        }
-        const payload = {
-          projectName: String(prod.DocNum || ""),
-          projectType: "External PO",
-          selectedPartId: matchedPart._id,
-          selectedPartName: prod.ProdName || matchedPart.partName || "",
-          partQuantity: prod.PlannedQty || 0,
-        };
-        return fetch(
-          `${process.env.REACT_APP_BASE_URL}/api/defpartproject/production_part`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-          }
-        );
-      });
+          .toLowerCase(),
+        p,
+      ])
+    );
 
-      const results = await Promise.allSettled(requests);
-      let successCount = 0;
-      let skipped = 0;
-      let failed = 0;
-      for (const r of results) {
-        if (r.status === "fulfilled") {
-          if (r.value._skipped) skipped++;
-          else if (r.value.ok) successCount++;
-          else failed++;
-        } else failed++;
-      }
+    // ✅ Filter out already existing POs
+    const selectedProducts = available.filter((prod) => {
+      const poName = String(prod.DocNum || "").trim().toLowerCase();
+      return (
+        selectedAvailable.has(
+          String(prod.ItemCode || "").trim().toLowerCase()
+        ) && !existingNames.has(poName)
+      );
+    });
 
-      if (successCount) toast.success(`Created ${successCount} project(s).`);
-      if (skipped) toast.info(`${skipped} item(s) skipped (no matching part).`);
-      if (failed) toast.error(`${failed} creation(s) failed.`);
-
-      // Clear selections
-      setSelectedAvailable(new Set());
-
-      // Auto-refresh data to update availability
-      setTimeout(() => {
-        setIsInitialized(false);
-        fetchDataOptimized();
-      }, 1000);
-    } catch (err) {
-      toast.error(`Add PO failed: ${err.message}`);
-    } finally {
+    if (selectedProducts.length === 0) {
+      toast.error("Selected PO(s) already exist!");
       setIsCreatingPOs(false);
+      return;
     }
-  };
+
+    const requests = selectedProducts.map((prod) => {
+      const code = String(prod.ItemCode || "").trim().toLowerCase();
+      const matchedPart = idToPart.get(code);
+      if (!matchedPart || !matchedPart._id) {
+        return Promise.resolve({ ok: false, _skipped: true });
+      }
+      const payload = {
+        projectName: String(prod.DocNum || ""),
+        projectType: "External PO",
+        selectedPartId: matchedPart._id,
+        selectedPartName: prod.ProdName || matchedPart.partName || "",
+        partQuantity: prod.PlannedQty || 0,
+      };
+      return fetch(
+        `${process.env.REACT_APP_BASE_URL}/api/defpartproject/production_part`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }
+      );
+    });
+
+    const results = await Promise.allSettled(requests);
+    let successCount = 0;
+    let skipped = 0;
+    let failed = 0;
+
+    for (const r of results) {
+      if (r.status === "fulfilled") {
+        if (r.value._skipped) skipped++;
+        else if (r.value.ok) successCount++;
+        else failed++;
+      } else failed++;
+    }
+
+    if (successCount) {
+      toast.success(`Created ${successCount} project(s).`);
+
+      // 🔑 fetch newly created projects and pass them to parent
+      try {
+        const newRes = await fetch(
+          `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects`
+        );
+        if (newRes.ok) {
+          const allProjects = await newRes.json();
+          const justCreated = allProjects
+            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+            .slice(0, successCount);
+
+          if (onSuccess) onSuccess(justCreated);
+        }
+      } catch (err) {
+        console.error("Failed to fetch new projects:", err);
+      }
+    }
+
+    if (skipped) toast.info(`${skipped} item(s) skipped (no matching part).`);
+    if (failed) toast.error(`${failed} creation(s) failed.`);
+
+    // Clear selections
+    setSelectedAvailable(new Set());
+
+    // Refresh modal data internally
+    setTimeout(() => {
+      setIsInitialized(false);
+      fetchDataOptimized();
+    }, 1000);
+  } catch (err) {
+    toast.error(`Add PO failed: ${err.message}`);
+  } finally {
+    setIsCreatingPOs(false);
+  }
+};
 
   const handleRefresh = () => {
     setIsInitialized(false);
@@ -546,7 +679,15 @@ const CheckModuleModal = ({ isOpen, toggle }) => {
                     >
                       {isCreatingPOs ? (
                         <>
-                          <Spinner size="sm" className="me-1" /> Adding PO...
+                          <Spinner
+                            className="me-1"
+                            style={{
+                              width: "1rem",
+                              height: "1rem",
+                              borderWidth: "0.15em",
+                            }}
+                          />{" "}
+                          Adding PO...
                         </>
                       ) : (
                         <>Add PO ({selectedAvailable.size})</>
@@ -593,7 +734,9 @@ const CheckModuleModal = ({ isOpen, toggle }) => {
                                   />
                                 </td>
                                 <td className="fw-semibold">
-                                  {`${prod.ProdName || ""} - ${prod.DocNum || ""}`}
+                                  {`${prod.ProdName || ""} - ${
+                                    prod.DocNum || ""
+                                  }`}
                                 </td>
                               </tr>
                             );
@@ -671,7 +814,9 @@ const CheckModuleModal = ({ isOpen, toggle }) => {
                                 checked={checked}
                                 onChange={() => toggleSelectMissing(code)}
                               />
-                              <span>{`${prod.ProdName || ""} - ${prod.DocNum || ""}`}</span>
+                              <span>{`${prod.ProdName || ""} - ${
+                                prod.DocNum || ""
+                              }`}</span>
                             </div>
                           </li>
                         );

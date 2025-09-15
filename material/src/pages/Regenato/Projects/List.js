@@ -291,49 +291,49 @@ const List = () => {
   // );
 
   const fetchData = useCallback(
-  async (page = 1, pageSize = itemsPerPage) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const response = await fetch(
-        `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects?filterType=${filterType}&page=${page}&limit=${pageSize}`
-      );
+    async (page = 1, pageSize = itemsPerPage) => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const response = await fetch(
+          `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects?filterType=${filterType}&page=${page}&limit=${pageSize}`
+        );
 
-      if (!response.ok) throw new Error("Failed to fetch data");
+        if (!response.ok) throw new Error("Failed to fetch data");
 
-      const data = await response.json();
+        const data = await response.json();
 
-      const projects = Array.isArray(data)
-        ? data
-        : Array.isArray(data.projects)
-        ? data.projects
-        : Array.isArray(data.data)
-        ? data.data
-        : [];
+        const projects = Array.isArray(data)
+          ? data
+          : Array.isArray(data.projects)
+          ? data.projects
+          : Array.isArray(data.data)
+          ? data.data
+          : [];
 
-      // ✅ sort newest first
-      projects.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        // ✅ sort newest first
+        projects.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-      setprojectListsData(projects);
+        setprojectListsData(projects);
 
-      const totalItems = data.total || data.totalCount || projects.length;
-      const calculatedTotalPages = Math.ceil(totalItems / itemsPerPage);
-      setTotalPages(calculatedTotalPages);
+        const totalItems = data.total || data.totalCount || projects.length;
+        const calculatedTotalPages = Math.ceil(totalItems / itemsPerPage);
+        setTotalPages(calculatedTotalPages);
 
-      if (initialLoad) {
-        setFilterType("");
-        setInitialLoad(false);
+        if (initialLoad) {
+          setFilterType("");
+          setInitialLoad(false);
+        }
+      } catch (err) {
+        console.error("Fetch error:", err);
+        setError(err.message);
+        setprojectListsData([]);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (err) {
-      console.error("Fetch error:", err);
-      setError(err.message);
-      setprojectListsData([]);
-    } finally {
-      setIsLoading(false);
-    }
-  },
-  [filterType, initialLoad, itemsPerPage]
-);
+    },
+    [filterType, initialLoad, itemsPerPage]
+  );
 
   const filteredData = useMemo(() => {
     // If searchTerm is empty and no filterType, return all projects directly
@@ -754,6 +754,19 @@ const List = () => {
       </div>
     );
   }
+
+  const addProjectLocally = (newProject) => {
+    setprojectListsData((prev) => {
+      // 1. Add new project at the beginning
+      const updated = [newProject, ...prev];
+
+      // 2. Sort so newest appears first (same as your fetchData sort)
+      updated.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+      return updated;
+    });
+  };
+
   return (
     <React.Fragment>
       <ToastContainer closeButton={false} />
@@ -1115,8 +1128,9 @@ const List = () => {
           isOpen={modal_list}
           toggle={toggleModal}
           onSuccess={(newProject) => {
-            setprojectListsData((prev) => [...prev, newProject]);
+            addProjectLocally(newProject); // update table instantly
           }}
+           existingProjects={projectListsData} 
         />
       </Suspense>
 
@@ -1125,9 +1139,10 @@ const List = () => {
           isOpen={secondModalList}
           toggle={toggleModalPO}
           onSuccess={(newPo) => {
-            setprojectListsData((prev) => [...prev, newPo]);
+            addProjectLocally(newPo); // just insert in list
             setSeondModalList(false);
           }}
+          existingProjects={projectListsData} 
         />
       </Suspense>
 
@@ -1184,8 +1199,11 @@ const List = () => {
           isOpen={modal_duplicate}
           toggle={() => setModalDuplicate(false)}
           project={itemToDuplicate}
-          onSuccess={(duplicatedProject) => {
-            setprojectListsData((prev) => [...prev, duplicatedProject]);
+          // onSuccess={(duplicatedProject) => {
+          //   setprojectListsData((prev) => [...prev, duplicatedProject]);
+          // }}
+           onSuccess={(newProject) => {
+            addProjectLocally(newProject); // update table instantly
           }}
         />
       </Suspense>
@@ -1194,6 +1212,16 @@ const List = () => {
         <CheckModuleModal
           isOpen={modal_checkModule}
           toggle={toggleCheckModule}
+          onSuccess={(newProjects) => {
+            setprojectListsData((prev) => {
+              const updated = [...newProjects, ...prev];
+              updated.sort(
+                (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+              );
+              return updated;
+            });
+          }}
+           existingProjects={projectListsData} 
         />
       </Suspense>
     </React.Fragment>

@@ -13,7 +13,7 @@ import Select from "react-select";
 import { toast } from "react-toastify";
 import debounce from "lodash.debounce";
 
-const AddProductionOrderWithPart = ({ isOpen, toggle, onSuccess }) => {
+const AddProductionOrderWithPart = ({ isOpen, toggle, onSuccess,existingProjects  }) => {
   const [poFormData, setPoFormData] = useState({
     projectName: "",
     projectType: "",
@@ -29,7 +29,7 @@ const AddProductionOrderWithPart = ({ isOpen, toggle, onSuccess }) => {
   const [hasMore, setHasMore] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // 🧠 Debounced search handler
+  //  Debounced search handler
   const debouncedSearch = useCallback(
     debounce((value) => {
       setPage(1);
@@ -102,8 +102,15 @@ const AddProductionOrderWithPart = ({ isOpen, toggle, onSuccess }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    //  check duplicate by name
+    const exists = existingProjects.some(
+      (p) => p.projectName.toLowerCase() === poFormData.projectName.trim().toLowerCase()
+    );
+    if (exists) {
+      toast.error("PO is already added!");
+      return;
+    }
     setIsSubmitting(true);
-
     try {
       const response = await fetch(
         `${process.env.REACT_APP_BASE_URL}/api/defpartproject/production_part`,

@@ -10,7 +10,12 @@ import {
 } from "reactstrap";
 import { toast } from "react-toastify";
 
-const AddProductionOrderModal = ({ isOpen, toggle, onSuccess }) => {
+const AddProductionOrderModal = ({
+  isOpen,
+  toggle,
+  onSuccess,
+  existingProjects,
+}) => {
   const [formData, setFormData] = useState({
     projectName: "",
     projectType: "",
@@ -24,6 +29,18 @@ const AddProductionOrderModal = ({ isOpen, toggle, onSuccess }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    //  check duplicate by name
+    const exists = existingProjects.some(
+      (p) =>
+        p.projectName.toLowerCase() ===
+        formData.projectName.trim().toLowerCase()
+    );
+    if (exists) {
+      toast.error("PO is already added!");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
