@@ -69,13 +69,22 @@ partproject.post("/production_part", async (req, res) => {
     }
 
     // Fetch the complete part data from the parts API
-    const partResponse = await fetch(
-      `${process.env.BASE_URL}/api/parts/${selectedPartId}`
-    );
+    // selectedPartId now carries ItemCode (external id), not Mongo _id
+    // Use search endpoint and pick exact id match
+    const searchUrl = `${process.env.BASE_URL}/api/parts?search=${encodeURIComponent(selectedPartId)}`;
+    const partResponse = await fetch(searchUrl);
     if (!partResponse.ok) {
       throw new Error("Failed to fetch part details");
     }
-    const partData = await partResponse.json();
+    const partList = await partResponse.json();
+    const partData = Array.isArray(partList?.data)
+      ? partList.data.find((p) =>
+          String(p.id || "").trim().toLowerCase() === String(selectedPartId || "").trim().toLowerCase()
+        )
+      : null;
+    if (!partData) {
+      throw new Error("Failed to fetch part details");
+    }
 
     // Create the initial part object with all the part data
     const initialPart = {
