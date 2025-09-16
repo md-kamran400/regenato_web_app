@@ -169,6 +169,119 @@ partproject.post("/production_part", async (req, res) => {
   }
 });
 
+// production_with_parts
+
+
+partproject.post("/production_with_parts", async (req, res) => {
+  try {
+    const {
+      projectName,
+      projectType,
+      selectedPartId,
+      selectedPartName,
+      partQuantity,
+    } = req.body;
+
+    // ✅ Validate inputs
+    if (!projectName || !projectType) {
+      return res.status(400).json({ error: "Project name and type are required" });
+    }
+    if (!selectedPartId || !selectedPartName || !partQuantity) {
+      return res
+        .status(400)
+        .json({ error: "Part selection and quantity are required" });
+    }
+
+    // ✅ Fetch complete part details from parts API
+    const searchUrl = `${process.env.BASE_URL}/api/parts?search=${encodeURIComponent(
+      selectedPartId
+    )}`;
+    const partResponse = await fetch(searchUrl);
+    if (!partResponse.ok) throw new Error("Failed to fetch part details");
+    const partList = await partResponse.json();
+    const partData = Array.isArray(partList?.data)
+      ? partList.data.find(
+          (p) =>
+            String(p.id || "").trim().toLowerCase() ===
+            String(selectedPartId || "").trim().toLowerCase()
+        )
+      : null;
+    if (!partData) throw new Error("Part not found in master list");
+
+    // ✅ Build part object
+    const partItem = {
+      partsCodeId: selectedPartId,
+      partName: selectedPartName,
+      quantity: Number(partQuantity),
+      status: "Not Allocated",
+      statusClass: "badge bg-info text-black",
+      isManuallyCompleted: false,
+      ...partData,
+      costPerUnit: Number(partData.costPerUnit) || 0,
+      timePerUnit: Number(partData.timePerUnit) || 0,
+      rmVariables: partData.rmVariables || [],
+      manufacturingVariables: partData.manufacturingVariables || [],
+      shipmentVariables: partData.shipmentVariables || [],
+      overheadsAndProfits: partData.overheadsAndProfits || [],
+    };
+
+    // ✅ Create project with partsList
+    const newProject = new PartListProjectModel({
+      projectName,
+      projectType,
+      costPerUnit: 0,
+      timePerUnit: 0,
+      stockPoQty: 0,
+      partsLists: [
+        {
+          partsListName: `${projectName}-Parts`,
+          partsListItems: [partItem],
+        },
+      ],
+      machineHours: {},
+    });
+
+    // Save first to get _id
+    await newProject.save();
+
+    // ✅ Calculate totals
+    let totalProjectCost = 0;
+    let totalProjectHours = 0;
+    const machineHours = {};
+
+    newProject.partsLists.forEach((partsList) => {
+      partsList.partsListItems.forEach((part) => {
+        const partTotalCost = (part.costPerUnit || 0) * (part.quantity || 0);
+        const partTotalHours = (part.timePerUnit || 0) * (part.quantity || 0);
+
+        totalProjectCost += partTotalCost;
+        totalProjectHours += partTotalHours;
+
+        if (Array.isArray(part.manufacturingVariables)) {
+          part.manufacturingVariables.forEach((machine) => {
+            const machineName = machine.name;
+            const hours = (machine.hours || 0) * (part.quantity || 0);
+            machineHours[machineName] =
+              (machineHours[machineName] || 0) + hours;
+          });
+        }
+      });
+    });
+
+    newProject.costPerUnit = totalProjectCost;
+    newProject.timePerUnit = totalProjectHours;
+    newProject.machineHours = machineHours;
+
+    await newProject.save();
+
+    res.status(201).json(newProject);
+  } catch (error) {
+    console.error("Error in /production_with_parts:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+
 partproject.get("/projects", async (req, res) => {
   try {
     // Get filter from query params if exists
