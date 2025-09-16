@@ -11,39 +11,38 @@ const Widgets = () => {
     projects: 0,
   });
   //
-  useEffect(() => {
-    const fetchCounts = async () => {
-      try {
-        const [partsRes, assemblyRes, subAssemblyRes, projectsRes] =
-          await Promise.all([
-            fetch(`${process.env.REACT_APP_BASE_URL}/api/parts`).then((res) =>
-              res.json()
-            ),
-            fetch(`${process.env.REACT_APP_BASE_URL}/api/assmebly`).then(
-              (res) => res.json()
-            ),
-            fetch(`${process.env.REACT_APP_BASE_URL}/api/subAssembly`).then(
-              (res) => res.json()
-            ),
-            fetch(
-              `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects`
-            ).then((res) => res.json()),
-          ]);
+// Alternative approach using existing endpoints
+useEffect(() => {
+  const fetchCounts = async () => {
+    try {
+      const [partsRes, assemblyRes, subAssemblyRes, projectsRes] =
+        await Promise.all([
+          fetch(`${process.env.REACT_APP_BASE_URL}/api/parts`).then((res) =>
+            res.json()
+          ),
+          fetch(`${process.env.REACT_APP_BASE_URL}/api/assmebly`).then(
+            (res) => res.json()
+          ),
+          fetch(`${process.env.REACT_APP_BASE_URL}/api/subAssembly`).then(
+            (res) => res.json()
+          ),
+          fetch(
+            `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects`
+          ).then((res) => res.json()),
+        ]);
 
-        setCounts({
-          parts: Array.isArray(partsRes) ? partsRes.length : 0,
-          assembly: Array.isArray(assemblyRes) ? assemblyRes.length : 0,
-          subAssembly: Array.isArray(subAssemblyRes)
-            ? subAssemblyRes.length
-            : 0,
-          projects: Array.isArray(projectsRes) ? projectsRes.length : 0,
-        });
-      } catch (error) {
-        console.error("Error fetching counts:", error);
-      }
-    };
-    fetchCounts();
-  }, []);
+      setCounts({
+        parts: partsRes.pagination ? partsRes.pagination.total : (Array.isArray(partsRes) ? partsRes.length : 0),
+        assembly: assemblyRes.pagination ? assemblyRes.pagination.total : (Array.isArray(assemblyRes) ? assemblyRes.length : 0),
+        subAssembly: subAssemblyRes.pagination ? subAssemblyRes.pagination.total : (Array.isArray(subAssemblyRes) ? subAssemblyRes.length : 0),
+        projects: projectsRes.pagination ? projectsRes.pagination.total : (Array.isArray(projectsRes) ? projectsRes.length : 0),
+      });
+    } catch (error) {
+      console.error("Error fetching counts:", error);
+    }
+  };
+  fetchCounts();
+}, []);
 
   const projectsWidgets = [
     {

@@ -387,7 +387,8 @@ const CheckModuleModal = ({ isOpen, toggle, onSuccess,existingProjects }) => {
       const payload = {
         projectName: String(prod.DocNum || ""),
         projectType: "External PO",
-        selectedPartId: matchedPart._id,
+        // Use ItemCode (our external part id) instead of Mongo _id
+        selectedPartId: matchedPart.id,
         selectedPartName: prod.ProdName || matchedPart.partName || "",
         partQuantity: prod.PlannedQty || 0,
       };
