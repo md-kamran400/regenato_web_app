@@ -50,7 +50,7 @@ const AddProductionOrderWithPart = ({ isOpen, toggle, onSuccess,existingProjects
       );
       const result = await response.json();
       const newParts = result.data.map((part) => ({
-        value: part._id,
+        value: part.id,
         label: `${part.partName} (${part.id})`,
       }));
 
@@ -113,7 +113,7 @@ const AddProductionOrderWithPart = ({ isOpen, toggle, onSuccess,existingProjects
     setIsSubmitting(true);
     try {
       const response = await fetch(
-        `${process.env.REACT_APP_BASE_URL}/api/defpartproject/production_part`,
+        `${process.env.REACT_APP_BASE_URL}/api/defpartproject/production_with_parts`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
