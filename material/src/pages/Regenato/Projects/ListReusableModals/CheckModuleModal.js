@@ -41,7 +41,11 @@ const CheckModuleModal = ({ isOpen, toggle, onSuccess,existingProjects }) => {
       );
       if (!prodRes.ok) throw new Error("Failed to fetch Production/Product");
       const prodData = await prodRes.json();
-      setProducts(Array.isArray(prodData) ? prodData : []);
+      // Filter: show only items with Series "2526"
+      const filteredProdData = (Array.isArray(prodData) ? prodData : []).filter(
+        (prod) => String(prod?.Series ?? "").trim() === "2526"
+      );
+      setProducts(filteredProdData);
       setFetchProgress(30);
 
       // Step 2: Fetch parts data in chunks
