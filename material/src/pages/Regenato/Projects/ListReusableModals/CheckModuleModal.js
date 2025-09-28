@@ -34,50 +34,44 @@ const CheckModuleModal = ({ isOpen, toggle, onSuccess,existingProjects }) => {
     setFetchProgress(0);
 
     try {
-      // Step 1: Fetch Production/Product data
-      setFetchProgress(15);
-      const prodRes = await fetch(
-        `${process.env.REACT_APP_BASE_URL}/api/Production/Product`
-      );
-      if (!prodRes.ok) throw new Error("Failed to fetch Production/Product");
-      const prodData = await prodRes.json();
-      // Filter: show only items with Series "2526"
-      const filteredProdData = (Array.isArray(prodData) ? prodData : []).filter(
-        (prod) => String(prod?.Series ?? "").trim() === "2526"
-      );
-      setProducts(filteredProdData);
-      setFetchProgress(30);
+      // Parallel fetch Production/Product and Parts to reduce total time
+      setFetchProgress(10);
+      const controller = new AbortController();
+      const { signal } = controller;
 
-      // Step 2: Fetch parts data in chunks
-      setFetchProgress(40);
-      const allParts = [];
-      let page = 1;
-      const pageSize = 100;
-      let hasMore = true;
+      const prodPromise = fetch(
+        `${process.env.REACT_APP_BASE_URL}/api/Production/Product?series=2526`,
+        { signal }
+      ).then(async (r) => {
+        if (!r.ok) throw new Error("Failed to fetch Production/Product");
+        return r.json();
+      });
 
-      while (hasMore) {
-        const partsRes = await fetch(
-          `${process.env.REACT_APP_BASE_URL}/api/parts?page=${page}&limit=${pageSize}`
-        );
+      const partsPromise = fetch(
+        `${process.env.REACT_APP_BASE_URL}/api/parts?limit=100000`,
+        { signal }
+      ).then(async (r) => {
+        if (!r.ok) throw new Error("Failed to fetch parts");
+        const data = await r.json();
+        return Array.isArray(data)
+          ? data
+          : Array.isArray(data?.data)
+          ? data.data
+          : [];
+      });
 
-        if (!partsRes.ok) throw new Error("Failed to fetch parts");
-        const partsData = await partsRes.json();
+      const [prodDataRaw, partsArray] = await Promise.all([prodPromise, partsPromise]);
+      setFetchProgress(60);
 
-        const partsArray = Array.isArray(partsData.data) ? partsData.data : [];
-        if (partsArray.length === 0) {
-          hasMore = false;
-        } else {
-          allParts.push(...partsArray);
-          page++;
-          // progress tick without hard cap
-          setFetchProgress((prev) => Math.min(65, prev + 0.5));
-        }
-      }
-      setParts(allParts);
-      setFetchProgress(65);
+      const prodData = Array.isArray(prodDataRaw) ? prodDataRaw : [];
+
+      // Batch state updates to minimize renders
+      setProducts(prodData);
+      setParts(partsArray);
+      setFetchProgress(80);
 
       // Step 3: Finalize
-      setFetchProgress(90);
+      setFetchProgress(95);
 
       setIsInitialized(true);
     } catch (err) {
