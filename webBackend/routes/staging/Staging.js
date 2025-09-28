@@ -44,7 +44,38 @@ stagingRoutes.get("/Production/Product", async (req, res) => {
         timeout: 10000,
       }
     );
-    res.json(response.data);
+
+    const raw = Array.isArray(response.data) ? response.data : [];
+
+    // Optional query params: years=2025,2026 and series=2526 (defaults to 2526)
+    const seriesParam = String(req.query.series || "2526").trim();
+    const yearsParam = String(req.query.years || "").trim();
+    const allowedYears = new Set(
+      yearsParam
+        ? yearsParam
+            .split(",")
+            .map((y) => Number(String(y).trim()))
+            .filter((n) => !Number.isNaN(n))
+        : []
+    );
+
+    const filtered = raw.filter((item) => {
+      const series = String(item?.Series ?? "").trim();
+      if (seriesParam && series !== seriesParam) return false;
+
+      if (allowedYears.size > 0) {
+        const dateStr = String(item?.postingdate ?? "").trim();
+        const parsedYear =
+          dateStr && !Number.isNaN(Date.parse(dateStr))
+            ? new Date(dateStr).getFullYear()
+            : Number((dateStr.match(/^(\d{4})/) || [])[1]);
+        if (!allowedYears.has(parsedYear)) return false;
+      }
+
+      return true;
+    });
+
+    res.json(filtered);
   } catch (error) {
     console.error("Error fetching GoodsReceipt:", error.message);
     res.status(500).json({ error: "Failed to fetch data from external API" });
