@@ -27,7 +27,7 @@ import {
   UncontrolledDropdown,
 } from "reactstrap";
 import CircularProgress from "@mui/material/CircularProgress";
-import { FiEdit } from "react-icons/fi";
+import { FiEdit, FiExternalLink } from "react-icons/fi";
 import Autocomplete from "@mui/material/Autocomplete";
 import TextField from "@mui/material/TextField";
 import { FiSettings } from "react-icons/fi";
@@ -186,6 +186,7 @@ const PartsTable = React.memo(
         });
 
         setPartsListsItems(updatedItems);
+        console.log(updatedItems)
       } catch (error) {
         console.error("Error fetching parts list items:", error);
       }
@@ -583,6 +584,7 @@ const PartsTable = React.memo(
 
       try {
         const payload = selectedParts.map((part) => ({
+          // Uid: part._id, 
           partsCodeId: part.id,
           partName: part.partName,
           codeName: part.codeName || "",
@@ -1044,7 +1046,7 @@ const getStatusDisplay = (item) => {
                           return (
                             <React.Fragment key={item._id}>
                               <tr>
-                                <td
+                                {/* <td
                                   onClick={() =>
                                     handleRowClickParts(item._id, item.partName)
                                   }
@@ -1170,7 +1172,7 @@ const getStatusDisplay = (item) => {
                                             </div>
                                           </div>
 
-                                          {/* Optional: Add a small arrow at the top */}
+                                         
                                           <div
                                             style={{
                                               position: "absolute",
@@ -1191,7 +1193,217 @@ const getStatusDisplay = (item) => {
                                         </div>
                                       )}
                                   </div>
-                                </td>
+                                </td> */}
+
+                                <td
+  onClick={() => handleRowClickParts(item._id, item.partName)}
+  className={expandedRowId === item._id ? "expanded" : ""}
+  style={{
+    cursor: "pointer",
+    color: "#64B5F6",
+    position: "relative",
+  }}
+>
+  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+    <div
+      className="part-name-with-image"
+      style={{
+        position: "relative",
+        display: "inline-block",
+        flex: 1,
+      }}
+      onMouseEnter={() => setHoveredImageId(item._id)}
+      onMouseLeave={() => setHoveredImageId(null)}
+    >
+      {item.partName} ({item.partsCodeId || ""})
+      {item.image && hoveredImageId === item._id && (
+        <div
+          style={{
+            position: "absolute",
+            zIndex: 1000,
+            backgroundColor: "white",
+            padding: "12px",
+            borderRadius: "12px",
+            boxShadow: "0 10px 25px rgba(0, 0, 0, 0.15)",
+            top: "100%",
+            left: "50%",
+            transform: "translateX(-50%)",
+            marginTop: "8px",
+            display: "block",
+            animation: "fadeIn 0.2s ease-out",
+            border: "1px solid #f0f0f0",
+            width: "220px",
+            transition: "all 0.2s ease",
+            marginLeft: "2.5rem",
+          }}
+        >
+          <div
+            style={{
+              position: "relative",
+              paddingBottom: "100%",
+              borderRadius: "8px",
+              overflow: "hidden",
+              marginBottom: "8px",
+              backgroundColor: "#f9f9f9",
+            }}
+          >
+            <img
+              src={`${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${_id}/partsLists/${partsList._id}/items/${item._id}/image`}
+              alt={item.partName}
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                height: "100%",
+                objectFit: "contain",
+                transition: "transform 0.3s ease",
+              }}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.transform = "scale(1.05)")
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.transform = "scale(1)")
+              }
+              onError={(e) => {
+                e.target.style.display = "none";
+                setImageLoadErrors((prev) => ({
+                  ...prev,
+                  [item._id]: true,
+                }));
+              }}
+            />
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "6px",
+              padding: "0 4px",
+            }}
+          >
+            <div
+              style={{
+                fontWeight: "600",
+                fontSize: "15px",
+                color: "#222",
+                textAlign: "center",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {item.partName}
+            </div>
+            <div
+              style={{
+                fontSize: "13px",
+                color: "#555",
+                textAlign: "center",
+                backgroundColor: "#f5f5f5",
+                padding: "4px 8px",
+                borderRadius: "12px",
+                display: "inline-block",
+                alignSelf: "center",
+              }}
+            >
+              ID: {item.partsCodeId || "N/A"}
+            </div>
+          </div>
+
+          {/* Optional: Add a small arrow at the top */}
+          <div
+            style={{
+              position: "absolute",
+              top: "-8px",
+              left: "50%",
+              transform: "translateX(-50%)",
+              width: 0,
+              height: 0,
+              borderLeft: "8px solid transparent",
+              borderRight: "8px solid transparent",
+              borderBottom: "8px solid white",
+              filter: "drop-shadow(0 -2px 2px rgba(0,0,0,0.1))",
+            }}
+          />
+        </div>
+      )}
+    </div>
+    
+    {/* Redirect icon as a button */}
+    {/* <Link 
+      to={`/singlepart/${item?.Uid}`}
+      onClick={(e) => e.stopPropagation()}
+      style={{
+        color: "#007bff",
+        textDecoration: "none",
+        display: "flex",
+        alignItems: "center",
+        padding: "4px 8px",
+        borderRadius: "4px",
+        backgroundColor: "#f8f9fa",
+        border: "1px solid #dee2e6",
+        transition: "all 0.2s ease",
+      }}
+      className="redirect-link"
+      title="View Part Details"
+      onMouseEnter={(e) => {
+        e.target.style.backgroundColor = "#007bff";
+        e.target.style.color = "white";
+      }}
+      onMouseLeave={(e) => {
+        e.target.style.backgroundColor = "#f8f9fa";
+        e.target.style.color = "#007bff";
+      }}
+    >
+      <FiExternalLink size={14} />
+    </Link> */}
+    {/* Redirect icon as a button */}
+{(() => {
+  // find the backend part that matches this item's partsCodeId
+  const matchingPart = parts.find(
+    (p) => p.id === item.partsCodeId
+  );
+  // store _id if found
+  const storedId = matchingPart ? matchingPart._id : null;
+
+  return (
+    <Link
+      to={storedId ? `/singlepart/${storedId}` : "#"}
+      onClick={(e) => {
+        e.stopPropagation();
+        if (!storedId) e.preventDefault(); // prevent navigation if not found
+      }}
+      style={{
+        color: "#007bff",
+        textDecoration: "none",
+        display: "flex",
+        alignItems: "center",
+        padding: "4px 8px",
+        borderRadius: "4px",
+        backgroundColor: "#f8f9fa",
+        border: "1px solid #dee2e6",
+        transition: "all 0.2s ease",
+      }}
+      className="redirect-link"
+      title="View Part Details"
+      onMouseEnter={(e) => {
+        e.target.style.backgroundColor = "#007bff";
+        e.target.style.color = "white";
+      }}
+      onMouseLeave={(e) => {
+        e.target.style.backgroundColor = "#f8f9fa";
+        e.target.style.color = "#007bff";
+      }}
+    >
+      <FiExternalLink size={14} />
+    </Link>
+  );
+})()}
+
+  </div>
+</td>
                                 <td>
                                   {(() => {
                                     const status = getStatusDisplay(item);
