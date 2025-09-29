@@ -370,13 +370,13 @@ const StoresVariable = () => {
             </FormGroup>
 
             <FormGroup className="mb-3">
-                  <Label className="form-label">ID</Label>
+                  <Label className="form-label">Quantity</Label>
                   <Input
                     type="text"
                     name="quantity"
                     value={formData.quantity}
                     onChange={handleChange}
-                    placeholder="Enter ID manually"
+                    placeholder="Enter Quantity"
                     className="form-control"
                   />
                 </FormGroup>
