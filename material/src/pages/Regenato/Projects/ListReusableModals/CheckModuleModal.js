@@ -12,7 +12,7 @@ import {
 } from "reactstrap";
 import { toast } from "react-toastify";
 
-const CheckModuleModal = ({ isOpen, toggle, onSuccess,existingProjects }) => {
+const CheckModuleModal = ({ isOpen, toggle, onSuccess, existingProjects }) => {
   const [products, setProducts] = useState([]);
   const [parts, setParts] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -24,6 +24,7 @@ const CheckModuleModal = ({ isOpen, toggle, onSuccess,existingProjects }) => {
   const [selectedMissing, setSelectedMissing] = useState(new Set());
   const [selectedAvailable, setSelectedAvailable] = useState(new Set());
   const [isCreatingPOs, setIsCreatingPOs] = useState(false);
+  const [autoSyncStatus, setAutoSyncStatus] = useState(null);
   // const [projects, setProjects] = useState([]);
 
   const fetchDataOptimized = useCallback(async () => {
@@ -40,11 +41,26 @@ const CheckModuleModal = ({ isOpen, toggle, onSuccess,existingProjects }) => {
       const { signal } = controller;
 
       const prodPromise = fetch(
-        `${process.env.REACT_APP_BASE_URL}/api/Production/Product?series=2526`,
+        `${process.env.REACT_APP_BASE_URL}/api/Production/Product`,
         { signal }
       ).then(async (r) => {
         if (!r.ok) throw new Error("Failed to fetch Production/Product");
-        return r.json();
+        const allData = await r.json();
+
+        // Manually filter for 2526 series only
+        const filteredData = Array.isArray(allData)
+          ? allData.filter((item) => {
+              const series = String(item.Series || "").trim();
+              return series === "2526";
+            })
+          : [];
+
+        console.log(
+          `Fetched ${allData?.length || 0} total production items, filtered ${
+            filteredData.length
+          } items with Series: 2526`
+        );
+        return filteredData;
       });
 
       const partsPromise = fetch(
@@ -60,7 +76,10 @@ const CheckModuleModal = ({ isOpen, toggle, onSuccess,existingProjects }) => {
           : [];
       });
 
-      const [prodDataRaw, partsArray] = await Promise.all([prodPromise, partsPromise]);
+      const [prodDataRaw, partsArray] = await Promise.all([
+        prodPromise,
+        partsPromise,
+      ]);
       setFetchProgress(60);
 
       const prodData = Array.isArray(prodDataRaw) ? prodDataRaw : [];
@@ -86,6 +105,27 @@ const CheckModuleModal = ({ isOpen, toggle, onSuccess,existingProjects }) => {
     fetchDataOptimized();
   }, [fetchDataOptimized]);
 
+  // Fetch auto-sync status
+  const fetchAutoSyncStatus = async () => {
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_BASE_URL}/api/auto-sync/status`
+      );
+      if (response.ok) {
+        const data = await response.json();
+        setAutoSyncStatus(data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch auto-sync status:", error);
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchAutoSyncStatus();
+    }
+  }, [isOpen]);
+
   useEffect(() => {
     if (!isOpen) {
       setIsInitialized(false);
@@ -109,7 +149,9 @@ const CheckModuleModal = ({ isOpen, toggle, onSuccess,existingProjects }) => {
   const existingProjectNameSet = useMemo(() => {
     const set = new Set();
     for (const p of existingProjects || []) {
-      const name = String(p.projectName || "").trim().toLowerCase();
+      const name = String(p.projectName || "")
+        .trim()
+        .toLowerCase();
       if (name) set.add(name);
     }
     return set;
@@ -117,7 +159,9 @@ const CheckModuleModal = ({ isOpen, toggle, onSuccess,existingProjects }) => {
 
   // Query intent: numeric => DocNum (left), otherwise => ItemCode (right)
   const queryFlags = useMemo(() => {
-    const q = String(query || "").trim().toLowerCase();
+    const q = String(query || "")
+      .trim()
+      .toLowerCase();
     const isDocQuery = q.length >= 2 && /^\d+$/.test(q);
     const isItemCodeQuery = q.length >= 2 && !isDocQuery;
     return { q, isDocQuery, isItemCodeQuery };
@@ -130,13 +174,17 @@ const CheckModuleModal = ({ isOpen, toggle, onSuccess,existingProjects }) => {
       ? products
       : isItemCodeQuery
       ? products.filter((prod) =>
-          String(prod.ItemCode || "").toLowerCase().includes(q)
+          String(prod.ItemCode || "")
+            .toLowerCase()
+            .includes(q)
         )
       : products;
 
     const list = [];
     for (const prod of source) {
-      const code = String(prod.ItemCode || "").trim().toLowerCase();
+      const code = String(prod.ItemCode || "")
+        .trim()
+        .toLowerCase();
       if (!code) continue;
       if (!partsIdSet.has(code)) list.push(prod);
     }
@@ -154,10 +202,15 @@ const CheckModuleModal = ({ isOpen, toggle, onSuccess,existingProjects }) => {
 
     const list = [];
     for (const prod of source) {
-      const code = String(prod.ItemCode || "").trim().toLowerCase();
-      const doc = String(prod.DocNum || "").trim().toLowerCase();
+      const code = String(prod.ItemCode || "")
+        .trim()
+        .toLowerCase();
+      const doc = String(prod.DocNum || "")
+        .trim()
+        .toLowerCase();
       if (!code || !doc) continue;
-      if (partsIdSet.has(code) && !existingProjectNameSet.has(doc)) list.push(prod);
+      if (partsIdSet.has(code) && !existingProjectNameSet.has(doc))
+        list.push(prod);
     }
     return list;
   }, [products, partsIdSet, existingProjectNameSet, queryFlags]);
@@ -343,114 +396,119 @@ const CheckModuleModal = ({ isOpen, toggle, onSuccess,existingProjects }) => {
     }
   };
 
-
   const handleAddSelectedPOs = async () => {
-  if (selectedAvailable.size === 0 || isCreatingPOs) return;
-  setIsCreatingPOs(true);
-  try {
-    // ✅ Build set of existing PO names
-    const existingNames = new Set(
-      (existingProjects || []).map((p) =>
-        String(p.projectName || "").trim().toLowerCase()
-      )
-    );
-
-    const idToPart = new Map(
-      parts.map((p) => [
-        String(p.id || "")
-          .trim()
-          .toLowerCase(),
-        p,
-      ])
-    );
-
-    // ✅ Filter out already existing POs
-    const selectedProducts = available.filter((prod) => {
-      const poName = String(prod.DocNum || "").trim().toLowerCase();
-      return selectedAvailable.has(poName) && !existingNames.has(poName);
-    });
-
-    if (selectedProducts.length === 0) {
-      toast.error("Selected PO(s) already exist!");
-      setIsCreatingPOs(false);
-      return;
-    }
-
-    const requests = selectedProducts.map((prod) => {
-      const code = String(prod.ItemCode || "").trim().toLowerCase();
-      const matchedPart = idToPart.get(code);
-      if (!matchedPart || !matchedPart._id) {
-        return Promise.resolve({ ok: false, _skipped: true });
-      }
-      const payload = {
-        projectName: String(prod.DocNum || ""),
-        projectType: "External PO",
-        // Use ItemCode (our external part id) instead of Mongo _id
-        selectedPartId: matchedPart.id,
-        selectedPartName: prod.ProdName || matchedPart.partName || "",
-        partQuantity: prod.PlannedQty || 0,
-      };
-      return fetch(
-        `${process.env.REACT_APP_BASE_URL}/api/defpartproject/production_part`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        }
+    if (selectedAvailable.size === 0 || isCreatingPOs) return;
+    setIsCreatingPOs(true);
+    try {
+      // ✅ Build set of existing PO names
+      const existingNames = new Set(
+        (existingProjects || []).map((p) =>
+          String(p.projectName || "")
+            .trim()
+            .toLowerCase()
+        )
       );
-    });
 
-    const results = await Promise.allSettled(requests);
-    let successCount = 0;
-    let skipped = 0;
-    let failed = 0;
+      const idToPart = new Map(
+        parts.map((p) => [
+          String(p.id || "")
+            .trim()
+            .toLowerCase(),
+          p,
+        ])
+      );
 
-    for (const r of results) {
-      if (r.status === "fulfilled") {
-        if (r.value._skipped) skipped++;
-        else if (r.value.ok) successCount++;
-        else failed++;
-      } else failed++;
-    }
+      // ✅ Filter out already existing POs
+      const selectedProducts = available.filter((prod) => {
+        const poName = String(prod.DocNum || "")
+          .trim()
+          .toLowerCase();
+        return selectedAvailable.has(poName) && !existingNames.has(poName);
+      });
 
-    if (successCount) {
-      toast.success(`Created ${successCount} project(s).`);
-
-      // 🔑 fetch newly created projects and pass them to parent
-      try {
-        const newRes = await fetch(
-          `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects`
-        );
-        if (newRes.ok) {
-          const allProjects = await newRes.json();
-          const justCreated = allProjects
-            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-            .slice(0, successCount);
-
-          if (onSuccess) onSuccess(justCreated);
-        }
-      } catch (err) {
-        console.error("Failed to fetch new projects:", err);
+      if (selectedProducts.length === 0) {
+        toast.error("Selected PO(s) already exist!");
+        setIsCreatingPOs(false);
+        return;
       }
+
+      const requests = selectedProducts.map((prod) => {
+        const code = String(prod.ItemCode || "")
+          .trim()
+          .toLowerCase();
+        const matchedPart = idToPart.get(code);
+        if (!matchedPart || !matchedPart._id) {
+          return Promise.resolve({ ok: false, _skipped: true });
+        }
+        const payload = {
+          projectName: String(prod.DocNum || ""),
+          projectType: "External PO",
+          // Use ItemCode (our external part id) instead of Mongo _id
+          selectedPartId: matchedPart.id,
+          selectedPartName: prod.ProdName || matchedPart.partName || "",
+          partQuantity: prod.PlannedQty || 0,
+        };
+        return fetch(
+          `${process.env.REACT_APP_BASE_URL}/api/defpartproject/production_part`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          }
+        );
+      });
+
+      const results = await Promise.allSettled(requests);
+      let successCount = 0;
+      let skipped = 0;
+      let failed = 0;
+
+      for (const r of results) {
+        if (r.status === "fulfilled") {
+          if (r.value._skipped) skipped++;
+          else if (r.value.ok) successCount++;
+          else failed++;
+        } else failed++;
+      }
+
+      if (successCount) {
+        toast.success(`Created ${successCount} project(s).`);
+
+        // 🔑 fetch newly created projects and pass them to parent
+        try {
+          const newRes = await fetch(
+            `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects`
+          );
+          if (newRes.ok) {
+            const allProjects = await newRes.json();
+            const justCreated = allProjects
+              .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+              .slice(0, successCount);
+
+            if (onSuccess) onSuccess(justCreated);
+          }
+        } catch (err) {
+          console.error("Failed to fetch new projects:", err);
+        }
+      }
+
+      if (skipped) toast.info(`${skipped} item(s) skipped (no matching part).`);
+      if (failed) toast.error(`${failed} creation(s) failed.`);
+
+      // Clear selections
+      setSelectedAvailable(new Set());
+
+      // Refresh modal data internally
+      setTimeout(() => {
+        setIsInitialized(false);
+        fetchDataOptimized();
+      }, 1000);
+    } catch (err) {
+      toast.error(`Add PO failed: ${err.message}`);
+    } finally {
+      setIsCreatingPOs(false);
     }
-
-    if (skipped) toast.info(`${skipped} item(s) skipped (no matching part).`);
-    if (failed) toast.error(`${failed} creation(s) failed.`);
-
-    // Clear selections
-    setSelectedAvailable(new Set());
-
-    // Refresh modal data internally
-    setTimeout(() => {
-      setIsInitialized(false);
-      fetchDataOptimized();
-    }, 1000);
-  } catch (err) {
-    toast.error(`Add PO failed: ${err.message}`);
-  } finally {
-    setIsCreatingPOs(false);
-  }
-};
+  };
 
   const handleRefresh = () => {
     setIsInitialized(false);
@@ -463,16 +521,30 @@ const CheckModuleModal = ({ isOpen, toggle, onSuccess,existingProjects }) => {
     <Modal isOpen={isOpen} toggle={toggle} size="xl" centered>
       <ModalHeader toggle={toggle}>
         Sync Production Orders
-        {isInitialized && (
+        <div className="d-flex gap-2 ms-2">
+          {isInitialized && (
+            <Button color="outline-primary" size="sm" onClick={handleRefresh}>
+              <i className="ri-refresh-line"></i> Refresh
+            </Button>
+          )}
           <Button
-            color="outline-primary"
+            color="outline-info"
             size="sm"
-            className="ms-2"
-            onClick={handleRefresh}
+            onClick={fetchAutoSyncStatus}
+            title="Auto-Sync Status"
           >
-            <i className="ri-refresh-line"></i> Refresh
+            <i className="ri-settings-3-line"></i> Auto-Sync
+            {autoSyncStatus && (
+              <Badge
+                color={autoSyncStatus.isRunning ? "success" : "danger"}
+                className="ms-1"
+                pill
+              >
+                {autoSyncStatus.isRunning ? "ON" : "OFF"}
+              </Badge>
+            )}
           </Button>
-        )}
+        </div>
       </ModalHeader>
       <ModalBody>
         {loading && (
@@ -617,7 +689,9 @@ const CheckModuleModal = ({ isOpen, toggle, onSuccess,existingProjects }) => {
                                   />
                                 </td>
                                 <td className="fw-semibold">
-                                  {`${prod.ProdName || ""} - ${prod.DocNum || ""}`}
+                                  {`${prod.ProdName || ""} - ${
+                                    prod.DocNum || ""
+                                  }`}
                                 </td>
                               </tr>
                             );
@@ -695,7 +769,9 @@ const CheckModuleModal = ({ isOpen, toggle, onSuccess,existingProjects }) => {
                                 checked={checked}
                                 onChange={() => toggleSelectMissing(code)}
                               />
-                              <span>{`${prod.ProdName || ""} - ${String(prod.ItemCode || "")}`}</span>
+                              <span>{`${prod.ProdName || ""} - ${String(
+                                prod.ItemCode || ""
+                              )}`}</span>
                             </div>
                           </li>
                         );
