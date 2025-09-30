@@ -1367,7 +1367,7 @@ const getStatusDisplay = (item) => {
   );
   // store _id if found
   const storedId = matchingPart ? matchingPart._id : null;
-
+  console.log(storedId)
   return (
     <Link
       to={storedId ? `/singlepart/${storedId}` : "#"}
