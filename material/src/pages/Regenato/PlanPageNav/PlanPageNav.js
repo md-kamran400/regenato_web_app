@@ -42,10 +42,26 @@ export function PlanPageNav() {
   const [error, setError] = useState(null);
   const [dailyTrackingEvents, setDailyTrackingEvents] = useState([]);
   const [selectedSplit, setSelectedSplit] = useState(null);
+  const [projectQuery, setProjectQuery] = useState("");
+  const [partQuery, setPartQuery] = useState("");
+  const [showProjectDropdown, setShowProjectDropdown] = useState(false);
+  const [showPartDropdown, setShowPartDropdown] = useState(false);
 
   useEffect(() => {
     fetchAllocationData();
   }, [allocationId]);
+
+  
+  // Keep queries in sync with selected values
+  useEffect(() => {
+    setProjectQuery(selectedProject || "");
+  }, [selectedProject]);
+
+  useEffect(() => {
+    setPartQuery(selectedPart || "");
+  }, [selectedPart]);
+
+
 
   const fetchAllocationData = async () => {
     try {
@@ -226,8 +242,8 @@ export function PlanPageNav() {
     });
   };
 
-  const handleProjectChange = (e) => {
-    const newProject = e.target.value;
+  const handleProjectChange = (eOrValue) => {
+    const newProject = typeof eOrValue === "string" ? eOrValue : eOrValue.target.value;
     setSelectedProject(newProject);
     setSelectedPart(null);
     setSelectedProcess(null);
@@ -252,8 +268,8 @@ export function PlanPageNav() {
     }
   };
 
-  const handlePartChange = (e) => {
-    const newPart = e.target.value;
+  const handlePartChange = (eOrValue) => {
+    const newPart = typeof eOrValue === "string" ? eOrValue : eOrValue.target.value;
     setSelectedPart(newPart);
     setSelectedProcess(null);
     transformData(selectedProject, newPart, allocationData);
@@ -314,6 +330,14 @@ export function PlanPageNav() {
   // Convert Set to an Array
   const uniquePartList = [...uniqueParts];
 
+  const filteredProjects = uniqueProjects.filter((p) =>
+    p.toLowerCase().includes((projectQuery || "").toLowerCase())
+  );
+
+  const filteredParts = uniquePartList.filter((p) =>
+    (p || "").toLowerCase().includes((partQuery || "").toLowerCase())
+  );
+  
   // Get filtered allocations for the selected project and part
   const filteredAllocations = selectedProjectData
     ? selectedProjectData.allocations.filter(
@@ -368,39 +392,119 @@ export function PlanPageNav() {
         <div className="flex items-center gap-4">
           <h2 className="text-2xl font-bold">Production Planning</h2>
         </div>
-        <div className="flex items-center gap-2">
-          {/* Select Project Dropdown */}
-          <select
-            value={selectedProject}
-            onChange={handleProjectChange}
-            className="process-select"
-          >
-            <option value="" disabled>
-              Select Production Type
-            </option>
-            {uniqueProjects.map((project) => (
-              <option key={project} value={project}>
-                {project}
-              </option>
-            ))}
-          </select>
+        <div style={{display: "flex"}} className="flex items-center gap-2">
+          {/* Project Autocomplete */}
+          <div style={{ position: "relative", minWidth: "240px" }}>
+            <input
+              type="text"
+              value={projectQuery}
+              onChange={(e) => {
+                setProjectQuery(e.target.value);
+                setShowProjectDropdown(true);
+              }}
+              onFocus={() => setShowProjectDropdown(true)}
+              onBlur={() => {
+                // Delay to allow click selection
+                setTimeout(() => setShowProjectDropdown(false), 150);
+              }}
+              placeholder="Select Production Type"
+              className="process-select"
+              style={{ width: "100%" }}
+            />
+            {showProjectDropdown && (
+              <div
+                style={{
+                  position: "absolute",
+                  zIndex: 20,
+                  top: "100%",
+                  left: 0,
+                  right: 0,
+                  background: "#fff",
+                  border: "1px solid #e5e7eb",
+                  borderTop: "none",
+                  maxHeight: "240px",
+                  overflowY: "auto",
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+                }}
+              >
+                {(filteredProjects.length ? filteredProjects : uniqueProjects).map((project) => (
+                  <div
+                    key={project}
+                    onMouseDown={() => {
+                      handleProjectChange(project);
+                      setProjectQuery(project);
+                      setShowProjectDropdown(false);
+                    }}
+                    style={{
+                      padding: "8px 12px",
+                      cursor: "pointer",
+                      background:
+                        project === selectedProject ? "#f3f4f6" : "transparent",
+                    }}
+                  >
+                    {project}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
-          {/* Select Part Dropdown */}
-          <select
-            value={selectedPart}
-            onChange={handlePartChange}
-            className="process-select"
-            disabled={!selectedProject}
-          >
-            <option value="" disabled>
-              Select Part
-            </option>
-            {uniquePartList.map((part) => (
-              <option key={part} value={part}>
-                {part}
-              </option>
-            ))}
-          </select>
+          {/* Part Autocomplete */}
+          <div style={{ position: "relative", minWidth: "240px", opacity: !selectedProject ? 0.6 : 1 }}>
+            <input
+              type="text"
+              value={partQuery}
+              onChange={(e) => {
+                if (!selectedProject) return;
+                setPartQuery(e.target.value);
+                setShowPartDropdown(true);
+              }}
+              onFocus={() => selectedProject && setShowPartDropdown(true)}
+              onBlur={() => {
+                setTimeout(() => setShowPartDropdown(false), 150);
+              }}
+              placeholder="Select Part"
+              className="process-select"
+              style={{ width: "100%" }}
+              disabled={!selectedProject}
+            />
+            {showPartDropdown && selectedProject && (
+              <div
+                style={{
+                  position: "absolute",
+                  zIndex: 20,
+                  top: "100%",
+                  left: 0,
+                  right: 0,
+                  background: "#fff",
+                  border: "1px solid #e5e7eb",
+                  borderTop: "none",
+                  maxHeight: "240px",
+                  overflowY: "auto",
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+                }}
+              >
+                {(filteredParts.length ? filteredParts : uniquePartList).map((part) => (
+                  <div
+                    key={part}
+                    onMouseDown={() => {
+                      handlePartChange(part);
+                      setPartQuery(part);
+                      setShowPartDropdown(false);
+                    }}
+                    style={{
+                      padding: "8px 12px",
+                      cursor: "pointer",
+                      background:
+                        part === selectedPart ? "#f3f4f6" : "transparent",
+                    }}
+                  >
+                    {part}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
