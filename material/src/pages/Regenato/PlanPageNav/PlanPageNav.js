@@ -42,6 +42,7 @@ export function PlanPageNav() {
   const [error, setError] = useState(null);
   const [dailyTrackingEvents, setDailyTrackingEvents] = useState([]);
   const [selectedSplit, setSelectedSplit] = useState(null);
+
   const [projectQuery, setProjectQuery] = useState("");
   const [partQuery, setPartQuery] = useState("");
   const [showProjectDropdown, setShowProjectDropdown] = useState(false);
