@@ -50,18 +50,6 @@ const ManufacturingVariable = ({
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredData, setFilteredData] = useState([]);
 
-  // Form state
-  // const [formData, setFormData] = useState({
-  //   categoryId: "",
-  //   name: "",
-  //   times:"",
-  //   "time-hours": "",
-  //   "time-minutes": "",
-  //   hours: "",
-  //   hourlyRate: "",
-  //   totalRate: "",
-  // });
-
   const [formData, setFormData] = useState({
     categoryId: "",
     name: "",
@@ -132,32 +120,7 @@ const ManufacturingVariable = ({
     setModalDelete(!modal_delete);
   };
 
-  // const tog_edit = (item = null) => {
-  //   if (item) {
-  //     setFormData({
-  //       categoryId: item.categoryId,
-  //       name: item.name,
-  //       hours: item.hours,
-  //       hourlyRate: item.hourlyRate,
-  //       totalRate: item.totalRate,
-  //     });
-  //     setEditId(item._id);
-  //   } else {
-  //     setFormData({
-  //       categoryId: "",
-  //       name: "",
-  //       hours: "",
-  //       hourlyRate: "",
-  //       totalRate: "",
-  //     });
-  //     setEditId(null);
-  //   }
-  //   setModalEdit(!modal_edit);
-  // };
-
-  //   useEffect(() => {
-
-  const tog_edit = (item = null) => {
+const tog_edit = (item = null) => {
   if (item) {
     const hours = parseFloat(item.hours);
     let selectedOption = "hours";
@@ -168,7 +131,7 @@ const ManufacturingVariable = ({
       inputValue = (hours / 24).toString();
     } else if (hours < 1) {
       selectedOption = "minutes";
-      inputValue = (hours * 60).toString();
+      inputValue = (hours * 60).toString(); // Convert hours to minutes
     }
 
     // Find the manufacturing variable to get its subcategories
@@ -177,6 +140,9 @@ const ManufacturingVariable = ({
     );
     
     setSubMachineOptions(selectedVariable?.subCategories || []);
+    setSelectedOptionEdit(selectedOption);
+    setInputValueEdit(inputValue);
+    setEditId(item._id);
 
     setFormData({
       ...item,
@@ -184,9 +150,6 @@ const ManufacturingVariable = ({
       isSpecialday: item.isSpecialday || false,
       SpecialDayTotalMinutes: item.SpecialDayTotalMinutes || 0,
     });
-    setSelectedOptionEdit(selectedOption);
-    setInputValueEdit(inputValue);
-    setEditId(item._id);
   } else {
     setFormData({
       categoryId: "",
@@ -197,6 +160,8 @@ const ManufacturingVariable = ({
       isSpecialday: false,
       SpecialDayTotalMinutes: 0,
     });
+    setSelectedOptionEdit("");
+    setInputValueEdit("");
     setEditId(null);
   }
   setModalEdit(!modal_edit);
@@ -229,20 +194,6 @@ const ManufacturingVariable = ({
     }
   }, [partDetails, fetchManufacturingData]);
 
-  // If you want to ensure the data is sorted even after local updates:
-  // useEffect(() => {
-  //   const sortedData = [...manufacturingData].sort((a, b) => {
-  //     const numA = parseInt(a.categoryId.replace(/\D/g, "")) || 0;
-  //     const numB = parseInt(b.categoryId.replace(/\D/g, "")) || 0;
-  //     return numA - numB;
-  //   });
-
-  //   // Only update if the order actually changed
-  //   if (JSON.stringify(sortedData) !== JSON.stringify(manufacturingData)) {
-  //     setManufacturingData(sortedData);
-  //   }
-  // }, [manufacturingData]);
-
   useEffect(() => {
     const total = manufacturingData.reduce(
       (sum, item) => sum + Number(item.totalRate || 0),
@@ -272,10 +223,14 @@ const ManufacturingVariable = ({
     if (!searchTerm.trim()) {
       setFilteredData(manufacturingData);
     } else {
-      const filtered = manufacturingData.filter(item =>
-        item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.categoryId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (item.SubMachineName && item.SubMachineName.toLowerCase().includes(searchTerm.toLowerCase()))
+      const filtered = manufacturingData.filter(
+        (item) =>
+          item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          item.categoryId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (item.SubMachineName &&
+            item.SubMachineName.toLowerCase().includes(
+              searchTerm.toLowerCase()
+            ))
       );
       setFilteredData(filtered);
     }
@@ -424,58 +379,52 @@ const ManufacturingVariable = ({
 
   const handleSelectChangeEdit = (e) => {
     const selectedOption = e.target.value;
+    setSelectedOptionEdit(selectedOption);
     setInputValueEdit("");
     setFormData((prevFormData) => ({
       ...prevFormData,
-      hours: "",
+      hours: "0.00",
+      totalRate: "0.00",
+      times: "",
     }));
-
-    if (selectedOption !== "") {
-      setFormData((prevFormData) => ({
-        ...prevFormData,
-        hours: "0.00",
-      }));
-    }
   };
 
-  const handleInputChangeEdit = (e) => {
-    const inputValue = e.target.value;
-    const selectedOption = document.getElementById("time-select-edit").value;
+const handleInputChangeEdit = (e) => {
+  const inputValue = e.target.value;
+  
+  console.log("Input value:", inputValue, "Selected option:", selectedOptionEdit); // Debug log
 
-    if (selectedOption === "days") {
-      const hours = parseFloat(inputValue) * 24;
-      setFormData((prevFormData) => ({
-        ...prevFormData,
-        hours: hours.toFixed(2),
-        totalRate: (hours * parseFloat(prevFormData.hourlyRate || 0)).toFixed(
-          2
-        ),
-        times: `${inputValue} ${"day"}`,
-      }));
-    } else if (selectedOption === "hours") {
-      setFormData((prevFormData) => ({
-        ...prevFormData,
-        hours: inputValue,
-        totalRate: (
-          parseFloat(inputValue) * parseFloat(prevFormData.hourlyRate || 0)
-        ).toFixed(2),
-        times: `${inputValue} ${"hr"}`,
-      }));
-    } else if (selectedOption === "minutes") {
-      const hours = parseFloat(inputValue) / 60;
-      setFormData((prevFormData) => ({
-        ...prevFormData,
-        hours: hours.toFixed(2),
-        totalRate: (hours * parseFloat(prevFormData.hourlyRate || 0)).toFixed(
-          2
-        ),
-        times: `${inputValue} ${"min"}`,
-      }));
-    }
+  if (selectedOptionEdit === "days") {
+    const hours = parseFloat(inputValue) * 24;
+    const totalRate = (hours * parseFloat(formData.hourlyRate || 0)).toFixed(2);
+    setFormData((prevFormData) => ({
+      ...prevFormData,
+      hours: hours.toFixed(2),
+      totalRate: totalRate,
+      times: `${inputValue} day${inputValue > 1 ? 's' : ''}`,
+    }));
+  } else if (selectedOptionEdit === "hours") {
+    const hours = parseFloat(inputValue);
+    const totalRate = (hours * parseFloat(formData.hourlyRate || 0)).toFixed(2);
+    setFormData((prevFormData) => ({
+      ...prevFormData,
+      hours: hours.toFixed(2),
+      totalRate: totalRate,
+      times: `${inputValue} hr${inputValue > 1 ? 's' : ''}`,
+    }));
+  } else if (selectedOptionEdit === "minutes") {
+    const hours = parseFloat(inputValue) / 60;
+    const totalRate = (hours * parseFloat(formData.hourlyRate || 0)).toFixed(2);
+    setFormData((prevFormData) => ({
+      ...prevFormData,
+      hours: hours.toFixed(2),
+      totalRate: totalRate,
+      times: `${inputValue} min`,
+    }));
+  }
 
-    setInputValueEdit(inputValue);
-  };
-
+  setInputValueEdit(inputValue);
+};
   const handleSelectChange = (e) => {
     const selectedOption = e.target.value;
     setInputValue("");
@@ -521,7 +470,9 @@ const ManufacturingVariable = ({
       hourlyRate: Number(formData.hourlyRate),
       totalRate: Number(formData.totalRate),
       isSpecialday: Boolean(formData.isSpecialday), // Ensure boolean type
-      SpecialDayTotalMinutes: formData.isSpecialday ? Number(Math.round(formData.hours*60)) : 0,
+      SpecialDayTotalMinutes: formData.isSpecialday
+        ? Number(Math.round(formData.hours * 60))
+        : 0,
     };
     console.log(payload);
     try {
@@ -603,47 +554,61 @@ const ManufacturingVariable = ({
   };
 
   // Handle form submission for editing a variable (PUT request)
-  const handleEditSubmit = async (e) => {
-    e.preventDefault();
-    setPosting(true);
-    setError(null);
-    try {
-      const response = await fetch(
-        `${process.env.REACT_APP_BASE_URL}/api/parts/${partDetails._id}/manufacturingVariables/${editId}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            ...formData,
-            totalRate: formData.hourlyRate * formData.hours, // Recalculate totalRate here
-            // isSpecialday: e.target.checked,
-            isSpecialday: formData.isSpecialday,
-            SpecialDayTotalMinutes: e.target.checked ? formData.SpecialDayTotalMinutes : 0,
-          }),
-        }
-      );
-      if (response.ok) {
-        await fetchManufacturingData();
-        setFormData({
-          categoryId: "",
-          name: "",
-          hours: "",
-          hourlyRate: "",
-          totalRate: "",
-        });
-        toast.success("Records Edited Successfully");
-        setModalEdit(false); // Close the edit modal
-      } else {
-        throw new Error("Network response was not ok");
+const handleEditSubmit = async (e) => {
+  e.preventDefault();
+  setPosting(true);
+  setError(null);
+  try {
+    // Convert to numbers and recalculate totalRate
+    const hours = parseFloat(formData.hours) || 0;
+    const hourlyRate = parseFloat(formData.hourlyRate) || 0;
+    const totalRate = hours * hourlyRate;
+    console.log("Edit payload:", {...formData, hours, hourlyRate, totalRate}); // Debug log
+
+    const payload = {
+      categoryId: formData.categoryId,
+      name: formData.name,
+      SubMachineName: formData.SubMachineName || "",
+      times: formData.times, // Make sure this is included
+      hours: hours,
+      hourlyRate: hourlyRate,
+      totalRate: totalRate,
+      isSpecialday: formData.isSpecialday,
+      SpecialDayTotalMinutes: formData.isSpecialday ? formData.SpecialDayTotalMinutes : 0,
+    };
+
+    console.log("Edit payload being sent:", payload); // Debug log
+
+    const response = await fetch(
+      `${process.env.REACT_APP_BASE_URL}/api/parts/${partDetails._id}/manufacturingVariables/${editId}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
       }
-    } catch (error) {
-      setError(error.message);
-    } finally {
-      setPosting(false);
+    );
+    
+    if (response.ok) {
+      const result = await response.json();
+      console.log("Update response:", result); // Debug log
+      await fetchManufacturingData();
+      toast.success("Records Edited Successfully");
+      setModalEdit(false);
+    } else {
+      const errorText = await response.text();
+      throw new Error(`Network response was not ok: ${errorText}`);
     }
-  };
+  } catch (error) {
+    console.error("Error in handleEditSubmit:", error);
+    setError(error.message);
+    toast.error(`Error: ${error.message}`);
+  } finally {
+    setPosting(false);
+  }
+};
+
   // Handle delete action
   const handleDelete = async (_id) => {
     setPosting(true);
@@ -697,26 +662,6 @@ const ManufacturingVariable = ({
     return (validHours * validHourlyRate).toFixed(2); // Multiply and return
   };
 
-  // const formatTime = (time) => {
-  //   if (time === 0) {
-  //     return 0;
-  //   }
-
-  //   let result = "";
-
-  //   const hours = Math.floor(time);
-  //   const minutes = Math.round((time - hours) * 60);
-
-  //   if (hours > 0) {
-  //     result += `${hours}h `;
-  //   }
-
-  //   if (minutes > 0 || (hours === 0 && minutes !== 0)) {
-  //     result += `${minutes}m`;
-  //   }
-
-  //   return result.trim();
-  // };
   const formatTime = (time) => {
     if (time === 0) {
       return "0 m";
@@ -835,9 +780,7 @@ const ManufacturingVariable = ({
                       <button
                         className="btn btn-sm btn-primary"
                         onClick={() => handleReorder(item._id, "down")}
-                        disabled={
-                          index === filteredData.length - 1 || posting
-                        }
+                        disabled={index === filteredData.length - 1 || posting}
                       >
                         ↓
                       </button>
@@ -993,7 +936,7 @@ const ManufacturingVariable = ({
                 onChange={(e) =>
                   setFormData({
                     ...formData,
-                    isSpecialday: e.target.checked
+                    isSpecialday: e.target.checked,
                   })
                 }
               />
@@ -1003,27 +946,7 @@ const ManufacturingVariable = ({
             </div>
 
             {/* Conditional SpecialDayTotalMinutes input */}
-            {/* {formData.isSpecialday && (
-              <div className="mb-3">
-                <label htmlFor="SpecialDayTotalMinutes" className="form-label">
-                  Total Days
-                </label>
-                <input
-                  type="number"
-                  className="form-control"
-                  id="SpecialDayTotalMinutes"
-                  min="0"
-                  value={formData.SpecialDayTotalMinutes}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      SpecialDayTotalMinutes: e.target.value,
-                    })
-                  }
-                  required={formData.isSpecialday}
-                />
-              </div>
-            )} */}
+
             <ModalFooter>
               <Button type="submit" color="primary" disabled={posting}>
                 Add
@@ -1120,174 +1043,182 @@ const ManufacturingVariable = ({
         </ModalBody>
       </Modal>
 
-     {/* edit  modal */}
-    <Modal isOpen={modal_edit} toggle={tog_edit}>
-      <ModalHeader toggle={tog_edit}>
-        Edit Manufacturing Variables
-      </ModalHeader>
-      <ModalBody>
-        <form onSubmit={handleEditSubmit}>
-          <div className="mb-3">
-            <label htmlFor="categoryId" className="form-label">
-              Category ID
-            </label>
-            <input
-              type="text"
-              className="form-control"
-              name="categoryId"
-              value={formData.categoryId}
-              onChange={handleChange}
-              required
-            />
-          </div>
-          
-           <div className="mb-3">
-        <label htmlFor="name" className="form-label">
-          Name
-        </label>
-        <Autocomplete
-          options={manufacturingVariables}
-          getOptionLabel={(option) =>
-            `${option.categoryId} - ${option.name}`
-          }
-          onChange={(event, newValue) => {
-            handleAutocompleteChange(event, newValue);
-            // Update the sub-machine options when name changes
-            setSubMachineOptions(newValue?.subCategories || []);
-          }}
-          value={manufacturingVariables.find(item => item.categoryId === formData.categoryId) || null}
-          renderInput={(params) => (
-            <TextField
-              {...params}
-              label="Select Manufacturing Variables"
-              variant="outlined"
-            />
-          )}
-        />
-      </div>
+      {/* edit  modal */}
+      <Modal isOpen={modal_edit} toggle={tog_edit}>
+        <ModalHeader toggle={tog_edit}>
+          Edit Manufacturing Variables
+        </ModalHeader>
+        <ModalBody>
+          <form onSubmit={handleEditSubmit}>
+            <div className="mb-3">
+              <label htmlFor="categoryId" className="form-label">
+                Category ID
+              </label>
+              <input
+                type="text"
+                className="form-control"
+                name="categoryId"
+                value={formData.categoryId}
+                onChange={handleChange}
+                required
+              />
+            </div>
 
-      {/* Sub Machine Selection - Always show this, even if empty */}
-      <div className="mb-3">
-        <label htmlFor="subMachine" className="form-label">
-          Specify Machine
-        </label>
-        <Autocomplete
-          options={subMachineOptions}
-          getOptionLabel={(option) =>
-            `${option.subcategoryId} - ${option.name}`
-          }
-          onChange={handleSubMachineChange}
-          value={subMachineOptions.find(item => item.name === formData.SubMachineName) || null}
-          renderInput={(params) => (
-            <TextField
-              {...params}
-              label="Select Specify Machine"
-              variant="outlined"
-            />
-          )}
-          disabled={subMachineOptions.length === 0}
-        />
-      </div>
+            <div className="mb-3">
+              <label htmlFor="name" className="form-label">
+                Name
+              </label>
+              <Autocomplete
+                options={manufacturingVariables}
+                getOptionLabel={(option) =>
+                  `${option.categoryId} - ${option.name}`
+                }
+                onChange={(event, newValue) => {
+                  handleAutocompleteChange(event, newValue);
+                  // Update the sub-machine options when name changes
+                  setSubMachineOptions(newValue?.subCategories || []);
+                }}
+                value={
+                  manufacturingVariables.find(
+                    (item) => item.categoryId === formData.categoryId
+                  ) || null
+                }
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Select Manufacturing Variables"
+                    variant="outlined"
+                  />
+                )}
+              />
+            </div>
 
-          <div className="mb-3">
-            <label htmlFor="time-select">Time</label>
-            <div className="input-group">
+            {/* Sub Machine Selection - Always show this, even if empty */}
+            <div className="mb-3">
+              <label htmlFor="subMachine" className="form-label">
+                Specify Machine
+              </label>
+              <Autocomplete
+                options={subMachineOptions}
+                getOptionLabel={(option) =>
+                  `${option.subcategoryId} - ${option.name}`
+                }
+                onChange={handleSubMachineChange}
+                value={
+                  subMachineOptions.find(
+                    (item) => item.name === formData.SubMachineName
+                  ) || null
+                }
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Select Specify Machine"
+                    variant="outlined"
+                  />
+                )}
+                disabled={subMachineOptions.length === 0}
+              />
+            </div>
+
+            <div className="mb-3">
+              <label htmlFor="time-select">Time</label>
+              <div className="input-group">
+                <input
+                  type="number"
+                  className="form-control"
+                  id="time-input-edit"
+                  value={Math.round(inputValueEdit)}
+                  onChange={handleInputChangeEdit}
+                  placeholder={`Enter ${selectedOptionEdit} value`}
+                />
+
+                <select
+                  id="time-select-edit"
+                  onChange={(e) => {
+                    setSelectedOptionEdit(e.target.value);
+                    handleSelectChangeEdit(e);
+                  }}
+                  value={selectedOptionEdit}
+                  className="form-select"
+                >
+                  <option value="">-- Select --</option>
+                  <option value="days">Days</option>
+                  <option value="hours">Hours</option>
+                  <option value="minutes">Minutes</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="mb-3">
+              <label htmlFor="hours" className="form-label">
+                Hours
+              </label>
               <input
                 type="number"
                 className="form-control"
-                id="time-input-edit"
-                value={Math.round(inputValueEdit)}
-                onChange={handleInputChangeEdit}
-                placeholder={`Enter ${selectedOptionEdit} value`}
+                name="hours"
+                value={Math.round(formData.hours)}
+                readOnly
+                required
               />
-
-              <select
-                id="time-select-edit"
-                onChange={(e) => {
-                  handleSelectChangeEdit(e);
-                  setSelectedOptionEdit(e.target.value);
-                }}
-                value={selectedOptionEdit}
-                className="form-select"
-              >
-                <option value="">-- Select --</option>
-                <option value="days">Days</option>
-                <option value="hours">Hours</option>
-                <option value="minutes">Minutes</option>
-              </select>
             </div>
-          </div>
+            <div className="mb-3">
+              <label htmlFor="hourlyRate" className="form-label">
+                Hourly Rate
+              </label>
+              <input
+                type="number"
+                className="form-control"
+                name="hourlyRate"
+                value={Math.round(formData.hourlyRate || "")}
+                onChange={handleChange}
+                required
+              />
+            </div>
+            <div className="mb-3">
+              <label htmlFor="totalRate" className="form-label">
+                Total Rate
+              </label>
+              <input
+                type="number"
+                className="form-control"
+                name="totalRate"
+                value={Math.round(formData.totalRate)}
+                readOnly
+                required
+              />
+            </div>
+            {/* isSpecialday checkbox */}
+            <div className="mb-3 form-check">
+              <input
+                type="checkbox"
+                className="form-check-input"
+                id="isSpecialday"
+                checked={formData.isSpecialday || false}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    isSpecialday: e.target.checked,
+                    // SpecialDayTotalMinutes: e.target.checked ? formData.SpecialDayTotalMinutes : 0,
+                  })
+                }
+              />
+              <label className="form-check-label" htmlFor="isSpecialday">
+                Job Work (Set Fixed Time for all Quantities)
+              </label>
+            </div>
 
-          <div className="mb-3">
-            <label htmlFor="hours" className="form-label">
-              Hours
-            </label>
-            <input
-              type="number"
-              className="form-control"
-              name="hours"
-              value={Math.round(formData.hours)}
-              readOnly
-              required
-            />
-          </div>
-          <div className="mb-3">
-            <label htmlFor="hourlyRate" className="form-label">
-              Hourly Rate
-            </label>
-            <input
-              type="number"
-              className="form-control"
-              name="hourlyRate"
-              value={Math.round(formData.hourlyRate || "")}
-              onChange={handleChange}
-              required
-            />
-          </div>
-          <div className="mb-3">
-            <label htmlFor="totalRate" className="form-label">
-              Total Rate
-            </label>
-            <input
-              type="number"
-              className="form-control"
-              name="totalRate"
-              value={Math.round(formData.totalRate)}
-              readOnly
-              required
-            />
-          </div>
-          {/* isSpecialday checkbox */}
-          <div className="mb-3 form-check">
-            <input
-              type="checkbox"
-              className="form-check-input"
-              id="isSpecialday"
-              checked={formData.isSpecialday || false}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  isSpecialday: e.target.checked,
-                  // SpecialDayTotalMinutes: e.target.checked ? formData.SpecialDayTotalMinutes : 0,
-                })
-              }
-            />
-            <label className="form-check-label" htmlFor="isSpecialday">
-              Job Work (Set Fixed Time for all Quantities)
-            </label>
-          </div>
-
-          <ModalFooter>
-            <Button type="submit" color="primary" disabled={posting}>
-              Update
-            </Button>
-            <Button type="button" color="secondary" onClick={tog_edit}>
-              Cancel
-            </Button>
-          </ModalFooter>
-        </form>
-      </ModalBody>
-    </Modal>
+            <ModalFooter>
+              <Button type="submit" color="primary" disabled={posting}>
+                Update
+              </Button>
+              <Button type="button" color="secondary" onClick={tog_edit}>
+                Cancel
+              </Button>
+            </ModalFooter>
+          </form>
+        </ModalBody>
+      </Modal>
 
       {/* Delete modal */}
       <Modal isOpen={modal_delete} toggle={tog_delete} centered>
