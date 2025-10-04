@@ -689,8 +689,13 @@ PartsExcelRoutes.put(
       if (req.body.name !== undefined) updateFields["manufacturingVariables.$.name"] = req.body.name;
       if (req.body.hours !== undefined) updateFields["manufacturingVariables.$.hours"] = req.body.hours;
       if (req.body.hourlyRate !== undefined) updateFields["manufacturingVariables.$.hourlyRate"] = req.body.hourlyRate;
+      if (req.body.totalRate !== undefined) updateFields["manufacturingVariables.$.totalRate"] = req.body.totalRate;
       if (req.body.isSpecialday !== undefined) updateFields["manufacturingVariables.$.isSpecialday"] = req.body.isSpecialday;
       if (req.body.SpecialDayTotalMinutes !== undefined) updateFields["manufacturingVariables.$.SpecialDayTotalMinutes"] = req.body.SpecialDayTotalMinutes;
+      if (req.body.times !== undefined) updateFields["manufacturingVariables.$.times"] = req.body.times; // ADD THIS LINE
+      if (req.body.SubMachineName !== undefined) updateFields["manufacturingVariables.$.SubMachineName"] = req.body.SubMachineName; // AND THIS LINE
+
+      console.log("Update fields:", updateFields); // Debug log
 
       const updatedPart = await PartsModel.findOneAndUpdate(
         { _id: req.params._id, "manufacturingVariables._id": req.params.variableId },
