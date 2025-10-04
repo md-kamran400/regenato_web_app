@@ -1883,11 +1883,64 @@ partproject.put(
 
 // ============================= end of allocation ====================================
 
+// partproject.get("/all-allocations", async (req, res) => {
+//   try {
+//     // Optimize the query by selecting only necessary fields and reducing populate operations
+//     const projects = await PartListProjectModel.find({})
+//       .select("projectName createdAt partsLists subAssemblyListFirst assemblyList")
+//       .populate({
+//         path: "partsLists.partsListItems.allocations",
+//         select: "machineId startDate endDate actualEndDate partName"
+//       })
+//       .populate({
+//         path: "subAssemblyListFirst.partsListItems.allocations",
+//         select: "machineId startDate endDate actualEndDate partName"
+//       })
+//       .populate({
+//         path: "assemblyList.partsListItems.allocations",
+//         select: "machineId startDate endDate actualEndDate partName"
+//       })
+//       .populate({
+//         path: "assemblyList.subAssemblies.partsListItems.allocations",
+//         select: "machineId startDate endDate actualEndDate partName"
+//       });
+
+//     // Extract allocations with projectName
+//     const allocationData = projects.map((project) => ({
+//       projectName: project.projectName,
+//       createdAt: project.createdAt,
+//       allocations: [
+//         ...project.partsLists.flatMap((pl) =>
+//           pl.partsListItems.flatMap((p) => p.allocations)
+//         ),
+//         ...project.subAssemblyListFirst.flatMap((sa) =>
+//           sa.partsListItems.flatMap((p) => p.allocations)
+//         ),
+//         ...project.assemblyList.flatMap((al) => [
+//           ...al.partsListItems.flatMap((p) => p.allocations),
+//           ...al.subAssemblies.flatMap((sub) =>
+//             sub.partsListItems.flatMap((p) => p.allocations)
+//           ),
+//         ]),
+//       ].flat(), // Flatten all allocations into a single array
+//     }));
+
+//     return res.status(200).json({
+//       message: "All allocations retrieved successfully",
+//       data: allocationData,
+//     });
+//   } catch (error) {
+//     console.error("Error fetching allocations:", error);
+//     return res.status(500).json({ message: "Internal Server Error" });
+//   }
+// });
+
 partproject.get("/all-allocations", async (req, res) => {
   try {
-    // Optimize the query by selecting only necessary fields and reducing populate operations
+    // Fetch projects sorted by newest first
     const projects = await PartListProjectModel.find({})
-      .select("projectName partsLists subAssemblyListFirst assemblyList")
+      .sort({ createdAt: -1 }) // ✅ Sort by createdAt descending
+      .select("projectName createdAt partsLists subAssemblyListFirst assemblyList")
       .populate({
         path: "partsLists.partsListItems.allocations",
         select: "machineId startDate endDate actualEndDate partName"
@@ -1908,6 +1961,7 @@ partproject.get("/all-allocations", async (req, res) => {
     // Extract allocations with projectName
     const allocationData = projects.map((project) => ({
       projectName: project.projectName,
+      createdAt: project.createdAt,
       allocations: [
         ...project.partsLists.flatMap((pl) =>
           pl.partsListItems.flatMap((p) => p.allocations)
@@ -1921,7 +1975,7 @@ partproject.get("/all-allocations", async (req, res) => {
             sub.partsListItems.flatMap((p) => p.allocations)
           ),
         ]),
-      ].flat(), // Flatten all allocations into a single array
+      ].flat(),
     }));
 
     return res.status(200).json({
@@ -1933,6 +1987,7 @@ partproject.get("/all-allocations", async (req, res) => {
     return res.status(500).json({ message: "Internal Server Error" });
   }
 });
+
 
 partproject.get("/daily-tracking", async (req, res) => {
   try {
