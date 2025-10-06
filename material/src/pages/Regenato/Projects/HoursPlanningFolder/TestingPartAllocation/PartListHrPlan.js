@@ -665,17 +665,16 @@ export const PartListHrPlan = ({
         //       manufacturingVariables[index].categoryId
         //     ),
         plannedQtyTime: processInfo?.isSpecialday
-  ? calculatePlannedMinutes(
-      manufacturingVariables[index].hours,
-      manufacturingVariables[index].name,
-      manufacturingVariables[index].categoryId
-    )
-  : calculatePlannedMinutes(
-      newQuantity * manufacturingVariables[index].hours,
-      manufacturingVariables[index].name,
-      manufacturingVariables[index].categoryId
-    ),
-
+          ? calculatePlannedMinutes(
+              manufacturingVariables[index].hours,
+              manufacturingVariables[index].name,
+              manufacturingVariables[index].categoryId
+            )
+          : calculatePlannedMinutes(
+              newQuantity * manufacturingVariables[index].hours,
+              manufacturingVariables[index].name,
+              manufacturingVariables[index].categoryId
+            ),
       };
 
       updatedRows[index] = processRows;
@@ -788,10 +787,14 @@ export const PartListHrPlan = ({
           //     )
           //   : "",
           plannedQtyTime: isAutoSchedule
-  ? getProcessSpecialDayInfo(man.name, man.categoryId)?.isSpecialday
-    ? calculatePlannedMinutes(man.hours, man.name, man.categoryId)   // Job work — no qty multiplication
-    : calculatePlannedMinutes(quantity * man.hours, man.name, man.categoryId)
-  : "",
+            ? getProcessSpecialDayInfo(man.name, man.categoryId)?.isSpecialday
+              ? calculatePlannedMinutes(man.hours, man.name, man.categoryId) // Job work — no qty multiplication
+              : calculatePlannedMinutes(
+                  quantity * man.hours,
+                  man.name,
+                  man.categoryId
+                )
+            : "",
 
           startDate: "",
           startTime: "",
@@ -836,6 +839,7 @@ export const PartListHrPlan = ({
     let parsedDate = new Date(startDate);
     if (isNaN(parsedDate.getTime())) return "";
 
+    // Calculate working minutes per day from shift data
     const workingMinutesPerDay = shift?.workingMinutes || 450;
 
     let totalDays = Math.ceil(plannedMinutes / workingMinutesPerDay);
@@ -870,6 +874,7 @@ export const PartListHrPlan = ({
   const calculateStartAndEndDates = (inputStartDate, plannedMinutes, shift) => {
     let parsedStartDate = new Date(inputStartDate);
     let remainingMinutes = plannedMinutes;
+    // Use actual shift working minutes instead of hardcoded value
     let workingMinutesPerDay = shift?.workingMinutes || 450;
     let currentDate = new Date(parsedStartDate);
 
@@ -1153,14 +1158,15 @@ export const PartListHrPlan = ({
 
         let endDate;
         if (processInfo?.isSpecialday) {
-          // Job Work: continuous 24h
+          // Job Work: continuous, skip Sundays
           const startDateTime = new Date(startDate);
           const baseStartTime =
             currentRow.startTime || shift?.startTime || "09:00";
           const [sH, sM] = baseStartTime.split(":").map(Number);
           startDateTime.setHours(sH, sM, 0, 0);
-          const endDateTime = new Date(
-            startDateTime.getTime() + currentRow.plannedQtyTime * 60000
+          const endDateTime = addMinutesSkippingSundays(
+            startDateTime,
+            currentRow.plannedQtyTime
           );
           endDate = endDateTime;
         } else {
@@ -1215,6 +1221,53 @@ export const PartListHrPlan = ({
       .split("T")[0];
   };
 
+  // Add minutes to a datetime while skipping Sundays entirely
+  const addMinutesSkippingSundays = (startDateTime, minutesToAdd) => {
+    if (!startDateTime || !minutesToAdd)
+      return new Date(startDateTime || Date.now());
+
+    let current = new Date(startDateTime);
+    let minutesLeft = minutesToAdd;
+
+    while (minutesLeft > 0) {
+      // If current day is Sunday, move to next day start (time continues next day)
+      if (getDay(current) === 0) {
+        current.setDate(current.getDate() + 1);
+        continue;
+      }
+
+      // Minutes remaining until the next midnight
+      const nextMidnight = new Date(current);
+      nextMidnight.setHours(24, 0, 0, 0);
+      const minutesUntilMidnight = Math.max(
+        0,
+        Math.floor((nextMidnight - current) / (1000 * 60))
+      );
+
+      if (minutesLeft <= minutesUntilMidnight) {
+        current = new Date(current.getTime() + minutesLeft * 60000);
+        minutesLeft = 0;
+        break;
+      }
+
+      // Consume current day's remaining minutes and advance to next day 00:00
+      minutesLeft -= minutesUntilMidnight;
+      current = nextMidnight;
+
+      // Skip any full Sundays encountered at midnight
+      while (getDay(current) === 0) {
+        current.setDate(current.getDate() + 1);
+      }
+    }
+
+    // Safety: if we somehow land exactly on a Sunday, move to Monday
+    if (getDay(current) === 0) {
+      current.setDate(current.getDate() + 1);
+    }
+
+    return current;
+  };
+
   const getNextWorkingDay = (date) => {
     let nextDay = new Date(date);
     while (
@@ -1260,42 +1313,72 @@ export const PartListHrPlan = ({
     let endDate = new Date(currentDate);
 
     // Special handling for special day processes
+    // if (specialDayInfo?.isSpecialday) {
+    //   // For special day processes, we treat each day as a full working day (1440 minutes)
+    //   const daysNeeded = Math.ceil(plannedMinutes / 1440);
+
+    //   // Start with the next working day
+    //   let currentDay = getNextWorkingDay(new Date(currentDate));
+    //   let daysAdded = 0;
+
+    //   // Add the required number of working days
+    //   while (daysAdded < daysNeeded) {
+    //     // Skip to next working day if current day is Sunday or event date
+    //     while (
+    //       getDay(currentDay) === 0 ||
+    //       eventDates.some((d) => isSameDay(d, currentDay))
+    //     ) {
+    //       currentDay.setDate(currentDay.getDate() + 1);
+    //     }
+
+    //     daysAdded++;
+    //     if (daysAdded < daysNeeded) {
+    //       currentDay.setDate(currentDay.getDate() + 1);
+    //     }
+    //   }
+
+    //   // Final check to ensure we're not ending on a Sunday or event date
+    //   while (
+    //     getDay(currentDay) === 0 ||
+    //     eventDates.some((d) => isSameDay(d, currentDay))
+    //   ) {
+    //     currentDay.setDate(currentDay.getDate() + 1);
+    //   }
+
+    //   return formatDateUTC(currentDay);
+    // }
     if (specialDayInfo?.isSpecialday) {
-      // For special day processes, we treat each day as a full working day (1440 minutes)
-      const daysNeeded = Math.ceil(plannedMinutes / 1440);
+      // ✅ Job-Work processes: skip only Sundays while counting working days
+      const daysNeeded = Math.ceil(plannedMinutes / 1440); // 1 full day = 1440 min
+      let currentDay = new Date(startDate);
+      currentDay.setHours(0, 0, 0, 0);
 
-      // Start with the next working day
-      let currentDay = getNextWorkingDay(new Date(currentDate));
-      let daysAdded = 0;
-
-      // Add the required number of working days
-      while (daysAdded < daysNeeded) {
-        // Skip to next working day if current day is Sunday or event date
-        while (
-          getDay(currentDay) === 0 ||
-          eventDates.some((d) => isSameDay(d, currentDay))
-        ) {
+      let workingDays = 0;
+      while (workingDays < daysNeeded) {
+        // If it's Sunday → skip (don’t count, move to next day)
+        if (getDay(currentDay) === 0) {
           currentDay.setDate(currentDay.getDate() + 1);
+          continue;
         }
 
-        daysAdded++;
-        if (daysAdded < daysNeeded) {
+        // Count as a working day
+        workingDays++;
+
+        // Move to next day if more working days remain
+        if (workingDays < daysNeeded) {
           currentDay.setDate(currentDay.getDate() + 1);
         }
       }
 
-      // Final check to ensure we're not ending on a Sunday or event date
-      while (
-        getDay(currentDay) === 0 ||
-        eventDates.some((d) => isSameDay(d, currentDay))
-      ) {
+      // Final safety: if last day happens to fall on a Sunday, move one more day
+      if (getDay(currentDay) === 0) {
         currentDay.setDate(currentDay.getDate() + 1);
       }
 
       return formatDateUTC(currentDay);
     }
 
-    // Regular process logic
+    // Regular process logic - use actual shift working minutes
     const workingMinutesPerDay = shift?.workingMinutes || 510;
     let remainingMinutes = plannedMinutes;
     let totalDowntimeAdded = 0;
@@ -1405,6 +1488,7 @@ export const PartListHrPlan = ({
           ),
           operatorId: "",
           processName: manufacturingVariables[index].name,
+          quantityStatus: `Remaining: ${currentRemaining}`,
         },
       ],
     }));
@@ -1686,8 +1770,8 @@ export const PartListHrPlan = ({
     if (specialDayInfo?.isSpecialday) {
       const endTime = new Date(shiftStart);
 
-      // For special day processes, we use a fixed 8-hour working day
-      const workingMinutesPerDay = 480; // 8 hours
+      // For special day processes, use the actual shift working minutes
+      const workingMinutesPerDay = shift?.workingMinutes || 480;
 
       // If it's exactly 1440 minutes (1 day), set end time to next day's start time
       if (plannedMinutes === 1440) {
@@ -1695,18 +1779,22 @@ export const PartListHrPlan = ({
         return startTime;
       }
 
-      // For other durations, calculate based on 8-hour working day
+      // For other durations, calculate based on shift working minutes
       const daysNeeded = Math.ceil(plannedMinutes / workingMinutesPerDay);
 
       // For single day allocations
       if (daysNeeded === 1) {
         endTime.setMinutes(endTime.getMinutes() + plannedMinutes);
-        // Cap at 5:30 PM
+        // Cap at shift end time
+        const [shiftEndHour, shiftEndMin] = shift.endTime
+          .split(":")
+          .map(Number);
         if (
-          endTime.getHours() > 17 ||
-          (endTime.getHours() === 17 && endTime.getMinutes() > 30)
+          endTime.getHours() > shiftEndHour ||
+          (endTime.getHours() === shiftEndHour &&
+            endTime.getMinutes() > shiftEndMin)
         ) {
-          endTime.setHours(17, 30, 0, 0);
+          endTime.setHours(shiftEndHour, shiftEndMin, 0, 0);
         }
         return formatTime(endTime);
       }
@@ -1715,12 +1803,14 @@ export const PartListHrPlan = ({
       const remainingMinutes =
         plannedMinutes % workingMinutesPerDay || workingMinutesPerDay;
       endTime.setMinutes(endTime.getMinutes() + remainingMinutes);
-      // Cap at 5:30 PM
+      // Cap at shift end time
+      const [shiftEndHour, shiftEndMin] = shift.endTime.split(":").map(Number);
       if (
-        endTime.getHours() > 17 ||
-        (endTime.getHours() === 17 && endTime.getMinutes() > 30)
+        endTime.getHours() > shiftEndHour ||
+        (endTime.getHours() === shiftEndHour &&
+          endTime.getMinutes() > shiftEndMin)
       ) {
-        endTime.setHours(17, 30, 0, 0);
+        endTime.setHours(shiftEndHour, shiftEndMin, 0, 0);
       }
       return formatTime(endTime);
     }
@@ -2085,12 +2175,13 @@ export const PartListHrPlan = ({
             nextProcessInfo.categoryId
           )?.isSpecialday
         ) {
-          // Job Work: continuous 24h
+          // Job Work: continuous, skip Sundays
           const startDateTime = new Date(
             formatDateUTC(nextStartDateObj) + "T" + nextStartTime + ":00"
           );
-          const endDateTime = new Date(
-            startDateTime.getTime() + currentNext.plannedQtyTime * 60000
+          const endDateTime = addMinutesSkippingSundays(
+            startDateTime,
+            currentNext.plannedQtyTime
           );
           recomputedEndDate = formatDateUTC(endDateTime);
           recomputedEndTime = `${String(endDateTime.getHours()).padStart(
@@ -2743,7 +2834,7 @@ export const PartListHrPlan = ({
                                 </div>
                               </div>
 
-                              {rowIndex === 0 && (
+                              {/* {rowIndex === 0 && (
                                 <div
                                   style={{
                                     display: "flex",
@@ -2806,7 +2897,70 @@ export const PartListHrPlan = ({
                                     </div>
                                   </div>
                                 </div>
-                              )}
+                              )} */}
+
+                              <div
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "0.5rem",
+                                  padding: "0.75rem",
+                                  backgroundColor: "#f1f5f9",
+                                  borderRadius: "8px",
+                                  borderLeft: "3px solid #4f46e5",
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    width: "32px",
+                                    height: "32px",
+                                    borderRadius: "6px",
+                                    backgroundColor: "#4f46e510",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                  }}
+                                >
+                                  <FiPackage size={16} color="#4f46e5" />
+                                </div>
+                                <div style={{ fontSize: "0.85rem" }}>
+                                  <div
+                                    style={{
+                                      fontWeight: 600,
+                                      color: "#334155",
+                                    }}
+                                  >
+                                    Quantity Status
+                                  </div>
+                                  <div
+                                    style={{
+                                      display: "flex",
+                                      gap: "0.5rem",
+                                      marginTop: "0.25rem",
+                                    }}
+                                  >
+                                    <span
+                                      style={{
+                                        color: "#4f46e5",
+                                        fontWeight: 700,
+                                      }}
+                                    >
+                                      {remainingQuantities[index] || 0}
+                                    </span>
+                                    <span style={{ color: "#64748b" }}>
+                                      remaining of
+                                    </span>
+                                    <span
+                                      style={{
+                                        color: "#4f46e5",
+                                        fontWeight: 700,
+                                      }}
+                                    >
+                                      {quantity}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
 
                               <div
                                 style={{
@@ -3135,34 +3289,224 @@ export const PartListHrPlan = ({
                                   onChange={(event, newValue) => {
                                     if (!newValue) return;
 
-                                    setRows((prevRows) => ({
-                                      ...prevRows,
-                                      [index]: prevRows[index].map(
-                                        (row, rowIdx) => {
-                                          if (rowIdx === rowIndex) {
-                                            let updatedEndDate = row.endDate;
-                                            if (row.startDate) {
-                                              const recalculated =
-                                                calculateStartAndEndDates(
-                                                  row.startDate,
-                                                  row.plannedQtyTime,
-                                                  newValue.TotalHours
-                                                );
-                                              updatedEndDate =
-                                                recalculated.endDate;
-                                            }
-                                            return {
-                                              ...row,
-                                              shift: newValue.name,
-                                              startTime: newValue.startTime,
-                                              shiftMinutes: newValue.TotalHours,
-                                              endDate: updatedEndDate,
-                                            };
+                                    setRows((prevRows) => {
+                                      const updatedRows = { ...prevRows };
+
+                                      // Update current row
+                                      updatedRows[index] = updatedRows[
+                                        index
+                                      ].map((row, rowIdx) => {
+                                        if (rowIdx === rowIndex) {
+                                          let updatedEndDate = row.endDate;
+                                          let updatedEndTime = row.endTime;
+
+                                          if (row.startDate) {
+                                            // Use the more accurate calculateEndDateFromStart function
+                                            // that properly handles start time and shift boundaries
+                                            const startTime =
+                                              row.startTime ||
+                                              newValue.startTime;
+                                            updatedEndDate =
+                                              calculateEndDateFromStart(
+                                                row.startDate,
+                                                startTime,
+                                                row.plannedQtyTime,
+                                                newValue
+                                              );
+
+                                            // Recalculate end time using the same logic
+                                            updatedEndTime = calculateEndTime(
+                                              startTime,
+                                              row.plannedQtyTime,
+                                              newValue
+                                            );
                                           }
-                                          return row;
+
+                                          return {
+                                            ...row,
+                                            shift: newValue.name,
+                                            startTime:
+                                              row.startTime ||
+                                              newValue.startTime,
+                                            endDate: updatedEndDate,
+                                            endTime: updatedEndTime,
+                                          };
                                         }
-                                      ),
-                                    }));
+                                        return row;
+                                      });
+
+                                      // If this is the first process and auto-schedule is enabled,
+                                      // recalculate all subsequent processes
+                                      if (isAutoSchedule && index === 0) {
+                                        let currentDate = new Date(
+                                          updatedRows[0][0].startDate
+                                        );
+                                        let previousEndTime =
+                                          updatedRows[0][0].endTime;
+                                        let previousEndDate = new Date(
+                                          updatedRows[0][0].endDate
+                                        );
+                                        let usedOperators = new Set();
+
+                                        // Update used operators for first process
+                                        if (updatedRows[0][0].operatorId) {
+                                          usedOperators.add(
+                                            updatedRows[0][0].operatorId
+                                          );
+                                        }
+
+                                        // Recalculate all subsequent processes
+                                        for (
+                                          let p = 1;
+                                          p < manufacturingVariables.length;
+                                          p++
+                                        ) {
+                                          const processRows = updatedRows[p];
+                                          if (
+                                            !processRows ||
+                                            processRows.length === 0
+                                          )
+                                            break;
+
+                                          const currentProcessInfo =
+                                            manufacturingVariables[p];
+                                          const processInfo =
+                                            getProcessSpecialDayInfo(
+                                              currentProcessInfo.name,
+                                              currentProcessInfo.categoryId
+                                            );
+
+                                          updatedRows[p] = processRows.map(
+                                            (row) => {
+                                              // Calculate start time based on previous process end time
+                                              let startTime =
+                                                newValue.startTime || "09:00";
+                                              if (previousEndTime) {
+                                                const [prevHours, prevMinutes] =
+                                                  previousEndTime
+                                                    .split(":")
+                                                    .map(Number);
+                                                const totalMinutes =
+                                                  prevHours * 60 +
+                                                  prevMinutes +
+                                                  processGapMinutes;
+                                                const newHours = Math.floor(
+                                                  totalMinutes / 60
+                                                );
+                                                const newMinutes =
+                                                  totalMinutes % 60;
+                                                startTime = `${String(
+                                                  newHours
+                                                ).padStart(2, "0")}:${String(
+                                                  newMinutes
+                                                ).padStart(2, "0")}`;
+
+                                                // Use the same date as previous process end date if possible
+                                                if (previousEndDate) {
+                                                  currentDate = new Date(
+                                                    previousEndDate
+                                                  );
+                                                }
+                                              }
+
+                                              // Find available operators that haven't been used yet
+                                              const availableOperators =
+                                                operators.filter((operator) => {
+                                                  const isOnLeave =
+                                                    isOperatorOnLeave(
+                                                      operator,
+                                                      currentDate,
+                                                      null
+                                                    );
+                                                  const { available } =
+                                                    isOperatorAvailable(
+                                                      operator._id,
+                                                      currentDate,
+                                                      null
+                                                    );
+                                                  return (
+                                                    !isOnLeave &&
+                                                    available &&
+                                                    !usedOperators.has(
+                                                      operator._id
+                                                    )
+                                                  );
+                                                });
+
+                                              // Select the first available operator
+                                              const selectedOperator =
+                                                availableOperators[0];
+                                              if (selectedOperator) {
+                                                usedOperators.add(
+                                                  selectedOperator._id
+                                                );
+                                              }
+
+                                              // Calculate end time based on start time and planned minutes
+                                              const endTime = calculateEndTime(
+                                                startTime,
+                                                row.plannedQtyTime,
+                                                newValue
+                                              );
+
+                                              // Calculate end date
+                                              let endDate;
+                                              if (processInfo?.isSpecialday) {
+                                                // Job Work: continuous, skip Sundays
+                                                const startDateTime = new Date(
+                                                  currentDate
+                                                );
+                                                const [sH, sM] = startTime
+                                                  .split(":")
+                                                  .map(Number);
+                                                startDateTime.setHours(
+                                                  sH,
+                                                  sM,
+                                                  0,
+                                                  0
+                                                );
+                                                const endDateTime =
+                                                  addMinutesSkippingSundays(
+                                                    startDateTime,
+                                                    row.plannedQtyTime
+                                                  );
+                                                endDate = endDateTime;
+                                              } else {
+                                                // Use calculateEndDateFromStart for accurate calculation
+                                                endDate =
+                                                  calculateEndDateFromStart(
+                                                    formatDateUTC(currentDate),
+                                                    startTime,
+                                                    row.plannedQtyTime,
+                                                    newValue
+                                                  );
+                                              }
+
+                                              previousEndTime = endTime;
+                                              previousEndDate = new Date(
+                                                endDate
+                                              );
+                                              currentDate = new Date(endDate);
+
+                                              return {
+                                                ...row,
+                                                startDate:
+                                                  formatDateUTC(currentDate),
+                                                endDate: formatDateUTC(endDate),
+                                                shift: newValue.name,
+                                                startTime: startTime,
+                                                endTime: endTime,
+                                                operatorId: selectedOperator
+                                                  ? selectedOperator._id
+                                                  : "",
+                                              };
+                                            }
+                                          );
+                                        }
+                                      }
+
+                                      return updatedRows;
+                                    });
                                   }}
                                   getOptionLabel={(option) => option.name}
                                   renderInput={(params) => (
@@ -3838,6 +4182,21 @@ export const PartListHrPlan = ({
                                         machine.subcategoryId === row.machineId
                                     )?.wareHouse || "-"
                                   }
+  //                                 value={
+  // machineOptions[man.categoryId]?.find(
+  //   (machine) => machine.subcategoryId === row.machineId
+  // ) 
+  // ? `${machineOptions[man.categoryId]?.find(
+  //     (machine) => machine.subcategoryId === row.machineId
+  //   )?.warehouseId || ''}${machineOptions[man.categoryId]?.find(
+  //     (machine) => machine.subcategoryId === row.machineId
+  //   )?.warehouseId && machineOptions[man.categoryId]?.find(
+  //     (machine) => machine.subcategoryId === row.machineId
+  //   )?.wareHouse ? ' - ' : ''}${machineOptions[man.categoryId]?.find(
+  //     (machine) => machine.subcategoryId === row.machineId
+  //   )?.wareHouse || ''}`.trim() || "-"
+  // : "-"
+// }
                                   readOnly
                                   style={{
                                     width: "100%",

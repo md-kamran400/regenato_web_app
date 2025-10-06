@@ -12,447 +12,431 @@ import {
   ModalHeader,
 } from "reactstrap";
 import Flatpickr from "react-flatpickr";
-import Autocomplete from "@mui/material/Autocomplete";
-import TextField from "@mui/material/TextField";
-// import "./project.css";
 import { toast } from "react-toastify";
+import { FaEdit } from "react-icons/fa";
+import { RxCountdownTimer } from "react-icons/rx";
+import { MdOutlineDelete } from "react-icons/md";
+import { Bold } from "feather-icons-react/build/IconComponents";
+import MachineDowntimeModal from "./MachineDowntimeModal";
+import MachineDowntimeHistory from "./MachineDowntimeHistory";
+import { Autocomplete, TextField } from "@mui/material";
 
-const ManufacturingVariable = ({
-  partDetails,
-  onTotalCountUpdate,
-  onTotalCountUpdateHours,
-}) => {
+const ManufacturingVariable = () => {
   const [modal_add, setModalList] = useState(false);
   const [modal_edit, setModalEdit] = useState(false);
   const [modal_delete, setModalDelete] = useState(false);
-  const [modal_static_add, setModalstatic_add] = useState(false);
-  const [manufacturingData, setManufacturingData] = useState([]);
+  const [Sub_modal_delete, setSub_ModalDelete] = useState(false);
+
+  const [subDeleteModalOpen, setSubDeleteModalOpen] = useState(false);
+  const [subToDelete, setSubToDelete] = useState(null); // Tracks the subcategory being deleted
+
   const [posting, setPosting] = useState(false);
   const [error, setError] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [variablesLoading, setVariablesLoading] = useState(true);
-  const [manufacturingVariables, setmanufacturingVariables] = useState([]);
-  const [selectedId, setSelectedId] = useState(null);
   const [shipmentvars, setshipmentvars] = useState([]);
-  const [manufacturingCounthour, setmanufacturingCounthours] = useState(0);
-  const [manufacturingCount, setmanufacturingCount] = useState(null);
+  const [expandedRowId, setExpandedRowId] = useState(null);
+  const [selectedId, setSelectedId] = useState(null);
   const [selectedShipment, setselectedShipment] = useState(null);
-  const [SelectedManufacuturingVariable, setSelectedManufacuturingVariable] =
-    useState(null);
-  const [selectedOptionEdit, setSelectedOptionEdit] = useState("");
-  const [inputValueEdit, setInputValueEdit] = useState("");
-  const [selectedOption, setSelectedOption] = useState("");
-  const [inputValue, setInputValue] = useState("");
   const [editId, setEditId] = useState(null);
-  const [unit, setUnit] = useState("minutes");
+  const [loading, setLoading] = useState(true);
+  const [manufacturingData, setManufacturingData] = useState([]);
 
-  const [subMachineOptions, setSubMachineOptions] = useState([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filteredData, setFilteredData] = useState([]);
+  // Machine downtime state
+  const [downtimeModalOpen, setDowntimeModalOpen] = useState(false);
+  const [downtimeHistoryModalOpen, setDowntimeHistoryModalOpen] =
+    useState(false);
+  const [selectedMachine, setSelectedMachine] = useState(null);
+  const [selectedParentId, setSelectedParentId] = useState(null);
 
+  const [selectedMachineDetails, setSelectedMachineDetails] = useState(null);
+  const [machineDetailsModalOpen, setMachineDetailsModalOpen] = useState(false);
+  // Add this state near your other state declarations
+  const [warehouseLocations, setWarehouseLocations] = useState([]);
+
+  //sub categroy
+  const [modal_add_sub, setModalAddSub] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingSubId, setEditingSubId] = useState(null);
+  const [selectedManufacturingId, setSelectedManufacturingId] = useState(null);
+  const [lastUsedId, setLastUsedId] = useState("");
+
+  // Toggles for modals
   const [formData, setFormData] = useState({
     categoryId: "",
     name: "",
-    times: "",
-    hours: "",
-    hourlyRate: "",
-    totalRate: "",
-    isSpecialday: false, // Add this
-    SpecialDayTotalMinutes: 0, // Add this
+    hourlyrate: "",
   });
 
   // Toggles for modals
+  const [subFormData, setSubFormData] = useState({
+    subcategoryId: "",
+    name: "",
+    hourlyRate: "",
+    wareHouse: "",
+    warehouseId: "",
+  });
 
-  const getNextCategoryId = (existingIds) => {
-    let nextId = "C1";
-
-    if (existingIds && existingIds.length > 0) {
-      const sortedIds = existingIds.sort();
-      const lastId = sortedIds[sortedIds.length - 1];
-
-      if (/^C\d+$/.test(lastId)) {
-        const numberMatch = lastId.match(/\d+/);
-        if (numberMatch) {
-          const lastNumber = parseInt(numberMatch[0], 10);
-          nextId = `C${lastNumber + 1}`;
-        }
-      }
-    }
-
-    return nextId;
-  };
-
+  // Toggles for modals
   const tog_add = () => {
-    // setModalList(!modal_add);
-    const allIds = [
-      ...manufacturingData.map((item) => item.categoryId),
-      ...shipmentvars.map((item) => item.categoryId),
-    ];
-    const nextId = getNextCategoryId(allIds);
-
-    setFormData({
-      categoryId: nextId,
-      name: "",
-      hours: "",
-      hourlyRate: "",
-      totalRate: "",
-      isSpecialday: false, // Add this
-      SpecialDayTotalMinutes: 0,
-    });
-
     setModalList(!modal_add); // Open the modal
   };
 
-  const tog_static_vairbale = () => {
-    setFormData({
-      categoryId: "",
-      name: "",
-      times: "",
-      hours: 0,
-      hourlyRate: 0,
-      totalRate: 0,
-    });
-    setModalstatic_add(!modal_static_add);
+  const Sub_tog_edit = (item = null) => {
+    if (item) {
+      setSubFormData({
+        subcategoryId: item.subcategoryId,
+        name: item.name,
+        hourlyRate: item.hourlyRate,
+        wareHouse: item.wareHouse || "",
+        warehouseId: item.warehouseId || "",
+      });
+      setEditingSubId(item._id);
+    } else {
+      setSubFormData({
+        subcategoryId: "",
+        name: "",
+        hourlyRate: "",
+        wareHouse: "",
+        warehouseId: "",
+      });
+      setEditingSubId(null);
+    }
+    setIsEditModalOpen(!isEditModalOpen);
   };
-
   // Function to toggle 'Delete' modal
   const tog_delete = () => {
     setModalDelete(!modal_delete);
   };
 
-const tog_edit = (item = null) => {
-  if (item) {
-    const hours = parseFloat(item.hours);
-    let selectedOption = "hours";
-    let inputValue = hours.toString();
+  const handleDeleteSub = (subCategoryId, parentId) => {
+    openSubDeleteModal({ _id: subCategoryId, parentId });
+  };
+  const openSubDeleteModal = (subCategory) => {
+    setSubToDelete(subCategory);
+    setSubDeleteModalOpen(true);
+  };
 
-    if (hours >= 24) {
-      selectedOption = "days";
-      inputValue = (hours / 24).toString();
-    } else if (hours < 1) {
-      selectedOption = "minutes";
-      inputValue = (hours * 60).toString(); // Convert hours to minutes
+  const closeSubDeleteModal = () => {
+    setSubToDelete(null);
+    setSubDeleteModalOpen(false);
+  };
+
+  // Function to toggle 'Edit' modal
+  const tog_edit = (item = null) => {
+    if (item) {
+      setFormData({
+        categoryId: item.categoryId,
+        name: item.name,
+        hourlyrate: item.hourlyrate,
+      });
+      setEditId(item._id); // Set the ID of the item being edited
+    } else {
+      setFormData({
+        categoryId: "",
+        name: "",
+        hourlyrate: "",
+      });
+      setEditId(null); // Reset the ID if no item is selected
     }
+    setModalEdit(!modal_edit);
+  };
 
-    // Find the manufacturing variable to get its subcategories
-    const selectedVariable = manufacturingVariables.find(
-      v => v.categoryId === item.categoryId
-    );
-    
-    setSubMachineOptions(selectedVariable?.subCategories || []);
-    setSelectedOptionEdit(selectedOption);
-    setInputValueEdit(inputValue);
-    setEditId(item._id);
+  // Machine downtime handlers
+  const openDowntimeModal = (machine, parentId) => {
+    setSelectedMachine(machine);
+    setSelectedParentId(parentId);
+    setDowntimeModalOpen(true);
+  };
 
-    setFormData({
-      ...item,
-      hours: hours.toFixed(2),
-      isSpecialday: item.isSpecialday || false,
-      SpecialDayTotalMinutes: item.SpecialDayTotalMinutes || 0,
-    });
-  } else {
-    setFormData({
-      categoryId: "",
-      name: "",
-      hours: "",
-      hourlyRate: "",
-      totalRate: "",
-      isSpecialday: false,
-      SpecialDayTotalMinutes: 0,
-    });
-    setSelectedOptionEdit("");
-    setInputValueEdit("");
-    setEditId(null);
-  }
-  setModalEdit(!modal_edit);
-};
+  const closeDowntimeModal = () => {
+    setDowntimeModalOpen(false);
+    setSelectedMachine(null);
+  };
 
-  const fetchManufacturingData = useCallback(async () => {
-    setLoading(true);
+  const openDowntimeHistoryModal = (machine, parentId) => {
+    setSelectedMachine(machine);
+    setSelectedParentId(parentId);
+    setDowntimeHistoryModalOpen(true);
+  };
+
+  const closeDowntimeHistoryModal = () => {
+    setDowntimeHistoryModalOpen(false);
+    setSelectedMachine(null);
+  };
+
+  const fetchAllAllocations = async () => {
     try {
       const response = await fetch(
-        `${process.env.REACT_APP_BASE_URL}/api/parts/${partDetails._id}/manufacturingVariables`
+        `${process.env.REACT_APP_BASE_URL}/api/defpartproject/all-allocations`
       );
-      if (!response.ok) {
-        throw new Error(`Error: ${response.statusText}`);
-      }
+      if (!response.ok) throw new Error("Failed to fetch allocations");
       const data = await response.json();
-      console.log("Received manufacturing data:", data); // Add this line
-      setManufacturingData(data);
-      console.log("Set manufacturing data:", manufacturingData); // Add this line
+      return data.data;
     } catch (error) {
-      console.error("Error fetching manufacturingVariables data:", error);
-    } finally {
-      setLoading(false);
-    }
-  }, [partDetails?._id]);
-
-  // Fetch data when partDetails changes
-  useEffect(() => {
-    if (partDetails && partDetails._id) {
-      fetchManufacturingData();
-    }
-  }, [partDetails, fetchManufacturingData]);
-
-  useEffect(() => {
-    const total = manufacturingData.reduce(
-      (sum, item) => sum + Number(item.totalRate || 0),
-      0
-    );
-    setmanufacturingCount(total);
-    console.log(total);
-
-    // Call the callback function to update the parent component
-    onTotalCountUpdate(total);
-  }, [manufacturingData]);
-
-  useEffect(() => {
-    const total = manufacturingData.reduce(
-      (sum, item) => sum + Number(item.hours || 0),
-      0
-    );
-    setmanufacturingCounthours(total);
-    console.log(total);
-
-    // Call the callback function to update the parent component
-    onTotalCountUpdateHours(total);
-  }, [manufacturingData]);
-
-  // Filter data based on search term
-  useEffect(() => {
-    if (!searchTerm.trim()) {
-      setFilteredData(manufacturingData);
-    } else {
-      const filtered = manufacturingData.filter(
-        (item) =>
-          item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          item.categoryId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (item.SubMachineName &&
-            item.SubMachineName.toLowerCase().includes(
-              searchTerm.toLowerCase()
-            ))
-      );
-      setFilteredData(filtered);
-    }
-  }, [manufacturingData, searchTerm]);
-
-  const totalRate = formData.hourlyRate * formData.hours;
-
-  // Add this state variable
-
-  // Modify handleAutocompleteChange to populate sub-machine options
-  const handleAutocompleteChange = (event, newValue) => {
-    setSelectedManufacuturingVariable(newValue);
-    if (newValue) {
-      setSubMachineOptions(newValue.subCategories || []);
-      setFormData((prevFormData) => ({
-        ...prevFormData,
-        categoryId: newValue.categoryId,
-        name: newValue.name,
-        hourlyRate: newValue.hourlyrate,
-        SubMachineName: "",
-        isSpecialday: newValue.isSpecialday || false, // Add this
-        SpecialDayTotalMinutes: newValue.SpecialDayTotalMinutes || 0, // Add this
-        totalRate:
-          (newValue.hourlyrate || 0) * (parseFloat(prevFormData.hours) || 0),
-      }));
-    } else {
-      setSubMachineOptions([]);
-    }
-  };
-  // Add handler for sub-machine selection
-  const handleSubMachineChange = (event, newValue) => {
-    if (newValue) {
-      setFormData((prev) => ({
-        ...prev,
-        SubMachineName: newValue.name,
-        hourlyRate: newValue.hourlyRate, // Sub-machine's hourlyRate
-        totalRate: (newValue.hourlyRate || 0) * (parseFloat(prev.hours) || 0),
-      }));
+      console.error("Error fetching allocations:", error);
+      return [];
     }
   };
 
-  // Fetch manufacturing variables and shipment variables in a single effect
+  // Add this useEffect to fetch warehouse locations when component mounts
+  // Add this useEffect to fetch warehouse locations when component mounts
   useEffect(() => {
-    const fetchVariables = async () => {
-      setVariablesLoading(true);
+    const fetchWarehouseLocations = async () => {
       try {
         const response = await fetch(
-          `${process.env.REACT_APP_BASE_URL}/api/manufacturing`
+          `${process.env.REACT_APP_BASE_URL}/api/storesVariable`
         );
-        if (!response.ok) {
-          throw new Error(`Error: ${response.statusText}`);
-        }
+        if (!response.ok)
+          throw new Error("Failed to fetch warehouse locations");
         const data = await response.json();
-        setmanufacturingVariables(data);
-        setshipmentvars(data); // Same data for both
+
+        // Extract all unique locations from all stores
+        // const locations = data.reduce((acc, store) => {
+        //   if (store.Name && store.Name.length > 0) {
+        //     store.Name.forEach((loc) => {
+        //       if (!acc.includes(loc)) {
+        //         acc.push(loc);
+        //       }
+        //     });
+        //   }
+        //   return acc;
+        // }, []);
+
+        const locations = [];
+        data.forEach((store) => {
+          if (store.Name && store.Name.length > 0) {
+            store.Name.forEach((name) => {
+              locations.push({
+                label: `${store.categoryId} - ${name}`, // concat here
+                warehouseId: store.categoryId,
+                rawName: name, // keep raw name if you need only name later
+              });
+            });
+          }
+        });
+        setWarehouseLocations(locations);
+
+        setWarehouseLocations(locations);
       } catch (error) {
-        console.error("Error fetching manufacturing variables:", error);
-      } finally {
-        setVariablesLoading(false);
+        console.error("Error fetching warehouse locations:", error);
       }
     };
 
-    fetchVariables();
+    fetchWarehouseLocations();
   }, []);
 
-  const handleAutocompleteChangestatic = (event, newValue) => {
-    setselectedShipment(newValue);
-    if (newValue) {
-      const selectedItem = shipmentvars.find(
-        (item) => item.name === newValue.name
+  const fetchManufacturing = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      // Fetch manufacturing data for each category
+      const manufacturingResponse = await fetch(
+        `${process.env.REACT_APP_BASE_URL}/api/manufacturing`
+      );
+      if (!manufacturingResponse.ok) {
+        throw new Error("Failed to fetch manufacturing data");
+      }
+
+      const manufacturingData = await manufacturingResponse.json();
+
+      // For each manufacturing entry, fetch the latest status
+      const updatedData = await Promise.all(
+        manufacturingData.map(async (item) => {
+          const statusResponse = await fetch(
+            `${process.env.REACT_APP_BASE_URL}/api/manufacturing/category/${item.categoryId}`
+          );
+          if (!statusResponse.ok) {
+            return item; // Return original if status check fails
+          }
+          const statusData = await statusResponse.json();
+          return {
+            ...item,
+            subCategories: statusData.subCategories || item.subCategories,
+          };
+        })
       );
 
-      if (selectedItem) {
-        setFormData({
-          categoryId: newValue.categoryId,
-          name: newValue.name,
-          times: selectedItem.times,
-          hours: parseFloat(selectedItem.hours) || 0,
-          hourlyRate: parseFloat(selectedItem.hourlyRate) || 0,
-          totalRate: 0, // Set totalRate to 0 initially
+      setManufacturingData(updatedData);
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchManufacturing();
+  }, [fetchManufacturing]);
+
+  const handleMachineRowClick = (machine) => {
+    if (machine.status === "occupied") {
+      setSelectedMachineDetails(machine);
+      setMachineDetailsModalOpen(true);
+    }
+  };
+
+  useEffect(() => {
+    const checkAvailability = () => {
+      setManufacturingData((prevData) => {
+        return prevData.map((process) => {
+          const updatedSubCategories = process.subCategories.map((machine) => {
+            const now = new Date();
+            const isDowntime =
+              machine.unavailableUntil &&
+              new Date(machine.unavailableUntil) > now;
+
+            // If downtime has expired but status hasn't updated
+            if (
+              machine.unavailableUntil &&
+              new Date(machine.unavailableUntil) <= now
+            ) {
+              return {
+                ...machine,
+                isAvailable: true,
+                status: "available",
+                unavailableUntil: null,
+              };
+            }
+            // Ensure status matches downtime state
+            else if (isDowntime && machine.status !== "downtime") {
+              return {
+                ...machine,
+                status: "downtime",
+              };
+            }
+            return machine;
+          });
+          return {
+            ...process,
+            subCategories: updatedSubCategories,
+          };
         });
-      }
-    }
-  };
+      });
+    };
 
-  const handleInputChange = (e) => {
-    const inputValue = e.target.value;
-    const selectedOption = document.getElementById("time-select").value;
+    // Check every minute (or more frequently if needed)
+    const interval = setInterval(checkAvailability, 60000);
 
-    if (selectedOption === "day") {
-      const hours = parseFloat(inputValue) * 24;
-      setFormData((prevFormData) => ({
-        ...prevFormData,
-        hours: hours.toFixed(2),
-        totalRate: (hours * parseFloat(prevFormData.hourlyRate || 0)).toFixed(
-          2
-        ),
-        times: `${inputValue} ${selectedOption}`,
-      }));
-    } else if (selectedOption === "hours") {
-      setFormData((prevFormData) => ({
-        ...prevFormData,
-        hours: inputValue,
-        totalRate: (
-          parseFloat(inputValue) * parseFloat(prevFormData.hourlyRate || 0)
-        ).toFixed(2),
-        times: `${inputValue} ${"hr"}`,
-      }));
-    } else if (selectedOption === "minutes") {
-      const hours = parseFloat(inputValue) / 60;
-      setFormData((prevFormData) => ({
-        ...prevFormData,
-        hours: hours.toFixed(2),
-        totalRate: (hours * parseFloat(prevFormData.hourlyRate || 0)).toFixed(
-          2
-        ),
-        times: `${inputValue} ${"min"}`,
-      }));
-    }
+    // Initial check
+    checkAvailability();
 
-    setInputValue(inputValue);
-  };
+    return () => clearInterval(interval);
+  }, []);
 
+  useEffect(() => {
+    const checkStatus = () => {
+      const now = new Date();
+      setManufacturingData((prevData) =>
+        prevData.map((process) => ({
+          ...process,
+          subCategories: process.subCategories.map((machine) => {
+            // Check if machine should still be in downtime
+            if (
+              machine.status === "downtime" &&
+              machine.downtimeHistory?.length > 0
+            ) {
+              const latestDowntime =
+                machine.downtimeHistory[machine.downtimeHistory.length - 1];
+              if (new Date(latestDowntime.endTime) <= now) {
+                return {
+                  ...machine,
+                  status: "available",
+                  isAvailable: true,
+                };
+              }
+            }
+            return machine;
+          }),
+        }))
+      );
+    };
+
+    // Check every minute
+    const interval = setInterval(checkStatus, 60000);
+
+    // Initial check
+    checkStatus();
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Handle form input changes
   const handleChange = (e) => {
     const { name, value } = e.target;
-
-    setFormData((prevFormData) => {
-      const updatedFormData = {
-        ...prevFormData,
-        [name]: value,
-      };
-
-      if (name === "hourlyRate") {
-        const validHours = parseFloat(updatedFormData.hours) || 0;
-        const validHourlyRate = parseFloat(value) || 0;
-        updatedFormData.totalRate = (validHours * validHourlyRate).toFixed(2);
-      } else if (name === "totalRate") {
-        const validTotalRate = parseFloat(value) || 0;
-        const validHours = parseFloat(updatedFormData.hours) || 0;
-        updatedFormData.hourlyRate = (validTotalRate / validHours).toFixed(2);
-      }
-
-      return updatedFormData;
-    });
+    setFormData({ ...formData, [name]: value });
   };
 
-  const handleSelectChangeEdit = (e) => {
-    const selectedOption = e.target.value;
-    setSelectedOptionEdit(selectedOption);
-    setInputValueEdit("");
-    setFormData((prevFormData) => ({
-      ...prevFormData,
-      hours: "0.00",
-      totalRate: "0.00",
-      times: "",
-    }));
+  const handleSubChange = (e) => {
+    const { name, value } = e.target;
+    setSubFormData({ ...subFormData, [name]: value });
   };
 
-const handleInputChangeEdit = (e) => {
-  const inputValue = e.target.value;
-  
-  console.log("Input value:", inputValue, "Selected option:", selectedOptionEdit); // Debug log
+  const handleAddSub = async (e) => {
+    e.preventDefault();
+    setPosting(true);
+    setError(null);
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_BASE_URL}/api/manufacturing/${selectedManufacturingId}/subcategories`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(subFormData),
+        }
+      );
+      if (!response.ok) throw new Error("Failed to add machine");
 
-  if (selectedOptionEdit === "days") {
-    const hours = parseFloat(inputValue) * 24;
-    const totalRate = (hours * parseFloat(formData.hourlyRate || 0)).toFixed(2);
-    setFormData((prevFormData) => ({
-      ...prevFormData,
-      hours: hours.toFixed(2),
-      totalRate: totalRate,
-      times: `${inputValue} day${inputValue > 1 ? 's' : ''}`,
-    }));
-  } else if (selectedOptionEdit === "hours") {
-    const hours = parseFloat(inputValue);
-    const totalRate = (hours * parseFloat(formData.hourlyRate || 0)).toFixed(2);
-    setFormData((prevFormData) => ({
-      ...prevFormData,
-      hours: hours.toFixed(2),
-      totalRate: totalRate,
-      times: `${inputValue} hr${inputValue > 1 ? 's' : ''}`,
-    }));
-  } else if (selectedOptionEdit === "minutes") {
-    const hours = parseFloat(inputValue) / 60;
-    const totalRate = (hours * parseFloat(formData.hourlyRate || 0)).toFixed(2);
-    setFormData((prevFormData) => ({
-      ...prevFormData,
-      hours: hours.toFixed(2),
-      totalRate: totalRate,
-      times: `${inputValue} min`,
-    }));
-  }
-
-  setInputValueEdit(inputValue);
-};
-  const handleSelectChange = (e) => {
-    const selectedOption = e.target.value;
-    setInputValue("");
-    setFormData((prevFormData) => ({
-      ...prevFormData,
-      hours: "",
-    }));
-
-    if (selectedOption !== "") {
-      setFormData((prevFormData) => ({
-        ...prevFormData,
-        hours: "0.00",
-      }));
+      await fetchManufacturing(); // Update the UI
+      toast.success("Machine Added Successfully!"); // Show success toast
+      setModalAddSub(false);
+      setSubFormData({
+        subcategoryId: "",
+        name: "",
+        hourlyRate: "",
+        wareHouse: "",
+        warehouseId: "",
+      });
+    } catch (error) {
+      toast.error(error.message || "Failed to add machine");
+    } finally {
+      setPosting(false);
     }
   };
 
-  const handleChangeStatic = (e) => {
-    const { name, value } = e.target;
-    setFormData((prevFormData) => {
-      const updatedFormData = {
-        ...prevFormData,
-        [name]: value,
-      };
-      if (name === "totalRate") {
-        updatedFormData.totalRate = parseFloat(value);
-      }
-      return updatedFormData;
-    });
+  const handleSubEditSubmit = async (e) => {
+    e.preventDefault();
+    setPosting(true);
+    setError(null);
+
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_BASE_URL}/api/manufacturing/${selectedManufacturingId}/subcategories/${editingSubId}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(subFormData),
+        }
+      );
+
+      if (!response.ok) throw new Error("Failed to update machine");
+
+      await fetchManufacturing(); // Update the table instantly
+      toast.success("Machine updated successfully!"); // Success message
+
+      setIsEditModalOpen(false); // Close the edit modal
+
+      // Reset form
+      setSubFormData({
+        subcategoryId: "",
+        name: "",
+        hourlyRate: "",
+        wareHouse: "",
+        warehouseId: "",
+      });
+    } catch (error) {
+      toast.error(error.message || "Failed to update machine"); // Error message
+    } finally {
+      setPosting(false);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -460,162 +444,109 @@ const handleInputChangeEdit = (e) => {
     setPosting(true);
     setError(null);
 
-    // Prepare the payload with proper type conversion
-    const payload = {
-      categoryId: formData.categoryId,
-      name: formData.name,
-      SubMachineName: formData.SubMachineName || "",
-      times: formData.times || `${formData.hours} hr`,
-      hours: Number(formData.hours),
-      hourlyRate: Number(formData.hourlyRate),
-      totalRate: Number(formData.totalRate),
-      isSpecialday: Boolean(formData.isSpecialday), // Ensure boolean type
-      SpecialDayTotalMinutes: formData.isSpecialday
-        ? Number(Math.round(formData.hours * 60))
-        : 0,
-    };
-    console.log(payload);
     try {
       const response = await fetch(
-        `${process.env.REACT_APP_BASE_URL}/api/parts/${partDetails._id}/manufacturingVariables`,
+        `${process.env.REACT_APP_BASE_URL}/api/manufacturing`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify(payload),
+          body: JSON.stringify(formData),
         }
       );
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Network response was not ok");
       }
 
-      const result = await response.json();
+      // Display success toast
+      toast.success("Records Added successfully!");
 
-      // Refresh the data after successful submission
-      await fetchManufacturingData();
+      // Close the modal
+      tog_add();
 
-      // Reset form
+      // Fetch the updated data
+      await fetchManufacturing();
+
+      // Reset form data
       setFormData({
         categoryId: "",
         name: "",
-        SubMachineName: "",
-        times: "",
-        hours: "",
-        hourlyRate: "",
-        totalRate: "",
-        isSpecialday: false,
-        SpecialDayTotalMinutes: 0,
+        hourlyrate: "",
       });
-
-      toast.success("Manufacturing variable added successfully!");
-      setModalList(false);
     } catch (error) {
-      console.error("Error submitting form:", error);
-      setError(error.message);
-      toast.error(`Error: ${error.message}`);
-    } finally {
-      setPosting(false);
-    }
-  };
-
-  // Add the handleReorder function
-  const handleReorder = async (variableId, direction) => {
-    try {
-      setPosting(true);
-      const response = await fetch(
-        `${process.env.REACT_APP_BASE_URL}/api/parts/${partDetails._id}/manufacturing-reorder`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ variableId, direction }),
-        }
+      setError(
+        error.message ||
+          error.response?.data?.message ||
+          "An unknown error occurred"
       );
 
-      if (!response.ok) {
-        throw new Error("Failed to reorder variables");
-      }
-
-      const result = await response.json();
-
-      // Update the local state with the new order
-      setManufacturingData(result.manufacturingVariables);
-
-      toast.success("Variables reordered successfully");
-    } catch (error) {
-      console.error("Error reordering variables:", error);
-      toast.error(error.message);
+      // Display error toast
+      toast.error(
+        error.message ||
+          error.response?.data?.message ||
+          "An unknown error occurred"
+      );
     } finally {
       setPosting(false);
     }
   };
 
   // Handle form submission for editing a variable (PUT request)
-const handleEditSubmit = async (e) => {
-  e.preventDefault();
-  setPosting(true);
-  setError(null);
-  try {
-    // Convert to numbers and recalculate totalRate
-    const hours = parseFloat(formData.hours) || 0;
-    const hourlyRate = parseFloat(formData.hourlyRate) || 0;
-    const totalRate = hours * hourlyRate;
-    console.log("Edit payload:", {...formData, hours, hourlyRate, totalRate}); // Debug log
 
-    const payload = {
-      categoryId: formData.categoryId,
-      name: formData.name,
-      SubMachineName: formData.SubMachineName || "",
-      times: formData.times, // Make sure this is included
-      hours: hours,
-      hourlyRate: hourlyRate,
-      totalRate: totalRate,
-      isSpecialday: formData.isSpecialday,
-      SpecialDayTotalMinutes: formData.isSpecialday ? formData.SpecialDayTotalMinutes : 0,
-    };
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    setPosting(true);
+    setError(null);
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_BASE_URL}/api/manufacturing/${editId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(formData),
+        }
+      );
 
-    console.log("Edit payload being sent:", payload); // Debug log
+      if (response.ok) {
+        // Display success toast
+        toast.success("Record updated successfully!");
 
-    const response = await fetch(
-      `${process.env.REACT_APP_BASE_URL}/api/parts/${partDetails._id}/manufacturingVariables/${editId}`,
-      {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
+        // Close the modal
+        tog_edit();
+
+        // Fetch the updated data
+        await fetchManufacturing();
+
+        // Reset form data
+        setFormData({
+          categoryId: "",
+          name: "",
+          hourlyrate: "",
+        });
+      } else {
+        throw new Error("Network response was not ok");
       }
-    );
-    
-    if (response.ok) {
-      const result = await response.json();
-      console.log("Update response:", result); // Debug log
-      await fetchManufacturingData();
-      toast.success("Records Edited Successfully");
-      setModalEdit(false);
-    } else {
-      const errorText = await response.text();
-      throw new Error(`Network response was not ok: ${errorText}`);
+    } catch (error) {
+      setError(error.message);
+      toast.error(error.message || "Failed to update record");
+    } finally {
+      setPosting(false);
     }
-  } catch (error) {
-    console.error("Error in handleEditSubmit:", error);
-    setError(error.message);
-    toast.error(`Error: ${error.message}`);
-  } finally {
-    setPosting(false);
-  }
-};
+  };
 
   // Handle delete action
+
   const handleDelete = async (_id) => {
     setPosting(true);
     setError(null);
     try {
       const response = await fetch(
-        `${process.env.REACT_APP_BASE_URL}/api/parts/${partDetails._id}/manufacturingVariables/${_id}`,
+        `${process.env.REACT_APP_BASE_URL}/api/manufacturing/${_id}`,
         {
           method: "DELETE",
         }
@@ -623,416 +554,465 @@ const handleEditSubmit = async (e) => {
       if (!response.ok) {
         throw new Error("Network response was not ok");
       }
-      await fetchManufacturingData(); // Refetch the data to update the table
-      toast.success("Records Deleted Successfully");
-      tog_delete(); // Close the modal
+
+      // Display success toast
+      toast.success("Manufacturing Deleted Successfully");
+
+      // Close the modal
+      tog_delete();
+
+      // Fetch the updated data
+      await fetchManufacturing();
     } catch (error) {
       setError(error.message);
+      toast.error(error.message || "Failed to delete record");
     } finally {
       setPosting(false);
     }
   };
 
-  // Render loading state or error if any
-  if (loading || variablesLoading) {
-    return (
-      <div className="text-center p-4">
-        <div className="spinner-border text-primary" role="status">
-          <span className="visually-hidden">Loading...</span>
-        </div>
-        <p className="mt-2">Loading manufacturing data...</p>
-      </div>
-    );
-  }
+  const confirmDeleteSub = async () => {
+    try {
+      const { _id, parentId } = subToDelete;
 
-  if (error) {
-    return <div className="alert alert-danger">Error: {error}</div>;
-  }
+      const response = await fetch(
+        `${process.env.REACT_APP_BASE_URL}/api/manufacturing/${parentId}/subcategories/${_id}`,
+        { method: "DELETE" }
+      );
 
-  // Calculate total rate based on fetched data
-  const manufacturingtotalCount = manufacturingData.reduce(
-    (total, item) => total + Number(item.totalRate),
-    0
-  );
+      if (!response.ok) throw new Error("Failed to delete machine");
 
-  // Calculate Total Rate
-  const calculateTotalRate = (hours, hourlyRate) => {
-    const validHours = parseFloat(hours) || 0;
-    const validHourlyRate = parseFloat(hourlyRate) || 0;
-    return (validHours * validHourlyRate).toFixed(2); // Multiply and return
-  };
+      await fetchManufacturing(); // Refresh the table
+      toast.success("Machine deleted successfully!"); // Show success message
 
-  const formatTime = (time) => {
-    if (time === 0) {
-      return "0 m";
+      closeSubDeleteModal(); // Close the delete modal
+    } catch (error) {
+      toast.error(error.message || "Failed to delete machine"); // Show error message
     }
-
-    const totalMinutes = Math.round(time * 60); // Convert hours to minutes
-    return `${totalMinutes} m`;
   };
+
+  const handleRowClick = (rowId) => {
+    setExpandedRowId(expandedRowId === rowId ? null : rowId);
+  };
+
+  // Function to get status badge color
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case "available":
+        return { color: "green", text: "Available" };
+      case "occupied":
+        return { color: "orange", text: "Occupied" };
+      case "downtime":
+        return { color: "red", text: "Downtime" };
+      default:
+        return { color: "gray", text: "Unknown" };
+    }
+  };
+
+  // Format date for display
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
+    const date = new Date(dateString);
+    return date.toLocaleString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
   return (
     <React.Fragment>
-      <Row className="g-4 mb-3">
-        <Col className="col-sm-auto">
-          <div>
-            <Button color="success" className="add-btn me-1" onClick={tog_add}>
-              <i className="ri-add-line align-bottom me-1"></i> Add
-            </Button>
-            <Button
-              color="success"
-              className="add-btn me-1"
-              onClick={tog_static_vairbale}
-            >
-              <i className="ri-add-line align-bottom me-1"></i>Add Unit Cost
-            </Button>
-          </div>
-        </Col>
-        <Col className="col-sm">
-          <div className="d-flex justify-content-sm-end">
-            <div className="search-box ms-2">
-              <input
-                type="text"
-                className="form-control"
-                placeholder="Search by name, ID, or machine..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-              <i className="ri-search-line search-icon"></i>
-            </div>
-          </div>
+      {/* Manufacturing Table */}
+      <Row>
+        <Col lg={12}>
+          <Card style={{ marginBottom: "10rem" }}>
+            <CardHeader>
+              <h4 className="card-title mb-0">Manufacturing</h4>
+            </CardHeader>
+            <CardBody>
+              <Row className="g-4 mb-3">
+                <Col className="col-sm-auto">
+                  <div>
+                    <Button
+                      color="success"
+                      className="add-btn me-1"
+                      onClick={tog_add}
+                    >
+                      <i className="ri-add-line align-bottom me-1"></i> Add
+                    </Button>
+                  </div>
+                </Col>
+                <Col className="col-sm">
+                  <div className="d-flex justify-content-sm-end">
+                    <div className="search-box ms-2">
+                      <input
+                        type="text"
+                        className="form-control"
+                        placeholder="Search..."
+                      />
+                      <i className="ri-search-line search-icon"></i>
+                    </div>
+                  </div>
+                </Col>
+              </Row>
+
+              {/* Table */}
+              <div className="table-responsive table-card mt-3 mb-1">
+                {loading ? (
+                  <div>
+                    <div className="loader-overlay">
+                      <div
+                        className="spinner-border text-primary"
+                        role="status"
+                      >
+                        <span className="visually-hidden">Loading...</span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <table className="table align-middle table-nowrap">
+                    <thead className="table-light">
+                      <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Hourly Rate (INR)</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {manufacturingData.map((item) => (
+                        <React.Fragment key={item._id}>
+                          <tr>
+                            <td>{item.categoryId}</td>
+                            <td>
+                              <a
+                                href="#"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  handleRowClick(item._id);
+                                }}
+                                style={{
+                                  color: "#007bff",
+                                  textDecoration: "none",
+                                }}
+                              >
+                                {item.name}
+                              </a>
+                            </td>
+                            <td>{item.hourlyrate}</td>
+                            <td>
+                              <div className="d-flex gap-2">
+                                <button
+                                  className="btn btn-sm btn-success edit-item-btn"
+                                  onClick={() => tog_edit(item)}
+                                >
+                                  <FaEdit size={15} />
+                                </button>
+                                <button
+                                  className="btn btn-sm btn-danger remove-item-btn"
+                                  onClick={() => {
+                                    setSelectedId(item._id);
+                                    tog_delete();
+                                  }}
+                                >
+                                  <MdOutlineDelete size={17} />
+                                </button>
+                                <button
+                                  className="btn btn-sm btn-primary add-sub-btn"
+                                  onClick={() => {
+                                    setSelectedManufacturingId(item._id);
+                                    setModalAddSub(true);
+                                  }}
+                                >
+                                  Add Machine
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                          {expandedRowId === item._id && (
+                            <tr>
+                              <td colSpan={4}>
+                                <div className="details-box">
+                                  <h5 className="mb-3 d-flex align-items-center">
+                                    Machines
+                                  </h5>
+                                  <Col className="col-sm-auto"></Col>
+
+                                  <table className="table align-middle table-nowrap">
+                                    <thead className="table-light">
+                                      <tr>
+                                        <th>Machine ID</th>
+                                        <th>Machine Name</th>
+                                        <th>Hourly Rate (INR)</th>
+                                        <th>Warehouse</th>
+                                        <th>Status</th>
+                                        <th>Action</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {item.subCategories.map((subCategory) => {
+                                        const status =
+                                          subCategory.status ||
+                                          (subCategory.isAvailable
+                                            ? "available"
+                                            : "occupied");
+                                        const statusBadge =
+                                          getStatusBadge(status);
+
+                                        return (
+                                          <tr
+                                            key={subCategory.subcategoryId}
+                                            style={{
+                                              backgroundColor:
+                                                subCategory.status ===
+                                                "occupied"
+                                                  ? "#fff3cd"
+                                                  : "transparent",
+                                              cursor:
+                                                subCategory.status ===
+                                                "occupied"
+                                                  ? "pointer"
+                                                  : "default",
+                                            }}
+                                          >
+                                            <td>{subCategory.subcategoryId}</td>
+                                            <td>{subCategory.name} </td>
+                                            <td>{subCategory.hourlyRate}</td>
+
+                                            <td>
+                                             {subCategory.warehouseId} - {subCategory.wareHouse || "N/A"}
+                                            </td>
+
+                                            <td
+                                              onClick={() =>
+                                                handleMachineRowClick(
+                                                  subCategory
+                                                )
+                                              }
+                                            >
+                                              {subCategory.status ===
+                                              "occupied" ? (
+                                                <span
+                                                  style={{
+                                                    color: "red",
+                                                    fontWeight: "bold",
+                                                  }}
+                                                >
+                                                  Occupied
+                                                  {subCategory.allocations
+                                                    ?.length > 0 && (
+                                                    <small
+                                                      style={{
+                                                        display: "block",
+                                                        fontWeight: "normal",
+                                                      }}
+                                                    >
+                                                      Until:{" "}
+                                                      {formatDate(
+                                                        subCategory
+                                                          .allocations[0]
+                                                          .endDate
+                                                      )}
+                                                    </small>
+                                                  )}
+                                                </span>
+                                              ) : subCategory.status ===
+                                                "downtime" ? (
+                                                <span
+                                                  style={{
+                                                    color: "orange",
+                                                    fontWeight: "bold",
+                                                  }}
+                                                >
+                                                  Downtime
+                                                  {subCategory.downtimeHistory
+                                                    ?.length > 0 && (
+                                                    <>
+                                                      <small
+                                                        style={{
+                                                          display: "block",
+                                                          fontWeight: "normal",
+                                                        }}
+                                                      >
+                                                        Reason:{" "}
+                                                        {
+                                                          subCategory
+                                                            .downtimeHistory[
+                                                            subCategory
+                                                              .downtimeHistory
+                                                              .length - 1
+                                                          ].reason
+                                                        }
+                                                      </small>
+                                                      <small
+                                                        style={{
+                                                          display: "block",
+                                                          fontWeight: "normal",
+                                                        }}
+                                                      >
+                                                        Until:{" "}
+                                                        {formatDate(
+                                                          subCategory
+                                                            .downtimeHistory[
+                                                            subCategory
+                                                              .downtimeHistory
+                                                              .length - 1
+                                                          ].endTime
+                                                        )}
+                                                      </small>
+                                                    </>
+                                                  )}
+                                                </span>
+                                              ) : (
+                                                <span
+                                                  style={{ color: "green" }}
+                                                >
+                                                  Available
+                                                </span>
+                                              )}
+                                            </td>
+                                            <td className="d-flex gap-2">
+                                              <button
+                                                className="btn btn-sm btn-success"
+                                                onClick={() => {
+                                                  Sub_tog_edit(subCategory);
+                                                  setSelectedManufacturingId(
+                                                    item._id
+                                                  );
+                                                }}
+                                              >
+                                                <FaEdit size={15} />
+                                              </button>
+
+                                              <button
+                                                className="btn btn-sm btn-danger"
+                                                onClick={() =>
+                                                  handleDeleteSub(
+                                                    subCategory._id,
+                                                    item._id
+                                                  )
+                                                }
+                                              >
+                                                <MdOutlineDelete size={17} />
+                                              </button>
+                                              <button
+                                                className="btn btn-sm btn-primary"
+                                                onClick={() =>
+                                                  openDowntimeModal(
+                                                    subCategory,
+                                                    item._id
+                                                  )
+                                                }
+                                              >
+                                                <RxCountdownTimer
+                                                  size={15}
+                                                  style={{ fontWeight: "bold" }}
+                                                />
+                                              </button>
+                                              <button
+                                                className="btn btn-sm btn-info"
+                                                onClick={() =>
+                                                  openDowntimeHistoryModal(
+                                                    subCategory,
+                                                    item._id
+                                                  )
+                                                }
+                                              >
+                                                History
+                                              </button>
+                                            </td>
+                                          </tr>
+                                        );
+                                      })}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+                <div className="noresult" style={{ display: "none" }}>
+                  <div className="text-center">
+                    <lord-icon
+                      src="https://cdn.lordicon.com/msoeawqm.json"
+                      trigger="loop"
+                      style={{ width: "75px", height: "75px" }}
+                    ></lord-icon>
+                    <h5 className="mt-2">Sorry! No Result Found</h5>
+                    <p className="text-muted mb-0">
+                      We couldn't find any results for your search.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </CardBody>
+          </Card>
         </Col>
       </Row>
 
-      {/* Table */}
-      <div className="table-responsive table-card mt-3 mb-1">
-        {loading ? (
-          <p>Loading...</p>
-        ) : (
-          <table className="table align-middle table-nowrap">
-            <thead className="table-light">
-              <tr>
-                {/* <th style={{ width: "50px" }}>
-                  <div className="form-check">
-                    <input className="form-check-input" type="checkbox" />
-                  </div>
-                </th> */}
-                <th>ID</th>
-                <th>Name</th>
-                <th>Special Machine</th>
-                {/* <th>Time</th> */}
-                <th>Minutes (M)</th>
-                <th>Hourly Rate (INR)</th>
-                <th>Total Rate</th>
-                <th>Job Work</th>
-                <th>Action</th>
-                <th>Reorder</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredData.map((item, index) => (
-                <tr key={item._id}>
-                  {/* <td>
-                    <div className="form-check">
-                      <input className="form-check-input" type="checkbox" />
-                    </div>
-                  </td> */}
-                  <td>{item.categoryId}</td>
-                  <td>{item.name}</td>
-                  <td>{item.SubMachineName || "N/A"}</td>
-                  {/* <td>{item.times || "-"}</td> */}
-                  <td>{formatTime(item.hours)}</td>
-                  <td>{item.hourlyRate}</td>
-                  <td>{Math.round(item.totalRate)}</td>
-                  <td>{item.isSpecialday ? "YES" : "NO"}</td>
-                  <td>
-                    <div className="d-flex gap-2">
-                      <button
-                        className="btn btn-sm btn-success edit-item-btn"
-                        // data-bs-toggle="modal"
-                        // data-bs-target="#showModal"
-                        onClick={() => tog_edit(item)}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        className="btn btn-sm btn-danger remove-item-btn"
-                        // data-bs-toggle="modal"
-                        // data-bs-target="#deleteRecordModal"
-                        onClick={() => {
-                          setSelectedId(item._id);
-                          tog_delete();
-                        }}
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  </td>
-
-                  <td>
-                    <div className="d-flex gap-1">
-                      <button
-                        className="btn btn-sm btn-primary"
-                        onClick={() => handleReorder(item._id, "up")}
-                        disabled={index === 0 || posting}
-                      >
-                        ↑
-                      </button>
-                      <button
-                        className="btn btn-sm btn-primary"
-                        onClick={() => handleReorder(item._id, "down")}
-                        disabled={index === filteredData.length - 1 || posting}
-                      >
-                        ↓
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-        <div className="noresult" style={{ display: "none" }}>
-          <div className="text-center">
-            <lord-icon
-              src="https://cdn.lordicon.com/msoeawqm.json"
-              trigger="loop"
-              style={{ width: "75px", height: "75px" }}
-            ></lord-icon>
-            <h5 className="mt-2">Sorry! No Result Found</h5>
-            <p className="text-muted mb-0">
-              We couldn't find any results for your search.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <Modal isOpen={modal_add} toggle={tog_add}>
-        <ModalHeader toggle={tog_add}>Add Manufacturing Variables</ModalHeader>
-        <ModalBody>
-          <form onSubmit={handleSubmit}>
-            <div className="mb-3">
-              <label htmlFor="name" className="form-label">
-                Name
-              </label>
-              <Autocomplete
-                options={manufacturingVariables}
-                getOptionLabel={(option) =>
-                  `${option.categoryId} - ${option.name}`
-                }
-                onChange={handleAutocompleteChange}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label="Select Manufacturing Variables"
-                    variant="outlined"
-                  />
-                )}
-              />
-            </div>
-
-            {/* Sub Machine Selection */}
-            {subMachineOptions.length > 0 && (
-              <div className="mb-3">
-                <label htmlFor="subMachine" className="form-label">
-                  Specify Machine
-                </label>
-                <Autocomplete
-                  options={subMachineOptions}
-                  getOptionLabel={(option) =>
-                    `${option.subcategoryId} - ${option.name}`
-                  }
-                  onChange={handleSubMachineChange}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      label="Select Specify Machine"
-                      variant="outlined"
-                      // required={subMachineOptions.length > 0}
-                    />
-                  )}
-                />
-              </div>
-            )}
-
-            <div className="mb-3">
-              <label htmlFor="time-select">Time</label>
-              <div className="input-group">
-                <input
-                  type="number"
-                  className="form-control"
-                  id="time-input"
-                  value={inputValue}
-                  onChange={handleInputChange}
-                  placeholder={`Enter ${selectedOption} value`}
-                  // disabled={!selectedOption}
-                />
-                <select
-                  id="time-select"
-                  onChange={(e) => {
-                    handleSelectChange(e);
-                    setSelectedOption(e.target.value);
-                  }}
-                  value={selectedOption}
-                  className="form-select"
-                >
-                  <option value="">-- Select --</option>
-                  <option value="day">Days</option>
-                  <option value="hours">Hours</option>
-                  <option value="minutes">Minutes</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="mb-3" style={{ display: "none" }}>
-              <label htmlFor="hours" className="form-label">
-                Hours
-              </label>
-              <div className="input-group">
-                <input
-                  type="number"
-                  className="form-control"
-                  name="hours"
-                  value={formData.hours}
-                  readOnly
-                  required
-                />
-              </div>
-            </div>
-            <div className="mb-3">
-              <label htmlFor="hourlyRate" className="form-label">
-                Hourly Rate
-              </label>
-              <input
-                type="number"
-                className="form-control"
-                name="hourlyRate"
-                value={formData.hourlyRate || ""}
-                onChange={handleChange}
-                required
-              />
-            </div>
-            <div className="mb-3">
-              <label htmlFor="totalRate" className="form-label">
-                Total Rate
-              </label>
-              <div className="input-group">
-                <input
-                  type="number"
-                  className="form-control"
-                  name="totalRate"
-                  value={formData.totalRate}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-            </div>
-            {/* isSpecialday checkbox */}
-            <div className="mb-3 form-check">
-              <input
-                type="checkbox"
-                className="form-check-input"
-                id="isSpecialday"
-                checked={formData.isSpecialday || false}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    isSpecialday: e.target.checked,
-                  })
-                }
-              />
-              <label className="form-check-label" htmlFor="isSpecialday">
-                Job Work (Set Fixed Time for all Quantities)
-              </label>
-            </div>
-
-            {/* Conditional SpecialDayTotalMinutes input */}
-
-            <ModalFooter>
-              <Button type="submit" color="primary" disabled={posting}>
-                Add
-              </Button>
-              <Button type="button" color="secondary" onClick={tog_add}>
-                Cancel
-              </Button>
-            </ModalFooter>
-          </form>
-        </ModalBody>
-      </Modal>
-
-      {/* static modal add */}
-      <Modal isOpen={modal_static_add} toggle={tog_static_vairbale} centered>
-        <ModalHeader className="bg-light p-3" toggle={tog_static_vairbale}>
-          {formData.id ? "Edit Unit Cost" : "Add Unit Cost"}
+      {/* Add Modal */}
+      <Modal isOpen={modal_add} toggle={tog_add} centered>
+        <ModalHeader className="bg-light p-3" toggle={tog_add}>
+          Add Manufacturing
         </ModalHeader>
         <ModalBody>
           <form className="tablelist-form" onSubmit={handleSubmit}>
             <div className="mb-3">
+              <label htmlFor="id-field" className="form-label">
+                ID
+              </label>
+              <input
+                type="text"
+                id="categoryId-field"
+                className="form-control"
+                name="categoryId"
+                placeholder="Enter Category ID"
+                value={formData.categoryId}
+                onChange={handleChange}
+                require
+              />
+            </div>
+
+            <div className="mb-3">
               <label htmlFor="name" className="form-label">
                 Name
               </label>
-              <Autocomplete
-                options={shipmentvars}
-                getOptionLabel={(option) =>
-                  `${option.categoryId} - ${option.name}`
-                }
-                onChange={handleAutocompleteChangestatic}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label="Select Manufacturing Variable"
-                    variant="outlined"
-                  />
-                )}
+              <input
+                type="text"
+                id="name-field"
+                className="form-control"
+                name="name"
+                placeholder="Enter Name"
+                value={formData.name}
+                onChange={handleChange}
+                require
               />
             </div>
+
             <div className="mb-3">
-              <label htmlFor="time-select">Time</label>
-              <div className="input-group">
-                <input
-                  type="number"
-                  className="form-control"
-                  id="time-input"
-                  value={inputValue}
-                  onChange={handleInputChange}
-                  placeholder={`Enter ${selectedOption} value`}
-                />
-                <select
-                  id="time-select"
-                  onChange={(e) => {
-                    handleSelectChange(e);
-                    setSelectedOption(e.target.value);
-                  }}
-                  value={selectedOption}
-                  className="form-select"
-                >
-                  <option value="">-- Select --</option>
-                  <option value="day">Days</option>
-                  <option value="hours">Hours</option>
-                  <option value="minutes">Minutes</option>
-                </select>
-              </div>
-            </div>
-            <div className="mb-3">
-              <label htmlFor="totalRate-field" className="form-label">
-                Total Rate
+              <label htmlFor="hourlyrate-field" className="form-label">
+                Hourly Rate (INR)
               </label>
               <input
                 type="number"
-                id="totalRate-field"
+                id="hourlyrate-field"
                 className="form-control"
-                name="totalRate"
-                placeholder="Enter Total Rate"
-                value={formData.totalRate}
-                onChange={handleChangeStatic}
-                required
+                name="hourlyrate"
+                placeholder="Enter Hourly Rate"
+                value={formData.hourlyrate}
+                onChange={handleChange}
+                // require
               />
             </div>
+
             <ModalFooter>
-              <Button
-                color="secondary"
-                onClick={tog_static_vairbale}
-                disabled={posting}
-              >
+              <Button color="secondary" onClick={tog_add} disabled={posting}>
                 Cancel
               </Button>
               <Button color="success" type="submit" disabled={posting}>
@@ -1043,15 +1023,13 @@ const handleEditSubmit = async (e) => {
         </ModalBody>
       </Modal>
 
-      {/* edit  modal */}
+      {/* Edit modal */}
       <Modal isOpen={modal_edit} toggle={tog_edit}>
-        <ModalHeader toggle={tog_edit}>
-          Edit Manufacturing Variables
-        </ModalHeader>
+        <ModalHeader toggle={tog_edit}>Edit Manufacturing Variable</ModalHeader>
         <ModalBody>
           <form onSubmit={handleEditSubmit}>
             <div className="mb-3">
-              <label htmlFor="categoryId" className="form-label">
+              <label htmlFor="id" className="form-label">
                 Category ID
               </label>
               <input
@@ -1063,156 +1041,37 @@ const handleEditSubmit = async (e) => {
                 required
               />
             </div>
-
             <div className="mb-3">
               <label htmlFor="name" className="form-label">
                 Name
               </label>
-              <Autocomplete
-                options={manufacturingVariables}
-                getOptionLabel={(option) =>
-                  `${option.categoryId} - ${option.name}`
-                }
-                onChange={(event, newValue) => {
-                  handleAutocompleteChange(event, newValue);
-                  // Update the sub-machine options when name changes
-                  setSubMachineOptions(newValue?.subCategories || []);
-                }}
-                value={
-                  manufacturingVariables.find(
-                    (item) => item.categoryId === formData.categoryId
-                  ) || null
-                }
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label="Select Manufacturing Variables"
-                    variant="outlined"
-                  />
-                )}
-              />
-            </div>
-
-            {/* Sub Machine Selection - Always show this, even if empty */}
-            <div className="mb-3">
-              <label htmlFor="subMachine" className="form-label">
-                Specify Machine
-              </label>
-              <Autocomplete
-                options={subMachineOptions}
-                getOptionLabel={(option) =>
-                  `${option.subcategoryId} - ${option.name}`
-                }
-                onChange={handleSubMachineChange}
-                value={
-                  subMachineOptions.find(
-                    (item) => item.name === formData.SubMachineName
-                  ) || null
-                }
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label="Select Specify Machine"
-                    variant="outlined"
-                  />
-                )}
-                disabled={subMachineOptions.length === 0}
-              />
-            </div>
-
-            <div className="mb-3">
-              <label htmlFor="time-select">Time</label>
-              <div className="input-group">
-                <input
-                  type="number"
-                  className="form-control"
-                  id="time-input-edit"
-                  value={Math.round(inputValueEdit)}
-                  onChange={handleInputChangeEdit}
-                  placeholder={`Enter ${selectedOptionEdit} value`}
-                />
-
-                <select
-                  id="time-select-edit"
-                  onChange={(e) => {
-                    setSelectedOptionEdit(e.target.value);
-                    handleSelectChangeEdit(e);
-                  }}
-                  value={selectedOptionEdit}
-                  className="form-select"
-                >
-                  <option value="">-- Select --</option>
-                  <option value="days">Days</option>
-                  <option value="hours">Hours</option>
-                  <option value="minutes">Minutes</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="mb-3">
-              <label htmlFor="hours" className="form-label">
-                Hours
-              </label>
               <input
-                type="number"
+                type="text"
                 className="form-control"
-                name="hours"
-                value={Math.round(formData.hours)}
-                readOnly
-                required
-              />
-            </div>
-            <div className="mb-3">
-              <label htmlFor="hourlyRate" className="form-label">
-                Hourly Rate
-              </label>
-              <input
-                type="number"
-                className="form-control"
-                name="hourlyRate"
-                value={Math.round(formData.hourlyRate || "")}
+                name="name"
+                value={formData.name}
                 onChange={handleChange}
                 required
               />
             </div>
             <div className="mb-3">
-              <label htmlFor="totalRate" className="form-label">
-                Total Rate
+              <label htmlFor="hourlyrate" className="form-label">
+                Hourly Rate
               </label>
               <input
                 type="number"
                 className="form-control"
-                name="totalRate"
-                value={Math.round(formData.totalRate)}
-                readOnly
+                name="hourlyrate"
+                value={formData.hourlyrate}
+                onChange={handleChange}
                 required
               />
             </div>
-            {/* isSpecialday checkbox */}
-            <div className="mb-3 form-check">
-              <input
-                type="checkbox"
-                className="form-check-input"
-                id="isSpecialday"
-                checked={formData.isSpecialday || false}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    isSpecialday: e.target.checked,
-                    // SpecialDayTotalMinutes: e.target.checked ? formData.SpecialDayTotalMinutes : 0,
-                  })
-                }
-              />
-              <label className="form-check-label" htmlFor="isSpecialday">
-                Job Work (Set Fixed Time for all Quantities)
-              </label>
-            </div>
-
             <ModalFooter>
-              <Button type="submit" color="primary" disabled={posting}>
-                Update
+              <Button color="success" type="submit" disabled={posting}>
+                {posting ? "Saving..." : "Save"}
               </Button>
-              <Button type="button" color="secondary" onClick={tog_edit}>
+              <Button color="secondary" onClick={tog_edit} disabled={posting}>
                 Cancel
               </Button>
             </ModalFooter>
@@ -1254,6 +1113,304 @@ const handleEditSubmit = async (e) => {
           </Button>
         </ModalFooter>
       </Modal>
+
+      {/* Add Sub Modal */}
+      <Modal isOpen={modal_add_sub} toggle={() => setModalAddSub(false)}>
+        <ModalHeader toggle={() => setModalAddSub(false)}>
+          Add Machine
+        </ModalHeader>
+        <ModalBody>
+          <form className="tablelist-form" onSubmit={handleAddSub}>
+            <div className="mb-3">
+              <label htmlFor="subcategoryId" className="form-label">
+                Machine ID
+              </label>
+              <input
+                type="text"
+                id="subcategoryId"
+                className="form-control"
+                name="subcategoryId"
+                value={subFormData.subcategoryId}
+                onChange={handleSubChange}
+                placeholder="Enter Machines ID"
+                required
+              />
+            </div>
+
+            <div className="mb-3">
+              <label htmlFor="name" className="form-label">
+                Machine Name
+              </label>
+              <input
+                type="text"
+                id="name"
+                className="form-control"
+                name="name"
+                value={subFormData.name}
+                placeholder="Enter Machines Name"
+                onChange={handleSubChange}
+                required
+              />
+            </div>
+
+            <div className="mb-3">
+              <label htmlFor="hourlyRate" className="form-label">
+                Machine Hourly Rate
+              </label>
+              <input
+                type="number"
+                id="hourlyRate"
+                name="hourlyRate"
+                className="form-control"
+                value={subFormData.hourlyRate}
+                placeholder="Enter Machines Hourly Rate"
+                onChange={handleSubChange}
+                required
+              />
+            </div>
+
+            <div className="mb-3">
+              <label htmlFor="wareHouse" className="form-label">
+                Warehouse Location
+              </label>
+              <Autocomplete
+                options={warehouseLocations}
+                getOptionLabel={(option) => option.label}
+                value={
+                  warehouseLocations.find(
+                    (opt) =>
+                      opt.label ===
+                      `${subFormData.warehouseId} - ${subFormData.wareHouse}`
+                  ) || null
+                }
+                onChange={(event, newValue) => {
+                  setSubFormData((prev) => ({
+                    ...prev,
+                    wareHouse: newValue ? newValue.rawName : "",
+                    warehouseId: newValue ? newValue.warehouseId : "",
+                  }));
+                }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    placeholder="Select warehouse location"
+                    required
+                    size="small"
+                    fullWidth
+                  />
+                )}
+                size="small"
+                fullWidth
+              />
+            </div>
+          </form>
+        </ModalBody>
+        <ModalFooter>
+          <Button color="secondary" onClick={() => setModalAddSub(false)}>
+            Cancel
+          </Button>
+          <Button color="primary" type="submit" onClick={handleAddSub}>
+            Add Machine
+          </Button>
+        </ModalFooter>
+      </Modal>
+
+      {/* sub edit modal */}
+      <Modal isOpen={isEditModalOpen} toggle={Sub_tog_edit}>
+        <ModalHeader toggle={Sub_tog_edit}>Edit Machine</ModalHeader>
+        <ModalBody>
+          <form onSubmit={handleSubEditSubmit}>
+            <div className="mb-3">
+              <label htmlFor="id" className="form-label">
+                Machine ID
+              </label>
+              <input
+                type="text"
+                className="form-control"
+                name="subcategoryId"
+                value={subFormData.subcategoryId}
+                onChange={handleSubChange}
+                required
+              />
+            </div>
+            <div className="mb-3">
+              <label htmlFor="name" className="form-label">
+                Machine Name
+              </label>
+              <input
+                type="text"
+                className="form-control"
+                name="name"
+                value={subFormData.name}
+                onChange={handleSubChange}
+                required
+              />
+            </div>
+            <div className="mb-3">
+              <label htmlFor="hourlyrate" className="form-label">
+                Machine Hourly Rate
+              </label>
+              <input
+                type="number"
+                className="form-control"
+                name="hourlyRate"
+                value={subFormData.hourlyRate}
+                onChange={handleSubChange}
+                required
+              />
+            </div>
+            <div className="mb-3">
+              <label htmlFor="wareHouse" className="form-label">
+                Warehouse Location
+              </label>
+              <Autocomplete
+                options={warehouseLocations}
+                getOptionLabel={(option) => option.label}
+                value={
+                  warehouseLocations.find(
+                    (opt) =>
+                      opt.warehouseId === subFormData.warehouseId &&
+                      opt.rawName === subFormData.wareHouse
+                  ) || null
+                }
+                onChange={(event, newValue) => {
+                  setSubFormData((prev) => ({
+                    ...prev,
+                    wareHouse: newValue ? newValue.rawName : "", // ✅ only string
+                    warehouseId: newValue ? newValue.warehouseId : "",
+                  }));
+                }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    placeholder="Select warehouse location"
+                    required
+                    size="small"
+                    fullWidth
+                  />
+                )}
+                size="small"
+                fullWidth
+              />
+            </div>
+            <ModalFooter>
+              <Button color="success" type="submit" disabled={posting}>
+                {posting ? "Saving..." : "Save "}
+              </Button>
+              <Button
+                color="secondary"
+                onClick={() => Sub_tog_edit(null)}
+                disabled={posting}
+              >
+                Cancel
+              </Button>
+            </ModalFooter>
+          </form>
+        </ModalBody>
+      </Modal>
+
+      <Modal isOpen={subDeleteModalOpen} toggle={closeSubDeleteModal} centered>
+        <ModalHeader toggle={closeSubDeleteModal}>Delete Machine</ModalHeader>
+        <ModalBody>
+          <div className="mt-2 text-center">
+            <lord-icon
+              src="https://cdn.lordicon.com/gsqxdxog.json"
+              trigger="loop"
+              colors="primary:#f7b84b,secondary:#f06548"
+              style={{ width: "100px", height: "100px" }}
+            ></lord-icon>
+            <div className="mt-4 pt-2 fs-15 mx-4 mx-sm-5">
+              <h4>Are you sure?</h4>
+              <p className="text-muted mx-4 mb-0">
+                Are you sure you want to delete the Machine
+                <strong>{subToDelete?.name}</strong>?
+              </p>
+            </div>
+          </div>
+        </ModalBody>
+        <ModalFooter>
+          <Button color="danger" onClick={confirmDeleteSub}>
+            Yes, Delete It!
+          </Button>
+          <Button color="secondary" onClick={closeSubDeleteModal}>
+            Cancel
+          </Button>
+        </ModalFooter>
+      </Modal>
+
+      {/* Machine Downtime Modal */}
+      {selectedMachine && (
+        <MachineDowntimeModal
+          isOpen={downtimeModalOpen}
+          toggle={closeDowntimeModal}
+          machine={selectedMachine}
+          parentId={selectedParentId}
+          onSuccess={fetchManufacturing}
+        />
+      )}
+
+      <Modal
+        isOpen={machineDetailsModalOpen}
+        toggle={() => setMachineDetailsModalOpen(false)}
+      >
+        <ModalHeader toggle={() => setMachineDetailsModalOpen(false)}>
+          Machine Occupation Details
+        </ModalHeader>
+        <ModalBody>
+          {selectedMachineDetails ? (
+            <>
+              <p>
+                <strong>Machine ID:</strong>{" "}
+                {selectedMachineDetails.subcategoryId}
+              </p>
+              <p>
+                <strong>Machine Name:</strong> {selectedMachineDetails.name}
+              </p>
+              {selectedMachineDetails.allocations &&
+              selectedMachineDetails.allocations.length > 0 ? (
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>Start Date</th>
+                      <th>End Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {selectedMachineDetails.allocations.map((alloc, index) => (
+                      <tr key={index}>
+                        <td>{new Date(alloc.startDate).toLocaleString()}</td>
+                        <td>{new Date(alloc.endDate).toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <p>No allocation data available.</p>
+              )}
+            </>
+          ) : (
+            <p>No machine selected.</p>
+          )}
+        </ModalBody>
+        <ModalFooter>
+          <Button
+            color="secondary"
+            onClick={() => setMachineDetailsModalOpen(false)}
+          >
+            Close
+          </Button>
+        </ModalFooter>
+      </Modal>
+
+      {/* Machine Downtime History Modal */}
+      {selectedMachine && (
+        <MachineDowntimeHistory
+          isOpen={downtimeHistoryModalOpen}
+          toggle={closeDowntimeHistoryModal}
+          machine={selectedMachine}
+          parentId={selectedParentId}
+        />
+      )}
     </React.Fragment>
   );
 };
