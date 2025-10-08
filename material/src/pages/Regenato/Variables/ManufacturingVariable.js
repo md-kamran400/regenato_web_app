@@ -780,11 +780,7 @@ const ManufacturingVariable = () => {
                                             <td>{subCategory.subcategoryId}</td>
                                             <td>{subCategory.name} </td>
                                             <td>{subCategory.hourlyRate}</td>
-
-                                            <td>
-                                             {subCategory.warehouseId} - {subCategory.wareHouse || "N/A"}
-                                            </td>
-
+                                            <td>{subCategory.wareHouse || "N/A"}</td>
                                             <td
                                               onClick={() =>
                                                 handleMachineRowClick(
@@ -1179,16 +1175,24 @@ const ManufacturingVariable = () => {
                 value={
                   warehouseLocations.find(
                     (opt) =>
-                      opt.label ===
-                      `${subFormData.warehouseId} - ${subFormData.wareHouse}`
+                      `${opt.warehouseId} -   ${opt.rawName}` ===
+                      subFormData.wareHouse
                   ) || null
                 }
                 onChange={(event, newValue) => {
-                  setSubFormData((prev) => ({
-                    ...prev,
-                    wareHouse: newValue ? newValue.rawName : "",
-                    warehouseId: newValue ? newValue.warehouseId : "",
-                  }));
+                  if (newValue) {
+                    setSubFormData((prev) => ({
+                      ...prev,
+                      wareHouse: `${newValue.warehouseId} -   ${newValue.rawName}`,
+                      warehouseId: newValue.warehouseId,
+                    }));
+                  } else {
+                    setSubFormData((prev) => ({
+                      ...prev,
+                      wareHouse: "",
+                      warehouseId: "",
+                    }));
+                  }
                 }}
                 renderInput={(params) => (
                   <TextField
@@ -1269,16 +1273,24 @@ const ManufacturingVariable = () => {
                 value={
                   warehouseLocations.find(
                     (opt) =>
-                      opt.warehouseId === subFormData.warehouseId &&
-                      opt.rawName === subFormData.wareHouse
+                      `${opt.warehouseId} -   ${opt.rawName}` ===
+                      subFormData.wareHouse
                   ) || null
                 }
                 onChange={(event, newValue) => {
-                  setSubFormData((prev) => ({
-                    ...prev,
-                    wareHouse: newValue ? newValue.rawName : "", // ✅ only string
-                    warehouseId: newValue ? newValue.warehouseId : "",
-                  }));
+                  if (newValue) {
+                    setSubFormData((prev) => ({
+                      ...prev,
+                      wareHouse: `${newValue.warehouseId} -   ${newValue.rawName}`,
+                      warehouseId: newValue.warehouseId,
+                    }));
+                  } else {
+                    setSubFormData((prev) => ({
+                      ...prev,
+                      wareHouse: "",
+                      warehouseId: "",
+                    }));
+                  }
                 }}
                 renderInput={(params) => (
                   <TextField
@@ -1293,6 +1305,7 @@ const ManufacturingVariable = () => {
                 fullWidth
               />
             </div>
+
             <ModalFooter>
               <Button color="success" type="submit" disabled={posting}>
                 {posting ? "Saving..." : "Save "}
