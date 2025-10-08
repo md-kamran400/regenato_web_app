@@ -197,6 +197,185 @@ export const AllocatedPartListHrPlan = ({
     fetchHighlightDates();
   }, []);
 
+  // Helper: post a minimal daily tracking entry for Job Work flows
+  const postDailyFromJobWork = async ({
+    postingdate = "",
+    Itemcode = "",
+    Descrption = "",
+    Quantity = 0,
+    WhsCode = "",
+    type = "issue", // 'issue' | 'receipt'
+  }) => {
+    try {
+      if (
+        !selectedSection?.allocationId ||
+        !selectedSection?.data?.[0]?.trackingId
+      ) {
+        return;
+      }
+
+      const allocationId = selectedSection.allocationId;
+      const trackingId = selectedSection.data[0].trackingId;
+
+      const isReceipt = String(type).toLowerCase() === "receipt";
+
+      const trackingData = {
+        // Core five fields mapped to daily tracking payload
+        date: postingdate || "",
+        Itemcode: Itemcode || "",
+        Descrption: Descrption || "",
+        Quantity: Number(Quantity) || 0,
+        WhsCode: WhsCode || "",
+
+        // Map to existing UI fields, filling blanks/zeros where unknown
+        planned: 0,
+        produced: Number(Quantity) || 0,
+        dailyStatus: Number(Quantity) > 0 ? "On Track" : "Not Started",
+        operator: selectedSection?.data?.[0]?.operator || "",
+
+        fromWarehouse: isReceipt
+          ? ""
+          : selectedSection?.data?.[0]?.wareHouse || "",
+        fromWarehouseId: isReceipt
+          ? ""
+          : selectedSection?.data?.[0]?.warehouseId || "",
+        fromWarehouseQty: isReceipt ? 0 : Number(Quantity) || 0,
+        fromWarehouseRemainingQty: "",
+
+        toWarehouse: isReceipt
+          ? sections[selectedSectionIndex + 1]?.data?.[0]?.wareHouse ||
+            (sections[selectedSectionIndex + 1]
+              ? ""
+              : fromWarehouseData?.Name?.[0] || "Store")
+          : "",
+        toWarehouseId: isReceipt
+          ? sections[selectedSectionIndex + 1]?.data?.[0]?.warehouseId ||
+            (sections[selectedSectionIndex + 1] ? "" : "Store")
+          : "",
+        toWarehouseQty: isReceipt ? Number(Quantity) || 0 : 0,
+        toWarehouseRemainingQty: 0,
+
+        remaining: "",
+        machineId: selectedSection?.data?.[0]?.machineId || "",
+        shift: selectedSection?.data?.[0]?.shift || "",
+        partsCodeId: selectedSection?.data?.[0]?.partsCodeId || "",
+      };
+
+      await axios.post(
+        `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/allocations/${allocationId}/allocations/${trackingId}/dailyTracking`,
+        trackingData
+      );
+
+      // Refresh local tracking cache after successful post (best-effort)
+      try {
+        const updatedResponse = await axios.get(
+          `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/allocations/${allocationId}/allocations/${trackingId}/dailyTracking`
+        );
+        setExistingDailyTracking(updatedResponse.data.dailyTracking || []);
+        setactulEndDateData(updatedResponse.data);
+      } catch (_) {}
+    } catch (e) {
+      console.error("Failed posting Job Work daily tracking", e);
+    }
+  };
+
+  // Helper: has an equivalent daily tracking entry already been recorded?
+  const hasDailyJobWorkEntry = ({ postingdate, Quantity, WhsCode }, type) => {
+    const isReceipt = String(type).toLowerCase() === "receipt";
+    const targetDate = postingdate
+      ? moment(postingdate).startOf("day").valueOf()
+      : null;
+    return (existingDailyTracking || []).some((t) => {
+      const tDate = t?.date ? moment(t.date).startOf("day").valueOf() : null;
+      if (targetDate != null && tDate != null && tDate !== targetDate)
+        return false;
+      const qtyMatch = Number(t?.produced || 0) === Number(Quantity || 0);
+      if (!qtyMatch) return false;
+      if (isReceipt) {
+        return (t?.toWarehouseQty || 0) === (Number(Quantity) || 0);
+      }
+      return (t?.fromWarehouseQty || 0) === (Number(Quantity) || 0);
+    });
+  };
+
+  // Sync detected Job Work Issues/Receipts into Daily Tracking automatically
+  const syncJobWorkToDailyTracking = async (
+    issueList = [],
+    receiptList = []
+  ) => {
+    try {
+      if (!jobWorkModal || !selectedSection?.data?.[0]) return;
+
+      const currentItemCode = String(
+        selectedSection?.data?.[0]?.partsCodeId || ""
+      );
+      const currentProduction = (
+        projectNameState ||
+        sections[0]?.projectName ||
+        ""
+      )
+        .toString()
+        .trim()
+        .toLowerCase();
+
+      // Filter lists for current project + item
+      const filteredIssues = (issueList || []).filter((g) => {
+        const matchProd =
+          (g.ProductionNo || "").toString().trim().toLowerCase() ===
+          currentProduction;
+        const matchItem = String(g.Itemcode).trim() === currentItemCode;
+        return matchItem && matchProd;
+      });
+      const filteredReceipts = (receiptList || []).filter((g) => {
+        const matchProd =
+          (g.ProductionNo || "").toString().trim().toLowerCase() ===
+          currentProduction;
+        const matchItem = String(g.Itemcode).trim() === currentItemCode;
+        return matchItem && matchProd;
+      });
+
+      // Post missing Issue entries
+      for (const g of filteredIssues) {
+        const payload = {
+          postingdate: g.postingdate || g.PostingDate || g.DocDate || "",
+          Itemcode: g.Itemcode || "",
+          Descrption: partName || g.Descrption || g.Description || "",
+          Quantity: Number(g.Quantity) || 0,
+          WhsCode:
+            g.WhsCode ||
+            g.Whscode ||
+            g.Whs ||
+            selectedSection?.data?.[0]?.warehouseId ||
+            "",
+        };
+        if (!hasDailyJobWorkEntry(payload, "issue")) {
+          await postDailyFromJobWork({ ...payload, type: "issue" });
+        }
+      }
+
+      // Post missing Receipt entries
+      for (const g of filteredReceipts) {
+        const payload = {
+          postingdate: g.postingdate || g.PostingDate || g.DocDate || "",
+          Itemcode: g.Itemcode || "",
+          Descrption: partName || g.Descrption || g.Description || "",
+          Quantity: Number(g.Quantity) || 0,
+          WhsCode:
+            g.WhsCode ||
+            g.Whscode ||
+            g.Whs ||
+            sections[selectedSectionIndex + 1]?.data?.[0]?.warehouseId ||
+            (sections[selectedSectionIndex + 1] ? "" : "Store"),
+        };
+        if (!hasDailyJobWorkEntry(payload, "receipt")) {
+          await postDailyFromJobWork({ ...payload, type: "receipt" });
+        }
+      }
+    } catch (e) {
+      console.error("Failed syncing Job Work to Daily Tracking", e);
+    }
+  };
+
   // Function to refresh warehouse data
   const refreshWarehouseData = async () => {
     try {
@@ -228,7 +407,10 @@ export const AllocatedPartListHrPlan = ({
             )
             .then((res) => setFromWarehouseData(res.data))
         );
-      } else if (selectedSectionIndex !== null && !sections[selectedSectionIndex + 1]) {
+      } else if (
+        selectedSectionIndex !== null &&
+        !sections[selectedSectionIndex + 1]
+      ) {
         // Last process - refresh Store warehouse
         requests.push(
           axios
@@ -618,12 +800,12 @@ export const AllocatedPartListHrPlan = ({
             (dailyTracking[0]?.produced || 0)
         ),
         toWarehouse:
-          sections[selectedSectionIndex + 1]?.data?.[0]?.wareHouse || 
-          (sections[selectedSectionIndex + 1] 
-            ? "N/A" 
+          sections[selectedSectionIndex + 1]?.data?.[0]?.wareHouse ||
+          (sections[selectedSectionIndex + 1]
+            ? "N/A"
             : fromWarehouseData?.Name?.[0] || "Store"),
         toWarehouseId:
-          sections[selectedSectionIndex + 1]?.data?.[0]?.warehouseId || 
+          sections[selectedSectionIndex + 1]?.data?.[0]?.warehouseId ||
           (sections[selectedSectionIndex + 1] ? null : "Store"),
         toWarehouseQty: fromWarehouseData?.quantity?.[0] || 0,
         toWarehouseRemainingQty: Math.max(
@@ -651,7 +833,7 @@ export const AllocatedPartListHrPlan = ({
             Dscription: partName || "",
             Quantity: Number(dailyTracking[0].produced) || 0,
             WhsCode:
-              sections[selectedSectionIndex + 1]?.data?.[0]?.warehouseId || 
+              sections[selectedSectionIndex + 1]?.data?.[0]?.warehouseId ||
               (sections[selectedSectionIndex + 1] ? "" : "Store"),
             FromWhsCod: selectedSection.data[0]?.warehouseId || "",
           };
@@ -714,7 +896,7 @@ export const AllocatedPartListHrPlan = ({
         const producedQty = Number(dailyTracking[0].produced) || 0;
         const currentWarehouseId = selectedSection.data[0].warehouseId;
         const nextWarehouseId =
-          sections[selectedSectionIndex + 1]?.data?.[0]?.warehouseId || 
+          sections[selectedSectionIndex + 1]?.data?.[0]?.warehouseId ||
           (sections[selectedSectionIndex + 1] ? null : "Store");
 
         try {
@@ -1149,6 +1331,8 @@ export const AllocatedPartListHrPlan = ({
         setGoodsReceiptDataModal(receiptList);
         updateIssueStatuses(issueList);
         updateReceiptStatuses(receiptList);
+        // Attempt auto-posting to daily tracking for Job Work
+        await syncJobWorkToDailyTracking(issueList, receiptList);
       } catch (e) {
         console.error("Auto-refresh goods movement failed", e);
       }
@@ -1178,6 +1362,30 @@ export const AllocatedPartListHrPlan = ({
       }
     };
   }, [jobWorkModal]);
+
+  // When opening Job Work modal, ensure existing daily tracking is loaded for deduplication
+  useEffect(() => {
+    const loadExistingDailyForJobWork = async () => {
+      try {
+        if (
+          !jobWorkModal ||
+          !selectedSection?.allocationId ||
+          !selectedSection?.data?.[0]?.trackingId
+        )
+          return;
+        const allocationId = selectedSection.allocationId;
+        const trackingId = selectedSection.data[0].trackingId;
+        const res = await axios.get(
+          `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/allocations/${allocationId}/allocations/${trackingId}/dailyTracking`
+        );
+        setExistingDailyTracking(res.data.dailyTracking || []);
+        setactulEndDateData(res.data);
+      } catch (e) {
+        console.error("Failed to load existing daily tracking for Job Work", e);
+      }
+    };
+    loadExistingDailyForJobWork();
+  }, [jobWorkModal, selectedSection]);
 
   // Determine current (To) and next (From) warehouses when selection changes
   useEffect(() => {
@@ -1581,17 +1789,16 @@ export const AllocatedPartListHrPlan = ({
                                             "DD MMM YYYY"
                                           )}
                                           {row.startTime || row.endTime ? (
-                                        <span
-                                          style={{
-                                            color: "#64748b",
-                                            marginLeft: "6px",
-                                          }}
-                                        >
-                                          {row.startTime || "--:--"}
-                                          {/* {row.endTime || "--:--"} */}
-                                          
-                                        </span>
-                                      ) : null}
+                                            <span
+                                              style={{
+                                                color: "#64748b",
+                                                marginLeft: "6px",
+                                              }}
+                                            >
+                                              {row.startTime || "--:--"}
+                                              {/* {row.endTime || "--:--"} */}
+                                            </span>
+                                          ) : null}
                                         </span>
                                       </div>
                                       <div
@@ -1619,16 +1826,15 @@ export const AllocatedPartListHrPlan = ({
                                             "DD MMM YYYY"
                                           )}
                                           {row.startTime || row.endTime ? (
-                                        <span
-                                          style={{
-                                            color: "#64748b",
-                                            marginLeft: "6px",
-                                          }}
-                                        >
-                                          {row.endTime || "--:--"}
-                                          
-                                        </span>
-                                      ) : null}
+                                            <span
+                                              style={{
+                                                color: "#64748b",
+                                                marginLeft: "6px",
+                                              }}
+                                            >
+                                              {row.endTime || "--:--"}
+                                            </span>
+                                          ) : null}
                                         </span>
                                       </div>
                                     </div>
@@ -2465,8 +2671,8 @@ export const AllocatedPartListHrPlan = ({
                     <div style={{ fontSize: "14px" }}>
                       {sections[selectedSectionIndex + 1]?.data?.[0]
                         ?.wareHouse ||
-                        (sections[selectedSectionIndex + 1] 
-                          ? "N/A" 
+                        (sections[selectedSectionIndex + 1]
+                          ? "N/A"
                           : fromWarehouseData?.Name?.[0] || "Store")}
                     </div>
                   </Col>
@@ -2553,8 +2759,8 @@ export const AllocatedPartListHrPlan = ({
                   <div className="col-md-3">
                     <strong>To WH:</strong>{" "}
                     {sections[selectedSectionIndex + 1]?.data?.[0]?.wareHouse ||
-                      (sections[selectedSectionIndex + 1] 
-                        ? "N/A" 
+                      (sections[selectedSectionIndex + 1]
+                        ? "N/A"
                         : fromWarehouseData?.Name?.[0] || "Store")}
                   </div>
                 </div>
@@ -3463,8 +3669,10 @@ export const AllocatedPartListHrPlan = ({
                                 color: "green",
                               }}
                             >
-                              {fromWarehouseData?.quantity?.[0] ?? 
-                                (sections[selectedSectionIndex + 1] ? "N/A" : 0)}
+                              {fromWarehouseData?.quantity?.[0] ??
+                                (sections[selectedSectionIndex + 1]
+                                  ? "N/A"
+                                  : 0)}
                             </p>
                             {dailyTracking[0]?.produced > 0 && (
                               <FaArrowUp color="green" />
@@ -3713,8 +3921,8 @@ export const AllocatedPartListHrPlan = ({
                 <Col md={9}>
                   {`${
                     sections[selectedSectionIndex + 1]?.data?.[0]?.wareHouse ||
-                    (sections[selectedSectionIndex + 1] 
-                      ? "N/A" 
+                    (sections[selectedSectionIndex + 1]
+                      ? "N/A"
                       : fromWarehouseData?.Name?.[0] || "Store")
                   }`}{" "}
                   (Quantity:{" "}
@@ -3879,8 +4087,8 @@ export const AllocatedPartListHrPlan = ({
               <div>
                 <strong>To (Next) WH:</strong>{" "}
                 {sections[selectedSectionIndex + 1]?.data?.[0]?.wareHouse ||
-                  (sections[selectedSectionIndex + 1] 
-                    ? "N/A" 
+                  (sections[selectedSectionIndex + 1]
+                    ? "N/A"
                     : fromWarehouseData?.Name?.[0] || "Store")}
               </div>
             </div>
