@@ -3,7 +3,7 @@ const InventoryModal = require("../../model/inventoryModal");
 
 const InventoryRouter = Router();
 
-// ✅ Create (POST)
+// Create (POST)
 InventoryRouter.post("/PostInventoryVaraibleVaraible", async (req, res) => {
   try {
     console.log("Received inventory data:", req.body);
@@ -17,7 +17,7 @@ InventoryRouter.post("/PostInventoryVaraibleVaraible", async (req, res) => {
   }
 });
 
-// ✅ Read (GET all)
+// Read (GET all)
 InventoryRouter.get("/PostInventoryVaraible", async (req, res) => {
   try {
     const items = await InventoryModal.find();
@@ -27,7 +27,7 @@ InventoryRouter.get("/PostInventoryVaraible", async (req, res) => {
   }
 });
 
-// ✅ Read (GET by ID)
+// Read (GET by ID)
 InventoryRouter.get("/PostInventoryVaraible/:id", async (req, res) => {
   try {
     const item = await InventoryModal.findById(req.params.id);
@@ -40,7 +40,7 @@ InventoryRouter.get("/PostInventoryVaraible/:id", async (req, res) => {
   }
 });
 
-// ✅ Update (PUT)
+// Update (PUT)
 InventoryRouter.put("/PostInventoryVaraible/:id", async (req, res) => {
   try {
     const updatedItem = await InventoryModal.findByIdAndUpdate(
@@ -57,7 +57,7 @@ InventoryRouter.put("/PostInventoryVaraible/:id", async (req, res) => {
   }
 });
 
-// ✅ Delete (DELETE)
+// Delete (DELETE)
 InventoryRouter.delete("/PostInventoryVaraible/:id", async (req, res) => {
   try {
     const deletedItem = await InventoryModal.findByIdAndDelete(req.params.id);
