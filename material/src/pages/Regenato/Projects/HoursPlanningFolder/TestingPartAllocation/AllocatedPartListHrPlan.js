@@ -944,7 +944,49 @@ export const AllocatedPartListHrPlan = ({
                 ],
               }));
               if (!nextWarehouseId) {
-                toast.success("Warehouse quantity updated successfully");
+                // Increment STORE warehouse on last process completion
+                try {
+                  await axios.put(
+                    `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/increment-warehouse-quantity`,
+                    {
+                      warehouseId: "STORE",
+                      quantityToAdd: producedQty,
+                    }
+                  );
+                  setFromWarehouseData((prev) => ({
+                    ...(prev || {}),
+                    quantity: [(prev?.quantity?.[0] ?? 0) + producedQty],
+                  }));
+                  toast.success(
+                    "Store warehouse updated with produced quantity"
+                  );
+                } catch (incErr) {
+                  console.error("Failed to increment STORE warehouse", incErr);
+                }
+              } else if (nextIsSpecialDay) {
+                // Next process is special-day: immediately increment its warehouse too
+                try {
+                  await axios.put(
+                    `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/increment-warehouse-quantity`,
+                    {
+                      warehouseId: nextWarehouseId,
+                      quantityToAdd: producedQty,
+                    }
+                  );
+                  setFromWarehouseData((prev) => ({
+                    ...(prev || {}),
+                    quantity: [(prev?.quantity?.[0] ?? 0) + producedQty],
+                  }));
+                  toast.success("Next process warehouse updated (special day)");
+                } catch (incErr) {
+                  console.error(
+                    "Failed to increment next special-day warehouse",
+                    incErr
+                  );
+                  toast.warning(
+                    "Deducted current WH, but failed to add to next special-day WH"
+                  );
+                }
               } else {
                 toast.success(
                   "Quantity deducted from current warehouse (Job Work)"
