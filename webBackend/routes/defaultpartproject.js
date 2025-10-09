@@ -71,15 +71,23 @@ partproject.post("/production_part", async (req, res) => {
     // Fetch the complete part data from the parts API
     // selectedPartId now carries ItemCode (external id), not Mongo _id
     // Use search endpoint and pick exact id match
-    const searchUrl = `${process.env.BASE_URL}/api/parts?search=${encodeURIComponent(selectedPartId)}`;
+    const searchUrl = `${
+      process.env.BASE_URL
+    }/api/parts?search=${encodeURIComponent(selectedPartId)}`;
     const partResponse = await fetch(searchUrl);
     if (!partResponse.ok) {
       throw new Error("Failed to fetch part details");
     }
     const partList = await partResponse.json();
     const partData = Array.isArray(partList?.data)
-      ? partList.data.find((p) =>
-          String(p.id || "").trim().toLowerCase() === String(selectedPartId || "").trim().toLowerCase()
+      ? partList.data.find(
+          (p) =>
+            String(p.id || "")
+              .trim()
+              .toLowerCase() ===
+            String(selectedPartId || "")
+              .trim()
+              .toLowerCase()
         )
       : null;
     if (!partData) {
@@ -171,7 +179,6 @@ partproject.post("/production_part", async (req, res) => {
 
 // production_with_parts
 
-
 partproject.post("/production_with_parts", async (req, res) => {
   try {
     const {
@@ -184,7 +191,9 @@ partproject.post("/production_with_parts", async (req, res) => {
 
     // ✅ Validate inputs
     if (!projectName || !projectType) {
-      return res.status(400).json({ error: "Project name and type are required" });
+      return res
+        .status(400)
+        .json({ error: "Project name and type are required" });
     }
     if (!selectedPartId || !selectedPartName || !partQuantity) {
       return res
@@ -193,17 +202,21 @@ partproject.post("/production_with_parts", async (req, res) => {
     }
 
     // ✅ Fetch complete part details from parts API
-    const searchUrl = `${process.env.BASE_URL}/api/parts?search=${encodeURIComponent(
-      selectedPartId
-    )}`;
+    const searchUrl = `${
+      process.env.BASE_URL
+    }/api/parts?search=${encodeURIComponent(selectedPartId)}`;
     const partResponse = await fetch(searchUrl);
     if (!partResponse.ok) throw new Error("Failed to fetch part details");
     const partList = await partResponse.json();
     const partData = Array.isArray(partList?.data)
       ? partList.data.find(
           (p) =>
-            String(p.id || "").trim().toLowerCase() ===
-            String(selectedPartId || "").trim().toLowerCase()
+            String(p.id || "")
+              .trim()
+              .toLowerCase() ===
+            String(selectedPartId || "")
+              .trim()
+              .toLowerCase()
         )
       : null;
     if (!partData) throw new Error("Part not found in master list");
@@ -280,7 +293,6 @@ partproject.post("/production_with_parts", async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-
 
 partproject.get("/projects", async (req, res) => {
   try {
@@ -1256,14 +1268,14 @@ partproject.get(
             `${baseUrl}/api/GetGoodsReceipt`,
             { timeout: 10000 }
           );
-          
+
           // console.log(`Received ${goodsReceiptRes.data.length} items from GetGoodsReceipt API`);
-          
+
           // Process each allocation to find and store matching warehouse quantity
           const updatedAllocations = await Promise.all(
             partItem.allocations.map(async (allocation) => {
               let warehouseQuantity = 0;
-              
+
               if (allocation.warehouseId) {
                 // Find matching item with dual validation:
                 // 1. Itemcode matches partsCodeId
@@ -1271,27 +1283,29 @@ partproject.get(
                 const match = goodsReceiptRes.data.find(
                   (item) =>
                     String(item.Itemcode).trim().toLowerCase() ===
-                    String(partItem.partsCodeId).trim().toLowerCase() &&
+                      String(partItem.partsCodeId).trim().toLowerCase() &&
                     String(item.WhsCode).trim().toLowerCase() ===
-                    String(allocation.warehouseId).trim().toLowerCase()
+                      String(allocation.warehouseId).trim().toLowerCase()
                 );
-                
+
                 if (match) {
                   warehouseQuantity = match.Quantity;
-                  console.log(`✅ Found matching warehouse quantity: ${warehouseQuantity}`);
-                  
+                  console.log(
+                    `✅ Found matching warehouse quantity: ${warehouseQuantity}`
+                  );
+
                   // Update the allocation's warehouseQuantity in the database
                   allocation.warehouseQuantity = warehouseQuantity;
                 }
               }
-              
+
               return allocation;
             })
           );
 
           // Save the updated allocations with warehouse quantities
           await project.save();
-          
+
           // Return the updated allocations
           res.status(200).json({
             message: "Allocations retrieved successfully",
@@ -1481,7 +1495,7 @@ partproject.post(
         remaining,
         machineId,
         shift,
-        partsCodeId
+        partsCodeId,
       } = req.body;
 
       if (!date || produced === undefined) {
@@ -1559,7 +1573,7 @@ partproject.post(
         remaining: Number(remaining) || 0,
         machineId: machineId || allocation.machineId,
         shift: shift || allocation.shift,
-        partsCodeId: partsCodeId || partItem.partsCodeId
+        partsCodeId: partsCodeId || partItem.partsCodeId,
       };
 
       if (existingEntryIndex >= 0) {
@@ -1940,22 +1954,24 @@ partproject.get("/all-allocations", async (req, res) => {
     // Fetch projects sorted by newest first
     const projects = await PartListProjectModel.find({})
       .sort({ createdAt: -1 }) // ✅ Sort by createdAt descending
-      .select("projectName createdAt partsLists subAssemblyListFirst assemblyList")
+      .select(
+        "projectName createdAt partsLists subAssemblyListFirst assemblyList"
+      )
       .populate({
         path: "partsLists.partsListItems.allocations",
-        select: "machineId startDate endDate actualEndDate partName"
+        select: "machineId startDate endDate actualEndDate partName",
       })
       .populate({
         path: "subAssemblyListFirst.partsListItems.allocations",
-        select: "machineId startDate endDate actualEndDate partName"
+        select: "machineId startDate endDate actualEndDate partName",
       })
       .populate({
         path: "assemblyList.partsListItems.allocations",
-        select: "machineId startDate endDate actualEndDate partName"
+        select: "machineId startDate endDate actualEndDate partName",
       })
       .populate({
         path: "assemblyList.subAssemblies.partsListItems.allocations",
-        select: "machineId startDate endDate actualEndDate partName"
+        select: "machineId startDate endDate actualEndDate partName",
       });
 
     // Extract allocations with projectName
@@ -1988,19 +2004,23 @@ partproject.get("/all-allocations", async (req, res) => {
   }
 });
 
-
 partproject.get("/daily-tracking", async (req, res) => {
   try {
     const projects = await PartListProjectModel.find();
 
     let allDailyTracking = [];
 
-    projects.forEach(project => {
-      project.partsLists.forEach(partsList => {
-        partsList.partsListItems.forEach(part => {
-          part.allocations.forEach(allocation => {
-            if (allocation.dailyTracking && allocation.dailyTracking.length > 0) {
-              allDailyTracking = allDailyTracking.concat(allocation.dailyTracking);
+    projects.forEach((project) => {
+      project.partsLists.forEach((partsList) => {
+        partsList.partsListItems.forEach((part) => {
+          part.allocations.forEach((allocation) => {
+            if (
+              allocation.dailyTracking &&
+              allocation.dailyTracking.length > 0
+            ) {
+              allDailyTracking = allDailyTracking.concat(
+                allocation.dailyTracking
+              );
             }
           });
         });
@@ -2035,7 +2055,9 @@ partproject.put(
       });
 
       if (!storeVariable) {
-        return res.status(404).json({ success: false, error: "Warehouse not found" });
+        return res
+          .status(404)
+          .json({ success: false, error: "Warehouse not found" });
       }
 
       if (storeVariable.quantity && storeVariable.quantity.length > 0) {
@@ -2057,16 +2079,23 @@ partproject.put(
           },
         });
       } else {
-        res.status(400).json({ success: false, error: "No quantity data found for this warehouse" });
+        res.status(400).json({
+          success: false,
+          error: "No quantity data found for this warehouse",
+        });
       }
     } catch (error) {
       console.error("Error updating warehouse quantity:", error);
-      res.status(500).json({ success: false, error: "Server error", details: error.message });
+      res.status(500).json({
+        success: false,
+        error: "Server error",
+        details: error.message,
+      });
     }
   }
 );
 
-// New: transfer quantity between two warehouses (decrement from 'fromWarehouseId', increment 'toWarehouseId')
+// New: transfer quantity between two warehouses (decrement TO warehouse, increment FROM warehouse)
 partproject.put(
   "/projects/:projectId/partsLists/:partsListId/partsListItems/:partListItemId/transfer-warehouse-quantity",
   async (req, res) => {
@@ -2077,37 +2106,64 @@ partproject.put(
       if (!toWarehouseId || quantity === undefined) {
         return res.status(400).json({
           success: false,
-          error: "toWarehouseId and quantity are required. fromWarehouseId is optional (last process).",
+          error:
+            "toWarehouseId and quantity are required. fromWarehouseId is optional (last process).",
         });
       }
 
       const StoreVariableModal = require("../model/storemodel");
 
       // Fetch both warehouses
-      const [toWarehouse, fromWarehouse] = await Promise.all([
+      let [toWarehouse, fromWarehouse] = await Promise.all([
         StoreVariableModal.findOne({ categoryId: toWarehouseId }),
-        fromWarehouseId ? StoreVariableModal.findOne({ categoryId: fromWarehouseId }) : Promise.resolve(null),
+        fromWarehouseId
+          ? StoreVariableModal.findOne({ categoryId: fromWarehouseId })
+          : Promise.resolve(null),
       ]);
 
       if (!toWarehouse) {
-        return res.status(404).json({ success: false, error: "To warehouse not found" });
+        return res
+          .status(404)
+          .json({ success: false, error: "To warehouse not found" });
       }
 
       const qty = Number(quantity || 0);
 
       // Decrement TO warehouse (current process output warehouse)
-      if (!Array.isArray(toWarehouse.quantity) || toWarehouse.quantity.length === 0) {
+      if (
+        !Array.isArray(toWarehouse.quantity) ||
+        toWarehouse.quantity.length === 0
+      ) {
         toWarehouse.quantity = [0];
       }
       const toPrev = Number(toWarehouse.quantity[0] || 0);
       const toNew = Math.max(0, toPrev - qty);
       toWarehouse.quantity[0] = toNew;
 
-      // Increment FROM warehouse (next process input warehouse) if provided
+      // Ensure FROM warehouse exists; if not, create a shell record so we can increment it
+      if (!fromWarehouse && fromWarehouseId) {
+        try {
+          fromWarehouse = new StoreVariableModal({
+            categoryId: fromWarehouseId,
+            Name: [fromWarehouseId],
+            location: [""],
+            quantity: [0],
+          });
+          await fromWarehouse.save();
+        } catch (e) {
+          // If creation fails, continue with decrement only
+          fromWarehouse = null;
+        }
+      }
+
+      // Increment FROM warehouse (next process input warehouse) if provided or created
       let fromPrev = null;
       let fromNew = null;
       if (fromWarehouse) {
-        if (!Array.isArray(fromWarehouse.quantity) || fromWarehouse.quantity.length === 0) {
+        if (
+          !Array.isArray(fromWarehouse.quantity) ||
+          fromWarehouse.quantity.length === 0
+        ) {
           fromWarehouse.quantity = [0];
         }
         fromPrev = Number(fromWarehouse.quantity[0] || 0);
@@ -2116,22 +2172,37 @@ partproject.put(
       }
 
       // Save changes
-      await Promise.all([toWarehouse.save(), fromWarehouse ? fromWarehouse.save() : Promise.resolve()]);
+      await Promise.all([
+        toWarehouse.save(),
+        fromWarehouse ? fromWarehouse.save() : Promise.resolve(),
+      ]);
 
       return res.status(200).json({
         success: true,
         message: "Transfer completed",
         data: {
-          toWarehouse: { id: toWarehouseId, previousQuantity: toPrev, newQuantity: toNew },
+          toWarehouse: {
+            id: toWarehouseId,
+            previousQuantity: toPrev,
+            newQuantity: toNew,
+          },
           fromWarehouse: fromWarehouseId
-            ? { id: fromWarehouseId, previousQuantity: fromPrev, newQuantity: fromNew }
+            ? {
+                id: fromWarehouseId,
+                previousQuantity: fromPrev,
+                newQuantity: fromNew,
+              }
             : null,
           transferred: qty,
         },
       });
     } catch (error) {
       console.error("Error transferring warehouse quantity:", error);
-      return res.status(500).json({ success: false, error: "Server error", details: error.message });
+      return res.status(500).json({
+        success: false,
+        error: "Server error",
+        details: error.message,
+      });
     }
   }
 );
@@ -2145,16 +2216,37 @@ partproject.put(
       const { warehouseId, quantityToAdd } = req.body;
 
       if (!warehouseId || quantityToAdd === undefined) {
-        return res.status(400).json({ success: false, error: "warehouseId and quantityToAdd are required" });
+        return res.status(400).json({
+          success: false,
+          error: "warehouseId and quantityToAdd are required",
+        });
       }
 
       const StoreVariableModal = require("../model/storemodel");
-      const storeVariable = await StoreVariableModal.findOne({ categoryId: warehouseId });
+      let storeVariable = await StoreVariableModal.findOne({
+        categoryId: warehouseId,
+      });
+      // If the warehouse does not exist yet, create a minimal record so we can increment it
       if (!storeVariable) {
-        return res.status(404).json({ success: false, error: "Warehouse not found" });
+        try {
+          storeVariable = new StoreVariableModal({
+            categoryId: warehouseId,
+            Name: [warehouseId],
+            location: [""],
+            quantity: [0],
+          });
+          await storeVariable.save();
+        } catch (e) {
+          return res
+            .status(404)
+            .json({ success: false, error: "Warehouse not found" });
+        }
       }
 
-      if (!Array.isArray(storeVariable.quantity) || storeVariable.quantity.length === 0) {
+      if (
+        !Array.isArray(storeVariable.quantity) ||
+        storeVariable.quantity.length === 0
+      ) {
         storeVariable.quantity = [0];
       }
       const currentQuantity = Number(storeVariable.quantity[0] || 0);
@@ -2167,11 +2259,20 @@ partproject.put(
       res.status(200).json({
         success: true,
         message: "Warehouse quantity incremented successfully",
-        data: { warehouseId, previousQuantity: currentQuantity, newQuantity, addedBy: addBy },
+        data: {
+          warehouseId,
+          previousQuantity: currentQuantity,
+          newQuantity,
+          addedBy: addBy,
+        },
       });
     } catch (error) {
       console.error("Error incrementing warehouse quantity:", error);
-      return res.status(500).json({ success: false, error: "Server error", details: error.message });
+      return res.status(500).json({
+        success: false,
+        error: "Server error",
+        details: error.message,
+      });
     }
   }
 );
@@ -2182,19 +2283,43 @@ partproject.post(
   async (req, res) => {
     try {
       const { projectId, partsListId, partListItemId } = req.params;
-      const { partsCodeId, currentWarehouseId, nextWarehouseId, productionNo } = req.body;
+      const { partsCodeId, currentWarehouseId, nextWarehouseId, productionNo } =
+        req.body;
 
       if (!partsCodeId || !currentWarehouseId || !nextWarehouseId) {
-        return res.status(400).json({ success: false, error: "partsCodeId, currentWarehouseId, nextWarehouseId are required" });
+        return res.status(400).json({
+          success: false,
+          error:
+            "partsCodeId, currentWarehouseId, nextWarehouseId are required",
+        });
       }
 
       const jobKey = `${partsCodeId}|${currentWarehouseId}|${nextWarehouseId}`;
       if (!specialDayJobs.has(jobKey)) {
-        specialDayJobs.set(jobKey, { partsCodeId, currentWarehouseId, nextWarehouseId, lastSyncedQuantity: 0, projectId, partsListId, partListItemId, productionNo });
+        specialDayJobs.set(jobKey, {
+          partsCodeId,
+          currentWarehouseId,
+          nextWarehouseId,
+          lastSyncedQuantity: 0,
+          projectId,
+          partsListId,
+          partListItemId,
+          productionNo,
+        });
       } else {
         // enrich existing job with missing identifiers for scheduler to act
         const existing = specialDayJobs.get(jobKey) || {};
-        specialDayJobs.set(jobKey, { ...existing, partsCodeId, currentWarehouseId, nextWarehouseId, projectId, partsListId, partListItemId, productionNo, lastSyncedQuantity: existing.lastSyncedQuantity || 0 });
+        specialDayJobs.set(jobKey, {
+          ...existing,
+          partsCodeId,
+          currentWarehouseId,
+          nextWarehouseId,
+          projectId,
+          partsListId,
+          partListItemId,
+          productionNo,
+          lastSyncedQuantity: existing.lastSyncedQuantity || 0,
+        });
       }
 
       // Attempt an immediate sync once
@@ -2207,27 +2332,46 @@ partproject.post(
       ]);
 
       const issueQty = (issueRes.data || [])
-        .filter((x) =>
-          String(x.Itemcode).trim().toLowerCase() === String(partsCodeId).trim().toLowerCase() &&
-          String(x.ProductionNo || "").trim().toLowerCase() === String(productionNo || "").trim().toLowerCase()
+        .filter(
+          (x) =>
+            String(x.Itemcode).trim().toLowerCase() ===
+              String(partsCodeId).trim().toLowerCase() &&
+            String(x.ProductionNo || "")
+              .trim()
+              .toLowerCase() ===
+              String(productionNo || "")
+                .trim()
+                .toLowerCase()
         )
         .reduce((sum, x) => sum + Number(x.Quantity || 0), 0);
 
       const receiptQty = (receiptRes.data || [])
-        .filter((x) =>
-          String(x.Itemcode).trim().toLowerCase() === String(partsCodeId).trim().toLowerCase() &&
-          String(x.ProductionNo || "").trim().toLowerCase() === String(productionNo || "").trim().toLowerCase()
+        .filter(
+          (x) =>
+            String(x.Itemcode).trim().toLowerCase() ===
+              String(partsCodeId).trim().toLowerCase() &&
+            String(x.ProductionNo || "")
+              .trim()
+              .toLowerCase() ===
+              String(productionNo || "")
+                .trim()
+                .toLowerCase()
         )
         .reduce((sum, x) => sum + Number(x.Quantity || 0), 0);
 
       // Received that can be moved to next process = min(issue, receipt) - lastSynced
       const job = specialDayJobs.get(jobKey);
-      const eligible = Math.max(0, Math.min(issueQty, receiptQty) - (job.lastSyncedQuantity || 0));
+      const eligible = Math.max(
+        0,
+        Math.min(issueQty, receiptQty) - (job.lastSyncedQuantity || 0)
+      );
 
       if (eligible > 0) {
         // Increment next process warehouse by eligible quantity
         await axios.put(
-          `${process.env.BASE_URL || "http://0.0.0.0:4040"}/api/defpartproject/projects/${projectId}/partsLists/${partsListId}/partsListItems/${partListItemId}/increment-warehouse-quantity`,
+          `${
+            process.env.BASE_URL || "http://0.0.0.0:4040"
+          }/api/defpartproject/projects/${projectId}/partsLists/${partsListId}/partsListItems/${partListItemId}/increment-warehouse-quantity`,
           { warehouseId: nextWarehouseId, quantityToAdd: eligible },
           { timeout: 15000 }
         );
@@ -2253,28 +2397,43 @@ partproject.post(
         try {
           await Promise.all([
             axios.post(
-              `${process.env.BASE_URL || "http://0.0.0.0:4040"}/api/Inventory/PostInventory`,
+              `${
+                process.env.BASE_URL || "http://0.0.0.0:4040"
+              }/api/Inventory/PostInventory`,
               inventoryData,
               { timeout: 15000 }
             ),
             axios.post(
-              `${process.env.BASE_URL || "http://0.0.0.0:4040"}/api/InventoryVaraible/PostInventoryVaraibleVaraible`,
+              `${
+                process.env.BASE_URL || "http://0.0.0.0:4040"
+              }/api/InventoryVaraible/PostInventoryVaraibleVaraible`,
               inventoryData,
               { timeout: 15000 }
             ),
           ]);
         } catch (invErr) {
-          console.error("Special-day inventory post failed:", invErr?.message || invErr);
+          console.error(
+            "Special-day inventory post failed:",
+            invErr?.message || invErr
+          );
         }
 
         job.lastSyncedQuantity = (job.lastSyncedQuantity || 0) + eligible;
         specialDayJobs.set(jobKey, job);
       }
 
-      return res.status(200).json({ success: true, message: "Special-day sync executed", data: { issued: issueQty, received: receiptQty, moved: eligible } });
+      return res.status(200).json({
+        success: true,
+        message: "Special-day sync executed",
+        data: { issued: issueQty, received: receiptQty, moved: eligible },
+      });
     } catch (error) {
       console.error("Error in special-day sync:", error);
-      return res.status(500).json({ success: false, error: "Server error", details: error.message });
+      return res.status(500).json({
+        success: false,
+        error: "Server error",
+        details: error.message,
+      });
     }
   }
 );
@@ -2284,7 +2443,15 @@ setInterval(async () => {
   if (specialDayJobs.size === 0) return;
   for (const [jobKey, job] of specialDayJobs.entries()) {
     try {
-      const { partsCodeId, currentWarehouseId, nextWarehouseId, projectId, partsListId, partListItemId, productionNo } = job;
+      const {
+        partsCodeId,
+        currentWarehouseId,
+        nextWarehouseId,
+        projectId,
+        partsListId,
+        partListItemId,
+        productionNo,
+      } = job;
       const goodsIssueUrl = `${baseUrl}/api/GoodsIssue/GetGoodsIssue`;
       const goodsReceiptUrl = `${baseUrl}/api/GoodsReceipt/GetGoodsReceipt`;
       const [issueRes, receiptRes] = await Promise.all([
@@ -2292,17 +2459,36 @@ setInterval(async () => {
         axios.get(goodsReceiptUrl, { timeout: 15000 }),
       ]);
       const issueQty = (issueRes.data || [])
-        .filter((x) => String(x.Itemcode).trim().toLowerCase() === String(partsCodeId).trim().toLowerCase())
+        .filter(
+          (x) =>
+            String(x.Itemcode).trim().toLowerCase() ===
+            String(partsCodeId).trim().toLowerCase()
+        )
         .reduce((sum, x) => sum + Number(x.Quantity || 0), 0);
       const receiptQty = (receiptRes.data || [])
-        .filter((x) => String(x.Itemcode).trim().toLowerCase() === String(partsCodeId).trim().toLowerCase())
+        .filter(
+          (x) =>
+            String(x.Itemcode).trim().toLowerCase() ===
+            String(partsCodeId).trim().toLowerCase()
+        )
         .reduce((sum, x) => sum + Number(x.Quantity || 0), 0);
-      const eligible = Math.max(0, Math.min(issueQty, receiptQty) - (job.lastSyncedQuantity || 0));
-      if (eligible > 0 && projectId && partsListId && partListItemId && nextWarehouseId) {
+      const eligible = Math.max(
+        0,
+        Math.min(issueQty, receiptQty) - (job.lastSyncedQuantity || 0)
+      );
+      if (
+        eligible > 0 &&
+        projectId &&
+        partsListId &&
+        partListItemId &&
+        nextWarehouseId
+      ) {
         try {
           // Increment next process warehouse by eligible quantity
           await axios.put(
-            `${process.env.BASE_URL || "http://0.0.0.0:4040"}/api/defpartproject/projects/${projectId}/partsLists/${partsListId}/partsListItems/${partListItemId}/increment-warehouse-quantity`,
+            `${
+              process.env.BASE_URL || "http://0.0.0.0:4040"
+            }/api/defpartproject/projects/${projectId}/partsLists/${partsListId}/partsListItems/${partListItemId}/increment-warehouse-quantity`,
             { warehouseId: nextWarehouseId, quantityToAdd: eligible },
             { timeout: 15000 }
           );
@@ -2329,24 +2515,34 @@ setInterval(async () => {
           try {
             await Promise.all([
               axios.post(
-                `${process.env.BASE_URL || "http://0.0.0.0:4040"}/api/Inventory/PostInventory`,
+                `${
+                  process.env.BASE_URL || "http://0.0.0.0:4040"
+                }/api/Inventory/PostInventory`,
                 inventoryData,
                 { timeout: 15000 }
               ),
               axios.post(
-                `${process.env.BASE_URL || "http://0.0.0.0:4040"}/api/InventoryVaraible/PostInventoryVaraibleVaraible`,
+                `${
+                  process.env.BASE_URL || "http://0.0.0.0:4040"
+                }/api/InventoryVaraible/PostInventoryVaraibleVaraible`,
                 inventoryData,
                 { timeout: 15000 }
               ),
             ]);
           } catch (invErr) {
-            console.error("Special-day inventory post failed:", invErr?.message || invErr);
+            console.error(
+              "Special-day inventory post failed:",
+              invErr?.message || invErr
+            );
           }
 
           job.lastSyncedQuantity = (job.lastSyncedQuantity || 0) + eligible;
           specialDayJobs.set(jobKey, job);
         } catch (e) {
-          console.error("Special-day scheduler quantity push failed:", e?.message || e);
+          console.error(
+            "Special-day scheduler quantity push failed:",
+            e?.message || e
+          );
         }
       } else if (eligible > 0) {
         // No context to push quantities, at least update lastSynced to avoid reprocessing same amount
