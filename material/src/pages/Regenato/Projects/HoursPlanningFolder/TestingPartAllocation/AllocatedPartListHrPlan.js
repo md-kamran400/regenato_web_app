@@ -1267,17 +1267,32 @@ export const AllocatedPartListHrPlan = ({
   // Helper to fetch Store warehouse data (for last process)
   const fetchStoreWarehouseData = async () => {
     try {
+      // Fetch all warehouses and find the Store warehouse
       const res = await axios.get(
-        `${process.env.REACT_APP_BASE_URL}/api/storesVariable/category/Store`
+        `${process.env.REACT_APP_BASE_URL}/api/storesVariable`
       );
-      setStoreWarehouseData(res.data);
-      return res.data;
+      const storeWarehouse = res.data.find((wh) => wh.categoryId === "STORE");
+
+      if (storeWarehouse) {
+        setStoreWarehouseData(storeWarehouse);
+        return storeWarehouse;
+      } else {
+        // Fallback if Store warehouse not found
+        const defaultStoreData = {
+          categoryId: "STORE",
+          Name: ["STORE"],
+          location: ["Store Location"],
+          quantity: [0],
+        };
+        setStoreWarehouseData(defaultStoreData);
+        return defaultStoreData;
+      }
     } catch (error) {
       console.error("Error fetching Store warehouse data:", error);
       // Set default Store warehouse data if fetch fails
       const defaultStoreData = {
-        categoryId: "Store",
-        Name: ["Store"],
+        categoryId: "STORE",
+        Name: ["STORE"],
         location: ["Store Location"],
         quantity: [0],
       };
@@ -1440,14 +1455,14 @@ export const AllocatedPartListHrPlan = ({
           }
         } else {
           // No next process (last process) - use Store warehouse
-          setFromWarehouseId("Store");
+          setFromWarehouseId("STORE");
           try {
             const storeData = await fetchStoreWarehouseData();
             setFromWarehouseData(storeData);
           } catch (e) {
             setFromWarehouseData({
-              categoryId: "Store",
-              Name: ["Store"],
+              categoryId: "STORE",
+              Name: ["STORE"],
               location: ["Store Location"],
               quantity: [0],
             });
@@ -2673,7 +2688,7 @@ export const AllocatedPartListHrPlan = ({
                         ?.wareHouse ||
                         (sections[selectedSectionIndex + 1]
                           ? "N/A"
-                          : fromWarehouseData?.Name?.[0] || "Store")}
+                          : storeWarehouseData?.Name?.[0] || "STORE")}
                     </div>
                   </Col>
                 </Row>
@@ -2690,8 +2705,10 @@ export const AllocatedPartListHrPlan = ({
                       Total Quantity in Warehouse
                     </h5>
                     <p style={{ fontSize: "14px", marginBottom: 0 }}>
-                      {fromWarehouseData?.quantity?.[0] ??
-                        (sections[selectedSectionIndex + 1] ? "N/A" : 0)}
+                      {sections[selectedSectionIndex + 1]?.data?.[0]
+                        ?.warehouseId
+                        ? fromWarehouseData?.quantity?.[0] ?? "N/A"
+                        : storeWarehouseData?.quantity?.[0] ?? 0}
                     </p>
                   </Col>
                 </Row>
@@ -3637,7 +3654,7 @@ export const AllocatedPartListHrPlan = ({
                             ?.wareHouse ||
                             (sections[selectedSectionIndex + 1]
                               ? "N/A"
-                              : fromWarehouseData?.Name?.[0] || "Store")}
+                              : storeWarehouseData?.Name?.[0] || "STORE")}
                         </div>
                       </Col>
                     </Row>
@@ -3669,10 +3686,10 @@ export const AllocatedPartListHrPlan = ({
                                 color: "green",
                               }}
                             >
-                              {fromWarehouseData?.quantity?.[0] ??
-                                (sections[selectedSectionIndex + 1]
-                                  ? "N/A"
-                                  : 0)}
+                              {sections[selectedSectionIndex + 1]?.data?.[0]
+                                ?.warehouseId
+                                ? fromWarehouseData?.quantity?.[0] ?? "N/A"
+                                : storeWarehouseData?.quantity?.[0] ?? 0}
                             </p>
                             {dailyTracking[0]?.produced > 0 && (
                               <FaArrowUp color="green" />
@@ -3923,11 +3940,14 @@ export const AllocatedPartListHrPlan = ({
                     sections[selectedSectionIndex + 1]?.data?.[0]?.wareHouse ||
                     (sections[selectedSectionIndex + 1]
                       ? "N/A"
-                      : fromWarehouseData?.Name?.[0] || "Store")
+                      : storeWarehouseData?.Name?.[0] || "STORE")
                   }`}{" "}
                   (Quantity:{" "}
-                  {(fromWarehouseData?.quantity?.[0] ?? 0) +
-                    (warehouseChanges.toWarehouseChange || 0)}
+                  {sections[selectedSectionIndex + 1]?.data?.[0]?.warehouseId
+                    ? (fromWarehouseData?.quantity?.[0] ?? 0) +
+                      (warehouseChanges.toWarehouseChange || 0)
+                    : (storeWarehouseData?.quantity?.[0] ?? 0) +
+                      (warehouseChanges.toWarehouseChange || 0)}
                   )
                 </Col>
               </Row>
@@ -3973,13 +3993,17 @@ export const AllocatedPartListHrPlan = ({
                           </strong>
                           <br />
                           <span style={{ color: "#198754" }}>
-                            {fromWarehouseData?.quantity?.[0] ??
-                              (sections[selectedSectionIndex + 1]
-                                ? "N/A"
-                                : 0)}{" "}
+                            {sections[selectedSectionIndex + 1]?.data?.[0]
+                              ?.warehouseId
+                              ? fromWarehouseData?.quantity?.[0] ?? "N/A"
+                              : storeWarehouseData?.quantity?.[0] ?? 0}{" "}
                             →{" "}
-                            {(fromWarehouseData?.quantity?.[0] ?? 0) +
-                              (warehouseChanges.toWarehouseChange || 0)}
+                            {sections[selectedSectionIndex + 1]?.data?.[0]
+                              ?.warehouseId
+                              ? (fromWarehouseData?.quantity?.[0] ?? 0) +
+                                (warehouseChanges.toWarehouseChange || 0)
+                              : (storeWarehouseData?.quantity?.[0] ?? 0) +
+                                (warehouseChanges.toWarehouseChange || 0)}
                           </span>
                           <br />
                           <small style={{ color: "#6c757d" }}>
@@ -4089,7 +4113,7 @@ export const AllocatedPartListHrPlan = ({
                 {sections[selectedSectionIndex + 1]?.data?.[0]?.wareHouse ||
                   (sections[selectedSectionIndex + 1]
                     ? "N/A"
-                    : fromWarehouseData?.Name?.[0] || "Store")}
+                    : storeWarehouseData?.Name?.[0] || "STORE")}
               </div>
             </div>
             <div className="mt-3">

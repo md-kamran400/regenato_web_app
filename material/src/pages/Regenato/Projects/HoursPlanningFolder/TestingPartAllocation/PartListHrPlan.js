@@ -2042,72 +2042,186 @@ export const PartListHrPlan = ({
     const startDate = new Date(row.startDate);
     startDate.setHours(startHour, startMin, 0, 0);
 
-    let current = new Date(startDate);
-    let minutesLeft = row.plannedQtyTime;
-    let currentDay = new Date(startDate);
+    // Initialize variables
     let endTime = "";
     let endDate = new Date(startDate);
 
-    const calculateWorkMinutes = (start, end) => {
-      if (start >= end) return 0;
-      return Math.floor((end - start) / (1000 * 60));
-    };
+    // Calculate the time difference from the original start time
+    const originalStartTime = row.startTime || "09:00"; // fallback to 09:00 if not set
+    const [originalHour, originalMin] = originalStartTime
+      .split(":")
+      .map(Number);
+    const originalStartDate = new Date(row.startDate);
+    originalStartDate.setHours(originalHour, originalMin, 0, 0);
 
-    // Handle break time if exists
-    let breakStart = null;
-    let breakEnd = null;
-    if (shift.breakStartTime && shift.breakEndTime) {
-      const [breakStartHour, breakStartMin] = shift.breakStartTime
-        .split(":")
-        .map(Number);
-      const [breakEndHour, breakEndMin] = shift.breakEndTime
-        .split(":")
-        .map(Number);
+    // Calculate the time difference in minutes
+    const timeDifference =
+      (startDate.getTime() - originalStartDate.getTime()) / (1000 * 60);
 
-      breakStart = new Date(startDate);
-      breakStart.setHours(breakStartHour, breakStartMin, 0, 0);
+    // If there's an existing end time, adjust it by the same time difference
+    if (row.endTime) {
+      const [endHour, endMin] = row.endTime.split(":").map(Number);
+      const originalEndDate = new Date(row.startDate);
+      originalEndDate.setHours(endHour, endMin, 0, 0);
 
-      breakEnd = new Date(startDate);
-      breakEnd.setHours(breakEndHour, breakEndMin, 0, 0);
-    }
+      // Add the time difference to the original end time
+      const newEndDate = new Date(
+        originalEndDate.getTime() + timeDifference * 60 * 1000
+      );
 
-    // Calculate end time considering shift boundaries
-    while (minutesLeft > 0) {
-      const shiftEnd = new Date(current);
+      // Check if the new end time is within shift boundaries
+      const [shiftEndHour, shiftEndMin] = shift.endTime.split(":").map(Number);
+      const shiftEnd = new Date(startDate);
       shiftEnd.setHours(shiftEndHour, shiftEndMin, 0, 0);
 
-      // If we're in break time, skip to after break
-      if (
-        breakStart &&
-        breakEnd &&
-        current >= breakStart &&
-        current < breakEnd
-      ) {
-        current = new Date(breakEnd);
-        continue;
+      if (newEndDate <= shiftEnd) {
+        // End time is within the same shift, use the adjusted time
+        endTime = formatTime(newEndDate);
+        endDate = new Date(startDate);
+      } else {
+        // End time exceeds shift, need to recalculate properly
+        let current = new Date(startDate);
+        let minutesLeft = row.plannedQtyTime;
+        let currentDay = new Date(startDate);
+
+        const calculateWorkMinutes = (start, end) => {
+          if (start >= end) return 0;
+          return Math.floor((end - start) / (1000 * 60));
+        };
+
+        // Handle break time if exists
+        let breakStart = null;
+        let breakEnd = null;
+        if (shift.breakStartTime && shift.breakEndTime) {
+          const [breakStartHour, breakStartMin] = shift.breakStartTime
+            .split(":")
+            .map(Number);
+          const [breakEndHour, breakEndMin] = shift.breakEndTime
+            .split(":")
+            .map(Number);
+
+          breakStart = new Date(startDate);
+          breakStart.setHours(breakStartHour, breakStartMin, 0, 0);
+
+          breakEnd = new Date(startDate);
+          breakEnd.setHours(breakEndHour, breakEndMin, 0, 0);
+        }
+
+        // Calculate end time considering shift boundaries
+        while (minutesLeft > 0) {
+          const shiftEnd = new Date(current);
+          shiftEnd.setHours(shiftEndHour, shiftEndMin, 0, 0);
+
+          // If we're in break time, skip to after break
+          if (
+            breakStart &&
+            breakEnd &&
+            current >= breakStart &&
+            current < breakEnd
+          ) {
+            current = new Date(breakEnd);
+            continue;
+          }
+
+          // Calculate available minutes until next break or shift end
+          let availableUntil =
+            breakStart && current < breakStart ? breakStart : shiftEnd;
+          const availableMinutes = calculateWorkMinutes(
+            current,
+            availableUntil
+          );
+
+          if (minutesLeft <= availableMinutes) {
+            // Calculate the exact end time by adding minutes to current time
+            const endDateTime = new Date(
+              current.getTime() + minutesLeft * 60 * 1000
+            );
+            endTime = formatTime(endDateTime);
+            endDate = new Date(currentDay);
+            minutesLeft = 0;
+          } else {
+            minutesLeft -= availableMinutes;
+            current = new Date(availableUntil);
+
+            // Only move to next day if we've reached shift end
+            if (current >= shiftEnd) {
+              currentDay.setDate(currentDay.getDate() + 1);
+              currentDay = getNextWorkingDay(currentDay);
+              current = new Date(currentDay);
+              current.setHours(shiftStartHour, shiftStartMin, 0, 0);
+            }
+          }
+        }
+      }
+    } else {
+      // No existing end time, calculate normally
+      let current = new Date(startDate);
+      let minutesLeft = row.plannedQtyTime;
+      let currentDay = new Date(startDate);
+
+      const calculateWorkMinutes = (start, end) => {
+        if (start >= end) return 0;
+        return Math.floor((end - start) / (1000 * 60));
+      };
+
+      // Handle break time if exists
+      let breakStart = null;
+      let breakEnd = null;
+      if (shift.breakStartTime && shift.breakEndTime) {
+        const [breakStartHour, breakStartMin] = shift.breakStartTime
+          .split(":")
+          .map(Number);
+        const [breakEndHour, breakEndMin] = shift.breakEndTime
+          .split(":")
+          .map(Number);
+
+        breakStart = new Date(startDate);
+        breakStart.setHours(breakStartHour, breakStartMin, 0, 0);
+
+        breakEnd = new Date(startDate);
+        breakEnd.setHours(breakEndHour, breakEndMin, 0, 0);
       }
 
-      // Calculate available minutes until next break or shift end
-      let availableUntil =
-        breakStart && current < breakStart ? breakStart : shiftEnd;
-      const availableMinutes = calculateWorkMinutes(current, availableUntil);
+      // Calculate end time considering shift boundaries
+      while (minutesLeft > 0) {
+        const shiftEnd = new Date(current);
+        shiftEnd.setHours(shiftEndHour, shiftEndMin, 0, 0);
 
-      if (minutesLeft <= availableMinutes) {
-        endTime = formatTime(
-          new Date(current.getTime() + minutesLeft * 60 * 1000)
-        );
-        endDate = new Date(currentDay);
-        minutesLeft = 0;
-      } else {
-        minutesLeft -= availableMinutes;
-        current = new Date(availableUntil);
+        // If we're in break time, skip to after break
+        if (
+          breakStart &&
+          breakEnd &&
+          current >= breakStart &&
+          current < breakEnd
+        ) {
+          current = new Date(breakEnd);
+          continue;
+        }
 
-        // Only move to next day if we've reached shift end
-        if (current >= shiftEnd) {
-          currentDay.setDate(currentDay.getDate() + 1);
-          currentDay = getNextWorkingDay(currentDay);
-          current = new Date(currentDay);
-          current.setHours(shiftStartHour, shiftStartMin, 0, 0);
+        // Calculate available minutes until next break or shift end
+        let availableUntil =
+          breakStart && current < breakStart ? breakStart : shiftEnd;
+        const availableMinutes = calculateWorkMinutes(current, availableUntil);
+
+        if (minutesLeft <= availableMinutes) {
+          // Calculate the exact end time by adding minutes to current time
+          const endDateTime = new Date(
+            current.getTime() + minutesLeft * 60 * 1000
+          );
+          endTime = formatTime(endDateTime);
+          endDate = new Date(currentDay);
+          minutesLeft = 0;
+        } else {
+          minutesLeft -= availableMinutes;
+          current = new Date(availableUntil);
+
+          // Only move to next day if we've reached shift end
+          if (current >= shiftEnd) {
+            currentDay.setDate(currentDay.getDate() + 1);
+            currentDay = getNextWorkingDay(currentDay);
+            current = new Date(currentDay);
+            current.setHours(shiftStartHour, shiftStartMin, 0, 0);
+          }
         }
       }
     }
