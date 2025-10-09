@@ -1983,393 +1983,163 @@ export const PartListHrPlan = ({
   };
 
   const handleTimeChange = (index, rowIndex, newStartTime) => {
-    const row = rows[index][rowIndex];
-    const shift = shiftOptions.find((s) => s.name === row.shift);
-
-    if (!shift || !row.startDate || !row.plannedQtyTime) {
-      setRows((prevRows) => {
-        const updatedRows = [...prevRows[index]];
-        updatedRows[rowIndex] = {
-          ...updatedRows[rowIndex],
-          startTime: newStartTime,
-        };
-        return {
-          ...prevRows,
-          [index]: updatedRows,
-        };
-      });
-      return;
-    }
-
-    // Parse shift times
-    const [shiftStartHour, shiftStartMin] = shift.startTime
-      .split(":")
-      .map(Number);
-    const [shiftEndHour, shiftEndMin] = shift.endTime.split(":").map(Number);
-    const [startHour, startMin] = newStartTime.split(":").map(Number);
-
-    // Check if selected time is within shift boundaries
-    const selectedTime = startHour * 60 + startMin;
-    const shiftStartMinutes = shiftStartHour * 60 + shiftStartMin;
-    const shiftEndMinutes = shiftEndHour * 60 + shiftEndMin;
-
-    if (selectedTime < shiftStartMinutes || selectedTime > shiftEndMinutes) {
-      toast.error(
-        `Please select a time between ${shift.startTime} and ${shift.endTime}`
-      );
-      return;
-    }
-
-    // Check if this time respects the gap from previous process
-    if (index > 0) {
-      const previousProcess = rows[index - 1]?.[0];
-      if (previousProcess?.endTime) {
-        const [prevHours, prevMinutes] = previousProcess.endTime
-          .split(":")
-          .map(Number);
-        const prevTotalMinutes = prevHours * 60 + prevMinutes;
-        const newTotalMinutes = startHour * 60 + startMin;
-
-        if (newTotalMinutes < prevTotalMinutes + processGapMinutes) {
-          toast.error(
-            `Start time must be at least ${processGapMinutes} minutes after the previous process end time (${previousProcess.endTime})`
-          );
-          return;
-        }
-      }
-    }
-
-    const startDate = new Date(row.startDate);
-    startDate.setHours(startHour, startMin, 0, 0);
-
-    // Initialize variables
-    let endTime = "";
-    let endDate = new Date(startDate);
-
-    // Calculate the time difference from the original start time
-    const originalStartTime = row.startTime || "09:00"; // fallback to 09:00 if not set
-    const [originalHour, originalMin] = originalStartTime
-      .split(":")
-      .map(Number);
-    const originalStartDate = new Date(row.startDate);
-    originalStartDate.setHours(originalHour, originalMin, 0, 0);
-
-    // Calculate the time difference in minutes
-    const timeDifference =
-      (startDate.getTime() - originalStartDate.getTime()) / (1000 * 60);
-
-    // If there's an existing end time, adjust it by the same time difference
-    if (row.endTime) {
-      const [endHour, endMin] = row.endTime.split(":").map(Number);
-      const originalEndDate = new Date(row.startDate);
-      originalEndDate.setHours(endHour, endMin, 0, 0);
-
-      // Add the time difference to the original end time
-      const newEndDate = new Date(
-        originalEndDate.getTime() + timeDifference * 60 * 1000
-      );
-
-      // Check if the new end time is within shift boundaries
-      const [shiftEndHour, shiftEndMin] = shift.endTime.split(":").map(Number);
-      const shiftEnd = new Date(startDate);
-      shiftEnd.setHours(shiftEndHour, shiftEndMin, 0, 0);
-
-      if (newEndDate <= shiftEnd) {
-        // End time is within the same shift, use the adjusted time
-        endTime = formatTime(newEndDate);
-        endDate = new Date(startDate);
-      } else {
-        // End time exceeds shift, need to recalculate properly
-        let current = new Date(startDate);
-        let minutesLeft = row.plannedQtyTime;
-        let currentDay = new Date(startDate);
-
-        const calculateWorkMinutes = (start, end) => {
-          if (start >= end) return 0;
-          return Math.floor((end - start) / (1000 * 60));
-        };
-
-        // Handle break time if exists
-        let breakStart = null;
-        let breakEnd = null;
-        if (shift.breakStartTime && shift.breakEndTime) {
-          const [breakStartHour, breakStartMin] = shift.breakStartTime
-            .split(":")
-            .map(Number);
-          const [breakEndHour, breakEndMin] = shift.breakEndTime
-            .split(":")
-            .map(Number);
-
-          breakStart = new Date(startDate);
-          breakStart.setHours(breakStartHour, breakStartMin, 0, 0);
-
-          breakEnd = new Date(startDate);
-          breakEnd.setHours(breakEndHour, breakEndMin, 0, 0);
-        }
-
-        // Calculate end time considering shift boundaries
-        while (minutesLeft > 0) {
-          const shiftEnd = new Date(current);
-          shiftEnd.setHours(shiftEndHour, shiftEndMin, 0, 0);
-
-          // If we're in break time, skip to after break
-          if (
-            breakStart &&
-            breakEnd &&
-            current >= breakStart &&
-            current < breakEnd
-          ) {
-            current = new Date(breakEnd);
-            continue;
-          }
-
-          // Calculate available minutes until next break or shift end
-          let availableUntil =
-            breakStart && current < breakStart ? breakStart : shiftEnd;
-          const availableMinutes = calculateWorkMinutes(
-            current,
-            availableUntil
-          );
-
-          if (minutesLeft <= availableMinutes) {
-            // Calculate the exact end time by adding minutes to current time
-            const endDateTime = new Date(
-              current.getTime() + minutesLeft * 60 * 1000
-            );
-            endTime = formatTime(endDateTime);
-            endDate = new Date(currentDay);
-            minutesLeft = 0;
-          } else {
-            minutesLeft -= availableMinutes;
-            current = new Date(availableUntil);
-
-            // Only move to next day if we've reached shift end
-            if (current >= shiftEnd) {
-              currentDay.setDate(currentDay.getDate() + 1);
-              currentDay = getNextWorkingDay(currentDay);
-              current = new Date(currentDay);
-              current.setHours(shiftStartHour, shiftStartMin, 0, 0);
-            }
-          }
-        }
-      }
-    } else {
-      // No existing end time, calculate normally
-      let current = new Date(startDate);
-      let minutesLeft = row.plannedQtyTime;
-      let currentDay = new Date(startDate);
-
-      const calculateWorkMinutes = (start, end) => {
-        if (start >= end) return 0;
-        return Math.floor((end - start) / (1000 * 60));
-      };
-
-      // Handle break time if exists
-      let breakStart = null;
-      let breakEnd = null;
-      if (shift.breakStartTime && shift.breakEndTime) {
-        const [breakStartHour, breakStartMin] = shift.breakStartTime
-          .split(":")
-          .map(Number);
-        const [breakEndHour, breakEndMin] = shift.breakEndTime
-          .split(":")
-          .map(Number);
-
-        breakStart = new Date(startDate);
-        breakStart.setHours(breakStartHour, breakStartMin, 0, 0);
-
-        breakEnd = new Date(startDate);
-        breakEnd.setHours(breakEndHour, breakEndMin, 0, 0);
-      }
-
-      // Calculate end time considering shift boundaries
-      while (minutesLeft > 0) {
-        const shiftEnd = new Date(current);
-        shiftEnd.setHours(shiftEndHour, shiftEndMin, 0, 0);
-
-        // If we're in break time, skip to after break
-        if (
-          breakStart &&
-          breakEnd &&
-          current >= breakStart &&
-          current < breakEnd
-        ) {
-          current = new Date(breakEnd);
-          continue;
-        }
-
-        // Calculate available minutes until next break or shift end
-        let availableUntil =
-          breakStart && current < breakStart ? breakStart : shiftEnd;
-        const availableMinutes = calculateWorkMinutes(current, availableUntil);
-
-        if (minutesLeft <= availableMinutes) {
-          // Calculate the exact end time by adding minutes to current time
-          const endDateTime = new Date(
-            current.getTime() + minutesLeft * 60 * 1000
-          );
-          endTime = formatTime(endDateTime);
-          endDate = new Date(currentDay);
-          minutesLeft = 0;
-        } else {
-          minutesLeft -= availableMinutes;
-          current = new Date(availableUntil);
-
-          // Only move to next day if we've reached shift end
-          if (current >= shiftEnd) {
-            currentDay.setDate(currentDay.getDate() + 1);
-            currentDay = getNextWorkingDay(currentDay);
-            current = new Date(currentDay);
-            current.setHours(shiftStartHour, shiftStartMin, 0, 0);
-          }
-        }
-      }
-    }
-
+  const row = rows[index][rowIndex];
+  const shift = shiftOptions.find((s) => s.name === row.shift);
+ 
+  if (!shift || !row.startDate || !row.plannedQtyTime) {
     setRows((prevRows) => {
       const updatedRows = [...prevRows[index]];
       updatedRows[rowIndex] = {
         ...updatedRows[rowIndex],
         startTime: newStartTime,
-        endDate: formatDateUTC(endDate),
-        endTime: endTime,
       };
-
-      // Cascade recomputation for subsequent processes (P2, P3, ...)
-      let prevEndTime = endTime;
-      let prevEndDate = new Date(endDate);
-
-      for (let p = index + 1; p < manufacturingVariables.length; p++) {
-        const processRows = prevRows[p];
-        if (!processRows || processRows.length === 0) break;
-
-        // We only support first row per process in this planner
-        const currentNext = { ...processRows[0] };
-        const currentProcessInfo = manufacturingVariables[p];
-
-        // Determine shift for this process (fallback to first shift)
-        const thisShift =
-          shiftOptions.find((s) => s.name === currentNext.shift) ||
-          (shiftOptions.length > 0 ? shiftOptions[0] : null);
-
-        // Compute proposed start time = previous end time + gap
-        const [prevH, prevM] = String(prevEndTime || "00:00")
-          .split(":")
-          .map(Number);
-        const proposedTotalMin = prevH * 60 + prevM + processGapMinutes;
-        const proposedH = Math.floor(proposedTotalMin / 60);
-        const proposedM = proposedTotalMin % 60;
-        let nextStartTime = `${String(proposedH).padStart(2, "0")}:${String(
-          proposedM
-        ).padStart(2, "0")}`;
-
-        // Start date defaults to previous end date
-        let nextStartDateObj = new Date(prevEndDate);
-
-        // If the proposed start time exceeds this shift end, move to next working day at shift start
-        if (thisShift) {
-          const [shiftEndH, shiftEndM] = thisShift.endTime
-            .split(":")
-            .map(Number);
-          const [shiftStartH, shiftStartM] = thisShift.startTime
-            .split(":")
-            .map(Number);
-          const proposedMin = proposedH * 60 + proposedM;
-          const shiftEndMin = shiftEndH * 60 + shiftEndM;
-          if (proposedMin > shiftEndMin) {
-            nextStartDateObj.setDate(nextStartDateObj.getDate() + 1);
-            nextStartDateObj = getNextWorkingDay(nextStartDateObj);
-            nextStartTime = `${String(shiftStartH).padStart(2, "0")}:${String(
-              shiftStartM
-            ).padStart(2, "0")}`;
-          }
-        }
-
-        // Resolve machine for this process row if already chosen
-        const machineForProcess = (
-          machineOptions[currentProcessInfo.categoryId] || []
-        ).find((m) => m.subcategoryId === currentNext.machineId);
-
-        // Recalculate end date and time for this process
-        // Determine special day (Job Work) handling
-        const nextProcessInfo = manufacturingVariables[p];
-        let recomputedEndDate;
-        let recomputedEndTime;
-        if (
-          getProcessSpecialDayInfo(
-            nextProcessInfo.name,
-            nextProcessInfo.categoryId
-          )?.isSpecialday
-        ) {
-          // Job Work: continuous, skip Sundays
-          const startDateTime = new Date(
-            formatDateUTC(nextStartDateObj) + "T" + nextStartTime + ":00"
-          );
-          const endDateTime = addMinutesSkippingSundays(
-            startDateTime,
-            currentNext.plannedQtyTime
-          );
-          recomputedEndDate = formatDateUTC(endDateTime);
-          recomputedEndTime = `${String(endDateTime.getHours()).padStart(
-            2,
-            "0"
-          )}:${String(endDateTime.getMinutes()).padStart(2, "0")}`;
-        } else {
-          // Shift-based
-          recomputedEndDate = calculateEndDateFromStart(
-            formatDateUTC(nextStartDateObj),
-            nextStartTime,
-            currentNext.plannedQtyTime,
-            thisShift
-          );
-          recomputedEndTime = calculateEndTime(
-            nextStartTime,
-            currentNext.plannedQtyTime,
-            thisShift
-          );
-        }
-
-        // Persist recomputed values
-        prevRows[p][0] = {
-          ...currentNext,
-          shift: thisShift ? thisShift.name : currentNext.shift,
-          startDate: formatDateUTC(nextStartDateObj),
-          startTime: nextStartTime,
-          endDate: recomputedEndDate,
-          endTime: recomputedEndTime,
-        };
-
-        // Prepare for next iteration; if job work finishes after shift end, bump next start to next day 09:00
-        prevEndTime = recomputedEndTime;
-        const endDateObj = new Date(recomputedEndDate);
-        let endTimeMinutes = 0;
-        if (recomputedEndTime) {
-          const [eh, em] = recomputedEndTime.split(":").map(Number);
-          endTimeMinutes = eh * 60 + em;
-        }
-        const shiftEndMinutes = thisShift
-          ? parseInt(thisShift.endTime.split(":")[0]) * 60 +
-            parseInt(thisShift.endTime.split(":")[1])
-          : 17 * 60 + 30;
-        if (
-          getProcessSpecialDayInfo(
-            nextProcessInfo.name,
-            nextProcessInfo.categoryId
-          )?.isSpecialday &&
-          endTimeMinutes > shiftEndMinutes
-        ) {
-          // move following process to next working day at shift start
-          endDateObj.setDate(endDateObj.getDate() + 1);
-          prevEndDate = getNextWorkingDay(endDateObj);
-          prevEndTime = thisShift ? thisShift.startTime : "09:00";
-        } else {
-          prevEndDate = endDateObj;
+      return {
+        ...prevRows,
+        [index]: updatedRows,
+      };
+    });
+    return;
+  }
+ 
+  // Parse shift times
+  const [shiftStartHour, shiftStartMin] = shift.startTime.split(":").map(Number);
+  const [shiftEndHour, shiftEndMin] = shift.endTime.split(":").map(Number);
+  const [startHour, startMin] = newStartTime.split(":").map(Number);
+ 
+  // Check if selected time is within shift boundaries
+  const selectedTime = startHour * 60 + startMin;
+  const shiftStartMinutes = shiftStartHour * 60 + shiftStartMin;
+  const shiftEndMinutes = shiftEndHour * 60 + shiftEndMin;
+ 
+  if (selectedTime < shiftStartMinutes || selectedTime > shiftEndMinutes) {
+    toast.error(
+      `Please select a time between ${shift.startTime} and ${shift.endTime}`
+    );
+    return;
+  }
+ 
+  // Check if this time respects the gap from previous process
+  if (index > 0) {
+    const previousProcess = rows[index - 1]?.[0];
+    if (previousProcess?.endTime) {
+      const [prevHours, prevMinutes] = previousProcess.endTime.split(":").map(Number);
+      const prevTotalMinutes = prevHours * 60 + prevMinutes;
+      const newTotalMinutes = startHour * 60 + startMin;
+ 
+      if (newTotalMinutes < prevTotalMinutes + processGapMinutes) {
+        toast.error(
+          `Start time must be at least ${processGapMinutes} minutes after the previous process end time (${previousProcess.endTime})`
+        );
+        return;
+      }
+    }
+  }
+ 
+  // Get process info to check if it's a special day (Job Work)
+  const processInfo = manufacturingVariables[index];
+  const specialDayInfo = getProcessSpecialDayInfo(processInfo.name, processInfo.categoryId);
+ 
+  let newEndDate;
+  let newEndTime;
+ 
+  if (specialDayInfo?.isSpecialday) {
+    // Job Work: continuous calculation skipping Sundays
+    const startDateTime = new Date(`${row.startDate}T${newStartTime}:00`);
+    const endDateTime = addMinutesSkippingSundays(startDateTime, row.plannedQtyTime);
+    newEndDate = formatDateUTC(endDateTime);
+    newEndTime = formatTime(endDateTime);
+  } else {
+    // Regular process: shift-based calculation with lunch break
+    newEndDate = calculateEndDateFromStart(row.startDate, newStartTime, row.plannedQtyTime, shift);
+    newEndTime = calculateEndTime(newStartTime, row.plannedQtyTime, shift);
+  }
+ 
+  setRows((prevRows) => {
+    const updatedRows = [...prevRows[index]];
+    updatedRows[rowIndex] = {
+      ...updatedRows[rowIndex],
+      startTime: newStartTime,
+      endDate: newEndDate,
+      endTime: newEndTime,
+    };
+ 
+    // Cascade recomputation for subsequent processes (P2, P3, ...)
+    let prevEndTime = newEndTime;
+    let prevEndDate = new Date(newEndDate);
+ 
+    for (let p = index + 1; p < manufacturingVariables.length; p++) {
+      const processRows = prevRows[p];
+      if (!processRows || processRows.length === 0) break;
+ 
+      const currentNext = { ...processRows[0] };
+      const currentProcessInfo = manufacturingVariables[p];
+ 
+      // Determine shift for this process
+      const thisShift = shiftOptions.find((s) => s.name === currentNext.shift) || shift;
+ 
+      // Compute proposed start time = previous end time + gap
+      const [prevH, prevM] = String(prevEndTime || "00:00").split(":").map(Number);
+      const proposedTotalMin = prevH * 60 + prevM + processGapMinutes;
+      const proposedH = Math.floor(proposedTotalMin / 60);
+      const proposedM = proposedTotalMin % 60;
+      let nextStartTime = `${String(proposedH).padStart(2, "0")}:${String(proposedM).padStart(2, "0")}`;
+ 
+      // Start date defaults to previous end date
+      let nextStartDateObj = new Date(prevEndDate);
+ 
+      // If the proposed start time exceeds this shift end, move to next working day at shift start
+      if (thisShift) {
+        const [shiftEndH, shiftEndM] = thisShift.endTime.split(":").map(Number);
+        const [shiftStartH, shiftStartM] = thisShift.startTime.split(":").map(Number);
+        const proposedMin = proposedH * 60 + proposedM;
+        const shiftEndMin = shiftEndH * 60 + shiftEndM;
+        if (proposedMin > shiftEndMin) {
+          nextStartDateObj.setDate(nextStartDateObj.getDate() + 1);
+          nextStartDateObj = getNextWorkingDay(nextStartDateObj);
+          nextStartTime = `${String(shiftStartH).padStart(2, "0")}:${String(shiftStartM).padStart(2, "0")}`;
         }
       }
-
-      return { ...prevRows, [index]: updatedRows };
-    });
-  };
+ 
+      // Determine if this process is Job Work
+      const nextProcessInfo = manufacturingVariables[p];
+      let recomputedEndDate;
+      let recomputedEndTime;
+ 
+      if (getProcessSpecialDayInfo(nextProcessInfo.name, nextProcessInfo.categoryId)?.isSpecialday) {
+        // Job Work: continuous calculation
+        const startDateTime = new Date(formatDateUTC(nextStartDateObj) + "T" + nextStartTime + ":00");
+        const endDateTime = addMinutesSkippingSundays(startDateTime, currentNext.plannedQtyTime);
+        recomputedEndDate = formatDateUTC(endDateTime);
+        recomputedEndTime = formatTime(endDateTime);
+      } else {
+        // Regular process: shift-based calculation
+        recomputedEndDate = calculateEndDateFromStart(
+          formatDateUTC(nextStartDateObj),
+          nextStartTime,
+          currentNext.plannedQtyTime,
+          thisShift
+        );
+        recomputedEndTime = calculateEndTime(nextStartTime, currentNext.plannedQtyTime, thisShift);
+      }
+ 
+      // Update the process row
+      prevRows[p][0] = {
+        ...currentNext,
+        shift: thisShift ? thisShift.name : currentNext.shift,
+        startDate: formatDateUTC(nextStartDateObj),
+        startTime: nextStartTime,
+        endDate: recomputedEndDate,
+        endTime: recomputedEndTime,
+      };
+ 
+      // Update for next iteration
+      prevEndTime = recomputedEndTime;
+      prevEndDate = new Date(recomputedEndDate);
+    }
+ 
+    return { ...prevRows, [index]: updatedRows };
+  });
+};
 
   const getProcessSpecialDayInfo = (processName, categoryId) => {
     const processInfo = partManufacturingVariables?.find(
