@@ -50,10 +50,10 @@ const AllocationPlanningSchema = new mongoose.Schema(
           type: String,
           required: true,
         },
-        wareHouse:{
+        wareHouse: {
           type: String,
         },
-        warehouseId:{
+        warehouseId: {
           type: String,
         },
         warehouseQuantity: {
@@ -93,9 +93,10 @@ const AllocationPlanningSchema = new mongoose.Schema(
         actualEndDate: {
           type: Date, // Add this field for actual end date
         },
+        actualEndTime: { type: String },
         isProcessCompleted: {
           type: Boolean,
-          default: false
+          default: false,
         },
         dailyTracking: [
           {
@@ -119,10 +120,10 @@ const AllocationPlanningSchema = new mongoose.Schema(
             dailyStatus: {
               type: String,
             },
-            wareHouseTotalQty:{
+            wareHouseTotalQty: {
               type: Number,
             },
-            wareHouseremainingQty:{
+            wareHouseremainingQty: {
               type: Number,
             },
             // Additional fields for complete tracking
@@ -169,7 +170,7 @@ const AllocationPlanningSchema = new mongoose.Schema(
             },
             partsCodeId: {
               type: String,
-            }
+            },
           },
         ],
       },
@@ -198,7 +199,7 @@ const partSchema = new mongoose.Schema({
   },
   isManuallyCompleted: {
     type: Boolean,
-    default: false
+    default: false,
   },
   rmVariables: [
     {
@@ -218,7 +219,7 @@ const partSchema = new mongoose.Schema({
       hourlyRate: Number,
       totalRate: Number,
       isSpecialday: { type: Boolean, default: false }, // New field
-      SpecialDayTotalMinutes: { type: Number, default: 0 } // New field
+      SpecialDayTotalMinutes: { type: Number, default: 0 }, // New field
     },
   ],
   shipmentVariables: [
@@ -235,7 +236,7 @@ const partSchema = new mongoose.Schema({
       totalRate: Number,
     },
   ],
-  image:{type:String},
+  image: { type: String },
   allocations: [AllocationPlanningSchema],
 });
 
@@ -288,15 +289,14 @@ const partprojectSchema = new mongoose.Schema(
   }
 );
 
-partSchema.methods.calculateStatus = function() {
-   // If manually completed, always return completed status
+partSchema.methods.calculateStatus = function () {
+  // If manually completed, always return completed status
   if (this.isManuallyCompleted) {
     return {
       text: "Completed",
       class: "badge bg-success text-white",
     };
   }
-
 
   if (!this.allocations || this.allocations.length === 0) {
     return {
@@ -325,13 +325,13 @@ partSchema.methods.calculateStatus = function() {
   if (allocation.dailyTracking && allocation.dailyTracking.length > 0) {
     const currentDate = new Date();
     const endDate = new Date(allocation.endDate);
-    const actualEndDate = allocation.actualEndDate 
-      ? new Date(allocation.actualEndDate) 
+    const actualEndDate = allocation.actualEndDate
+      ? new Date(allocation.actualEndDate)
       : null;
 
     // Calculate total produced quantity
     const totalProduced = allocation.dailyTracking.reduce(
-      (sum, entry) => sum + entry.produced, 
+      (sum, entry) => sum + entry.produced,
       0
     );
 
@@ -372,7 +372,8 @@ partSchema.methods.calculateStatus = function() {
     }
 
     // Check daily status from tracking
-    const lastTracking = allocation.dailyTracking[allocation.dailyTracking.length - 1];
+    const lastTracking =
+      allocation.dailyTracking[allocation.dailyTracking.length - 1];
     if (lastTracking.dailyStatus === "Delayed") {
       return {
         text: "Delayed",
@@ -416,8 +417,7 @@ partSchema.methods.calculateStatus = function() {
   };
 };
 
-
-partSchema.pre('save', function(next) {
+partSchema.pre("save", function (next) {
   // Skip status calculation if flag is set
   if (this._skipStatusCalculation) {
     return next();

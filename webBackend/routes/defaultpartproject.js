@@ -1351,6 +1351,20 @@ partproject.get(
 //         dailyStatus,
 //         wareHouseTotalQty,
 //         wareHouseremainingQty,
+//         // Additional fields for complete tracking
+//         projectName,
+//         partName,
+//         processName,
+//         fromWarehouse,
+//         fromWarehouseQty,
+//         fromWarehouseRemainingQty,
+//         toWarehouse,
+//         toWarehouseQty,
+//         toWarehouseRemainingQty,
+//         remaining,
+//         machineId,
+//         shift,
+//         partsCodeId,
 //       } = req.body;
 
 //       if (!date || produced === undefined) {
@@ -1405,7 +1419,7 @@ partproject.get(
 //         date,
 //         planned: dailyPlannedQty,
 //         produced: Number(produced),
-//         operator,
+//         operator: operator || allocation.operator,
 //         dailyStatus:
 //           dailyStatus ||
 //           (produced > dailyPlannedQty
@@ -1415,6 +1429,20 @@ partproject.get(
 //             : "On Track"),
 //         wareHouseTotalQty: Number(wareHouseTotalQty) || 0,
 //         wareHouseremainingQty: Number(wareHouseremainingQty) || 0,
+//         // Additional fields for complete tracking
+//         projectName: projectName || project.projectName,
+//         partName: partName || partItem.partName,
+//         processName: processName || process.processName,
+//         fromWarehouse: fromWarehouse || allocation.fromWarehouse,
+//         fromWarehouseQty: Number(fromWarehouseQty) || 0,
+//         fromWarehouseRemainingQty: Number(fromWarehouseRemainingQty) || 0,
+//         toWarehouse: toWarehouse || allocation.wareHouse,
+//         toWarehouseQty: Number(toWarehouseQty) || 0,
+//         toWarehouseRemainingQty: Number(toWarehouseRemainingQty) || 0,
+//         remaining: Number(remaining) || 0,
+//         machineId: machineId || allocation.machineId,
+//         shift: shift || allocation.shift,
+//         partsCodeId: partsCodeId || partItem.partsCodeId,
 //       };
 
 //       if (existingEntryIndex >= 0) {
@@ -1423,6 +1451,7 @@ partproject.get(
 //         allocation.dailyTracking.push(trackingEntry);
 //       }
 
+//       // Sort tracking entries by date
 //       allocation.dailyTracking.sort(
 //         (a, b) => new Date(a.date) - new Date(b.date)
 //       );
@@ -1434,10 +1463,64 @@ partproject.get(
 //       );
 //       const remainingQuantity = Math.max(0, plannedQuantity - totalProduced);
 
-//       // Update actual end date if production is complete
+//       // Get holidays for working day calculation
+//       const holidaysResponse = await axios.get(
+//         `${baseUrl}/api/eventScheduler/events`
+//       );
+//       const holidays = holidaysResponse.data
+//         .filter((event) => event.eventName === "HOLIDAY")
+//         .flatMap((event) => {
+//           const start = new Date(event.startDate);
+//           const end = new Date(event.endDate);
+//           let current = new Date(start);
+//           const dates = [];
+//           while (current <= end) {
+//             dates.push(new Date(current));
+//             current.setDate(current.getDate() + 1);
+//           }
+//           return dates;
+//         });
+
+//       // Function to check if a date is a working day
+//       const isWorkingDay = (date) => {
+//         const dateObj = new Date(date);
+//         if (dateObj.getDay() === 0) return false; // Sunday
+//         const dateStr = dateObj.toISOString().split("T")[0];
+//         return !holidays.some(
+//           (holiday) => new Date(holiday).toISOString().split("T")[0] === dateStr
+//         );
+//       };
+
+//       // Calculate actual end date based on production progress
+//       let actualEndDate = allocation.endDate; // Default to planned end date
+
 //       if (remainingQuantity <= 0) {
-//         allocation.actualEndDate = new Date(date);
+//         // If production is complete, use the last production date
+//         const productionDates = allocation.dailyTracking
+//           .filter((entry) => entry.produced > 0)
+//           .map((entry) => new Date(entry.date));
+
+//         if (productionDates.length > 0) {
+//           actualEndDate = new Date(Math.max(...productionDates));
+//         }
+//       } else {
+//         // If production is ongoing, estimate end date based on remaining work
+//         let currentDate = new Date(date);
+//         let remainingQty = remainingQuantity;
+//         let workingDaysAdded = 0;
+
+//         while (remainingQty > 0) {
+//           currentDate.setDate(currentDate.getDate() + 1);
+//           if (isWorkingDay(currentDate)) {
+//             remainingQty -= dailyPlannedQty;
+//             workingDaysAdded++;
+//           }
+//         }
+
+//         actualEndDate = currentDate;
 //       }
+
+//       allocation.actualEndDate = actualEndDate;
 
 //       await project.save();
 
@@ -1522,7 +1605,7 @@ partproject.post(
       if (!allocation)
         return res.status(404).json({ error: "Allocation not found" });
 
-      // Calculate daily planned quantity considering total quantity
+      // Calculate daily planned quantity
       const shiftTotalTime = allocation.shiftTotalTime || 510;
       const perMachinetotalTime = allocation.perMachinetotalTime || 1;
       const plannedQuantity = allocation.plannedQuantity || 0;
@@ -1541,7 +1624,7 @@ partproject.post(
       dailyPlannedQty = Math.max(1, dailyPlannedQty);
       allocation.dailyPlannedQty = dailyPlannedQty;
 
-      // Add or update daily tracking with warehouse quantities
+      // Add / update daily tracking
       const existingEntryIndex = allocation.dailyTracking.findIndex(
         (e) => new Date(e.date).toISOString() === new Date(date).toISOString()
       );
@@ -1582,22 +1665,20 @@ partproject.post(
         allocation.dailyTracking.push(trackingEntry);
       }
 
-      // Sort tracking entries by date
+      // Sort by date
       allocation.dailyTracking.sort(
         (a, b) => new Date(a.date) - new Date(b.date)
       );
 
-      // Calculate total produced and remaining quantity
+      // Calculate totals
       const totalProduced = allocation.dailyTracking.reduce(
         (sum, entry) => sum + entry.produced,
         0
       );
       const remainingQuantity = Math.max(0, plannedQuantity - totalProduced);
 
-      // Get holidays for working day calculation
-      const holidaysResponse = await axios.get(
-        `${baseUrl}/api/eventScheduler/events`
-      );
+      // Get holidays for working day calc
+      const holidaysResponse = await axios.get(`${baseUrl}/api/eventScheduler/events`);
       const holidays = holidaysResponse.data
         .filter((event) => event.eventName === "HOLIDAY")
         .flatMap((event) => {
@@ -1612,9 +1693,8 @@ partproject.post(
           return dates;
         });
 
-      // Function to check if a date is a working day
-      const isWorkingDay = (date) => {
-        const dateObj = new Date(date);
+      const isWorkingDay = (d) => {
+        const dateObj = new Date(d);
         if (dateObj.getDay() === 0) return false; // Sunday
         const dateStr = dateObj.toISOString().split("T")[0];
         return !holidays.some(
@@ -1622,36 +1702,41 @@ partproject.post(
         );
       };
 
-      // Calculate actual end date based on production progress
-      let actualEndDate = allocation.endDate; // Default to planned end date
+      // === Actual End Date & Time calculation ===
+      let actualEndDate = allocation.endDate;
+      let actualEndTime = allocation.endTime;
 
       if (remainingQuantity <= 0) {
-        // If production is complete, use the last production date
+        // Production complete
         const productionDates = allocation.dailyTracking
           .filter((entry) => entry.produced > 0)
           .map((entry) => new Date(entry.date));
 
         if (productionDates.length > 0) {
-          actualEndDate = new Date(Math.max(...productionDates));
+          const lastProductionDate = new Date(Math.max(...productionDates));
+          actualEndDate = lastProductionDate;
+
+          // Here you can derive time based on shift, or simply mark as planned endTime
+          actualEndTime = allocation.endTime;
         }
       } else {
-        // If production is ongoing, estimate end date based on remaining work
+        // Estimate future completion date
         let currentDate = new Date(date);
         let remainingQty = remainingQuantity;
-        let workingDaysAdded = 0;
 
         while (remainingQty > 0) {
           currentDate.setDate(currentDate.getDate() + 1);
           if (isWorkingDay(currentDate)) {
             remainingQty -= dailyPlannedQty;
-            workingDaysAdded++;
           }
         }
 
         actualEndDate = currentDate;
+        actualEndTime = allocation.endTime;
       }
 
       allocation.actualEndDate = actualEndDate;
+      allocation.actualEndTime = actualEndTime;
 
       await project.save();
 
@@ -1662,6 +1747,7 @@ partproject.post(
           totalProduced,
           remainingQuantity,
           actualEndDate: allocation.actualEndDate,
+          actualEndTime: allocation.actualEndTime,
           wareHouseTotalQty: trackingEntry.wareHouseTotalQty,
           wareHouseremainingQty: trackingEntry.wareHouseremainingQty,
         },
@@ -1676,6 +1762,8 @@ partproject.post(
     }
   }
 );
+
+
 
 partproject.get(
   "/projects/:projectId/partsLists/:partsListId/partsListItems/:partListItemId/allocations/:processId/allocations/:allocationId/dailyTracking",
@@ -1725,6 +1813,7 @@ partproject.get(
         dailyTracking: allocation.dailyTracking,
         dailyPlannedQty: allocation.dailyPlannedQty,
         actualEndDate: allocation.actualEndDate,
+        actualEndTime: allocation.actualEndTime, 
       });
     } catch (error) {
       console.error(error);
