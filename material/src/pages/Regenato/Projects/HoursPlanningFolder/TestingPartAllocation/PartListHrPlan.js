@@ -250,43 +250,100 @@ export const PartListHrPlan = ({
           const machineAllocations = {};
           response.data.data.forEach((project) => {
             project.allocations.forEach((process) => {
+              // process.allocations.forEach((alloc) => {
+              //   // Process machine allocations
+              //   if (alloc.machineId) {
+              //     if (!machineAllocations[alloc.machineId]) {
+              //       machineAllocations[alloc.machineId] = [];
+              //     }
+              //     machineAllocations[alloc.machineId].push({
+              //       startDate: new Date(alloc.startDate),
+              //       endDate: new Date(alloc.actualEndDate || alloc.endDate),
+              //       projectName: project.projectName,
+              //       partName: process.partName,
+              //       processName: process.processName,
+              //       operator: alloc.operator,
+              //     });
+              //   }
+              //   // Process operator allocations using operatorId instead of name
+              //   if (alloc.operator) {
+              //     const operator = operators.find(
+              //       (op) =>
+              //         op.name === alloc.operator ||
+              //         `${op.categoryId} - ${op.name}` === alloc.operator
+              //     );
+              //     if (operator) {
+              //       const operatorId = operator._id;
+              //       if (!operatorAllocations[operatorId]) {
+              //         operatorAllocations[operatorId] = [];
+              //       }
+              //       operatorAllocations[operatorId].push({
+              //         startDate: new Date(alloc.startDate),
+              //         endDate: new Date(alloc.actualEndDate || alloc.endDate),
+              //         projectName: project.projectName,
+              //         partName: process.partName,
+              //         processName: process.processName,
+              //       });
+              //     }
+              //   }
+              // });
               process.allocations.forEach((alloc) => {
-                // Process machine allocations
-                if (alloc.machineId) {
-                  if (!machineAllocations[alloc.machineId]) {
-                    machineAllocations[alloc.machineId] = [];
-                  }
-                  machineAllocations[alloc.machineId].push({
-                    startDate: new Date(alloc.startDate),
-                    endDate: new Date(alloc.actualEndDate || alloc.endDate),
-                    projectName: project.projectName,
-                    partName: process.partName,
-                    processName: process.processName,
-                    operator: alloc.operator,
-                  });
-                }
-                // Process operator allocations using operatorId instead of name
-                if (alloc.operator) {
-                  const operator = operators.find(
-                    (op) =>
-                      op.name === alloc.operator ||
-                      `${op.categoryId} - ${op.name}` === alloc.operator
-                  );
-                  if (operator) {
-                    const operatorId = operator._id;
-                    if (!operatorAllocations[operatorId]) {
-                      operatorAllocations[operatorId] = [];
-                    }
-                    operatorAllocations[operatorId].push({
-                      startDate: new Date(alloc.startDate),
-                      endDate: new Date(alloc.actualEndDate || alloc.endDate),
-                      projectName: project.projectName,
-                      partName: process.partName,
-                      processName: process.processName,
-                    });
-                  }
-                }
-              });
+  const hasCompletedTracking =
+    Array.isArray(alloc.dailyTracking) &&
+    alloc.dailyTracking.some(
+      (t) => t.dailyStatus === "Completed"
+    );
+
+  const now = new Date();
+  const actualEndDate = alloc.actualEndDate ? new Date(alloc.actualEndDate) : null;
+  const endDate = alloc.endDate ? new Date(alloc.endDate) : null;
+  const effectiveEndDate = actualEndDate || endDate;
+
+  // Determine machine availability logic
+  const isMachineCurrentlyAvailable =
+    hasCompletedTracking || (actualEndDate && now < actualEndDate);
+
+  if (alloc.machineId) {
+    if (!machineAllocations[alloc.machineId]) {
+      machineAllocations[alloc.machineId] = [];
+    }
+
+    machineAllocations[alloc.machineId].push({
+      startDate: new Date(alloc.startDate),
+      endDate: effectiveEndDate,
+      projectName: project.projectName,
+      partName: process.partName,
+      processName: process.processName,
+      operator: alloc.operator,
+      // 👇 new flags to use later in availability checks
+      isCompleted: hasCompletedTracking,
+      isMachineCurrentlyAvailable,
+    });
+  }
+
+  // Process operator allocations (same as before)
+  if (alloc.operator) {
+    const operator = operators.find(
+      (op) =>
+        op.name === alloc.operator ||
+        `${op.categoryId} - ${op.name}` === alloc.operator
+    );
+    if (operator) {
+      const operatorId = operator._id;
+      if (!operatorAllocations[operatorId]) {
+        operatorAllocations[operatorId] = [];
+      }
+      operatorAllocations[operatorId].push({
+        startDate: new Date(alloc.startDate),
+        endDate: effectiveEndDate,
+        projectName: project.projectName,
+        partName: process.partName,
+        processName: process.processName,
+      });
+    }
+  }
+                      });
+
             });
           });
           setAllocatedMachines(machineAllocations);
@@ -311,16 +368,30 @@ export const PartListHrPlan = ({
     const parsedStart = new Date(startDate);
     const parsedEnd = new Date(endDate);
 
-    const conflictingAllocation = allocatedMachines[machineId].find((alloc) => {
-      const allocStart = new Date(alloc.startDate);
-      const allocEnd = new Date(alloc.endDate);
+    // const conflictingAllocation = allocatedMachines[machineId].find((alloc) => {
+    //   const allocStart = new Date(alloc.startDate);
+    //   const allocEnd = new Date(alloc.endDate);
 
-      return (
-        (parsedStart >= allocStart && parsedStart <= allocEnd) ||
-        (parsedEnd >= allocStart && parsedEnd <= allocEnd) ||
-        (parsedStart <= allocStart && parsedEnd >= allocEnd)
-      );
-    });
+    //   return (
+    //     (parsedStart >= allocStart && parsedStart <= allocEnd) ||
+    //     (parsedEnd >= allocStart && parsedEnd <= allocEnd) ||
+    //     (parsedStart <= allocStart && parsedEnd >= allocEnd)
+    //   );
+    // });
+      const conflictingAllocation = allocatedMachines[machineId].find((alloc) => {
+    const allocStart = new Date(alloc.startDate);
+    const allocEnd = new Date(alloc.endDate);
+
+    // Skip allocations that are completed or currently available
+    if (alloc.isCompleted || alloc.isMachineCurrentlyAvailable) return false;
+
+    return (
+      (parsedStart >= allocStart && parsedStart <= allocEnd) ||
+      (parsedEnd >= allocStart && parsedEnd <= allocEnd) ||
+      (parsedStart <= allocStart && parsedEnd >= allocEnd)
+    );
+  });
+
 
     return {
       available: !conflictingAllocation,
@@ -1556,6 +1627,50 @@ export const PartListHrPlan = ({
     } catch (e) {
       return "";
     }
+  };
+
+
+  // Add this function to get the next warehouse for a process
+  const getNextWarehouseForProcess = (processIndex) => {
+    try {
+      // If this is the last process, return empty string
+      if (processIndex >= manufacturingVariables.length - 1) {
+        return "";
+      }
+ 
+      const nextProcessIndex = processIndex + 1;
+      const nextProcessRows = rows[nextProcessIndex];
+ 
+      if (!nextProcessRows || nextProcessRows.length === 0) {
+        return "";
+      }
+ 
+      // Find the first row in next process that has a machine selected
+      const nextProcessRowWithMachine = nextProcessRows.find(
+        (row) => row.machineId
+      );
+ 
+      if (!nextProcessRowWithMachine) {
+        return "";
+      }
+ 
+      // Get the machine for the next process
+      const nextProcessMan = manufacturingVariables[nextProcessIndex];
+      const nextProcessMachine = machineOptions[
+        nextProcessMan.categoryId
+      ]?.find((m) => m.subcategoryId === nextProcessRowWithMachine.machineId);
+ 
+      return nextProcessMachine?.wareHouse || "";
+    } catch (error) {
+      console.error("Error getting next warehouse:", error);
+      return "";
+    }
+  };
+ 
+  // Add this function to check if next warehouse is available
+  const isNextWarehouseAvailable = (processIndex) => {
+    const nextWarehouse = getNextWarehouseForProcess(processIndex);
+    return nextWarehouse !== "";
   };
 
   // Validate that adjacent processes do not share the same warehouse
@@ -4292,78 +4407,6 @@ export const PartListHrPlan = ({
                                 />
                               </div>
 
-                              {/* Warehouse */}
-                              <div
-                                style={{
-                                  backgroundColor: "#ffffff",
-                                  borderRadius: "8px",
-                                  padding: "1rem",
-                                  boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
-                                  border: "1px solid #e2e8f0",
-                                }}
-                              >
-                                <label
-                                  style={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: "0.5rem",
-                                    fontSize: "0.85rem",
-                                    fontWeight: 600,
-                                    color: "#334155",
-                                    marginBottom: "0.75rem",
-                                  }}
-                                >
-                                  <div
-                                    style={{
-                                      width: "28px",
-                                      height: "28px",
-                                      borderRadius: "6px",
-                                      backgroundColor: "#f9731610",
-                                      display: "flex",
-                                      alignItems: "center",
-                                      justifyContent: "center",
-                                    }}
-                                  >
-                                    <FiHome size={16} color="#f97316" />
-                                  </div>
-                                  Warehouse
-                                </label>
-                                <Input
-                                  type="text"
-                                  value={
-                                    machineOptions[man.categoryId]?.find(
-                                      (machine) =>
-                                        machine.subcategoryId === row.machineId
-                                    )?.wareHouse || "-"
-                                  }
-                                  //                                 value={
-                                  // machineOptions[man.categoryId]?.find(
-                                  //   (machine) => machine.subcategoryId === row.machineId
-                                  // )
-                                  // ? `${machineOptions[man.categoryId]?.find(
-                                  //     (machine) => machine.subcategoryId === row.machineId
-                                  //   )?.warehouseId || ''}${machineOptions[man.categoryId]?.find(
-                                  //     (machine) => machine.subcategoryId === row.machineId
-                                  //   )?.warehouseId && machineOptions[man.categoryId]?.find(
-                                  //     (machine) => machine.subcategoryId === row.machineId
-                                  //   )?.wareHouse ? ' - ' : ''}${machineOptions[man.categoryId]?.find(
-                                  //     (machine) => machine.subcategoryId === row.machineId
-                                  //   )?.wareHouse || ''}`.trim() || "-"
-                                  // : "-"
-                                  // }
-                                  readOnly
-                                  style={{
-                                    width: "100%",
-                                    padding: "0.5rem 0.75rem",
-                                    fontSize: "0.875rem",
-                                    border: "1px solid #e2e8f0",
-                                    borderRadius: "6px",
-                                    backgroundColor: "#f8fafc",
-                                    cursor: "not-allowed",
-                                  }}
-                                />
-                              </div>
-
                               {/* Operator */}
                               <div
                                 style={{
@@ -4499,6 +4542,138 @@ export const PartListHrPlan = ({
                                   )}
                                   disabled={!hasStartDate}
                                 />
+                              </div>
+
+                              {/* Warehouse Information */}
+                              <div
+                                style={{
+                                  backgroundColor: "#ffffff",
+                                  borderRadius: "8px",
+                                  padding: "1rem",
+                                  boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+                                  border: "1px solid #e2e8f0",
+                                  gridColumn: "span 2", // Make it wider since we're adding next warehouse
+                                }}
+                              >
+                                <label
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "0.5rem",
+                                    fontSize: "0.85rem",
+                                    fontWeight: 600,
+                                    color: "#334155",
+                                    marginBottom: "0.75rem",
+                                  }}
+                                >
+                                  <div
+                                    style={{
+                                      width: "28px",
+                                      height: "28px",
+                                      borderRadius: "6px",
+                                      backgroundColor: "#f9731610",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                    }}
+                                  >
+                                    <FiHome size={16} color="#f97316" />
+                                  </div>
+                                  Warehouse Information
+                                </label>
+ 
+                                <div style={{ display: "flex", gap: "1rem" }}>
+                                  {/* Current Warehouse */}
+                                  <div style={{ flex: 1 }}>
+                                    <div
+                                      style={{
+                                        fontSize: "0.8rem",
+                                        fontWeight: 600,
+                                        color: "#64748b",
+                                        marginBottom: "0.5rem",
+                                      }}
+                                    >
+                                      Current Warehouse
+                                    </div>
+                                    <Input
+                                      type="text"
+                                      value={
+                                        machineOptions[man.categoryId]?.find(
+                                          (machine) =>
+                                            machine.subcategoryId ===
+                                            row.machineId
+                                        )?.wareHouse || "-"
+                                      }
+                                      readOnly
+                                      style={{
+                                        width: "100%",
+                                        padding: "0.5rem 0.75rem",
+                                        fontSize: "0.875rem",
+                                        border: "1px solid #e2e8f0",
+                                        borderRadius: "6px",
+                                        backgroundColor: "#f8fafc",
+                                        cursor: "not-allowed",
+                                      }}
+                                    />
+                                  </div>
+ 
+                                  {/* Next Warehouse */}
+                                  <div style={{ flex: 1 }}>
+                                    <div
+                                      style={{
+                                        fontSize: "0.8rem",
+                                        fontWeight: 600,
+                                        color: "#64748b",
+                                        marginBottom: "0.5rem",
+                                      }}
+                                    >
+                                      Next Warehouse
+                                    </div>
+                                    <Input
+                                      type="text"
+                                      value={
+                                        getNextWarehouseForProcess(index) || "-"
+                                      }
+                                      readOnly
+                                      style={{
+                                        width: "100%",
+                                        padding: "0.5rem 0.75rem",
+                                        fontSize: "0.875rem",
+                                        border: "1px solid #e2e8f0",
+                                        borderRadius: "6px",
+                                        backgroundColor:
+                                          isNextWarehouseAvailable(index)
+                                            ? "#f0fdf4"
+                                            : "#f8fafc",
+                                        cursor: "not-allowed",
+                                        borderLeft: isNextWarehouseAvailable(
+                                          index
+                                        )
+                                          ? "3px solid #10b981"
+                                          : "1px solid #e2e8f0",
+                                      }}
+                                      placeholder="No next process"
+                                    />
+                                    {!isNextWarehouseAvailable(index) &&
+                                      index <
+                                        manufacturingVariables.length - 1 && (
+                                        <div
+                                          style={{
+                                            fontSize: "0.75rem",
+                                            color: "#f59e0b",
+                                            marginTop: "0.25rem",
+                                            display: "flex",
+                                            alignItems: "center",
+                                            gap: "0.25rem",
+                                          }}
+                                        >
+                                          <FiInfo size={12} />
+                                          Select machine in next process to see
+                                          warehouse
+                                        </div>
+                                      )}
+                                  </div>
+                                </div>
                               </div>
                             </div>
                           </td>

@@ -767,6 +767,274 @@ export const AllocatedPartListHrPlan = ({
     return totalQuantity - totalProduced;
   };
 
+  // const submitDailyTracking = async () => {
+  //   setIsUpdating(true);
+  //   try {
+  //     if (!selectedSection || !selectedSection.data.length) {
+  //       toast.error("No allocation selected.");
+  //       return;
+  //     }
+
+  //     const allocationId = selectedSection.allocationId;
+  //     const trackingId = selectedSection.data[0]?.trackingId;
+
+  //     if (!allocationId || !trackingId) {
+  //       toast.error("Allocation or Tracking ID is missing.");
+  //       return;
+  //     }
+
+  //     const trackingData = {
+  //       ...dailyTracking[0],
+  //       wareHouseTotalQty: warehouseQuantities.total,
+  //       wareHouseremainingQty: warehouseQuantities.remaining,
+  //       // Additional fields for complete tracking
+  //       projectName: sections[0]?.projectName || "N/A",
+  //       partName: partName || "N/A",
+  //       processName: selectedSection?.title || "N/A",
+  //       fromWarehouse: selectedSection?.data[0]?.wareHouse || "N/A",
+  //       fromWarehouseId: selectedSection?.data[0]?.warehouseId || null,
+  //       fromWarehouseQty: toWarehouseData?.quantity?.[0] || 0,
+  //       fromWarehouseRemainingQty: Math.max(
+  //         0,
+  //         (toWarehouseData?.quantity?.[0] || 0) -
+  //           (dailyTracking[0]?.produced || 0)
+  //       ),
+  //       toWarehouse:
+  //         sections[selectedSectionIndex + 1]?.data?.[0]?.wareHouse ||
+  //         (sections[selectedSectionIndex + 1]
+  //           ? "N/A"
+  //           : fromWarehouseData?.Name?.[0] || "Store"),
+  //       toWarehouseId:
+  //         sections[selectedSectionIndex + 1]?.data?.[0]?.warehouseId ||
+  //         (sections[selectedSectionIndex + 1] ? null : "Store"),
+  //       toWarehouseQty: fromWarehouseData?.quantity?.[0] || 0,
+  //       toWarehouseRemainingQty: Math.max(
+  //         0,
+  //         (fromWarehouseData?.quantity?.[0] || 0) +
+  //           (dailyTracking[0]?.produced || 0)
+  //       ),
+  //       remaining: calculateRemainingQuantity(),
+  //       machineId: selectedSection?.data[0]?.machineId || "N/A",
+  //       shift: selectedSection?.data[0]?.shift || "N/A",
+  //       partsCodeId: selectedSection?.data[0]?.partsCodeId || "N/A",
+  //     };
+
+  //     const response = await axios.post(
+  //       `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/allocations/${allocationId}/allocations/${trackingId}/dailyTracking`,
+  //       trackingData
+  //     );
+
+  //     // Post to inventory API
+  //     if (dailyTracking[0]?.produced > 0) {
+  //       try {
+  //         const inventoryData = {
+  //           DocDate: dailyTracking[0].date,
+  //           ItemCode: selectedSection.data[0]?.partsCodeId || "",
+  //           Dscription: partName || "",
+  //           Quantity: Number(dailyTracking[0].produced) || 0,
+  //           WhsCode:
+  //             sections[selectedSectionIndex + 1]?.data?.[0]?.warehouseId ||
+  //             (sections[selectedSectionIndex + 1] ? "" : "Store"),
+  //           FromWhsCod: selectedSection.data[0]?.warehouseId || "",
+  //         };
+
+  //         // Post to first route
+  //         const invPostRes = await axios.post(
+  //           `${process.env.REACT_APP_BASE_URL}/api/Inventory/PostInventory`,
+  //           inventoryData
+  //         );
+  //         try {
+  //           const respMsg =
+  //             invPostRes?.data?.message ||
+  //             invPostRes?.data?.Message ||
+  //             invPostRes?.data?.status ||
+  //             "Inventory posted successfully";
+  //           toast.success(
+  //             `Inventory PostInventory response: ${
+  //               typeof respMsg === "string" ? respMsg : JSON.stringify(respMsg)
+  //             }`
+  //           );
+  //         } catch (_) {
+  //           // Fallback toast to avoid breaking UI if response shape is unexpected
+  //           toast.success("Inventory PostInventory request completed.");
+  //         }
+
+  //         // Post to second route
+  //         const invVarPostRes = await axios.post(
+  //           `${process.env.REACT_APP_BASE_URL}/api/InventoryVaraible/PostInventoryVaraibleVaraible`,
+  //           inventoryData
+  //         );
+  //         try {
+  //           const respMsg2 =
+  //             invVarPostRes?.data?.message ||
+  //             invVarPostRes?.data?.Message ||
+  //             invVarPostRes?.data?.status ||
+  //             "Inventory variable posted successfully";
+  //           toast.info(
+  //             `InventoryVaraible response: ${
+  //               typeof respMsg2 === "string"
+  //                 ? respMsg2
+  //                 : JSON.stringify(respMsg2)
+  //             }`
+  //           );
+  //         } catch (_) {
+  //           // Non-blocking
+  //         }
+
+  //         console.log("Inventory data posted successfully to both routes");
+  //       } catch (inventoryError) {
+  //         console.error("Error posting to inventory:", inventoryError);
+  //         toast.warning("Daily tracking updated but inventory update failed.");
+  //       }
+  //     }
+
+  //     // Update warehouse quantities after successful daily tracking update
+  //     if (
+  //       dailyTracking[0]?.produced > 0 &&
+  //       selectedSection?.data[0]?.warehouseId
+  //     ) {
+  //       const producedQty = Number(dailyTracking[0].produced) || 0;
+  //       const currentWarehouseId = selectedSection.data[0].warehouseId;
+  //       const nextWarehouseId =
+  //         sections[selectedSectionIndex + 1]?.data?.[0]?.warehouseId ||
+  //         (sections[selectedSectionIndex + 1] ? null : "Store");
+
+  //       try {
+  //         const nextIsSpecialDay =
+  //           sections[selectedSectionIndex + 1]?.isSpecialDay === true;
+  //         if (nextWarehouseId && !nextIsSpecialDay) {
+  //           // Transfer: decrement current (To in API), increment next (From in API)
+  //           const transferRes = await axios.put(
+  //             `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/transfer-warehouse-quantity`,
+  //             {
+  //               toWarehouseId: currentWarehouseId,
+  //               fromWarehouseId: nextWarehouseId,
+  //               quantity: producedQty,
+  //             }
+  //           );
+
+  //           if (transferRes.data?.success) {
+  //             // Update local states
+  //             setToWarehouseData((prev) => ({
+  //               ...(prev || {}),
+  //               quantity: [
+  //                 Math.max(0, (prev?.quantity?.[0] ?? 0) - producedQty),
+  //               ],
+  //             }));
+  //             setFromWarehouseData((prev) => ({
+  //               ...(prev || {}),
+  //               quantity: [(prev?.quantity?.[0] ?? 0) + producedQty],
+  //             }));
+  //             toast.success("Warehouse quantities transferred successfully");
+  //           }
+  //         } else {
+  //           // Last process OR next process is special-day: only decrement current warehouse
+  //           const decRes = await axios.put(
+  //             `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/update-warehouse-quantity`,
+  //             {
+  //               warehouseId: currentWarehouseId,
+  //               quantityToReduce: producedQty,
+  //             }
+  //           );
+  //           if (decRes.data?.success) {
+  //             setToWarehouseData((prev) => ({
+  //               ...(prev || {}),
+  //               quantity: [
+  //                 Math.max(0, (prev?.quantity?.[0] ?? 0) - producedQty),
+  //               ],
+  //             }));
+  //             if (!nextWarehouseId) {
+  //               // Increment STORE warehouse on last process completion
+  //               try {
+  //                 await axios.put(
+  //                   `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/increment-warehouse-quantity`,
+  //                   {
+  //                     warehouseId: "STORE",
+  //                     quantityToAdd: producedQty,
+  //                   }
+  //                 );
+  //                 setFromWarehouseData((prev) => ({
+  //                   ...(prev || {}),
+  //                   quantity: [(prev?.quantity?.[0] ?? 0) + producedQty],
+  //                 }));
+  //                 toast.success(
+  //                   "Store warehouse updated with produced quantity"
+  //                 );
+  //               } catch (incErr) {
+  //                 console.error("Failed to increment STORE warehouse", incErr);
+  //               }
+  //             } else if (nextIsSpecialDay) {
+  //               // Next process is special-day: immediately increment its warehouse too
+  //               try {
+  //                 await axios.put(
+  //                   `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/increment-warehouse-quantity`,
+  //                   {
+  //                     warehouseId: nextWarehouseId,
+  //                     quantityToAdd: producedQty,
+  //                   }
+  //                 );
+  //                 setFromWarehouseData((prev) => ({
+  //                   ...(prev || {}),
+  //                   quantity: [(prev?.quantity?.[0] ?? 0) + producedQty],
+  //                 }));
+  //                 toast.success("Next process warehouse updated (special day)");
+  //               } catch (incErr) {
+  //                 console.error(
+  //                   "Failed to increment next special-day warehouse",
+  //                   incErr
+  //                 );
+  //                 toast.warning(
+  //                   "Deducted current WH, but failed to add to next special-day WH"
+  //                 );
+  //               }
+  //             } else {
+  //               toast.success(
+  //                 "Quantity deducted from current warehouse (Job Work)"
+  //               );
+  //             }
+  //           }
+  //         }
+  //       } catch (warehouseError) {
+  //         console.error("Error updating warehouse quantities:", warehouseError);
+  //         toast.warning(
+  //           "Daily tracking updated but warehouse quantity update failed."
+  //         );
+  //       }
+  //     }
+
+  //     if (onUpdateAllocaitonStatus) {
+  //       onUpdateAllocaitonStatus(response.data);
+  //     }
+
+  //     toast.success("Daily Tracking Updated Successfully!");
+
+  //     const updatedResponse = await axios.get(
+  //       `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/allocations/${allocationId}/allocations/${trackingId}/dailyTracking`
+  //     );
+
+  //     setExistingDailyTracking(updatedResponse.data.dailyTracking || []);
+  //     setactulEndDateData(updatedResponse.data);
+
+  //     // Reset the form
+  //     setDailyTracking([
+  //       {
+  //         date: "",
+  //         planned: selectedSection.data[0].dailyPlannedQty || 0,
+  //         produced: 0,
+  //         dailyStatus: "On Track",
+  //         operator: selectedSection.data[0].operator || "",
+  //       },
+  //     ]);
+
+  //     closeAddRowModal();
+  //   } catch (error) {
+  //     toast.error("Failed to update daily tracking.");
+  //     console.error("Error updating daily tracking:", error);
+  //   } finally {
+  //     setIsUpdating(false);
+  //   }
+  // };
+
   const submitDailyTracking = async () => {
     setIsUpdating(true);
     try {
@@ -782,6 +1050,9 @@ export const AllocatedPartListHrPlan = ({
         toast.error("Allocation or Tracking ID is missing.");
         return;
       }
+
+      // ✅ Capture exact submission time (HH:mm)
+      const actualEndTime = moment().format("HH:mm");
 
       const trackingData = {
         ...dailyTracking[0],
@@ -817,6 +1088,9 @@ export const AllocatedPartListHrPlan = ({
         machineId: selectedSection?.data[0]?.machineId || "N/A",
         shift: selectedSection?.data[0]?.shift || "N/A",
         partsCodeId: selectedSection?.data[0]?.partsCodeId || "N/A",
+
+        // ✅ NEW FIELD - exact submission time
+        actualEndTime,
       };
 
       const response = await axios.post(
@@ -838,50 +1112,33 @@ export const AllocatedPartListHrPlan = ({
             FromWhsCod: selectedSection.data[0]?.warehouseId || "",
           };
 
-          // Post to first route
           const invPostRes = await axios.post(
             `${process.env.REACT_APP_BASE_URL}/api/Inventory/PostInventory`,
             inventoryData
           );
-          try {
-            const respMsg =
+
+          toast.success(
+            `Inventory PostInventory response: ${
               invPostRes?.data?.message ||
               invPostRes?.data?.Message ||
               invPostRes?.data?.status ||
-              "Inventory posted successfully";
-            toast.success(
-              `Inventory PostInventory response: ${
-                typeof respMsg === "string" ? respMsg : JSON.stringify(respMsg)
-              }`
-            );
-          } catch (_) {
-            // Fallback toast to avoid breaking UI if response shape is unexpected
-            toast.success("Inventory PostInventory request completed.");
-          }
+              "Inventory posted successfully"
+            }`
+          );
 
-          // Post to second route
           const invVarPostRes = await axios.post(
             `${process.env.REACT_APP_BASE_URL}/api/InventoryVaraible/PostInventoryVaraibleVaraible`,
             inventoryData
           );
-          try {
-            const respMsg2 =
+
+          toast.info(
+            `InventoryVaraible response: ${
               invVarPostRes?.data?.message ||
               invVarPostRes?.data?.Message ||
               invVarPostRes?.data?.status ||
-              "Inventory variable posted successfully";
-            toast.info(
-              `InventoryVaraible response: ${
-                typeof respMsg2 === "string"
-                  ? respMsg2
-                  : JSON.stringify(respMsg2)
-              }`
-            );
-          } catch (_) {
-            // Non-blocking
-          }
-
-          console.log("Inventory data posted successfully to both routes");
+              "Inventory variable posted successfully"
+            }`
+          );
         } catch (inventoryError) {
           console.error("Error posting to inventory:", inventoryError);
           toast.warning("Daily tracking updated but inventory update failed.");
@@ -903,7 +1160,6 @@ export const AllocatedPartListHrPlan = ({
           const nextIsSpecialDay =
             sections[selectedSectionIndex + 1]?.isSpecialDay === true;
           if (nextWarehouseId && !nextIsSpecialDay) {
-            // Transfer: decrement current (To in API), increment next (From in API)
             const transferRes = await axios.put(
               `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/transfer-warehouse-quantity`,
               {
@@ -914,7 +1170,6 @@ export const AllocatedPartListHrPlan = ({
             );
 
             if (transferRes.data?.success) {
-              // Update local states
               setToWarehouseData((prev) => ({
                 ...(prev || {}),
                 quantity: [
@@ -928,7 +1183,6 @@ export const AllocatedPartListHrPlan = ({
               toast.success("Warehouse quantities transferred successfully");
             }
           } else {
-            // Last process OR next process is special-day: only decrement current warehouse
             const decRes = await axios.put(
               `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/update-warehouse-quantity`,
               {
@@ -943,54 +1197,33 @@ export const AllocatedPartListHrPlan = ({
                   Math.max(0, (prev?.quantity?.[0] ?? 0) - producedQty),
                 ],
               }));
+
               if (!nextWarehouseId) {
-                // Increment STORE warehouse on last process completion
-                try {
-                  await axios.put(
-                    `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/increment-warehouse-quantity`,
-                    {
-                      warehouseId: "STORE",
-                      quantityToAdd: producedQty,
-                    }
-                  );
-                  setFromWarehouseData((prev) => ({
-                    ...(prev || {}),
-                    quantity: [(prev?.quantity?.[0] ?? 0) + producedQty],
-                  }));
-                  toast.success(
-                    "Store warehouse updated with produced quantity"
-                  );
-                } catch (incErr) {
-                  console.error("Failed to increment STORE warehouse", incErr);
-                }
-              } else if (nextIsSpecialDay) {
-                // Next process is special-day: immediately increment its warehouse too
-                try {
-                  await axios.put(
-                    `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/increment-warehouse-quantity`,
-                    {
-                      warehouseId: nextWarehouseId,
-                      quantityToAdd: producedQty,
-                    }
-                  );
-                  setFromWarehouseData((prev) => ({
-                    ...(prev || {}),
-                    quantity: [(prev?.quantity?.[0] ?? 0) + producedQty],
-                  }));
-                  toast.success("Next process warehouse updated (special day)");
-                } catch (incErr) {
-                  console.error(
-                    "Failed to increment next special-day warehouse",
-                    incErr
-                  );
-                  toast.warning(
-                    "Deducted current WH, but failed to add to next special-day WH"
-                  );
-                }
-              } else {
-                toast.success(
-                  "Quantity deducted from current warehouse (Job Work)"
+                await axios.put(
+                  `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/increment-warehouse-quantity`,
+                  {
+                    warehouseId: "STORE",
+                    quantityToAdd: producedQty,
+                  }
                 );
+                setFromWarehouseData((prev) => ({
+                  ...(prev || {}),
+                  quantity: [(prev?.quantity?.[0] ?? 0) + producedQty],
+                }));
+                toast.success("Store warehouse updated with produced quantity");
+              } else if (nextIsSpecialDay) {
+                await axios.put(
+                  `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/increment-warehouse-quantity`,
+                  {
+                    warehouseId: nextWarehouseId,
+                    quantityToAdd: producedQty,
+                  }
+                );
+                setFromWarehouseData((prev) => ({
+                  ...(prev || {}),
+                  quantity: [(prev?.quantity?.[0] ?? 0) + producedQty],
+                }));
+                toast.success("Next process warehouse updated (special day)");
               }
             }
           }
@@ -4135,29 +4368,100 @@ export const AllocatedPartListHrPlan = ({
                 {jobWorkLoading ? "Loading..." : "Refresh"}
               </Button>
             </div>
-            <div className="mt-2">
-              <div>
-                <strong>Project:</strong>{" "}
-                {projectNameState || sections[0]?.projectName || "N/A"}
+            {/* Split Project and Item details into two columns */}
+            <div className="row mt-2">
+              <div className="col-md-6">
+                <div
+                  style={{
+                    backgroundColor: "#fefce8",
+                    padding: "15px",
+                    borderRadius: "8px",
+                    border: "2px solid #facc15",
+                    height: "100%",
+                  }}
+                >
+                  <h6
+                    style={{
+                      fontWeight: "600",
+                      marginBottom: "10px",
+                      fontSize: "14px",
+                      color: "#2d3748",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                    }}
+                  >
+                    <FaWarehouse size={16} color="#f59e0b" />
+                    From Warehouse
+                  </h6>
+                  <div className="mb-2">
+                    <strong>Project:</strong>
+                    <br />
+                    {projectNameState || sections[0]?.projectName || "N/A"}
+                  </div>
+                  <div className="mb-2">
+                    <strong>Warehouse Name:</strong>
+                    <br />
+                    {selectedSection?.data?.[0]?.wareHouse || "N/A"}
+                  </div>
+                  <div>
+                    <strong>Warehouse ID:</strong>
+                    <br />
+                    {selectedSection?.data?.[0]?.warehouseId || "N/A"}
+                  </div>
+                </div>
               </div>
-              <div>
-                <strong>Item Code:</strong>{" "}
-                {selectedSection?.data?.[0]?.partsCodeId ||
-                  sections[selectedSectionIndex]?.data?.[0]?.partsCodeId ||
-                  "N/A"}
-              </div>
-              <div>
-                <strong>From WH:</strong>{" "}
-                {selectedSection?.data?.[0]?.wareHouse || "N/A"}
-              </div>
-              <div>
-                <strong>To (Next) WH:</strong>{" "}
-                {sections[selectedSectionIndex + 1]?.data?.[0]?.wareHouse ||
-                  (sections[selectedSectionIndex + 1]
-                    ? "N/A"
-                    : storeWarehouseData?.Name?.[0] || "STORE")}
+
+              <div className="col-md-6">
+                <div
+                  style={{
+                    backgroundColor: "#f0fdf4",
+                    padding: "15px",
+                    borderRadius: "8px",
+                    border: "2px solid #86efac",
+                    height: "100%",
+                  }}
+                >
+                  <h6
+                    style={{
+                      fontWeight: "600",
+                      marginBottom: "10px",
+                      fontSize: "14px",
+                      color: "#2d3748",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                    }}
+                  >
+                    <FaWarehouse size={16} color="#10b981" />
+                    To Warehouse
+                  </h6>
+                  <div className="mb-2">
+                    <strong>Item Code:</strong>
+                    <br />
+                    {selectedSection?.data?.[0]?.partsCodeId ||
+                      sections[selectedSectionIndex]?.data?.[0]?.partsCodeId ||
+                      "N/A"}
+                  </div>
+                  <div className="mb-2">
+                    <strong>Warehouse Name:</strong>
+                    <br />
+                    {sections[selectedSectionIndex + 1]?.data?.[0]?.wareHouse ||
+                      (sections[selectedSectionIndex + 1]
+                        ? "N/A"
+                        : storeWarehouseData?.Name?.[0] || "STORE")}
+                  </div>
+                  <div>
+                    <strong>Warehouse ID:</strong>
+                    <br />
+                    {sections[selectedSectionIndex + 1]?.data?.[0]
+                      ?.warehouseId ||
+                      (sections[selectedSectionIndex + 1] ? "N/A" : "STORE")}
+                  </div>
+                </div>
               </div>
             </div>
+
             <div className="mt-3">
               <Alert color="info">
                 For Job Work processes, quantities are deducted from current
@@ -4210,74 +4514,243 @@ export const AllocatedPartListHrPlan = ({
             </div>
           </div>
           {/* Simple preview of matched Issue/Receipt for this part */}
-          <div className="table-responsive">
-            <table className="table table-sm">
-              <thead>
-                <tr>
-                  <th>Type</th>
-                  <th>Itemcode</th>
-                  <th>WhsCode</th>
-                  <th>Quantity</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {goodsIssueData
-                  .filter((g) => {
-                    const matchProd =
-                      (g.ProductionNo || "").toString().trim().toLowerCase() ===
-                      (projectNameState || sections[0]?.projectName || "")
-                        .toString()
-                        .trim()
-                        .toLowerCase();
-                    const matchItem =
-                      String(g.Itemcode).trim() ===
-                      String(selectedSection?.data?.[0]?.partsCodeId || "");
-                    // return matchItem;
-                    return matchProd && matchItem;
-                  })
-                  .slice(0, 5)
-                  .map((g, i) => (
-                    <tr key={`gi-${i}`}>
-                      <td>Issue</td>
-                      <td>{g.Itemcode}</td>
-                      <td>{g.WhsCode}</td>
-                      <td>{g.Quantity}</td>
-                      <td>
-                        {issueStatus[String(g.Itemcode)?.trim()]?.status ||
-                          "Yes"}
-                      </td>
-                    </tr>
-                  ))}
-                {goodsReceiptDataModal
-                  .filter((g) => {
-                    const matchProd =
-                      (g.ProductionNo || "").toString().trim().toLowerCase() ===
-                      (projectNameState || sections[0]?.projectName || "")
-                        .toString()
-                        .trim()
-                        .toLowerCase();
-                    const matchItem =
-                      String(g.Itemcode).trim() ===
-                      String(selectedSection?.data?.[0]?.partsCodeId || "");
-                    // return matchItem;
-                    return matchProd && matchItem;
-                  })
-                  .slice(0, 5)
-                  .map((g, i) => (
-                    <tr key={`gr-${i}`}>
-                      <td>Receipt</td>
-                      <td>{g.Itemcode}</td>
-                      <td>{g.WhsCode}</td>
-                      <td>{Number(g.Quantity)}</td>
-                      <td>
-                        {receiptStatus[String(g.Itemcode)?.trim()]?.status ||
-                          "Yes"}
-                      </td>
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
+          {/* Split Goods Movement Data into two columns */}
+          <div className="row">
+            {/* From Warehouse - Goods Issue Data */}
+            <div className="col-md-6">
+              <div
+                style={{
+                  backgroundColor: "#fefce8",
+                  padding: "20px",
+                  borderRadius: "8px",
+                  marginBottom: "15px",
+                  border: "2px solid #facc15",
+                  height: "100%",
+                }}
+              >
+                <h6
+                  style={{
+                    fontWeight: "600",
+                    marginBottom: "15px",
+                    fontSize: "16px",
+                    color: "#2d3748",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                  }}
+                >
+                  <FaWarehouse size={18} color="#f59e0b" />
+                  From Warehouse - Goods Issue
+                </h6>
+
+                <div className="table-responsive">
+                  <table className="table table-sm">
+                    <thead style={{ backgroundColor: "#fef3c7" }}>
+                      <tr>
+                        <th>Itemcode</th>
+                        <th>WhsCode</th>
+                        <th>Quantity</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {goodsIssueData
+                        .filter((g) => {
+                          const matchProd =
+                            (g.ProductionNo || "")
+                              .toString()
+                              .trim()
+                              .toLowerCase() ===
+                            (projectNameState || sections[0]?.projectName || "")
+                              .toString()
+                              .trim()
+                              .toLowerCase();
+                          const matchItem =
+                            String(g.Itemcode).trim() ===
+                            String(
+                              selectedSection?.data?.[0]?.partsCodeId || ""
+                            );
+                          return matchProd && matchItem;
+                        })
+                        .slice(0, 5)
+                        .map((g, i) => (
+                          <tr key={`gi-${i}`}>
+                            <td>
+                              <strong>{g.Itemcode}</strong>
+                            </td>
+                            <td>{g.WhsCode}</td>
+                            <td>
+                              <span
+                                style={{ color: "#dc3545", fontWeight: "bold" }}
+                              >
+                                {g.Quantity}
+                              </span>
+                            </td>
+                            <td>
+                              <span
+                                className="badge"
+                                style={{
+                                  backgroundColor:
+                                    issueStatus[String(g.Itemcode)?.trim()]
+                                      ?.status === "Yes"
+                                      ? "#198754"
+                                      : "#6c757d",
+                                  color: "white",
+                                }}
+                              >
+                                {issueStatus[String(g.Itemcode)?.trim()]
+                                  ?.status || "Yes"}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      {goodsIssueData.filter((g) => {
+                        const matchProd =
+                          (g.ProductionNo || "")
+                            .toString()
+                            .trim()
+                            .toLowerCase() ===
+                          (projectNameState || sections[0]?.projectName || "")
+                            .toString()
+                            .trim()
+                            .toLowerCase();
+                        const matchItem =
+                          String(g.Itemcode).trim() ===
+                          String(selectedSection?.data?.[0]?.partsCodeId || "");
+                        return matchProd && matchItem;
+                      }).length === 0 && (
+                        <tr>
+                          <td
+                            colSpan="4"
+                            className="text-center text-muted py-3"
+                          >
+                            <i>No goods issue data found</i>
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            {/* To Warehouse - Goods Receipt Data */}
+            <div className="col-md-6">
+              <div
+                style={{
+                  backgroundColor: "#f0fdf4",
+                  padding: "20px",
+                  borderRadius: "8px",
+                  marginBottom: "15px",
+                  border: "2px solid #86efac",
+                  height: "100%",
+                }}
+              >
+                <h6
+                  style={{
+                    fontWeight: "600",
+                    marginBottom: "15px",
+                    fontSize: "16px",
+                    color: "#2d3748",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                  }}
+                >
+                  <FaWarehouse size={18} color="#10b981" />
+                  To Warehouse - Goods Receipt
+                </h6>
+
+                <div className="table-responsive">
+                  <table className="table table-sm">
+                    <thead style={{ backgroundColor: "#dcfce7" }}>
+                      <tr>
+                        <th>Itemcode</th>
+                        <th>WhsCode</th>
+                        <th>Quantity</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {goodsReceiptDataModal
+                        .filter((g) => {
+                          const matchProd =
+                            (g.ProductionNo || "")
+                              .toString()
+                              .trim()
+                              .toLowerCase() ===
+                            (projectNameState || sections[0]?.projectName || "")
+                              .toString()
+                              .trim()
+                              .toLowerCase();
+                          const matchItem =
+                            String(g.Itemcode).trim() ===
+                            String(
+                              selectedSection?.data?.[0]?.partsCodeId || ""
+                            );
+                          return matchProd && matchItem;
+                        })
+                        .slice(0, 5)
+                        .map((g, i) => (
+                          <tr key={`gr-${i}`}>
+                            <td>
+                              <strong>{g.Itemcode}</strong>
+                            </td>
+                            <td>{g.WhsCode}</td>
+                            <td>
+                              <span
+                                style={{ color: "#198754", fontWeight: "bold" }}
+                              >
+                                {Number(g.Quantity)}
+                              </span>
+                            </td>
+                            <td>
+                              <span
+                                className="badge"
+                                style={{
+                                  backgroundColor:
+                                    receiptStatus[String(g.Itemcode)?.trim()]
+                                      ?.status === "Yes"
+                                      ? "#198754"
+                                      : "#6c757d",
+                                  color: "white",
+                                }}
+                              >
+                                {receiptStatus[String(g.Itemcode)?.trim()]
+                                  ?.status || "Yes"}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      {goodsReceiptDataModal.filter((g) => {
+                        const matchProd =
+                          (g.ProductionNo || "")
+                            .toString()
+                            .trim()
+                            .toLowerCase() ===
+                          (projectNameState || sections[0]?.projectName || "")
+                            .toString()
+                            .trim()
+                            .toLowerCase();
+                        const matchItem =
+                          String(g.Itemcode).trim() ===
+                          String(selectedSection?.data?.[0]?.partsCodeId || "");
+                        return matchProd && matchItem;
+                      }).length === 0 && (
+                        <tr>
+                          <td
+                            colSpan="4"
+                            className="text-center text-muted py-3"
+                          >
+                            <i>No goods receipt data found</i>
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
           </div>
         </ModalBody>
       </Modal>
