@@ -3210,7 +3210,6 @@ export const AllocatedPartListHrPlan = ({
                     >
                       Date
                     </label>
-                    {/* Removed width:50px wrapper */}
                     <DatePicker
                       selected={
                         dailyTracking[0].date
@@ -3282,19 +3281,88 @@ export const AllocatedPartListHrPlan = ({
               </Row>
             </Container>
 
-            <div
-              className="form-row mt-1"
-              style={{ display: "flex", gap: "20px" }}
-            >
-              {/* Left side - Produced Quantity */}
-              <div style={{ flex: 1 }}>
+            {/* Status and Operator Row */}
+            <Row className="mb-3">
+              <Col md={6}>
+                <div className="form-group">
+                  <label>Status</label>
+                  {dailyTracking.length > 0 &&
+                    dailyTracking[0].produced !== undefined &&
+                    dailyTracking[0].planned !== undefined && (
+                      <div
+                        className="form-control"
+                        style={{
+                          backgroundColor: "#f8f9fa",
+                          border: "1px solid #ced4da",
+                          padding: "0.375rem 0.75rem",
+                          borderRadius: "0.25rem",
+                          color: "#495057",
+                          height: "42px",
+                          display: "flex",
+                          alignItems: "center",
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                        }}
+                      >
+                        {(() => {
+                          const produced =
+                            Number(dailyTracking[0].produced) || 0;
+                          const planned = Number(dailyTracking[0].planned) || 0;
+
+                          if (produced === 0) {
+                            return (
+                              <span className="text-danger">
+                                Please Enter Produced Quantity
+                              </span>
+                            );
+                          }
+
+                          if (produced === planned) {
+                            return (
+                              <span className="text-primary">On Track</span>
+                            );
+                          } else if (produced > planned) {
+                            return <span className="text-success">Ahead</span>;
+                          } else {
+                            return <span className="text-danger">Delayed</span>;
+                          }
+                        })()}
+                      </div>
+                    )}
+                </div>
+              </Col>
+              <Col md={6}>
+                <div className="form-group">
+                  <label>Operator</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={
+                      dailyTracking[0]?.operator ||
+                      selectedSection?.data[0]?.operator ||
+                      ""
+                    }
+                    readOnly
+                    style={{ height: "42px" }}
+                  />
+                </div>
+              </Col>
+            </Row>
+
+            {/* Produced and Rejection Row */}
+            <Row className="mb-3">
+              <Col md={6}>
                 <div
                   style={{
-                    border: "2px solid #d6e9ff",
+                    border: "2px solid #e2e8f0",
                     backgroundColor: "#eff6ff",
                     padding: "16px",
                     borderRadius: "5px",
-                    height: "90%",
+                    height: "160px", // Fixed height for consistency
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "space-between",
                   }}
                 >
                   <p
@@ -3308,8 +3376,8 @@ export const AllocatedPartListHrPlan = ({
                     <IoIosCheckmarkCircleOutline size={20} color="#4154e0" />
                     <span
                       style={{
-                        fontWeight: "800",
-                        fontSize: "18px",
+                        fontWeight: "900",
+                        fontSize: "16px",
                         color: "#4154e0",
                       }}
                     >
@@ -3374,140 +3442,180 @@ export const AllocatedPartListHrPlan = ({
                     units
                   </p>
                 </div>
-              </div>
+              </Col>
 
-              {/* Right side - Status and Operator */}
-              <div
+              {/* Rejection Section - Combined Warehouse and Quantity */}
+              <Col md={6}>
+                <div
+                  style={{
+                    border: "1px solid #e2e8f0",
+                    backgroundColor: "#fff0eb",
+                    padding: "16px",
+                    borderRadius: "5px",
+                    height: "160px", // Fixed height to match produced quantity
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <p
+                    style={{
+                      marginBottom: "12px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "6px",
+                    }}
+                  >
+                    <CiCircleInfo size={20} color="#e53e3e" />
+                    <span
+                      style={{
+                        fontWeight: "900",
+                        fontSize: "16px",
+                        color: "#e53e3e",
+                      }}
+                    >
+                      Rejection
+                    </span>
+                  </p>
+
+                  {/* Rejection Warehouse Dropdown */}
+                  <div className="form-group" style={{ marginBottom: "8px" }}>
+                    <select
+                      className="form-control"
+                      value={dailyTracking[0]?.rejectedWarehouse || ""}
+                      onChange={(e) =>
+                        handleDailyTrackingChange(
+                          0,
+                          "rejectedWarehouse",
+                          e.target.value
+                        )
+                      }
+                      style={{
+                        width: "100%",
+                        padding: "8px",
+                        border: "2px solid #e2e8f0",
+                        borderRadius: "4px",
+                        boxSizing: "border-box",
+                        fontWeight: "semibold",
+                        fontSize: "15px",
+                        color: "#e53e3eb",
+                      }}
+                    >
+                      <option value="">Select Rejection Warehouse</option>
+                      <option value="Rejection Warehouse 1">
+                        Rejection Warehouse 1
+                      </option>
+                      <option value="Rejection Warehouse 2">
+                        Rejection Warehouse 2
+                      </option>
+                      <option value="Rejection Warehouse 3">
+                        Rejection Warehouse 3
+                      </option>
+                    </select>
+                  </div>
+
+                  {/* Rejection Quantity Input */}
+                  <div className="form-group">
+                    <input
+                      type="number"
+                      className="form-control"
+                      value={dailyTracking[0]?.rejectionQty || ""}
+                      placeholder="Enter Rejection Quantity"
+                      onChange={(e) =>
+                        handleDailyTrackingChange(
+                          0,
+                          "rejectionQty",
+                          e.target.value
+                        )
+                      }
+                      onWheel={(e) => e.target.blur()}
+                      onKeyDown={(e) => {
+                        if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+                          e.preventDefault();
+                        }
+                      }}
+                      style={{
+                        width: "100%",
+                        padding: "8px",
+                        border: "2px solid #e2e8f0",
+                        borderRadius: "4px",
+                        boxSizing: "border-box",
+                        fontWeight: "semibold",
+                        fontSize: "15px",
+                        color: "#e53e3eb",
+                        marginTop:".50rem"
+                      }}
+                    />
+                  </div>
+
+                  <p
+                    style={{
+                      margin: "4px 0 0 0",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      color: "#e53e3e",
+                      fontSize: "12px",
+                    }}
+                  >
+                    {/* <CiCircleInfo size={16} color="#e53e3e" />
+                    Track rejected items separately */}
+                  </p>
+                </div>
+              </Col>
+            </Row>
+
+            {/* Separate Remarks Section */}
+            <Container
+              style={{
+                // backgroundColor: "#e8f5e8",
+                padding: "20px",
+                borderRadius: "8px",
+                marginTop: "15px",
+                border: "2px solid #e2e8f0",
+              }}
+            >
+              <h4
                 style={{
-                  width: "50%",
+                  fontWeight: "600",
+                  marginBottom: "20px",
+                  fontSize: "18px",
+                  // color: "#22543d",
                   display: "flex",
-                  flexDirection: "column",
-                  gap: "1px",
-                  height: "60%",
+                  alignItems: "center",
+                  gap: "8px",
                 }}
               >
-                {/* Status */}
-                {/* {dailyTracking.length > 0 &&
-                  dailyTracking[0].produced !== undefined &&
-                  dailyTracking[0].planned !== undefined && (
-                    <div className="form-group">
-                      <label>Status</label>
-                      <div
-                        className="form-control"
-                        style={{
-                          backgroundColor: "#f8f9fa",
-                          border: "1px solid #ced4da",
-                          padding: "0.375rem 0.75rem",
-                          borderRadius: "0.25rem",
-                          color: "#495057",
-                          height: "42px",
-                          display: "flex",
-                          alignItems: "center",
-                        }}
-                      >
-                        {(() => {
-                          const produced =
-                            Number(dailyTracking[0].produced) || 0;
-                          const planned = Number(dailyTracking[0].planned) || 0;
+                <CiCircleInfo size={20} />
+                Remarks
+              </h4>
 
-                          if (produced === 0) {
-                            return (
-                              <span className="text-danger">
-                                Please Enter Produced Quantity
-                              </span>
-                            );
-                          }
-
-                          if (Number(produced) === Number(planned)) {
-                            return (
-                              <span className="text-primary">On Track</span>
-                            );
-                          } else if (produced > planned) {
-                            return <span className="text-success">Ahead</span>;
-                          } else if (produced < planned) {
-                            return <span className="text-danger">Delayed</span>;
-                          }
-
-                          return null;
-                        })()}
-                      </div>
-                    </div>
-                  )} */}
-                <Row>
-                  <Col xs={12} sm={12} md={6} lg={12}>
-                    {/* Status */}
-                    {dailyTracking.length > 0 &&
-                      dailyTracking[0].produced !== undefined &&
-                      dailyTracking[0].planned !== undefined && (
-                        <div className="form-group">
-                          <label>Status</label>
-                          <div
-                            className="form-control"
-                            style={{
-                              backgroundColor: "#f8f9fa",
-                              border: "1px solid #ced4da",
-                              padding: "0.375rem 0.75rem",
-                              borderRadius: "0.25rem",
-                              color: "#495057",
-                              height: "42px",
-                              display: "flex",
-                              alignItems: "center",
-                              whiteSpace: "nowrap", // prevent text wrap
-                              overflow: "hidden", // hide overflow
-                              textOverflow: "ellipsis", // add ... for long text
-                            }}
-                          >
-                            {(() => {
-                              const produced =
-                                Number(dailyTracking[0].produced) || 0;
-                              const planned =
-                                Number(dailyTracking[0].planned) || 0;
-
-                              if (produced === 0) {
-                                return (
-                                  <span className="text-danger">
-                                    Please Enter Produced Quantity
-                                  </span>
-                                );
-                              }
-
-                              if (produced === planned) {
-                                return (
-                                  <span className="text-primary">On Track</span>
-                                );
-                              } else if (produced > planned) {
-                                return (
-                                  <span className="text-success">Ahead</span>
-                                );
-                              } else {
-                                return (
-                                  <span className="text-danger">Delayed</span>
-                                );
-                              }
-                            })()}
-                          </div>
-                        </div>
-                      )}
-                  </Col>
-                </Row>
-
-                {/* Operator */}
-                <div className="form-group">
-                  <label>Operator</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    value={
-                      dailyTracking[0]?.operator ||
-                      selectedSection?.data[0]?.operator ||
-                      ""
-                    }
-                    readOnly
-                    style={{ height: "42px" }}
-                  />
-                </div>
-              </div>
-            </div>
+              <Row className="mb-3">
+                <Col md={12}>
+                  <div style={{ display: "flex", flexDirection: "column" }}>
+                    <textarea
+                      className="form-control"
+                      value={dailyTracking[0]?.remarks || ""}
+                      placeholder="Enter general remarks or notes about production"
+                      onChange={(e) =>
+                        handleDailyTrackingChange(0, "remarks", e.target.value)
+                      }
+                      rows="3"
+                      style={{
+                        width: "100%",
+                        padding: "8px",
+                        border: "2px solid #e2e8f0",
+                        borderRadius: "4px",
+                        // backgroundColor: "#f0fff4",
+                        fontSize: "14px",
+                        // color: "#22543d",
+                        resize: "vertical",
+                      }}
+                    />
+                  </div>
+                </Col>
+              </Row>
+            </Container>
 
             {selectedSection?.data?.[0] && (
               <Container
@@ -3836,9 +3944,6 @@ export const AllocatedPartListHrPlan = ({
                                 units
                               </span>
                               <br />
-                              {/* <span style={{ color: "red", fontSize: "12px", fontWeight: "bold" }}>
-                                New quantity: {Math.max(0, (toWarehouseData?.quantity?.[0] ?? 0) - dailyTracking[0]?.produced)}
-                              </span> */}
                             </div>
                           )}
                         </div>
