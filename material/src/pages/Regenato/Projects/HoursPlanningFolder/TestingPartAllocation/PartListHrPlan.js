@@ -288,62 +288,64 @@ export const PartListHrPlan = ({
               //   }
               // });
               process.allocations.forEach((alloc) => {
-  const hasCompletedTracking =
-    Array.isArray(alloc.dailyTracking) &&
-    alloc.dailyTracking.some(
-      (t) => t.dailyStatus === "Completed"
-    );
+                const hasCompletedTracking =
+                  Array.isArray(alloc.dailyTracking) &&
+                  alloc.dailyTracking.some(
+                    (t) => t.dailyStatus === "Completed"
+                  );
 
-  const now = new Date();
-  const actualEndDate = alloc.actualEndDate ? new Date(alloc.actualEndDate) : null;
-  const endDate = alloc.endDate ? new Date(alloc.endDate) : null;
-  const effectiveEndDate = actualEndDate || endDate;
+                const now = new Date();
+                const actualEndDate = alloc.actualEndDate
+                  ? new Date(alloc.actualEndDate)
+                  : null;
+                const endDate = alloc.endDate ? new Date(alloc.endDate) : null;
+                const effectiveEndDate = actualEndDate || endDate;
 
-  // Determine machine availability logic
-  const isMachineCurrentlyAvailable =
-    hasCompletedTracking || (actualEndDate && now < actualEndDate);
+                // Determine machine availability logic
+                const isMachineCurrentlyAvailable =
+                  hasCompletedTracking ||
+                  (actualEndDate && now < actualEndDate);
 
-  if (alloc.machineId) {
-    if (!machineAllocations[alloc.machineId]) {
-      machineAllocations[alloc.machineId] = [];
-    }
+                if (alloc.machineId) {
+                  if (!machineAllocations[alloc.machineId]) {
+                    machineAllocations[alloc.machineId] = [];
+                  }
 
-    machineAllocations[alloc.machineId].push({
-      startDate: new Date(alloc.startDate),
-      endDate: effectiveEndDate,
-      projectName: project.projectName,
-      partName: process.partName,
-      processName: process.processName,
-      operator: alloc.operator,
-      // 👇 new flags to use later in availability checks
-      isCompleted: hasCompletedTracking,
-      isMachineCurrentlyAvailable,
-    });
-  }
+                  machineAllocations[alloc.machineId].push({
+                    startDate: new Date(alloc.startDate),
+                    endDate: effectiveEndDate,
+                    projectName: project.projectName,
+                    partName: process.partName,
+                    processName: process.processName,
+                    operator: alloc.operator,
+                    // 👇 new flags to use later in availability checks
+                    isCompleted: hasCompletedTracking,
+                    isMachineCurrentlyAvailable,
+                  });
+                }
 
-  // Process operator allocations (same as before)
-  if (alloc.operator) {
-    const operator = operators.find(
-      (op) =>
-        op.name === alloc.operator ||
-        `${op.categoryId} - ${op.name}` === alloc.operator
-    );
-    if (operator) {
-      const operatorId = operator._id;
-      if (!operatorAllocations[operatorId]) {
-        operatorAllocations[operatorId] = [];
-      }
-      operatorAllocations[operatorId].push({
-        startDate: new Date(alloc.startDate),
-        endDate: effectiveEndDate,
-        projectName: project.projectName,
-        partName: process.partName,
-        processName: process.processName,
-      });
-    }
-  }
-                      });
-
+                // Process operator allocations (same as before)
+                if (alloc.operator) {
+                  const operator = operators.find(
+                    (op) =>
+                      op.name === alloc.operator ||
+                      `${op.categoryId} - ${op.name}` === alloc.operator
+                  );
+                  if (operator) {
+                    const operatorId = operator._id;
+                    if (!operatorAllocations[operatorId]) {
+                      operatorAllocations[operatorId] = [];
+                    }
+                    operatorAllocations[operatorId].push({
+                      startDate: new Date(alloc.startDate),
+                      endDate: effectiveEndDate,
+                      projectName: project.projectName,
+                      partName: process.partName,
+                      processName: process.processName,
+                    });
+                  }
+                }
+              });
             });
           });
           setAllocatedMachines(machineAllocations);
@@ -378,20 +380,19 @@ export const PartListHrPlan = ({
     //     (parsedStart <= allocStart && parsedEnd >= allocEnd)
     //   );
     // });
-      const conflictingAllocation = allocatedMachines[machineId].find((alloc) => {
-    const allocStart = new Date(alloc.startDate);
-    const allocEnd = new Date(alloc.endDate);
+    const conflictingAllocation = allocatedMachines[machineId].find((alloc) => {
+      const allocStart = new Date(alloc.startDate);
+      const allocEnd = new Date(alloc.endDate);
 
-    // Skip allocations that are completed or currently available
-    if (alloc.isCompleted || alloc.isMachineCurrentlyAvailable) return false;
+      // Skip allocations that are completed or currently available
+      if (alloc.isCompleted || alloc.isMachineCurrentlyAvailable) return false;
 
-    return (
-      (parsedStart >= allocStart && parsedStart <= allocEnd) ||
-      (parsedEnd >= allocStart && parsedEnd <= allocEnd) ||
-      (parsedStart <= allocStart && parsedEnd >= allocEnd)
-    );
-  });
-
+      return (
+        (parsedStart >= allocStart && parsedStart <= allocEnd) ||
+        (parsedEnd >= allocStart && parsedEnd <= allocEnd) ||
+        (parsedStart <= allocStart && parsedEnd >= allocEnd)
+      );
+    });
 
     return {
       available: !conflictingAllocation,
@@ -1629,7 +1630,6 @@ export const PartListHrPlan = ({
     }
   };
 
-
   // Add this function to get the next warehouse for a process
   const getNextWarehouseForProcess = (processIndex) => {
     try {
@@ -1637,36 +1637,36 @@ export const PartListHrPlan = ({
       if (processIndex >= manufacturingVariables.length - 1) {
         return "";
       }
- 
+
       const nextProcessIndex = processIndex + 1;
       const nextProcessRows = rows[nextProcessIndex];
- 
+
       if (!nextProcessRows || nextProcessRows.length === 0) {
         return "";
       }
- 
+
       // Find the first row in next process that has a machine selected
       const nextProcessRowWithMachine = nextProcessRows.find(
         (row) => row.machineId
       );
- 
+
       if (!nextProcessRowWithMachine) {
         return "";
       }
- 
+
       // Get the machine for the next process
       const nextProcessMan = manufacturingVariables[nextProcessIndex];
       const nextProcessMachine = machineOptions[
         nextProcessMan.categoryId
       ]?.find((m) => m.subcategoryId === nextProcessRowWithMachine.machineId);
- 
+
       return nextProcessMachine?.wareHouse || "";
     } catch (error) {
       console.error("Error getting next warehouse:", error);
       return "";
     }
   };
- 
+
   // Add this function to check if next warehouse is available
   const isNextWarehouseAvailable = (processIndex) => {
     const nextWarehouse = getNextWarehouseForProcess(processIndex);
@@ -4581,7 +4581,7 @@ export const PartListHrPlan = ({
                                   </div>
                                   Warehouse Information
                                 </label>
- 
+
                                 <div style={{ display: "flex", gap: "1rem" }}>
                                   {/* Current Warehouse */}
                                   <div style={{ flex: 1 }}>
@@ -4616,7 +4616,7 @@ export const PartListHrPlan = ({
                                       }}
                                     />
                                   </div>
- 
+
                                   {/* Next Warehouse */}
                                   <div style={{ flex: 1 }}>
                                     <div
@@ -4632,7 +4632,9 @@ export const PartListHrPlan = ({
                                     <Input
                                       type="text"
                                       value={
-                                        getNextWarehouseForProcess(index) || "-"
+                                        getNextWarehouseForProcess(index)
+                                          ? getNextWarehouseForProcess(index)
+                                          : "STORE - STORE" //  hardcoded fallback when no next warehouse exists
                                       }
                                       readOnly
                                       style={{
@@ -4886,7 +4888,3 @@ export default PartListHrPlan;
     cursor: not-allowed;
   }
 `}</style>;
-
-
-
-
