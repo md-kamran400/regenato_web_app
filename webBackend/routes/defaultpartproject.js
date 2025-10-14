@@ -1579,6 +1579,7 @@ partproject.post(
         machineId,
         shift,
         partsCodeId,
+        actualEndTime: requestedActualEndTime, // ✅ Extract actualEndTime from request body
       } = req.body;
 
       if (!date || produced === undefined) {
@@ -1707,7 +1708,7 @@ partproject.post(
       let actualEndTime = allocation.endTime;
 
       if (remainingQuantity <= 0) {
-        // Production complete
+        // Production complete - use the actualEndTime from request body (current time when tracking was submitted)
         const productionDates = allocation.dailyTracking
           .filter((entry) => entry.produced > 0)
           .map((entry) => new Date(entry.date));
@@ -1716,10 +1717,14 @@ partproject.post(
           const lastProductionDate = new Date(Math.max(...productionDates));
           actualEndDate = lastProductionDate;
 
-          // Here you can derive time based on shift, or simply mark as planned endTime
-          actualEndTime = allocation.endTime;
+          // ✅ Use the actualEndTime from request body (current time) if provided, otherwise use allocation.endTime
+          actualEndTime = requestedActualEndTime || allocation.endTime;
         }
       } else {
+        // Production ongoing - use the actualEndTime from request body (current time when tracking was submitted)
+        // This captures the current time when daily tracking is being performed
+        actualEndTime = requestedActualEndTime || allocation.endTime;
+        
         // Estimate future completion date
         let currentDate = new Date(date);
         let remainingQty = remainingQuantity;
@@ -1732,7 +1737,6 @@ partproject.post(
         }
 
         actualEndDate = currentDate;
-        actualEndTime = allocation.endTime;
       }
 
       allocation.actualEndDate = actualEndDate;
