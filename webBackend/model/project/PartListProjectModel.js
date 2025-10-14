@@ -171,6 +171,20 @@ const AllocationPlanningSchema = new mongoose.Schema(
             partsCodeId: {
               type: String,
             },
+            // Rejection warehouse fields
+            rejectedWarehouse: {
+              type: String,
+            },
+            rejectedWarehouseId: {
+              type: String,
+            },
+            rejectedWarehouseQuantity: {
+              type: Number,
+              default: 0,
+            },
+            remarks: {
+              type: String,
+            },
           },
         ],
       },

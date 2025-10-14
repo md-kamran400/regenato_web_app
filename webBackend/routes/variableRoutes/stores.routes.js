@@ -66,6 +66,39 @@ storeVariableRouter.put("/:id", async (req, res) => {
   }
 });
 
+// Update warehouse quantity by adding additional quantity
+storeVariableRouter.put("/:id/quantity", async (req, res) => {
+  try {
+    const { additionalQuantity } = req.body;
+    
+    if (additionalQuantity === undefined || additionalQuantity < 0) {
+      return res.status(400).json({ error: "Valid additional quantity is required" });
+    }
+
+    const storeVariable = await StoreVariableModal.findById(req.params.id);
+    if (!storeVariable) {
+      return res.status(404).json({ error: "Store variable not found" });
+    }
+
+    // Update the first quantity in the array (assuming single quantity per warehouse)
+    const currentQuantity = storeVariable.quantity[0] || 0;
+    storeVariable.quantity[0] = currentQuantity + Number(additionalQuantity);
+
+    await storeVariable.save();
+
+    res.json({
+      message: "Warehouse quantity updated successfully",
+      warehouse: storeVariable.Name[0],
+      previousQuantity: currentQuantity,
+      additionalQuantity: Number(additionalQuantity),
+      newQuantity: storeVariable.quantity[0],
+      storeVariable
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Delete a store variable by _id
 storeVariableRouter.delete("/:id", async (req, res) => {
   try {
