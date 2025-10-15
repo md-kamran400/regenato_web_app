@@ -296,24 +296,39 @@ partproject.post("/production_with_parts", async (req, res) => {
 
 partproject.get("/projects", async (req, res) => {
   try {
-    // Get filter from query params if exists
-    const { filterType } = req.query;
-    const query = filterType ? { projectType: filterType } : {};
+    const { filterType, page = 1, limit = 20, search } = req.query;
 
-    // Fetch projects with only necessary fields
+    // Build query
+    const query = {};
+    if (filterType) query.projectType = filterType;
+    if (search) {
+      query.projectName = { $regex: search, $options: "i" };
+    }
+
+    // Convert page and limit to numbers
+    const pageNum = Math.max(1, parseInt(page));
+    const limitNum = Math.max(1, parseInt(limit));
+    const skip = (pageNum - 1) * limitNum;
+
+    // Get total count for pagination
+    const totalCount = await PartListProjectModel.countDocuments(query);
+
+    // Fetch projects with pagination
     const projects = await PartListProjectModel.find(query)
       .select(
         "projectName createdAt projectType costPerUnit timePerUnit machineHours partsLists subAssemblyListFirst assemblyList"
       )
-      .lean(); // Use lean() for faster plain JS objects
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limitNum)
+      .lean();
 
-    // Process calculations in memory without saving
+    // Process calculations in memory (your existing code)
     const processedProjects = projects.map((project) => {
       let totalProjectCost = 0;
       let totalProjectHours = 0;
       const machineHours = {};
 
-      // Helper function to process parts list items
       const processItems = (items) => {
         items.forEach((item) => {
           const costPerUnit = Number(item.costPerUnit) || 0;
@@ -326,7 +341,6 @@ partproject.get("/projects", async (req, res) => {
           totalProjectCost += itemTotalCost;
           totalProjectHours += itemTotalHours;
 
-          // Process manufacturing variables if they exist
           if (Array.isArray(item.manufacturingVariables)) {
             item.manufacturingVariables.forEach((machine) => {
               const machineName = machine.name;
@@ -339,7 +353,7 @@ partproject.get("/projects", async (req, res) => {
         });
       };
 
-      // Process all parts lists
+      // Process all parts lists (your existing processing logic)
       if (project.partsLists) {
         project.partsLists.forEach((partsList) => {
           if (partsList.partsListItems) {
@@ -348,7 +362,6 @@ partproject.get("/projects", async (req, res) => {
         });
       }
 
-      // Process sub assemblies if they exist
       if (project.subAssemblyListFirst) {
         project.subAssemblyListFirst.forEach((subAssembly) => {
           if (subAssembly.partsListItems) {
@@ -357,7 +370,6 @@ partproject.get("/projects", async (req, res) => {
         });
       }
 
-      // Process assemblies if they exist
       if (project.assemblyList) {
         project.assemblyList.forEach((assembly) => {
           if (assembly.partsListItems) {
@@ -373,7 +385,6 @@ partproject.get("/projects", async (req, res) => {
         });
       }
 
-      // Return the project with calculated values (without saving to DB)
       return {
         ...project,
         costPerUnit: totalProjectCost,
@@ -382,9 +393,25 @@ partproject.get("/projects", async (req, res) => {
       };
     });
 
-    res.status(200).json(processedProjects);
+    // Return consistent paginated response
+    res.status(200).json({
+      success: true,
+      data: processedProjects,
+      pagination: {
+        currentPage: pageNum,
+        totalPages: Math.ceil(totalCount / limitNum),
+        totalItems: totalCount,
+        itemsPerPage: limitNum,
+        hasNextPage: pageNum < Math.ceil(totalCount / limitNum),
+        hasPrevPage: pageNum > 1,
+      },
+    });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error("Error in /projects route:", error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
   }
 });
 
@@ -1510,7 +1537,7 @@ partproject.get(
 //         // Production ongoing - use the actualEndTime from request body (current time when tracking was submitted)
 //         // This captures the current time when daily tracking is being performed
 //         actualEndTime = requestedActualEndTime || allocation.endTime;
-        
+
 //         // Estimate future completion date
 //         let currentDate = new Date(date);
 //         let remainingQty = remainingQuantity;
@@ -1751,7 +1778,6 @@ partproject.post(
   }
 );
 
-
 partproject.get(
   "/projects/:projectId/partsLists/:partsListId/partsListItems/:partListItemId/allocations/:processId/allocations/:allocationId/dailyTracking",
   async (req, res) => {
@@ -1800,7 +1826,7 @@ partproject.get(
         dailyTracking: allocation.dailyTracking,
         dailyPlannedQty: allocation.dailyPlannedQty,
         actualEndDate: allocation.actualEndDate,
-        actualEndTime: allocation.actualEndTime, 
+        actualEndTime: allocation.actualEndTime,
       });
     } catch (error) {
       console.error(error);
