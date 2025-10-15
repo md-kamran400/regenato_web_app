@@ -33,7 +33,7 @@ const PoDailyInput = () => {
           throw new Error("Failed to fetch daily tracking");
         const trackingData = await trackingResponse.json();
 
-        setProjects(projectsData);
+        setProjects(projectsData.data);
         setDailyTracking(trackingData.dailyTracking || []);
       } catch (err) {
         setError(err.message);

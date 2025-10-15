@@ -23,18 +23,34 @@ const ChartJSPieChart = () => {
   const [refreshCount, setRefreshCount] = useState(0);
   const [selectedStatus, setSelectedStatus] = useState(null);
 
-  // Fetch projects from API
-  const fetchProjects = async () => {
-    setIsLoading(true);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [isFetchingMore, setIsFetchingMore] = useState(false);
+
+  const fetchProjects = async (pageNumber = 1) => {
+    if (isFetchingMore || !hasMore) return;
+    setIsFetchingMore(true);
     try {
       const response = await axios.get(
-        `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects`
+        `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects?page=${pageNumber}&limit=20`
       );
-      setProjects(response.data);
+      const data = response.data.data || [];
+
+      if (pageNumber === 1) {
+        setProjects(data);
+      } else {
+        setProjects((prev) => [...prev, ...data]);
+      }
+
+      // If fewer than 20 returned, no more data
+      if (data.length < 20) {
+        setHasMore(false);
+      }
     } catch (error) {
       toast.error(`Failed to fetch projects: ${error.message}`);
       console.error("Error fetching projects:", error);
     } finally {
+      setIsFetchingMore(false);
       setIsLoading(false);
     }
   };
@@ -356,7 +372,7 @@ const ChartJSPieChart = () => {
           size="sm"
           onClick={handleRefresh}
           disabled={isLoading}
-          style={{maxWidth:'30%'}}
+          style={{ maxWidth: "30%" }}
         >
           <i className={`ri-refresh-line ${isLoading ? "d-none" : ""}`}></i>
           <span className="ml-1">Refresh</span>
@@ -461,7 +477,7 @@ const ChartJSPieChart = () => {
             </Col>
 
             {/* Table Section */}
-            <Col lg={6}>
+            <Col lg={6} >
               <Card className="h-100">
                 <CardHeader className="bg-white border-bottom">
                   <h5 className="mb-0 d-flex align-items-center">
@@ -485,6 +501,14 @@ const ChartJSPieChart = () => {
                   <div
                     className="table-responsive"
                     style={{ maxHeight: "500px", overflowY: "auto" }}
+                    onScroll={(e) => {
+                      const bottom =
+                        e.target.scrollHeight - e.target.scrollTop ===
+                        e.target.clientHeight;
+                      if (bottom && !isFetchingMore && hasMore) {
+                        setPage((prev) => prev + 1);
+                      }
+                    }}
                   >
                     <Table hover className="mb-0">
                       <thead className="bg-light">
@@ -525,6 +549,18 @@ const ChartJSPieChart = () => {
                           </tr>
                         )}
                       </tbody>
+
+                      {isFetchingMore && (
+                        <tr>
+                          <td
+                            colSpan="4"
+                            className="text-center py-2 text-muted"
+                          >
+                            <Spinner size="sm" color="primary" /> Loading
+                            more...
+                          </td>
+                        </tr>
+                      )}
                     </Table>
                   </div>
                 </CardBody>

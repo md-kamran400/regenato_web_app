@@ -288,6 +288,11 @@ export const PartListHrPlan = ({
               //   }
               // });
               process.allocations.forEach((alloc) => {
+                // Check if process is completed based on actualEndDate and actualEndTime
+                const hasActualEndData =
+                  alloc.actualEndDate && alloc.actualEndTime;
+
+                // Also check if daily tracking shows completed status
                 const hasCompletedTracking =
                   Array.isArray(alloc.dailyTracking) &&
                   alloc.dailyTracking.some(
@@ -301,9 +306,15 @@ export const PartListHrPlan = ({
                 const endDate = alloc.endDate ? new Date(alloc.endDate) : null;
                 const effectiveEndDate = actualEndDate || endDate;
 
+                // Get effective end time - use actualEndTime if available, otherwise endTime
+                const effectiveEndTime = alloc.actualEndTime || alloc.endTime;
+
                 // Determine machine availability logic
+                // Machine is available if it has actual end data OR completed tracking OR isProcessCompleted
                 const isMachineCurrentlyAvailable =
+                  hasActualEndData ||
                   hasCompletedTracking ||
+                  alloc.isProcessCompleted ||
                   (actualEndDate && now < actualEndDate);
 
                 if (alloc.machineId) {
@@ -314,13 +325,20 @@ export const PartListHrPlan = ({
                   machineAllocations[alloc.machineId].push({
                     startDate: new Date(alloc.startDate),
                     endDate: effectiveEndDate,
+                    startTime: alloc.startTime,
+                    endTime: effectiveEndTime,
                     projectName: project.projectName,
                     partName: process.partName,
                     processName: process.processName,
                     operator: alloc.operator,
                     // 👇 new flags to use later in availability checks
-                    isCompleted: hasCompletedTracking,
+                    isCompleted:
+                      hasActualEndData ||
+                      hasCompletedTracking ||
+                      alloc.isProcessCompleted,
                     isMachineCurrentlyAvailable,
+                    actualEndDate: alloc.actualEndDate,
+                    actualEndTime: alloc.actualEndTime,
                   });
                 }
 
@@ -339,9 +357,13 @@ export const PartListHrPlan = ({
                     operatorAllocations[operatorId].push({
                       startDate: new Date(alloc.startDate),
                       endDate: effectiveEndDate,
+                      startTime: alloc.startTime,
+                      endTime: effectiveEndTime,
                       projectName: project.projectName,
                       partName: process.partName,
                       processName: process.processName,
+                      actualEndDate: alloc.actualEndDate,
+                      actualEndTime: alloc.actualEndTime,
                     });
                   }
                 }
@@ -358,7 +380,27 @@ export const PartListHrPlan = ({
     fetchAllocations();
   }, [operators]); // Add operators as dependency
 
-  const isMachineAvailable = (machineId, startDate, endDate) => {
+  // Helper function to compare times in HH:MM format
+  const compareTimes = (time1, time2) => {
+    if (!time1 || !time2) return 0;
+    const [h1, m1] = time1.split(":").map(Number);
+    const [h2, m2] = time2.split(":").map(Number);
+    const minutes1 = h1 * 60 + m1;
+    const minutes2 = h2 * 60 + m2;
+    return minutes1 - minutes2;
+  };
+
+  // Helper function to check if a time is after another time
+  const isTimeAfter = (time1, time2) => {
+    return compareTimes(time1, time2) > 0;
+  };
+
+  const isMachineAvailable = (
+    machineId,
+    startDate,
+    endDate,
+    startTime = null
+  ) => {
     if (!allocatedMachines[machineId]) {
       return {
         available: true,
@@ -370,28 +412,46 @@ export const PartListHrPlan = ({
     const parsedStart = new Date(startDate);
     const parsedEnd = new Date(endDate);
 
-    // const conflictingAllocation = allocatedMachines[machineId].find((alloc) => {
-    //   const allocStart = new Date(alloc.startDate);
-    //   const allocEnd = new Date(alloc.endDate);
-
-    //   return (
-    //     (parsedStart >= allocStart && parsedStart <= allocEnd) ||
-    //     (parsedEnd >= allocStart && parsedEnd <= allocEnd) ||
-    //     (parsedStart <= allocStart && parsedEnd >= allocEnd)
-    //   );
-    // });
     const conflictingAllocation = allocatedMachines[machineId].find((alloc) => {
       const allocStart = new Date(alloc.startDate);
       const allocEnd = new Date(alloc.endDate);
 
-      // Skip allocations that are completed or currently available
-      if (alloc.isCompleted || alloc.isMachineCurrentlyAvailable) return false;
-
-      return (
+      // Check if dates overlap first
+      const datesOverlap =
         (parsedStart >= allocStart && parsedStart <= allocEnd) ||
         (parsedEnd >= allocStart && parsedEnd <= allocEnd) ||
-        (parsedStart <= allocStart && parsedEnd >= allocEnd)
-      );
+        (parsedStart <= allocStart && parsedEnd >= allocEnd);
+
+      if (!datesOverlap) return false;
+
+      // If the allocation has actualEndDate and actualEndTime, use time-based availability
+      if (alloc.actualEndDate && alloc.actualEndTime) {
+        const actualEndDate = new Date(alloc.actualEndDate);
+
+        // If the new allocation is on the same day as actualEndDate
+        if (parsedStart.toDateString() === actualEndDate.toDateString()) {
+          // Check if the new startTime is after the actualEndTime
+          if (startTime && isTimeAfter(startTime, alloc.actualEndTime)) {
+            return false; // Machine is available after actualEndTime
+          }
+          // If no startTime provided or startTime is before actualEndTime, machine is occupied
+          return true;
+        }
+
+        // If the new allocation is on a different day than actualEndDate
+        // and the actualEndDate is before the new start date, machine is available
+        if (parsedStart > actualEndDate) {
+          return false; // Machine is available
+        }
+      }
+
+      // If the allocation is marked as completed, machine should be available
+      if (alloc.isCompleted || alloc.isMachineCurrentlyAvailable) {
+        return false; // Machine is available
+      }
+
+      // If no actualEndTime or other conditions, use the original logic
+      return datesOverlap;
     });
 
     return {
@@ -462,7 +522,7 @@ export const PartListHrPlan = ({
     };
   };
 
-  const getMachineStatus = (machine, startDate, endDate) => {
+  const getMachineStatus = (machine, startDate, endDate, startTime = null) => {
     if (!machine) {
       return {
         status: "Unknown",
@@ -481,7 +541,8 @@ export const PartListHrPlan = ({
     const availabilityInfo = isMachineAvailable(
       machine.subcategoryId,
       startDate,
-      endDate
+      endDate,
+      startTime
     );
 
     const downtimeWorkingDays = downtimeInfo.isDowntime
@@ -1041,7 +1102,8 @@ export const PartListHrPlan = ({
               const availability = isMachineAvailable(
                 machine.subcategoryId,
                 currentDate,
-                endDateEstimate
+                endDateEstimate,
+                row.startTime
               );
 
               if (!availability.available) return false;
@@ -1063,7 +1125,8 @@ export const PartListHrPlan = ({
                 const availability = isMachineAvailable(
                   machine.subcategoryId,
                   currentDate,
-                  null
+                  null,
+                  row.startTime
                 );
 
                 if (!availability.available) return;
@@ -3813,7 +3876,8 @@ export const PartListHrPlan = ({
                                             machine,
                                             index,
                                             rowIndex
-                                          )
+                                          ),
+                                          row.startTime
                                         );
                                         return availability.available
                                           ? ""
@@ -3953,7 +4017,8 @@ export const PartListHrPlan = ({
                                       isMachineAvailable(
                                         row.machineId,
                                         row.startDate,
-                                        date
+                                        date,
+                                        row.startTime
                                       )
                                         ? ""
                                         : "highlighted-date"
@@ -4130,7 +4195,8 @@ export const PartListHrPlan = ({
                                     const status = getMachineStatus(
                                       option,
                                       row.startDate,
-                                      row.endDate
+                                      row.endDate,
+                                      row.startTime
                                     );
                                     let label = `${option.subcategoryId} - ${option.name}`;
                                     if (
@@ -4149,7 +4215,8 @@ export const PartListHrPlan = ({
                                     const status = getMachineStatus(
                                       option,
                                       row.startDate,
-                                      row.endDate
+                                      row.endDate,
+                                      row.startTime
                                     );
                                     let statusLabel = "available";
                                     if (
@@ -4251,7 +4318,8 @@ export const PartListHrPlan = ({
                                     const status = getMachineStatus(
                                       newValue,
                                       row.startDate,
-                                      row.endDate
+                                      row.endDate,
+                                      row.startTime
                                     );
 
                                     if (

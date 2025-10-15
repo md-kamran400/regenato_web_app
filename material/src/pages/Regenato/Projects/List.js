@@ -82,6 +82,7 @@ import {
 } from "reactstrap";
 import FeatherIcon from "feather-icons-react";
 import { ToastContainer, toast } from "react-toastify";
+import debounce from "lodash.debounce";
 // import "./project.css";
 import "./projectForProjects.css";
 import PaginatedList from "../Pagination/PaginatedList";
@@ -132,6 +133,15 @@ const List = () => {
   const [itemToDuplicate, setItemToDuplicate] = useState(null);
   const userRole = localStorage.getItem("userRole");
   const [modal_checkModule, setModalCheckModule] = useState(false);
+
+  const [searchOptions, setSearchOptions] = useState([]);
+  const [searchPage, setSearchPage] = useState(1);
+  const [hasMoreSearch, setHasMoreSearch] = useState(true);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [currentSearch, setCurrentSearch] = useState("");
+  const [searchInputValue, setSearchInputValue] = useState("");
+
+  const [isSearchMode, setIsSearchMode] = useState(false);
 
   // Replace the existing handleDuplicateProject function with these:
   const handleDuplicateClick = (item) => {
@@ -246,78 +256,41 @@ const List = () => {
     setModal_NaemEdit(!modal_NaemEdit);
   };
 
-  // const fetchData = useCallback(
-  //   async (page = 1, pageSize = itemsPerPage) => {
-  //     setIsLoading(true);
-  //     setError(null);
-  //     try {
-  //       const response = await fetch(
-  //         `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects?filterType=${filterType}&page=${page}&limit=${pageSize}`
-  //       );
-
-  //       if (!response.ok) throw new Error("Failed to fetch data");
-
-  //       const data = await response.json();
-
-  //       // Handle different response structures
-  //       const projects = Array.isArray(data)
-  //         ? data
-  //         : Array.isArray(data.projects)
-  //         ? data.projects
-  //         : Array.isArray(data.data)
-  //         ? data.data
-  //         : [];
-
-  //       setprojectListsData(projects);
-
-  //       // Handle pagination metadata
-  //       const totalItems = data.total || data.totalCount || projects.length;
-  //       const calculatedTotalPages = Math.ceil(totalItems / itemsPerPage);
-  //       setTotalPages(calculatedTotalPages);
-
-  //       if (initialLoad) {
-  //         setFilterType("");
-  //         setInitialLoad(false);
-  //       }
-  //     } catch (err) {
-  //       console.error("Fetch error:", err);
-  //       setError(err.message);
-  //       setprojectListsData([]);
-  //     } finally {
-  //       setIsLoading(false);
-  //     }
-  //   },
-  //   [filterType, initialLoad, itemsPerPage]
-  // );
-
   const fetchData = useCallback(
-    async (page = 1, pageSize = itemsPerPage) => {
+    async (page = 1, pageSize = itemsPerPage, searchQuery = "") => {
       setIsLoading(true);
       setError(null);
       try {
+        // Build query parameters
+        const params = new URLSearchParams({
+          page: page,
+          limit: pageSize,
+        });
+
+        if (filterType) params.append("filterType", filterType);
+        if (searchQuery && searchQuery.trim())
+          params.append("search", searchQuery.trim());
+
         const response = await fetch(
-          `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects?filterType=${filterType}&page=${page}&limit=${pageSize}`
+          `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects?${params}`
         );
 
         if (!response.ok) throw new Error("Failed to fetch data");
 
         const data = await response.json();
 
-        const projects = Array.isArray(data)
-          ? data
-          : Array.isArray(data.projects)
-          ? data.projects
-          : Array.isArray(data.data)
-          ? data.data
-          : [];
+        if (!data.success) {
+          throw new Error(data.error || "Failed to fetch data");
+        }
 
-        // ✅ sort newest first
-        projects.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        // Use the data from backend response
+        const projects = Array.isArray(data.data) ? data.data : [];
+        const pagination = data.pagination || {};
 
         setprojectListsData(projects);
 
-        const totalItems = data.total || data.totalCount || projects.length;
-        const calculatedTotalPages = Math.ceil(totalItems / itemsPerPage);
+        // Use server-provided pagination info
+        const calculatedTotalPages = pagination.totalPages || 1;
         setTotalPages(calculatedTotalPages);
 
         if (initialLoad) {
@@ -328,6 +301,7 @@ const List = () => {
         console.error("Fetch error:", err);
         setError(err.message);
         setprojectListsData([]);
+        setTotalPages(1); // Reset to 1 page on error
       } finally {
         setIsLoading(false);
       }
@@ -335,71 +309,239 @@ const List = () => {
     [filterType, initialLoad, itemsPerPage]
   );
 
-  const filteredData = useMemo(() => {
-    // If searchTerm is empty and no filterType, return all projects directly
-    if (searchTerm.length === 0 && filterType === "") {
-      return projectListsData;
+  // Debounced search handler
+  const debouncedSearch = useCallback(
+    debounce((value) => {
+      setSearchPage(1);
+      fetchSearchOptions(1, value);
+    }, 300),
+    []
+  );
+
+  const fetchSearchOptions = async (pageNumber = 1, search = "") => {
+    if (!search || search.length < 1) {
+      setSearchOptions([]);
+      setHasMoreSearch(false);
+      return;
     }
 
-    return projectListsData.filter((item) => {
-      if (!item) return false;
-
-      // Handle search term filtering
-      const matchesSearch =
-        searchTerm.length === 0 ||
-        (item.projectName &&
-          searchTerm.some((term) =>
-            item.projectName.toLowerCase().includes(term.toLowerCase())
-          ));
-
-      // Handle project type filtering
-      const matchesType = filterType === "" || item.projectType === filterType;
-
-      return matchesSearch && matchesType;
-    });
-  }, [projectListsData, searchTerm, filterType]);
-
-  // Update paginatedData calculation
-  // Update paginatedData calculation
-  const paginatedData = useMemo(() => {
-    // If no filtering is applied, use direct pagination on projectListsData
-    if (searchTerm.length === 0 && filterType === "") {
-      return projectListsData.slice(
-        (currentPage - 1) * itemsPerPage,
-        currentPage * itemsPerPage
+    setSearchLoading(true);
+    try {
+      const response = await fetch(
+        `${
+          process.env.REACT_APP_BASE_URL
+        }/api/defpartproject/projects?page=${pageNumber}&limit=20&search=${encodeURIComponent(
+          search
+        )}`
       );
-    }
+      const result = await response.json();
 
-    // Otherwise use filteredData
-    return filteredData.slice(
-      (currentPage - 1) * itemsPerPage,
-      currentPage * itemsPerPage
-    );
-  }, [
-    filteredData,
-    projectListsData,
-    currentPage,
-    itemsPerPage,
-    searchTerm,
-    filterType,
-  ]);
+      if (result.success && Array.isArray(result.data)) {
+        // ✅ Filter only unique project names
+        const uniqueProjectsMap = new Map();
+        result.data.forEach((project) => {
+          if (!uniqueProjectsMap.has(project.projectName)) {
+            uniqueProjectsMap.set(project.projectName, {
+              value: project.projectName,
+              label: project.projectName,
+            });
+          }
+        });
+
+        const newOptions = Array.from(uniqueProjectsMap.values());
+
+        // ✅ Combine unique results across pages
+        setSearchOptions((prev) => {
+          const combined = [...prev, ...newOptions];
+          const uniqueByLabel = Array.from(
+            new Map(combined.map((opt) => [opt.label, opt])).values()
+          );
+          return uniqueByLabel;
+        });
+
+        setHasMoreSearch(newOptions.length > 0);
+      }
+    } catch (error) {
+      console.error("Error fetching search options:", error);
+      toast.error("Failed to load search results");
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
+  const handleSearchInputChange = (inputValue) => {
+    setSearchInputValue(inputValue);
+    setSearchPage(1);
+    debouncedSearch(inputValue);
+    return inputValue;
+  };
+
+  // const filteredData = useMemo(() => {
+  //   // If searchTerm is empty and no filterType, return all projects directly
+  //   if (searchTerm.length === 0 && filterType === "") {
+  //     return projectListsData;
+  //   }
+
+  //   return projectListsData.filter((item) => {
+  //     if (!item) return false;
+
+  //     // Handle search term filtering
+  //     const matchesSearch =
+  //       searchTerm.length === 0 ||
+  //       (item.projectName &&
+  //         searchTerm.some((term) =>
+  //           item.projectName.toLowerCase().includes(term.toLowerCase())
+  //         ));
+
+  //     // Handle project type filtering
+  //     const matchesType = filterType === "" || item.projectType === filterType;
+
+  //     return matchesSearch && matchesType;
+  //   });
+  // }, [projectListsData, searchTerm, filterType]);
+  // const paginatedData = useMemo(() => {
+  //   // If no filtering is applied, use direct pagination on projectListsData
+  //   if (searchTerm.length === 0 && filterType === "") {
+  //     return projectListsData.slice(
+  //       (currentPage - 1) * itemsPerPage,
+  //       currentPage * itemsPerPage
+  //     );
+  //   }
+
+  //   // Otherwise use filteredData
+  //   return filteredData.slice(
+  //     (currentPage - 1) * itemsPerPage,
+  //     currentPage * itemsPerPage
+  //   );
+  // }, [
+  //   filteredData,
+  //   projectListsData,
+  //   currentPage,
+  //   itemsPerPage,
+  //   searchTerm,
+  //   filterType,
+  // ]);
+  // Since we're doing server-side filtering and pagination,
+  // we can directly use projectListsData as it already contains the filtered results
+  const paginatedData = useMemo(() => {
+    return projectListsData;
+  }, [projectListsData]);
 
   useEffect(() => {
-    fetchData(currentPage); // Pass currentPage to fetch the correct page
-  }, [fetchData, currentPage]); // Add currentPage to dependencies
+    // ✅ Prevent reloading when in search mode
+    if (isSearchMode) return;
 
-  const projectOptions = projectListsData.map((project) => ({
-    value: project.projectName,
-    label: project.projectName,
-  }));
+    if (currentSearch && !searchTerm.length) {
+      fetchData(currentPage, itemsPerPage, currentSearch);
+    } else if (!currentSearch) {
+      fetchData(currentPage);
+    }
+  }, [
+    fetchData,
+    currentPage,
+    currentSearch,
+    itemsPerPage,
+    searchTerm.length,
+    isSearchMode,
+  ]);
 
-  const handleSearchChange = (selectedOptions) => {
+  // projectOptions removed - now using async search with loadOptions
+
+  // const handleSearchChange = (selectedOptions) => {
+  //   const selectedValues = selectedOptions
+  //     ? selectedOptions.map((opt) => opt.value)
+  //     : [];
+  //   setSearchTerm(selectedValues);
+  //   setCurrentPage(1);
+  //   setSelectedItems(selectedValues);
+  // };
+
+  const handleSearchChange = async (selectedOptions) => {
     const selectedValues = selectedOptions
       ? selectedOptions.map((opt) => opt.value)
       : [];
+
     setSearchTerm(selectedValues);
     setCurrentPage(1);
     setSelectedItems(selectedValues);
+    setSearchPage(1);
+    setHasMoreSearch(true);
+
+    if (selectedValues.length > 0) {
+      setIsSearchMode(true);
+      try {
+        setIsLoading(true);
+        const allResults = [];
+
+        for (const projectName of selectedValues) {
+          const response = await fetch(
+            `${
+              process.env.REACT_APP_BASE_URL
+            }/api/defpartproject/projects?search=${encodeURIComponent(
+              projectName
+            )}&page=1&limit=1000`
+          );
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && Array.isArray(data.data)) {
+              const exactMatches = data.data.filter(
+                (project) =>
+                  project.projectName &&
+                  project.projectName.trim().toLowerCase() ===
+                    projectName.trim().toLowerCase()
+              );
+              allResults.push(...exactMatches);
+            }
+          }
+        }
+
+        // ✅ Deduplicate by projectName (or _id)
+        const uniqueResults = [];
+        const seenNames = new Set();
+
+        for (const project of allResults) {
+          const nameKey = project.projectName?.trim().toLowerCase();
+          if (!seenNames.has(nameKey)) {
+            seenNames.add(nameKey);
+            uniqueResults.push(project);
+          }
+        }
+
+        // ✅ Sort by latest creation
+        uniqueResults.sort(
+          (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+        );
+
+        setprojectListsData(uniqueResults);
+        setTotalPages(1);
+        setCurrentSearch(selectedValues.join(", "));
+      } catch (error) {
+        console.error("Error in multiple project search:", error);
+        toast.error("Error searching projects");
+      } finally {
+        setIsLoading(false);
+      }
+    } else {
+      // when search is cleared
+      setIsSearchMode(false);
+      setCurrentSearch("");
+      setSearchInputValue("");
+      setSearchOptions([]);
+      fetchData(1, itemsPerPage);
+    }
+  };
+
+  // Also update the filter type handler if you have one:
+  const handleFilterTypeChange = (selectedOption) => {
+    setFilterType(selectedOption?.value || "");
+    setCurrentPage(1); // Reset to first page
+    // When filter changes, fetch data with current search if any
+    if (currentSearch) {
+      fetchData(1, itemsPerPage, currentSearch);
+    } else {
+      fetchData(1, itemsPerPage);
+    }
   };
 
   const calculateTotalSum = () => {
@@ -427,8 +569,8 @@ const List = () => {
     return { totalCost, totalHours, machineHours };
   };
 
-  // has context menu
-  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+  // Total pages is now managed by the backend pagination
+  // We use totalpages state which is set from the backend response
 
   const handleSearch = (e) => {
     setSearchTerm(e.target.value);
@@ -811,11 +953,24 @@ const List = () => {
 
             <div className="d-flex flex-column gap-2">
               <Select
-                options={projectOptions}
                 isMulti
                 isClearable
                 placeholder="Search..."
+                options={searchOptions}
+                value={
+                  searchTerm.length > 0
+                    ? searchTerm.map((term) => ({ value: term, label: term }))
+                    : []
+                }
                 onChange={handleSearchChange}
+                onInputChange={handleSearchInputChange}
+                onMenuScrollToBottom={() => {
+                  if (hasMoreSearch && !searchLoading) {
+                    const nextPage = searchPage + 1;
+                    setSearchPage(nextPage);
+                    fetchSearchOptions(nextPage, searchInputValue);
+                  }
+                }}
                 styles={{
                   ...customStyles,
                   menuPortal: (base) => ({ ...base, zIndex: 9999 }),
@@ -827,6 +982,10 @@ const List = () => {
                 }}
                 menuPortalTarget={document.body}
                 menuPosition="fixed"
+                isLoading={searchLoading}
+                noOptionsMessage={() => "Type to search projects..."}
+                isSearchable={true}
+                closeMenuOnSelect={false}
               />
               <Select
                 options={projectTypeOptions}
@@ -836,9 +995,7 @@ const List = () => {
                   projectTypeOptions.find((opt) => opt.value === filterType) ||
                   null
                 } // ✅ Show selected value
-                onChange={(selectedOption) => {
-                  setFilterType(selectedOption?.value || "");
-                }}
+                onChange={handleFilterTypeChange}
                 styles={{
                   ...customStyles,
                   control: (provided) => ({
@@ -878,11 +1035,24 @@ const List = () => {
             <div className="d-flex flex-grow-1 justify-content-end gap-2">
               <div style={{ width: "200px" }}>
                 <Select
-                  options={projectOptions}
                   isMulti
                   isClearable
                   placeholder="Search..."
+                  options={searchOptions}
+                  value={
+                    searchTerm.length > 0
+                      ? searchTerm.map((term) => ({ value: term, label: term }))
+                      : []
+                  }
                   onChange={handleSearchChange}
+                  onInputChange={handleSearchInputChange}
+                  onMenuScrollToBottom={() => {
+                    if (hasMoreSearch && !searchLoading) {
+                      const nextPage = searchPage + 1;
+                      setSearchPage(nextPage);
+                      fetchSearchOptions(nextPage, searchInputValue);
+                    }
+                  }}
                   styles={{
                     ...customStyles,
                     control: (provided) => ({
@@ -891,6 +1061,10 @@ const List = () => {
                       minWidth: "100%",
                     }),
                   }}
+                  isLoading={searchLoading}
+                  noOptionsMessage={() => "Type to search projects..."}
+                  isSearchable={true}
+                  closeMenuOnSelect={false}
                 />
               </div>
               <div style={{ width: "180px" }}>
@@ -903,9 +1077,7 @@ const List = () => {
                       (opt) => opt.value === filterType
                     ) || null
                   } // ✅ Show selected value
-                  onChange={(selectedOption) => {
-                    setFilterType(selectedOption?.value || "");
-                  }}
+                  onChange={handleFilterTypeChange}
                   styles={{
                     ...customStyles,
                     control: (provided) => ({
@@ -946,12 +1118,29 @@ const List = () => {
             <div className="d-flex justify-content-end gap-3 ms-auto">
               <div>
                 <Select
-                  options={projectOptions}
                   isMulti
                   isClearable
                   placeholder="Search..."
+                  options={searchOptions}
+                  value={
+                    searchTerm.length > 0
+                      ? searchTerm.map((term) => ({ value: term, label: term }))
+                      : []
+                  }
                   onChange={handleSearchChange}
+                  onInputChange={handleSearchInputChange}
+                  onMenuScrollToBottom={() => {
+                    if (hasMoreSearch && !searchLoading) {
+                      const nextPage = searchPage + 1;
+                      setSearchPage(nextPage);
+                      fetchSearchOptions(nextPage, searchInputValue);
+                    }
+                  }}
                   styles={customStyles}
+                  isLoading={searchLoading}
+                  noOptionsMessage={() => "Type to search projects..."}
+                  isSearchable={true}
+                  closeMenuOnSelect={false}
                 />
               </div>
               <div>
@@ -964,9 +1153,7 @@ const List = () => {
                       (opt) => opt.value === filterType
                     ) || null
                   } // ✅ Show selected value
-                  onChange={(selectedOption) => {
-                    setFilterType(selectedOption?.value || "");
-                  }}
+                  onChange={handleFilterTypeChange}
                   styles={customStyles}
                 />
               </div>
@@ -1031,6 +1218,7 @@ const List = () => {
                           : item.projectName}
                       </Link>
                     </td>
+
                     <td>
                       {item.createdAt
                         ? new Date(item.createdAt).toLocaleDateString()
@@ -1116,11 +1304,17 @@ const List = () => {
           </div>
         </div>
 
-        <PaginatedList
-          totalPages={totalPages}
-          currentPage={currentPage}
-          onPageChange={handlePageChange}
-        />
+        {/* Only show pagination if we're not in multiple search mode */}
+        {searchTerm.length === 0 && (
+          <PaginatedList
+            totalPages={totalpages}
+            currentPage={currentPage}
+            onPageChange={(page) => {
+              setCurrentPage(page);
+              // The fetchData will be triggered by useEffect
+            }}
+          />
+        )}
       </>
 
       <Suspense fallback={<div>Loading...</div>}>
@@ -1130,7 +1324,7 @@ const List = () => {
           onSuccess={(newProject) => {
             addProjectLocally(newProject); // update table instantly
           }}
-           existingProjects={projectListsData} 
+          existingProjects={projectListsData}
         />
       </Suspense>
 
@@ -1142,7 +1336,7 @@ const List = () => {
             addProjectLocally(newPo); // just insert in list
             setSeondModalList(false);
           }}
-          existingProjects={projectListsData} 
+          existingProjects={projectListsData}
         />
       </Suspense>
 
@@ -1202,7 +1396,7 @@ const List = () => {
           // onSuccess={(duplicatedProject) => {
           //   setprojectListsData((prev) => [...prev, duplicatedProject]);
           // }}
-           onSuccess={(newProject) => {
+          onSuccess={(newProject) => {
             addProjectLocally(newProject); // update table instantly
           }}
         />
@@ -1221,7 +1415,7 @@ const List = () => {
               return updated;
             });
           }}
-           existingProjects={projectListsData} 
+          existingProjects={projectListsData}
         />
       </Suspense>
     </React.Fragment>
