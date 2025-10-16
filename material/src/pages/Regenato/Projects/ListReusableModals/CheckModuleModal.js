@@ -27,6 +27,8 @@ const CheckModuleModal = ({ isOpen, toggle, onSuccess, existingProjects }) => {
   const [autoSyncStatus, setAutoSyncStatus] = useState(null);
   // const [projects, setProjects] = useState([]);
 
+  const [allExistingProjects, setAllExistingProjects] = useState([]);
+
   const fetchDataOptimized = useCallback(async () => {
     if (!isOpen || isInitialized) return;
 
@@ -145,17 +147,77 @@ const CheckModuleModal = ({ isOpen, toggle, onSuccess, existingProjects }) => {
     return set;
   }, [parts]);
 
-  // Existing project names (PO numbers) passed from parent
+  // Unified loader for existing projects from both routes (projects & projectss)
+  const loadExistingProjects = useCallback(async () => {
+    try {
+      const base = process.env.REACT_APP_BASE_URL;
+      const [resA, resB] = await Promise.all([
+        fetch(`${base}/api/defpartproject/projectss?page=1&limit=1000`),
+        fetch(`${base}/api/defpartproject/projects`),
+      ]);
+
+      let listA = [];
+      if (resA.ok) {
+        const jsonA = await resA.json();
+        listA = Array.isArray(jsonA?.data)
+          ? jsonA.data
+          : Array.isArray(jsonA)
+          ? jsonA
+          : [];
+      }
+
+      let listB = [];
+      if (resB.ok) {
+        const jsonB = await resB.json();
+        // "/projects" returns { totalProjects, data }
+        listB = Array.isArray(jsonB?.data)
+          ? jsonB.data
+          : Array.isArray(jsonB)
+          ? jsonB
+          : [];
+      }
+
+      // Merge by projectName (case-insensitive)
+      const seen = new Set();
+      const merged = [];
+      for (const p of [...listA, ...listB]) {
+        const key = String(p?.projectName || "")
+          .trim()
+          .toLowerCase();
+        if (!key) continue;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        merged.push(p);
+      }
+      setAllExistingProjects(merged);
+    } catch (err) {
+      console.error("Failed to load existing projects (merged):", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    // Initial fetch
+    loadExistingProjects();
+    // Light polling to hide newly auto-synced POs without manual refresh
+    const id = setInterval(loadExistingProjects, 15000);
+    return () => clearInterval(id);
+  }, [isOpen, loadExistingProjects]);
+
   const existingProjectNameSet = useMemo(() => {
     const set = new Set();
-    for (const p of existingProjects || []) {
+    const combined = [
+      ...(existingProjects || []),
+      ...(allExistingProjects || []),
+    ];
+    for (const p of combined) {
       const name = String(p.projectName || "")
         .trim()
         .toLowerCase();
       if (name) set.add(name);
     }
     return set;
-  }, [existingProjects]);
+  }, [existingProjects, allExistingProjects]);
 
   // Query intent: numeric => DocNum (left), otherwise => ItemCode (right)
   const queryFlags = useMemo(() => {
@@ -209,8 +271,15 @@ const CheckModuleModal = ({ isOpen, toggle, onSuccess, existingProjects }) => {
         .trim()
         .toLowerCase();
       if (!code || !doc) continue;
-      if (partsIdSet.has(code) && !existingProjectNameSet.has(doc))
-        list.push(prod);
+      // if (partsIdSet.has(code) && !existingProjectNameSet.has(doc))
+      //   list.push(prod);
+      const partExists = partsIdSet.has(code);
+      const projectExists = existingProjectNameSet.has(doc);
+
+      // if (partExists && !projectExists) {
+      //   list.push(prod);
+      // }
+      if (partExists && !projectExists) list.push(prod);
     }
     return list;
   }, [products, partsIdSet, existingProjectNameSet, queryFlags]);
@@ -477,7 +546,7 @@ const CheckModuleModal = ({ isOpen, toggle, onSuccess, existingProjects }) => {
         // 🔑 fetch newly created projects and pass them to parent
         try {
           const newRes = await fetch(
-            `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects`
+            `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projectss`
           );
           if (newRes.ok) {
             const allProjects = await newRes.json();
@@ -514,6 +583,7 @@ const CheckModuleModal = ({ isOpen, toggle, onSuccess, existingProjects }) => {
     setIsInitialized(false);
     setSelectedMissing(new Set());
     setSelectedAvailable(new Set());
+    loadExistingProjects();
     fetchDataOptimized();
   };
 

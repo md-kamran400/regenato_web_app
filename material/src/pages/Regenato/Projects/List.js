@@ -58,9 +58,13 @@ const customStyles = {
   }),
 };
 
-const projectTypeOptions = [
-  { value: "External PO", label: "External PO" },
-  { value: "Internal PO", label: "Internal PO" },
+const statusFilterOptions = [
+  { value: "Delayed", label: "Delayed" },
+  { value: "Ahead", label: "Ahead" },
+  { value: "On Track", label: "On Track" },
+  { value: "Not Allocated", label: "Not Allocated" },
+  { value: "Completed", label: "Completed" },
+  { value: "Allocated", label: "Allocated" },
 ];
 
 import { Link } from "react-router-dom";
@@ -110,7 +114,7 @@ const List = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [projectType, setProjectType] = useState("");
-  const [filterType, setFilterType] = useState([]);
+  const [filterStatus, setFilterStatus] = useState("");
   const [newProjectName, setNewProjectName] = useState("");
   const itemsPerPage = 20;
   const [totalpages, setTotalPages] = useState(20);
@@ -194,9 +198,9 @@ const List = () => {
       setItemToDuplicate(null);
     }
   });
-  const handleFilterChange = (e) => {
-    setFilterType(e.target.value);
-  };
+  // const handleFilterChange = (e) => {
+  //   setFilterType(e.target.value);
+  // };
 
   const handleSingleProjectTotalCount = (newTotal) => {
     setTotalCostCount(newTotal);
@@ -267,7 +271,7 @@ const List = () => {
           limit: pageSize,
         });
 
-        if (filterType) params.append("filterType", filterType);
+        if (filterStatus) params.append("status", filterStatus);
         if (searchQuery && searchQuery.trim())
           params.append("search", searchQuery.trim());
 
@@ -294,7 +298,7 @@ const List = () => {
         setTotalPages(calculatedTotalPages);
 
         if (initialLoad) {
-          setFilterType("");
+          setFilterStatus("");
           setInitialLoad(false);
         }
       } catch (err) {
@@ -306,7 +310,7 @@ const List = () => {
         setIsLoading(false);
       }
     },
-    [filterType, initialLoad, itemsPerPage]
+    [filterStatus, initialLoad, itemsPerPage]
   );
 
   // Debounced search handler
@@ -444,7 +448,6 @@ const List = () => {
     searchTerm.length,
     isSearchMode,
   ]);
-
   // projectOptions removed - now using async search with loadOptions
 
   // const handleSearchChange = (selectedOptions) => {
@@ -533,10 +536,9 @@ const List = () => {
   };
 
   // Also update the filter type handler if you have one:
-  const handleFilterTypeChange = (selectedOption) => {
-    setFilterType(selectedOption?.value || "");
-    setCurrentPage(1); // Reset to first page
-    // When filter changes, fetch data with current search if any
+  const handleFilterStatusChange = (selectedOption) => {
+    setFilterStatus(selectedOption?.value || "");
+    setCurrentPage(1);
     if (currentSearch) {
       fetchData(1, itemsPerPage, currentSearch);
     } else {
@@ -848,6 +850,35 @@ const List = () => {
     return partsListsCompleted && subAssembliesCompleted && assembliesCompleted;
   };
 
+  // Combine search and filter logic locally to ensure correct "No Data Found"
+  const filteredPaginatedData = useMemo(() => {
+    let data = projectListsData;
+
+    // If a status filter is selected, filter by it using getStatus text content
+    if (filterStatus) {
+      data = data.filter((item) => {
+        const statusElement = getStatus(item);
+        const statusText =
+          typeof statusElement?.props?.children === "string"
+            ? statusElement.props.children
+            : "";
+
+        return statusText.toLowerCase() === filterStatus.toLowerCase();
+      });
+    }
+
+    // If in search mode, filter by selected search term(s)
+    if (searchTerm.length > 0) {
+      data = data.filter((item) =>
+        searchTerm.some((term) =>
+          item.projectName?.toLowerCase().includes(term.toLowerCase())
+        )
+      );
+    }
+
+    return data;
+  }, [projectListsData, filterStatus, searchTerm, getStatus]);
+
   const formatTime = (time) => {
     if (time === "-" || isNaN(time)) {
       return "-";
@@ -988,14 +1019,15 @@ const List = () => {
                 closeMenuOnSelect={false}
               />
               <Select
-                options={projectTypeOptions}
+                options={statusFilterOptions}
                 isClearable
-                placeholder="Filter by Type"
+                placeholder="Filter by Status"
                 value={
-                  projectTypeOptions.find((opt) => opt.value === filterType) ||
-                  null
-                } // ✅ Show selected value
-                onChange={handleFilterTypeChange}
+                  statusFilterOptions.find(
+                    (opt) => opt.value === filterStatus
+                  ) || null
+                }
+                onChange={handleFilterStatusChange}
                 styles={{
                   ...customStyles,
                   control: (provided) => ({
@@ -1069,15 +1101,15 @@ const List = () => {
               </div>
               <div style={{ width: "180px" }}>
                 <Select
-                  options={projectTypeOptions}
+                  options={statusFilterOptions}
                   isClearable
-                  placeholder="Filter by Type"
+                  placeholder="Filter by Status"
                   value={
-                    projectTypeOptions.find(
-                      (opt) => opt.value === filterType
+                    statusFilterOptions.find(
+                      (opt) => opt.value === filterStatus
                     ) || null
-                  } // ✅ Show selected value
-                  onChange={handleFilterTypeChange}
+                  }
+                  onChange={handleFilterStatusChange}
                   styles={{
                     ...customStyles,
                     control: (provided) => ({
@@ -1145,15 +1177,15 @@ const List = () => {
               </div>
               <div>
                 <Select
-                  options={projectTypeOptions}
+                  options={statusFilterOptions}
                   isClearable
-                  placeholder="Filter by Type"
+                  placeholder="Filter by Status"
                   value={
-                    projectTypeOptions.find(
-                      (opt) => opt.value === filterType
+                    statusFilterOptions.find(
+                      (opt) => opt.value === filterStatus
                     ) || null
-                  } // ✅ Show selected value
-                  onChange={handleFilterTypeChange}
+                  }
+                  onChange={handleFilterStatusChange}
                   styles={customStyles}
                 />
               </div>
@@ -1186,7 +1218,7 @@ const List = () => {
                   {/* <th className="child_parts">Date</th> */}
                   <th className="child_parts" style={{ cursor: "pointer" }}>
                     <span style={{ marginLeft: "5px", marginRight: "10px" }}>
-                      Time - Date
+                      Date - Time
                     </span>
                     <FaSort size={15} onClick={handleSortByDate} />
                   </th>
@@ -1203,95 +1235,108 @@ const List = () => {
                 </tr>
               </thead>
               <tbody>
-                {paginatedData?.map((item, index) => (
-                  <tr key={index}>
-                    <td
-                      className="sticky-col"
-                      style={{
-                        color: "blue",
-                        backgroundColor: "rgb(255, 255, 255)",
-                      }}
-                    >
-                      <Link to={`/projectSection/${item._id}`}>
-                        {typeof item.projectName === "object"
-                          ? item.projectName.text
-                          : item.projectName}
-                      </Link>
-                    </td>
+                {filteredPaginatedData.length === 0 ? (
+                  <p colSpan="100%" className="text-center py-3">
+                    No Data Found
+                  </p>
+                ) : (
+                  paginatedData?.map((item, index) => (
+                    <tr key={index}>
+                      <td
+                        className="sticky-col"
+                        style={{
+                          color: "blue",
+                          backgroundColor: "rgb(255, 255, 255)",
+                        }}
+                      >
+                        <Link to={`/projectSection/${item._id}`}>
+                          {typeof item.projectName === "object"
+                            ? item.projectName.text
+                            : item.projectName}
+                        </Link>
+                      </td>
 
-                    {/* <td>
+                      {/* <td>
                       {item.createdAt
                         ? new Date(item.createdAt).toLocaleDateString()
                         : "--"}
                     </td> */}
-                    <td>
-  {item.createdAt
-    ? (() => {
-        const date = new Date(item.createdAt);
-        const formattedDate = date.toLocaleDateString("en-GB", {
-          day: "2-digit",
-          month: "2-digit",
-          year: "2-digit",
-        });
-        const formattedTime = date.toLocaleTimeString("en-GB", {
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: true,
-        });
-        return `${formattedTime} - ${formattedDate} `;
-      })()
-    : "--"}
-</td>
+                      <td>
+                        {item.createdAt
+                          ? (() => {
+                              const date = new Date(item.createdAt);
+                              const formattedDate = date.toLocaleDateString(
+                                "en-GB",
+                                {
+                                  day: "2-digit",
+                                  month: "short", // gives "Oct" instead of "10"
+                                  year: "numeric", // gives "2025" instead of "25"
+                                }
+                              );
 
-                    <td>{item.projectType}</td>
-                    <td>{Math.ceil(item.costPerUnit)}</td>
-                    <td>{formatTime(item.timePerUnit)}</td>
-                    <td>{getStatus(item)}</td>
-                    {getMachineHoursCells(item)}
+                              const formattedTime = date.toLocaleTimeString(
+                                "en-GB",
+                                {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                  hour12: true,
+                                }
+                              );
+                              return `${formattedDate} - ${formattedTime} `;
+                            })()
+                          : "--"}
+                      </td>
 
-                    <td className="sticky-col">
-                      <UncontrolledDropdown direction="start">
-                        <DropdownToggle
-                          tag="button"
-                          className="btn btn-link text-muted p-1 mt-n2 py-0 text-decoration-none fs-15 shadow-none"
-                        >
-                          <FeatherIcon
-                            icon="more-horizontal"
-                            className="icon-sm"
-                          />
-                        </DropdownToggle>
+                      <td>{item.projectType}</td>
+                      <td>{Math.ceil(item.costPerUnit)}</td>
+                      <td>{formatTime(item.timePerUnit)}</td>
+                      <td>{getStatus(item)}</td>
+                      {getMachineHoursCells(item)}
 
-                        <DropdownMenu direction="start" container="body">
-                          <DropdownItem
-                            href="#"
-                            onClick={() => {
-                              setSelectedId(item._id);
-                              tog_delete();
-                            }}
+                      <td className="sticky-col">
+                        <UncontrolledDropdown direction="start">
+                          <DropdownToggle
+                            tag="button"
+                            className="btn btn-link text-muted p-1 mt-n2 py-0 text-decoration-none fs-15 shadow-none"
                           >
-                            <i className="ri-delete-bin-fill align-bottom me-2 text-muted"></i>{" "}
-                            Remove
-                          </DropdownItem>
-                          <DropdownItem
-                            href="#"
-                            // onClick={() => handleDuplicateProject(item)}
-                            onClick={() => handleDuplicateClick(item)}
-                          >
-                            <i className="ri-file-copy-line align-bottom me-2 text-muted"></i>{" "}
-                            Duplicate
-                          </DropdownItem>
-                          <DropdownItem
-                            href="#"
-                            onClick={() => toggle_editName(item)}
-                          >
-                            <i className="ri-file-edit-line align-bottom me-2 text-muted"></i>
-                            Edit
-                          </DropdownItem>
-                        </DropdownMenu>
-                      </UncontrolledDropdown>
-                    </td>
-                  </tr>
-                ))}
+                            <FeatherIcon
+                              icon="more-horizontal"
+                              className="icon-sm"
+                            />
+                          </DropdownToggle>
+
+                          <DropdownMenu direction="start" container="body">
+                            <DropdownItem
+                              href="#"
+                              onClick={() => {
+                                setSelectedId(item._id);
+                                tog_delete();
+                              }}
+                            >
+                              <i className="ri-delete-bin-fill align-bottom me-2 text-muted"></i>{" "}
+                              Remove
+                            </DropdownItem>
+                            <DropdownItem
+                              href="#"
+                              // onClick={() => handleDuplicateProject(item)}
+                              onClick={() => handleDuplicateClick(item)}
+                            >
+                              <i className="ri-file-copy-line align-bottom me-2 text-muted"></i>{" "}
+                              Duplicate
+                            </DropdownItem>
+                            <DropdownItem
+                              href="#"
+                              onClick={() => toggle_editName(item)}
+                            >
+                              <i className="ri-file-edit-line align-bottom me-2 text-muted"></i>
+                              Edit
+                            </DropdownItem>
+                          </DropdownMenu>
+                        </UncontrolledDropdown>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
               {/* <tfoot>
                 <tr>
