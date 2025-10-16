@@ -736,12 +736,41 @@ export const AllocatedPartListHrPlan = ({
     setAddRowModal(false);
   };
 
+  // Add this function to get available quantity from previous process
+  const getAvailableQuantityFromPreviousProcess = (currentSectionIndex) => {
+    if (currentSectionIndex === 0) {
+      // First process - return initial total quantity (200 in your case)
+      return 200;
+    }
+
+    const previousSection = sections[currentSectionIndex - 1];
+    if (!previousSection?.data?.[0]) return 0;
+
+    const previousTrackingId = previousSection.data[0].trackingId;
+    return producedTotalsByTrackingId[previousTrackingId] || 0;
+  };
+
+  // Add this function to get current process produced quantity
+  const getCurrentProcessProducedQuantity = (section) => {
+    if (!section?.data?.[0]) return 0;
+    const trackingId = section.data[0].trackingId;
+    return producedTotalsByTrackingId[trackingId] || 0;
+  };
+
   const handleDailyTrackingChange = (index, field, value) => {
     if (field === "produced") {
       const remainingQty = calculateRemainingQuantity();
       const numericValue = Number(value) || 0;
       const availableWarehouseQty = toWarehouseData?.quantity?.[0];
 
+      // NEW VALIDATION: Check against previous process quantity
+      const availableFromPrevious =
+        getAvailableQuantityFromPreviousProcess(selectedSectionIndex);
+      const currentProduced =
+        getCurrentProcessProducedQuantity(selectedSection);
+      const totalAfterUpdate = currentProduced + numericValue;
+
+      // Validation 1: Cannot exceed remaining quantity for this process
       if (numericValue > remainingQty) {
         toast.error(
           `Produced quantity cannot exceed remaining quantity (${remainingQty})`
@@ -749,7 +778,7 @@ export const AllocatedPartListHrPlan = ({
         return;
       }
 
-      // Check if produced quantity exceeds available warehouse quantity (only when known)
+      // Validation 2: Cannot exceed available warehouse quantity
       if (
         availableWarehouseQty != null &&
         numericValue > availableWarehouseQty
@@ -760,8 +789,17 @@ export const AllocatedPartListHrPlan = ({
         return;
       }
 
+      // NEW VALIDATION 3: Cannot exceed quantity received from previous process
+      if (totalAfterUpdate > availableFromPrevious) {
+        toast.error(
+          `Produced quantity cannot exceed quantity received from previous process (${availableFromPrevious}). Available: ${
+            availableFromPrevious - currentProduced
+          }`
+        );
+        return;
+      }
+
       // Calculate warehouse changes
-      // decrement current (To), increment next (From)
       setWarehouseChanges({
         fromWarehouseChange: -numericValue,
         toWarehouseChange: numericValue,
@@ -798,6 +836,68 @@ export const AllocatedPartListHrPlan = ({
     });
   };
 
+  // const handleDailyTrackingChange = (index, field, value) => {
+  //   if (field === "produced") {
+  //     const remainingQty = calculateRemainingQuantity();
+  //     const numericValue = Number(value) || 0;
+  //     const availableWarehouseQty = toWarehouseData?.quantity?.[0];
+
+  //     if (numericValue > remainingQty) {
+  //       toast.error(
+  //         `Produced quantity cannot exceed remaining quantity (${remainingQty})`
+  //       );
+  //       return;
+  //     }
+
+  //     // Check if produced quantity exceeds available warehouse quantity (only when known)
+  //     if (
+  //       availableWarehouseQty != null &&
+  //       numericValue > availableWarehouseQty
+  //     ) {
+  //       toast.error(
+  //         `Produced quantity cannot exceed available warehouse quantity (${availableWarehouseQty})`
+  //       );
+  //       return;
+  //     }
+
+  //     // Calculate warehouse changes
+  //     // decrement current (To), increment next (From)
+  //     setWarehouseChanges({
+  //       fromWarehouseChange: -numericValue,
+  //       toWarehouseChange: numericValue,
+  //     });
+  //   }
+
+  //   setDailyTracking((prev) => {
+  //     const updated = [...prev];
+
+  //     if (!updated[index]) {
+  //       console.warn(`Index ${index} is undefined`);
+  //       return prev;
+  //     }
+
+  //     updated[index][field] = value;
+
+  //     if (field === "produced") {
+  //       const produced = Number(value) || 0;
+  //       const planned =
+  //         Number(updated[index].planned) ||
+  //         Number(selectedSection?.data[0]?.dailyPlannedQty) ||
+  //         0;
+
+  //       if (produced === planned) {
+  //         updated[index].dailyStatus = "On Track";
+  //       } else if (produced > planned) {
+  //         updated[index].dailyStatus = "Ahead";
+  //       } else {
+  //         updated[index].dailyStatus = "Delayed";
+  //       }
+  //     }
+
+  //     return updated;
+  //   });
+  // };
+
   const calculateRemainingQuantity = () => {
     if (!selectedSection || !selectedSection.data[0]) return 0;
 
@@ -813,6 +913,20 @@ export const AllocatedPartListHrPlan = ({
   const submitDailyTracking = async () => {
     setIsUpdating(true);
     try {
+
+      // NEW VALIDATION: Final check before submission
+    const availableFromPrevious = getAvailableQuantityFromPreviousProcess(selectedSectionIndex);
+    const currentProduced = getCurrentProcessProducedQuantity(selectedSection);
+    const newProduced = Number(dailyTracking[0]?.produced) || 0;
+    const totalAfterUpdate = currentProduced + newProduced;
+
+    if (totalAfterUpdate > availableFromPrevious) {
+      toast.error(
+        `Cannot produce more than quantity received from previous process (${availableFromPrevious}). Current: ${currentProduced}, New: ${newProduced}`
+      );
+      return;
+    }
+    
       if (!selectedSection || !selectedSection.data.length) {
         toast.error("No allocation selected.");
         return;
@@ -1698,19 +1812,19 @@ export const AllocatedPartListHrPlan = ({
                                   color: "#1e293b",
                                 }}
                               >
-                                {section.title} - 
-                                 {section.isSpecialDay && (
-                                <span
-                                  style={{
-                                    color: "#dc2626",
-                                    fontWeight: "700",
-                                    fontSize: "0.8rem",
-                                    marginLeft: "4px",
-                                  }}
-                                >
-                                  (Job Work)
-                                </span>
-                              )}
+                                {section.title} -
+                                {section.isSpecialDay && (
+                                  <span
+                                    style={{
+                                      color: "#dc2626",
+                                      fontWeight: "700",
+                                      fontSize: "0.8rem",
+                                      marginLeft: "4px",
+                                    }}
+                                  >
+                                    (Job Work)
+                                  </span>
+                                )}
                               </div>
                               <div
                                 style={{
@@ -1721,7 +1835,6 @@ export const AllocatedPartListHrPlan = ({
                               >
                                 Process {index + 1}
                               </div>
-                              
                             </div>
                           </div>
 
@@ -3258,14 +3371,30 @@ export const AllocatedPartListHrPlan = ({
                       dailyTracking.length > 0 ? dailyTracking[0].produced : ""
                     }
                     placeholder="Enter Produced Quantity"
-                    max={
-                      toWarehouseData?.quantity?.[0] != null
-                        ? Math.min(
-                            calculateRemainingQuantity(),
-                            toWarehouseData.quantity[0]
-                          )
-                        : calculateRemainingQuantity()
-                    }
+                    max={(() => {
+                      const availableFromPrevious =
+                        getAvailableQuantityFromPreviousProcess(
+                          selectedSectionIndex
+                        );
+                      const currentProduced =
+                        getCurrentProcessProducedQuantity(selectedSection);
+                      const availableFromPrev =
+                        availableFromPrevious - currentProduced;
+
+                      const warehouseLimit =
+                        toWarehouseData?.quantity?.[0] != null
+                          ? Math.min(
+                              calculateRemainingQuantity(),
+                              toWarehouseData.quantity[0]
+                            )
+                          : calculateRemainingQuantity();
+
+                      return Math.min(
+                        availableFromPrev,
+                        warehouseLimit,
+                        calculateRemainingQuantity()
+                      );
+                    })()}
                     onChange={(e) =>
                       handleDailyTrackingChange(0, "produced", e.target.value)
                     }
@@ -3288,7 +3417,7 @@ export const AllocatedPartListHrPlan = ({
                       color: "#1e3a8a",
                     }}
                   />
-                  <p
+                  {/* <p
                     style={{
                       margin: "0",
                       display: "flex",
@@ -3307,6 +3436,48 @@ export const AllocatedPartListHrPlan = ({
                         )
                       : calculateRemainingQuantity()}{" "}
                     units
+                  </p> */}
+                  {/* // In the produced quantity input section, update the max
+                  attribute and info text: */}
+                  <p
+                    style={{
+                      margin: "0",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      color: "#64748b",
+                      fontSize: "14px",
+                    }}
+                  >
+                    <CiCircleInfo size={18} color="#64748b" />
+                    Max allowed:{" "}
+                    {(() => {
+                      const availableFromPrevious =
+                        getAvailableQuantityFromPreviousProcess(
+                          selectedSectionIndex
+                        );
+                      const currentProduced =
+                        getCurrentProcessProducedQuantity(selectedSection);
+                      const availableFromPrev =
+                        availableFromPrevious - currentProduced;
+
+                      const warehouseLimit =
+                        toWarehouseData?.quantity?.[0] != null
+                          ? Math.min(
+                              calculateRemainingQuantity(),
+                              toWarehouseData.quantity[0]
+                            )
+                          : calculateRemainingQuantity();
+
+                      // The actual limit is the minimum of all constraints
+                      const actualMax = Math.min(
+                        availableFromPrev,
+                        warehouseLimit,
+                        calculateRemainingQuantity()
+                      );
+
+                      return `${actualMax} units (Previous process: ${availableFromPrevious})`;
+                    })()}
                   </p>
                 </div>
               </Col>
