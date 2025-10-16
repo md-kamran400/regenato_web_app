@@ -11,30 +11,55 @@ const PoDailyInput = () => {
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(15);
+  const [itemsPerPage] = useState(20);
 
   useEffect(() => {
+    const fetchAllPages = async (baseUrl, key) => {
+      let allData = [];
+      let currentPage = 1;
+      let totalPages = 1;
+
+      do {
+        const res = await fetch(`${baseUrl}?page=${currentPage}`);
+        if (!res.ok)
+          throw new Error(`Failed to fetch ${key} page ${currentPage}`);
+        const data = await res.json();
+
+        // For projects endpoint
+        if (key === "projects") {
+          allData = [...allData, ...(data.data || [])];
+          totalPages = data.pagination?.totalPages || 1;
+        }
+
+        // For daily tracking endpoint
+        if (key === "dailyTracking") {
+          allData = [...allData, ...(data.data || [])];
+          totalPages = data.totalPages || 1;
+        }
+
+        currentPage++;
+      } while (currentPage <= totalPages);
+
+      return allData;
+    };
+
     const fetchData = async () => {
       try {
         setLoading(true);
 
-        // Fetch projects data
-        const projectsResponse = await fetch(
-          `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects`
-        );
-        if (!projectsResponse.ok) throw new Error("Failed to fetch projects");
-        const projectsData = await projectsResponse.json();
+        const [projectsData, trackingData] = await Promise.all([
+          fetchAllPages(
+            `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects`,
+            "projects"
+          ),
+          fetchAllPages(
+            `${process.env.REACT_APP_BASE_URL}/api/defpartproject/daily-tracking`,
+            "dailyTracking"
+          ),
+        ]);
 
-        // Fetch daily tracking data
-        const trackingResponse = await fetch(
-          `${process.env.REACT_APP_BASE_URL}/api/defpartproject/daily-tracking`
-        );
-        if (!trackingResponse.ok)
-          throw new Error("Failed to fetch daily tracking");
-        const trackingData = await trackingResponse.json();
-
-        setProjects(projectsData.data);
-        setDailyTracking(trackingData.dailyTracking || []);
+        setProjects(projectsData);
+        setDailyTracking(trackingData);
       } catch (err) {
         setError(err.message);
       } finally {
@@ -151,7 +176,6 @@ const PoDailyInput = () => {
           >
             <tr>
               <th>SN</th>
-              {/* <th></th> */}
               <th>Name</th>
               <th>Date</th>
               <th>Production Order-Types</th>
@@ -182,9 +206,6 @@ const PoDailyInput = () => {
                         </Button>
                       )}
                     </td>
-                    {/* <td>
-                     
-                    </td> */}
                     <td>{project.projectName}</td>
                     <td>{formatDate(project.createdAt)}</td>
                     <td>{project.projectType}</td>

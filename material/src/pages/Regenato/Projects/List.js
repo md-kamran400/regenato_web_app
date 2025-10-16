@@ -173,7 +173,7 @@ const List = () => {
 
     try {
       const response = await fetch(
-        `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${itemToDuplicate._id}/duplicate`,
+        `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projectss/${itemToDuplicate._id}/duplicate`,
         {
           method: "POST",
           headers: {
@@ -272,7 +272,7 @@ const List = () => {
           params.append("search", searchQuery.trim());
 
         const response = await fetch(
-          `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects?${params}`
+          `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projectss?${params}`
         );
 
         if (!response.ok) throw new Error("Failed to fetch data");
@@ -330,7 +330,7 @@ const List = () => {
       const response = await fetch(
         `${
           process.env.REACT_APP_BASE_URL
-        }/api/defpartproject/projects?page=${pageNumber}&limit=20&search=${encodeURIComponent(
+        }/api/defpartproject/projectss?page=${pageNumber}&limit=20&search=${encodeURIComponent(
           search
         )}`
       );
@@ -477,7 +477,7 @@ const List = () => {
           const response = await fetch(
             `${
               process.env.REACT_APP_BASE_URL
-            }/api/defpartproject/projects?search=${encodeURIComponent(
+            }/api/defpartproject/projectss?search=${encodeURIComponent(
               projectName
             )}&page=1&limit=1000`
           );
@@ -595,7 +595,7 @@ const List = () => {
       try {
         const response = await fetch(
           // `${process.env.REACT_APP_BASE_URL}/api/projects`,
-          `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects`,
+          `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projectss`,
           {
             method: "POST",
             headers: {
@@ -889,13 +889,13 @@ const List = () => {
     );
   }
 
-  if (projectListsData.length === 0 && !isLoading) {
-    return (
-      <div className="alert alert-info">
-        No projects found. Create a new project to get started.
-      </div>
-    );
-  }
+  // if (projectListsData.length === 0 && !isLoading) {
+  //   return (
+  //     <div className="alert alert-info">
+  //       No projects found. Create a new project to get started.
+  //     </div>
+  //   );
+  // }
 
   const addProjectLocally = (newProject) => {
     setprojectListsData((prev) => {
@@ -1186,7 +1186,7 @@ const List = () => {
                   {/* <th className="child_parts">Date</th> */}
                   <th className="child_parts" style={{ cursor: "pointer" }}>
                     <span style={{ marginLeft: "5px", marginRight: "10px" }}>
-                      Date
+                      Time - Date
                     </span>
                     <FaSort size={15} onClick={handleSortByDate} />
                   </th>
@@ -1219,11 +1219,30 @@ const List = () => {
                       </Link>
                     </td>
 
-                    <td>
+                    {/* <td>
                       {item.createdAt
                         ? new Date(item.createdAt).toLocaleDateString()
                         : "--"}
-                    </td>
+                    </td> */}
+                    <td>
+  {item.createdAt
+    ? (() => {
+        const date = new Date(item.createdAt);
+        const formattedDate = date.toLocaleDateString("en-GB", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "2-digit",
+        });
+        const formattedTime = date.toLocaleTimeString("en-GB", {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true,
+        });
+        return `${formattedTime} - ${formattedDate} `;
+      })()
+    : "--"}
+</td>
+
                     <td>{item.projectType}</td>
                     <td>{Math.ceil(item.costPerUnit)}</td>
                     <td>{formatTime(item.timePerUnit)}</td>

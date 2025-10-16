@@ -22,43 +22,49 @@ const ChartJSPieChart = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [refreshCount, setRefreshCount] = useState(0);
   const [selectedStatus, setSelectedStatus] = useState(null);
-
+  const [allProjects, setAllProjects] = useState([]);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
 
-  const fetchProjects = async (pageNumber = 1) => {
-    if (isFetchingMore || !hasMore) return;
-    setIsFetchingMore(true);
+  const fetchProjects = async (pageNumber = 1, isLoadMore = false) => {
     try {
       const response = await axios.get(
         `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects?page=${pageNumber}&limit=20`
       );
       const data = response.data.data || [];
 
-      if (pageNumber === 1) {
-        setProjects(data);
-      } else {
-        setProjects((prev) => [...prev, ...data]);
-      }
+      if (data.length < 20) setHasMore(false);
 
-      // If fewer than 20 returned, no more data
-      if (data.length < 20) {
-        setHasMore(false);
+      if (isLoadMore) {
+        setProjects((prev) => [...prev, ...data]);
+        setAllProjects((prev) => [...prev, ...data]); // ✅ also append to all data
+      } else {
+        setProjects(data);
+        setAllProjects(data); // ✅ reset allProjects
       }
     } catch (error) {
       toast.error(`Failed to fetch projects: ${error.message}`);
-      console.error("Error fetching projects:", error);
     } finally {
-      setIsFetchingMore(false);
       setIsLoading(false);
+      setIsFetchingMore(false);
     }
   };
 
-  // Fetch data on component mount and when refreshCount changes
+  // ✅ Initial load + refresh
   useEffect(() => {
-    fetchProjects();
+    setPage(1);
+    setHasMore(true);
+    fetchProjects(1, false);
   }, [refreshCount]);
+
+  // ✅ When page number changes -> fetch next batch
+  useEffect(() => {
+    if (page > 1 && hasMore) {
+      setIsFetchingMore(true);
+      fetchProjects(page, true);
+    }
+  }, [page]);
 
   // Manual refresh function
   const handleRefresh = () => {
@@ -477,7 +483,7 @@ const ChartJSPieChart = () => {
             </Col>
 
             {/* Table Section */}
-            <Col lg={6} >
+            <Col lg={6}>
               <Card className="h-100">
                 <CardHeader className="bg-white border-bottom">
                   <h5 className="mb-0 d-flex align-items-center">
@@ -502,66 +508,52 @@ const ChartJSPieChart = () => {
                     className="table-responsive"
                     style={{ maxHeight: "500px", overflowY: "auto" }}
                     onScroll={(e) => {
-                      const bottom =
-                        e.target.scrollHeight - e.target.scrollTop ===
-                        e.target.clientHeight;
-                      if (bottom && !isFetchingMore && hasMore) {
-                        setPage((prev) => prev + 1);
+                      const { scrollTop, scrollHeight, clientHeight } =
+                        e.target;
+                      if (
+                        scrollHeight - scrollTop <= clientHeight + 1 &&
+                        hasMore &&
+                        !isFetchingMore
+                      ) {
+                        setPage((p) => p + 1);
                       }
                     }}
                   >
-                    <Table hover className="mb-0">
+                    <Table hover>
                       <thead className="bg-light">
                         <tr>
                           <th>Project Name</th>
                           <th>Project Type</th>
                           <th>Status</th>
-                          <th>Created Date</th>
+                          <th>Created</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {filteredProjects.length > 0 ? (
-                          filteredProjects.map((project) => {
-                            const { status, statusColor } = getStatus(project);
-                            return (
-                              <tr key={project._id}>
-                                <td>{project.projectName}</td>
-                                <td>{project.projectType}</td>
-                                <td>
-                                  <Badge color={statusColor}>{status}</Badge>
-                                </td>
-                                <td>
-                                  {new Date(
-                                    project.createdAt
-                                  ).toLocaleDateString()}
-                                </td>
-                              </tr>
-                            );
-                          })
-                        ) : (
-                          <tr>
-                            <td colSpan="4" className="text-center py-4">
-                              <i className="ri-information-line display-4 text-muted"></i>
-                              <p className="mt-3 mb-0 text-muted">
-                                No projects match the selected filter
-                              </p>
-                            </td>
-                          </tr>
-                        )}
+                        {filteredProjects.map((project) => {
+                          const { status, statusColor } = getStatus(project);
+                          return (
+                            <tr key={project._id}>
+                              <td>{project.projectName}</td>
+                              <td>{project.projectType}</td>
+                              <td>
+                                <Badge color={statusColor}>{status}</Badge>
+                              </td>
+                              <td>
+                                {new Date(
+                                  project.createdAt
+                                ).toLocaleDateString()}
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
-
-                      {isFetchingMore && (
-                        <tr>
-                          <td
-                            colSpan="4"
-                            className="text-center py-2 text-muted"
-                          >
-                            <Spinner size="sm" color="primary" /> Loading
-                            more...
-                          </td>
-                        </tr>
-                      )}
                     </Table>
+
+                    {isFetchingMore && (
+                      <div className="text-center py-2 text-muted">
+                         Loading more...
+                      </div>
+                    )}
                   </div>
                 </CardBody>
               </Card>
