@@ -296,39 +296,24 @@ partproject.post("/production_with_parts", async (req, res) => {
 
 partproject.get("/projects", async (req, res) => {
   try {
-    const { filterType, page = 1, limit = 20, search } = req.query;
+    // Get filter from query params if exists
+    const { filterType } = req.query;
+    const query = filterType ? { projectType: filterType } : {};
 
-    // Build query
-    const query = {};
-    if (filterType) query.projectType = filterType;
-    if (search) {
-      query.projectName = { $regex: search, $options: "i" };
-    }
-
-    // Convert page and limit to numbers
-    const pageNum = Math.max(1, parseInt(page));
-    const limitNum = Math.max(1, parseInt(limit));
-    const skip = (pageNum - 1) * limitNum;
-
-    // Get total count for pagination
-    const totalCount = await PartListProjectModel.countDocuments(query);
-
-    // Fetch projects with pagination
+    // Fetch projects with only necessary fields
     const projects = await PartListProjectModel.find(query)
       .select(
         "projectName createdAt projectType costPerUnit timePerUnit machineHours partsLists subAssemblyListFirst assemblyList"
       )
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limitNum)
-      .lean();
+      .lean(); // Use lean() for faster plain JS objects
 
-    // Process calculations in memory (your existing code)
+    // Process calculations in memory without saving
     const processedProjects = projects.map((project) => {
       let totalProjectCost = 0;
       let totalProjectHours = 0;
       const machineHours = {};
 
+      // Helper function to process parts list items
       const processItems = (items) => {
         items.forEach((item) => {
           const costPerUnit = Number(item.costPerUnit) || 0;
@@ -341,6 +326,7 @@ partproject.get("/projects", async (req, res) => {
           totalProjectCost += itemTotalCost;
           totalProjectHours += itemTotalHours;
 
+          // Process manufacturing variables if they exist
           if (Array.isArray(item.manufacturingVariables)) {
             item.manufacturingVariables.forEach((machine) => {
               const machineName = machine.name;
@@ -353,7 +339,7 @@ partproject.get("/projects", async (req, res) => {
         });
       };
 
-      // Process all parts lists (your existing processing logic)
+      // Process all parts lists
       if (project.partsLists) {
         project.partsLists.forEach((partsList) => {
           if (partsList.partsListItems) {
@@ -362,6 +348,7 @@ partproject.get("/projects", async (req, res) => {
         });
       }
 
+      // Process sub assemblies if they exist
       if (project.subAssemblyListFirst) {
         project.subAssemblyListFirst.forEach((subAssembly) => {
           if (subAssembly.partsListItems) {
@@ -370,6 +357,7 @@ partproject.get("/projects", async (req, res) => {
         });
       }
 
+      // Process assemblies if they exist
       if (project.assemblyList) {
         project.assemblyList.forEach((assembly) => {
           if (assembly.partsListItems) {
@@ -385,6 +373,7 @@ partproject.get("/projects", async (req, res) => {
         });
       }
 
+      // Return the project with calculated values (without saving to DB)
       return {
         ...project,
         costPerUnit: totalProjectCost,
@@ -393,7 +382,248 @@ partproject.get("/projects", async (req, res) => {
       };
     });
 
-    // Return consistent paginated response
+    // ✅ Send response with total project count and data
+    res.status(200).json({
+      totalProjects: processedProjects.length,
+      data: processedProjects,
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// =====**********
+
+// partproject.get("/projects", async (req, res) => {
+//   try {
+//     const { filterType, page = 1, limit = 20, search } = req.query;
+ 
+//     // Build query
+//     const query = {};
+//     if (filterType) query.projectType = filterType;
+//     if (search) {
+//       query.projectName = { $regex: search, $options: "i" };
+//     }
+ 
+//     // Convert page and limit to numbers
+//     const pageNum = Math.max(1, parseInt(page));
+//     const limitNum = Math.max(1, parseInt(limit));
+//     const skip = (pageNum - 1) * limitNum;
+ 
+//     // Get total count for pagination
+//     const totalCount = await PartListProjectModel.countDocuments(query);
+ 
+//     // Fetch projects with pagination
+//     const projects = await PartListProjectModel.find(query)
+//       .select(
+//         "projectName createdAt projectType costPerUnit timePerUnit machineHours partsLists subAssemblyListFirst assemblyList"
+//       )
+//       .sort({ createdAt: -1 })
+//       .skip(skip)
+//       .limit(limitNum)
+//       .lean();
+ 
+//     // Process calculations in memory (your existing code)
+//     const processedProjects = projects.map((project) => {
+//       let totalProjectCost = 0;
+//       let totalProjectHours = 0;
+//       const machineHours = {};
+ 
+//       const processItems = (items) => {
+//         items.forEach((item) => {
+//           const costPerUnit = Number(item.costPerUnit) || 0;
+//           const timePerUnit = Number(item.timePerUnit) || 0;
+//           const quantity = Number(item.quantity) || 0;
+ 
+//           const itemTotalCost = costPerUnit * quantity;
+//           const itemTotalHours = timePerUnit * quantity;
+ 
+//           totalProjectCost += itemTotalCost;
+//           totalProjectHours += itemTotalHours;
+ 
+//           if (Array.isArray(item.manufacturingVariables)) {
+//             item.manufacturingVariables.forEach((machine) => {
+//               const machineName = machine.name;
+//               const machineHoursVal = Number(machine.hours) || 0;
+//               const totalHours = machineHoursVal * quantity;
+//               machineHours[machineName] =
+//                 (machineHours[machineName] || 0) + totalHours;
+//             });
+//           }
+//         });
+//       };
+ 
+//       // Process all parts lists (your existing processing logic)
+//       if (project.partsLists) {
+//         project.partsLists.forEach((partsList) => {
+//           if (partsList.partsListItems) {
+//             processItems(partsList.partsListItems);
+//           }
+//         });
+//       }
+ 
+//       if (project.subAssemblyListFirst) {
+//         project.subAssemblyListFirst.forEach((subAssembly) => {
+//           if (subAssembly.partsListItems) {
+//             processItems(subAssembly.partsListItems);
+//           }
+//         });
+//       }
+ 
+//       if (project.assemblyList) {
+//         project.assemblyList.forEach((assembly) => {
+//           if (assembly.partsListItems) {
+//             processItems(assembly.partsListItems);
+//           }
+//           if (assembly.subAssemblies) {
+//             assembly.subAssemblies.forEach((subAssembly) => {
+//               if (subAssembly.partsListItems) {
+//                 processItems(subAssembly.partsListItems);
+//               }
+//             });
+//           }
+//         });
+//       }
+ 
+//       return {
+//         ...project,
+//         costPerUnit: totalProjectCost,
+//         timePerUnit: totalProjectHours,
+//         machineHours: machineHours,
+//       };
+//     });
+ 
+//     // Return consistent paginated response
+//     res.status(200).json({
+//       success: true,
+//       data: processedProjects,
+//       pagination: {
+//         currentPage: pageNum,
+//         totalPages: Math.ceil(totalCount / limitNum),
+//         totalItems: totalCount,
+//         itemsPerPage: limitNum,
+//         hasNextPage: pageNum < Math.ceil(totalCount / limitNum),
+//         hasPrevPage: pageNum > 1,
+//       },
+//     });
+//   } catch (error) {
+//     console.error("Error in /projects route:", error);
+//     res.status(500).json({
+//       success: false,
+//       error: error.message,
+//     });
+//   }
+// });
+
+
+partproject.get("/projectss", async (req, res) => {
+  try {
+    const { filterType, page = 1, limit = 20, search } = req.query;
+
+    // Build query
+    const query = {};
+    if (filterType) query.projectType = filterType;
+    if (search) query.projectName = { $regex: search, $options: "i" };
+
+    // Pagination setup
+    const pageNum = Math.max(1, parseInt(page));
+    const limitNum = Math.max(1, parseInt(limit));
+    const skip = (pageNum - 1) * limitNum;
+
+    // Get total count for pagination
+    const totalCount = await PartListProjectModel.countDocuments(query);
+
+    // Fetch projects (for current page)
+    const projects = await PartListProjectModel.find(query)
+      .select(
+        "projectName createdAt projectType costPerUnit timePerUnit machineHours partsLists subAssemblyListFirst assemblyList"
+      )
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limitNum)
+      .lean();
+
+    // 🧮 Process calculations
+    const processedProjects = projects.map((project) => {
+      let totalProjectCost = 0;
+      let totalProjectHours = 0;
+      const machineHours = {};
+
+      const processItems = (items) => {
+        items.forEach((item) => {
+          const costPerUnit = Number(item.costPerUnit) || 0;
+          const timePerUnit = Number(item.timePerUnit) || 0;
+          const quantity = Number(item.quantity) || 0;
+
+          totalProjectCost += costPerUnit * quantity;
+          totalProjectHours += timePerUnit * quantity;
+
+          if (Array.isArray(item.manufacturingVariables)) {
+            item.manufacturingVariables.forEach((machine) => {
+              const machineName = machine.name;
+              const machineHoursVal = Number(machine.hours) || 0;
+              const totalHours = machineHoursVal * quantity;
+              machineHours[machineName] =
+                (machineHours[machineName] || 0) + totalHours;
+            });
+          }
+        });
+      };
+
+      if (project.partsLists) {
+        project.partsLists.forEach((partsList) => {
+          if (partsList.partsListItems) processItems(partsList.partsListItems);
+        });
+      }
+
+      if (project.subAssemblyListFirst) {
+        project.subAssemblyListFirst.forEach((subAssembly) => {
+          if (subAssembly.partsListItems) processItems(subAssembly.partsListItems);
+        });
+      }
+
+      if (project.assemblyList) {
+        project.assemblyList.forEach((assembly) => {
+          if (assembly.partsListItems) processItems(assembly.partsListItems);
+          if (assembly.subAssemblies) {
+            assembly.subAssemblies.forEach((subAssembly) => {
+              if (subAssembly.partsListItems) processItems(subAssembly.partsListItems);
+            });
+          }
+        });
+      }
+
+      return {
+        ...project,
+        costPerUnit: totalProjectCost,
+        timePerUnit: totalProjectHours,
+        machineHours: machineHours,
+      };
+    });
+
+    // 🧩 Find duplicates in the entire collection (not just paginated data)
+    const duplicateNames = await PartListProjectModel.aggregate([
+      {
+        $group: {
+          _id: "$projectName",
+          count: { $sum: 1 },
+        },
+      },
+      {
+        $match: {
+          count: { $gt: 1 },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          projectName: "$_id",
+          count: 1,
+        },
+      },
+    ]);
+
+    // 📨 Return full response
     res.status(200).json({
       success: true,
       data: processedProjects,
@@ -405,6 +635,12 @@ partproject.get("/projects", async (req, res) => {
         hasNextPage: pageNum < Math.ceil(totalCount / limitNum),
         hasPrevPage: pageNum > 1,
       },
+      duplicates: duplicateNames.length
+        ? {
+            totalDuplicates: duplicateNames.length,
+            details: duplicateNames,
+          }
+        : null,
     });
   } catch (error) {
     console.error("Error in /projects route:", error);

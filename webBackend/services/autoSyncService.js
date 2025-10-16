@@ -5,43 +5,39 @@ class AutoSyncService {
   constructor() {
     this.isRunning = false;
     this.lastSyncTime = null;
-    this.syncInterval = 3 * 60 * 1000; // 3 minutes in milliseconds
+    this.syncInterval = 10 * 60 * 1000; // ✅ 10 minutes in milliseconds
     this.intervalId = null;
     this.baseUrl = process.env.BASE_URL || "http://localhost:4040";
     this.externalApiUrl = "http://182.77.56.228:90";
   }
 
-  /**
-   * Start the auto-sync service
-   */
+  /** Start the auto-sync service */
   start() {
     if (this.isRunning) {
       console.log("Auto-sync service is already running");
       return;
     }
 
-    console.log("Starting auto-sync service for 2526 series...");
+    console.log("✅ Starting auto-sync service (2025–2026 filter)...");
     this.isRunning = true;
 
-    // Run immediately on start
+    // Run immediately
     this.performSync();
 
-    // Then run every 3 minutes
+    // Then run every 10 minutes
     this.intervalId = setInterval(() => {
       this.performSync();
     }, this.syncInterval);
   }
 
-  /**
-   * Stop the auto-sync service
-   */
+  /** Stop the auto-sync service */
   stop() {
     if (!this.isRunning) {
       console.log("Auto-sync service is not running");
       return;
     }
 
-    console.log("Stopping auto-sync service...");
+    console.log("🛑 Stopping auto-sync service...");
     this.isRunning = false;
 
     if (this.intervalId) {
@@ -50,23 +46,21 @@ class AutoSyncService {
     }
   }
 
-  /**
-   * Perform the sync operation
-   */
+  /** Perform the sync operation */
   async performSync() {
     try {
       console.log(
-        `[${new Date().toISOString()}] Starting auto-sync for 2526 series...`
+        `[${new Date().toISOString()}] 🔄 Starting auto-sync for 2025–2026 production data...`
       );
 
-      // Fetch production data from external API (2526 series only)
+      // Fetch production data from external API
       const productionData = await this.fetchProductionData();
       if (!productionData || productionData.length === 0) {
-        console.log("No 2526 series production data found");
+        console.log("No valid 2025–2026 production data found");
         return;
       }
 
-      console.log(`Fetched ${productionData.length} items from 2526 series`);
+      console.log(`Fetched ${productionData.length} items from Production API`);
 
       // Get existing parts and projects
       const [existingParts, existingProjects] = await Promise.all([
@@ -78,10 +72,8 @@ class AutoSyncService {
         `Found ${existingParts.length} existing parts and ${existingProjects.length} existing projects`
       );
 
-      // Find new parts that need to be created (bulk)
+      // Find new parts and POs to create
       const newParts = this.findNewParts(productionData, existingParts);
-
-      // Find new POs that need to be created (bulk)
       const newPOs = this.findNewPOs(
         productionData,
         existingParts,
@@ -90,7 +82,7 @@ class AutoSyncService {
 
       // Create new parts in bulk
       if (newParts.length > 0) {
-        console.log(`Creating ${newParts.length} new parts in bulk...`);
+        console.log(`🧩 Creating ${newParts.length} new parts in bulk...`);
         await this.createNewPartsBulk(newParts);
       } else {
         console.log("No new parts to create");
@@ -98,7 +90,7 @@ class AutoSyncService {
 
       // Create new POs in bulk
       if (newPOs.length > 0) {
-        console.log(`Creating ${newPOs.length} new POs in bulk...`);
+        console.log(`📦 Creating ${newPOs.length} new POs in bulk...`);
         await this.createNewPOsBulk(newPOs, existingParts);
       } else {
         console.log("No new POs to create");
@@ -106,24 +98,21 @@ class AutoSyncService {
 
       this.lastSyncTime = new Date();
       console.log(
-        `[${new Date().toISOString()}] Auto-sync completed. Created ${
+        `[${new Date().toISOString()}] ✅ Auto-sync completed — ${
           newParts.length
-        } parts and ${newPOs.length} POs`
+        } parts and ${newPOs.length} POs created`
       );
     } catch (error) {
       console.error(
-        `[${new Date().toISOString()}] Auto-sync error:`,
+        `[${new Date().toISOString()}] ❌ Auto-sync error:`,
         error.message
       );
     }
   }
 
-  /**
-   * Fetch production data from external API and filter for 2526 series only
-   */
+  /** Fetch only 2025–2026 production data */
   async fetchProductionData() {
     try {
-      // Fetch all production data first
       const response = await axios.get(
         `${this.externalApiUrl}/Production/Product`,
         { timeout: 10000 }
@@ -132,13 +121,16 @@ class AutoSyncService {
       const allData = Array.isArray(response.data) ? response.data : [];
       console.log(`Fetched ${allData.length} total production items`);
 
-      // Manually filter for 2526 series only
+      // ✅ Filter only for 2025 and 2026 postingdate
       const filteredData = allData.filter((item) => {
-        const series = String(item.Series || "").trim();
-        return series === "2526";
+        if (!item.postingdate) return false;
+        const year = new Date(item.postingdate).getFullYear();
+        return year === 2025 || year === 2026;
       });
 
-      console.log(`Filtered ${filteredData.length} items with Series: 2526`);
+      console.log(
+        `Filtered ${filteredData.length} items with postingdate in 2025–2026`
+      );
       return filteredData;
     } catch (error) {
       console.error("Error fetching production data:", error.message);
@@ -146,15 +138,11 @@ class AutoSyncService {
     }
   }
 
-  /**
-   * Fetch existing parts from our API
-   */
+  /** Fetch existing parts from local API */
   async fetchExistingParts() {
     try {
       const response = await fetch(`${this.baseUrl}/api/parts?limit=100000`);
-      if (!response.ok) {
-        throw new Error("Failed to fetch parts");
-      }
+      if (!response.ok) throw new Error("Failed to fetch parts");
       const data = await response.json();
       return Array.isArray(data)
         ? data
@@ -167,17 +155,13 @@ class AutoSyncService {
     }
   }
 
-  /**
-   * Fetch existing projects from our API
-   */
+  /** Fetch existing projects from local API */
   async fetchExistingProjects() {
     try {
       const response = await fetch(
         `${this.baseUrl}/api/defpartproject/projects`
       );
-      if (!response.ok) {
-        throw new Error("Failed to fetch projects");
-      }
+      if (!response.ok) throw new Error("Failed to fetch projects");
       const data = await response.json();
       return Array.isArray(data) ? data : [];
     } catch (error) {
@@ -186,11 +170,8 @@ class AutoSyncService {
     }
   }
 
-  /**
-   * Find new parts that need to be created (filter unique data)
-   */
+  /** Find new parts (avoid duplicates) */
   findNewParts(productionData, existingParts) {
-    // Create sets for quick lookup of existing parts
     const existingPartIds = new Set(
       existingParts.map((part) =>
         String(part.id || "")
@@ -199,7 +180,6 @@ class AutoSyncService {
       )
     );
 
-    // Filter unique new parts that don't exist in our parts API
     const newParts = [];
     const seenItemCodes = new Set();
 
@@ -207,31 +187,21 @@ class AutoSyncService {
       const itemCode = String(prod.ItemCode || "")
         .trim()
         .toLowerCase();
-      const docNum = String(prod.DocNum || "")
-        .trim()
-        .toLowerCase();
+      if (!itemCode) continue;
 
-      // Only process 2526 series data that doesn't exist and is unique
-      if (
-        itemCode &&
-        docNum &&
-        !existingPartIds.has(itemCode) &&
-        !seenItemCodes.has(itemCode)
-      ) {
+      if (!existingPartIds.has(itemCode) && !seenItemCodes.has(itemCode)) {
         seenItemCodes.add(itemCode);
         newParts.push(prod);
       }
     }
 
     console.log(
-      `Found ${newParts.length} new parts to create from ${productionData.length} total 2526 series items`
+      `Found ${newParts.length} new parts (excluding duplicates from DB)`
     );
     return newParts;
   }
 
-  /**
-   * Find new POs that need to be created (filter unique data)
-   */
+  /** Find new POs (avoid duplicates) */
   findNewPOs(productionData, existingParts, existingProjects) {
     const existingPartIds = new Set(
       existingParts.map((part) =>
@@ -241,15 +211,14 @@ class AutoSyncService {
       )
     );
 
-    const existingProjectNames = new Set(
+    const existingProjectDocNums = new Set(
       existingProjects.map((project) =>
-        String(project.projectName || "")
+        String(project.projectName || project.DocNum || "")
           .trim()
           .toLowerCase()
       )
     );
 
-    // Filter unique new POs
     const newPOs = [];
     const seenDocNums = new Set();
 
@@ -261,15 +230,11 @@ class AutoSyncService {
         .trim()
         .toLowerCase();
 
-      // PO can be created if:
-      // 1. Part exists in our system (ItemCode matches existing part)
-      // 2. PO doesn't exist yet (DocNum not in existing projects)
-      // 3. It's unique (not already processed)
       if (
         itemCode &&
         docNum &&
         existingPartIds.has(itemCode) &&
-        !existingProjectNames.has(docNum) &&
+        !existingProjectDocNums.has(docNum) && // ✅ Avoid duplicates
         !seenDocNums.has(docNum)
       ) {
         seenDocNums.add(docNum);
@@ -278,17 +243,13 @@ class AutoSyncService {
     }
 
     console.log(
-      `Found ${newPOs.length} new POs to create from ${productionData.length} total 2526 series items`
+      `Found ${newPOs.length} new POs (excluding already existing ones)`
     );
     return newPOs;
   }
 
-  /**
-   * Create new parts in bulk
-   */
+  /** Bulk create new parts */
   async createNewPartsBulk(newParts) {
-    console.log(`Creating ${newParts.length} new parts in bulk...`);
-
     const requests = newParts.map((prod) => {
       const payload = {
         id: prod.ItemCode || "",
@@ -321,7 +282,7 @@ class AutoSyncService {
       } else if (result.status === "fulfilled" && !result.value.ok) {
         try {
           const error = await result.value.json();
-          if (error.message && error.message.includes("duplicate key error")) {
+          if (error.message?.includes("duplicate key error")) {
             duplicateCount++;
           } else {
             errorCount++;
@@ -335,17 +296,12 @@ class AutoSyncService {
     }
 
     console.log(
-      `✅ Bulk parts creation completed: ${successCount} created, ${duplicateCount} duplicates, ${errorCount} errors`
+      `✅ Parts creation done: ${successCount} created, ${duplicateCount} duplicates, ${errorCount} errors`
     );
   }
 
-  /**
-   * Create new POs in bulk
-   */
+  /** Bulk create new POs */
   async createNewPOsBulk(newPOs, existingParts) {
-    console.log(`Creating ${newPOs.length} new POs in bulk...`);
-
-    // Create a map for quick part lookup
     const partMap = new Map(
       existingParts.map((part) => [
         String(part.id || "")
@@ -360,10 +316,8 @@ class AutoSyncService {
         .trim()
         .toLowerCase();
       const matchedPart = partMap.get(itemCode);
-
-      if (!matchedPart || !matchedPart._id) {
+      if (!matchedPart || !matchedPart._id)
         return Promise.resolve({ ok: false, _skipped: true });
-      }
 
       const payload = {
         projectName: String(prod.DocNum || ""),
@@ -387,26 +341,20 @@ class AutoSyncService {
 
     for (const result of results) {
       if (result.status === "fulfilled") {
-        if (result.value._skipped) {
-          skippedCount++;
-        } else if (result.value.ok) {
-          successCount++;
-        } else {
-          errorCount++;
-        }
+        if (result.value._skipped) skippedCount++;
+        else if (result.value.ok) successCount++;
+        else errorCount++;
       } else {
         errorCount++;
       }
     }
 
     console.log(
-      `✅ Bulk POs creation completed: ${successCount} created, ${skippedCount} skipped, ${errorCount} errors`
+      `✅ PO creation done: ${successCount} created, ${skippedCount} skipped, ${errorCount} errors`
     );
   }
 
-  /**
-   * Get service status
-   */
+  /** Get service status */
   getStatus() {
     return {
       isRunning: this.isRunning,
@@ -416,7 +364,5 @@ class AutoSyncService {
   }
 }
 
-// Create singleton instance
 const autoSyncService = new AutoSyncService();
-
 module.exports = autoSyncService;

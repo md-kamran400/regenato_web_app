@@ -279,7 +279,11 @@ const AssemblyListSchema = new mongoose.Schema({
 
 const partprojectSchema = new mongoose.Schema(
   {
-    projectName: String,
+    projectName: {
+      type: String,
+      required: true,
+      unique: true, // ensures no duplicates
+    },
     costPerUnit: Number,
     timePerUnit: Number,
     stockPoQty: Number,
