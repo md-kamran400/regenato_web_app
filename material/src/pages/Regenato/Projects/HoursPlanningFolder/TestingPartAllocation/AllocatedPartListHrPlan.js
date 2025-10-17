@@ -736,17 +736,92 @@ export const AllocatedPartListHrPlan = ({
     setAddRowModal(false);
   };
 
+  // Add this useEffect to monitor Job Work receipt quantities
+useEffect(() => {
+  if (selectedSection && selectedSectionIndex > 0) {
+    const previousSection = sections[selectedSectionIndex - 1];
+    if (previousSection?.isSpecialDay) {
+      // If previous process is Job Work, we need to refresh receipt data
+      const refreshReceiptData = async () => {
+        try {
+          const receiptRes = await axios.get(
+            `${process.env.REACT_APP_BASE_URL}/api/GoodsReceipt/GetGoodsReceipt`
+          );
+          setGoodsReceiptDataModal(receiptRes.data || []);
+          updateReceiptStatuses(receiptRes.data || []);
+        } catch (error) {
+          console.error("Error refreshing receipt data:", error);
+        }
+      };
+      
+      refreshReceiptData();
+    }
+  }
+}, [selectedSection, selectedSectionIndex, sections]);
+
+  // Add this function to get quantity received from previous Job Work process
+  const getQuantityFromJobWorkReceipt = (currentSectionIndex) => {
+    if (currentSectionIndex === 0) return 200; // First process
+
+    const previousSection = sections[currentSectionIndex - 1];
+
+    // Check if previous process was a Job Work (special day)
+    if (!previousSection?.isSpecialDay) {
+      // If previous process is not Job Work, use normal produced quantity
+      const previousTrackingId = previousSection?.data?.[0]?.trackingId;
+      return producedTotalsByTrackingId[previousTrackingId] || 0;
+    }
+
+    // For Job Work processes, we need to get quantity from Goods Receipt
+    const currentItemCode = String(
+      sections[currentSectionIndex]?.data?.[0]?.partsCodeId || ""
+    );
+    const currentProduction = (
+      projectNameState ||
+      sections[0]?.projectName ||
+      ""
+    )
+      .toString()
+      .trim()
+      .toLowerCase();
+
+    // Filter receipts for current project + item
+    const filteredReceipts = (goodsReceiptDataModal || []).filter((g) => {
+      const matchProd =
+        (g.ProductionNo || "").toString().trim().toLowerCase() ===
+        currentProduction;
+      const matchItem = String(g.Itemcode).trim() === currentItemCode;
+      return matchItem && matchProd;
+    });
+
+    // Sum all receipt quantities
+    const totalReceiptQuantity = filteredReceipts.reduce((sum, receipt) => {
+      return sum + (Number(receipt.Quantity) || 0);
+    }, 0);
+
+    console.log(
+      `Job Work Receipt Quantity for ${currentItemCode}:`,
+      totalReceiptQuantity
+    );
+    return totalReceiptQuantity;
+  };
+
   // Add this function to get available quantity from previous process
+  // Enhanced function to get available quantity from previous process
   const getAvailableQuantityFromPreviousProcess = (currentSectionIndex) => {
     if (currentSectionIndex === 0) {
-      // First process - return initial total quantity (200 in your case)
-      return 200;
+      return 200; // Initial quantity for first process
     }
 
     const previousSection = sections[currentSectionIndex - 1];
-    if (!previousSection?.data?.[0]) return 0;
 
-    const previousTrackingId = previousSection.data[0].trackingId;
+    // If previous process is Job Work, use receipt quantity
+    if (previousSection?.isSpecialDay) {
+      return getQuantityFromJobWorkReceipt(currentSectionIndex);
+    }
+
+    // For normal processes, use produced quantity
+    const previousTrackingId = previousSection?.data?.[0]?.trackingId;
     return producedTotalsByTrackingId[previousTrackingId] || 0;
   };
 
@@ -763,12 +838,17 @@ export const AllocatedPartListHrPlan = ({
       const numericValue = Number(value) || 0;
       const availableWarehouseQty = toWarehouseData?.quantity?.[0];
 
-      // NEW VALIDATION: Check against previous process quantity
+      // Get available quantity from previous process (handles both normal and Job Work)
       const availableFromPrevious =
         getAvailableQuantityFromPreviousProcess(selectedSectionIndex);
       const currentProduced =
         getCurrentProcessProducedQuantity(selectedSection);
       const totalAfterUpdate = currentProduced + numericValue;
+
+      // Check if previous process was Job Work for specific messaging
+      const previousSection =
+        selectedSectionIndex > 0 ? sections[selectedSectionIndex - 1] : null;
+      const isPreviousJobWork = previousSection?.isSpecialDay;
 
       // Validation 1: Cannot exceed remaining quantity for this process
       if (numericValue > remainingQty) {
@@ -789,13 +869,21 @@ export const AllocatedPartListHrPlan = ({
         return;
       }
 
-      // NEW VALIDATION 3: Cannot exceed quantity received from previous process
+      // Validation 3: Cannot exceed quantity from previous process
       if (totalAfterUpdate > availableFromPrevious) {
-        toast.error(
-          `Produced quantity cannot exceed quantity received from previous process (${availableFromPrevious}). Available: ${
-            availableFromPrevious - currentProduced
-          }`
-        );
+        if (isPreviousJobWork) {
+          toast.error(
+            `Produced quantity cannot exceed quantity received from Job Work (${availableFromPrevious}). Available: ${
+              availableFromPrevious - currentProduced
+            }`
+          );
+        } else {
+          toast.error(
+            `Produced quantity cannot exceed quantity produced by previous process (${availableFromPrevious}). Available: ${
+              availableFromPrevious - currentProduced
+            }`
+          );
+        }
         return;
       }
 
@@ -913,20 +1001,21 @@ export const AllocatedPartListHrPlan = ({
   const submitDailyTracking = async () => {
     setIsUpdating(true);
     try {
-
       // NEW VALIDATION: Final check before submission
-    const availableFromPrevious = getAvailableQuantityFromPreviousProcess(selectedSectionIndex);
-    const currentProduced = getCurrentProcessProducedQuantity(selectedSection);
-    const newProduced = Number(dailyTracking[0]?.produced) || 0;
-    const totalAfterUpdate = currentProduced + newProduced;
+      const availableFromPrevious =
+        getAvailableQuantityFromPreviousProcess(selectedSectionIndex);
+      const currentProduced =
+        getCurrentProcessProducedQuantity(selectedSection);
+      const newProduced = Number(dailyTracking[0]?.produced) || 0;
+      const totalAfterUpdate = currentProduced + newProduced;
 
-    if (totalAfterUpdate > availableFromPrevious) {
-      toast.error(
-        `Cannot produce more than quantity received from previous process (${availableFromPrevious}). Current: ${currentProduced}, New: ${newProduced}`
-      );
-      return;
-    }
-    
+      if (totalAfterUpdate > availableFromPrevious) {
+        toast.error(
+          `Cannot produce more than quantity received from previous process (${availableFromPrevious}). Current: ${currentProduced}, New: ${newProduced}`
+        );
+        return;
+      }
+
       if (!selectedSection || !selectedSection.data.length) {
         toast.error("No allocation selected.");
         return;
@@ -3476,7 +3565,17 @@ export const AllocatedPartListHrPlan = ({
                         calculateRemainingQuantity()
                       );
 
-                      return `${actualMax} units (Previous process: ${availableFromPrevious})`;
+                      const previousSection =
+                        selectedSectionIndex > 0
+                          ? sections[selectedSectionIndex - 1]
+                          : null;
+                      const isPreviousJobWork = previousSection?.isSpecialDay;
+
+                      if (isPreviousJobWork) {
+                        return `${actualMax} units (Job Work receipt: ${availableFromPrevious})`;
+                      } else {
+                        return `${actualMax} units (Previous process: ${availableFromPrevious})`;
+                      }
                     })()}
                   </p>
                 </div>
