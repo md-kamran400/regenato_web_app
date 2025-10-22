@@ -71,6 +71,7 @@ export const PartListHrPlan = ({
   const [hasStartDate, setHasStartDate] = useState(false);
   const [shiftOptions, setShiftOptions] = useState([]);
   const [selectedShift, setSelectedShift] = useState(null);
+  const [globalSelectedShift, setGlobalSelectedShift] = useState(null); // Global shift for all processes
   const [processGapMinutes, setProcessGapMinutes] = useState(1);
   const openConfirmationModal = () => {
     setIsConfirmationModalOpen(true);
@@ -1077,7 +1078,7 @@ export const PartListHrPlan = ({
         let usedOperators = new Set(); // Track used operators
 
         manufacturingVariables.forEach((man, processIndex) => {
-          const shift = shiftOptions.length > 0 ? shiftOptions[0] : null;
+          const shift = globalSelectedShift || (shiftOptions.length > 0 ? shiftOptions[0] : null);
           const machineList = machineOptions[man.categoryId] || [];
           const processInfo = getProcessSpecialDayInfo(
             man.name,
@@ -1089,7 +1090,7 @@ export const PartListHrPlan = ({
             let daysAddedForDowntime = 0;
 
             firstAvailableMachine = machineList.find((machine) => {
-              const shift = shiftOptions.length > 0 ? shiftOptions[0] : null;
+              const shift = globalSelectedShift || (shiftOptions.length > 0 ? shiftOptions[0] : null);
               const endDateEstimate = calculateEndDateWithDowntime(
                 currentDate,
                 row.plannedQtyTime,
@@ -1270,7 +1271,7 @@ export const PartListHrPlan = ({
 
         return newRows;
       } else {
-        const shift = shiftOptions.find(
+        const shift = globalSelectedShift || shiftOptions.find(
           (option) => option.name === currentRow.shift
         );
 
@@ -1336,6 +1337,7 @@ export const PartListHrPlan = ({
           startDate: formatDateUTC(startDate),
           startTime: startTime,
           endDate: formatDateUTC(endDate),
+          shift: shift?.name || currentRow.shift,
         };
 
         const currentMachine = machineOptions[
@@ -1501,7 +1503,7 @@ export const PartListHrPlan = ({
     //   return formatDateUTC(currentDay);
     // }
     if (specialDayInfo?.isSpecialday) {
-      // ✅ Job-Work processes: skip only Sundays while counting working days
+      //  Job-Work processes: skip only Sundays while counting working days
       const daysNeeded = Math.ceil(plannedMinutes / 1440); // 1 full day = 1440 min
       let currentDay = new Date(startDate);
       currentDay.setHours(0, 0, 0, 0);
@@ -3493,6 +3495,7 @@ export const PartListHrPlan = ({
                                   }}
                                   options={shiftOptions || []}
                                   value={
+                                    globalSelectedShift ||
                                     shiftOptions.find(
                                       (option) => option.name === row.shift
                                     ) ||
@@ -3502,6 +3505,9 @@ export const PartListHrPlan = ({
                                   }
                                   onChange={(event, newValue) => {
                                     if (!newValue) return;
+
+                                    // Set global shift for all processes
+                                    setGlobalSelectedShift(newValue);
 
                                     setRows((prevRows) => {
                                       const updatedRows = { ...prevRows };
@@ -3610,11 +3616,8 @@ export const PartListHrPlan = ({
 
                                           updatedRows[p] = processRows.map(
                                             (row) => {
-                                              // Determine shift for this process (fallback to the newly selected one)
-                                              const thisShift =
-                                                shiftOptions.find(
-                                                  (s) => s.name === row.shift
-                                                ) || newValue;
+                                              // Use global shift for all processes
+                                              const thisShift = newValue;
 
                                               // Compute proposed start time = previous end time + gap
                                               const [prevH, prevM] = String(

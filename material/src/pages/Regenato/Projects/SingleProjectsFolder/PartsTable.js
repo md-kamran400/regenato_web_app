@@ -1356,55 +1356,66 @@ const PartsTable = React.memo(
                                     </div>
 
                                     {/* Redirect icon as a button */}
-                                    {/* <Link 
-      to={`/singlepart/${item?.Uid}`}
-      onClick={(e) => e.stopPropagation()}
-      style={{
-        color: "#007bff",
-        textDecoration: "none",
-        display: "flex",
-        alignItems: "center",
-        padding: "4px 8px",
-        borderRadius: "4px",
-        backgroundColor: "#f8f9fa",
-        border: "1px solid #dee2e6",
-        transition: "all 0.2s ease",
-      }}
-      className="redirect-link"
-      title="View Part Details"
-      onMouseEnter={(e) => {
-        e.target.style.backgroundColor = "#007bff";
-        e.target.style.color = "white";
-      }}
-      onMouseLeave={(e) => {
-        e.target.style.backgroundColor = "#f8f9fa";
-        e.target.style.color = "#007bff";
-      }}
-    >
-      <FiExternalLink size={14} />
-    </Link> */}
-                                    {/* Redirect icon as a button */}
+
                                     {(() => {
-                                      // find the backend part that matches this item's partsCodeId
-                                      const matchingPart = parts.find(
-                                        (p) => p.id === item.partsCodeId
-                                      );
-                                      // store _id if found
-                                      const storedId = matchingPart
-                                        ? matchingPart._id
-                                        : null;
-                                      console.log(storedId);
-                                      return (
-                                        <Link
-                                          to={
-                                            storedId
-                                              ? `/singlepart/${storedId}`
-                                              : "#"
+                                      const handleRedirectClick = async (e) => {
+                                        e.stopPropagation();
+
+                                        // Find locally first
+                                        const matchingPart = parts.find(
+                                          (p) => p.id === item.partsCodeId
+                                        );
+
+                                        if (matchingPart) {
+                                          //  Navigate directly if already loaded
+                                          window.location.href = `/singlepart/${matchingPart._id}`;
+                                          return;
+                                        }
+
+                                        try {
+                                          //  Fetch from backend if not found locally
+                                          const res = await fetch(
+                                            `${
+                                              process.env.REACT_APP_BASE_URL
+                                            }/api/parts?search=${encodeURIComponent(
+                                              item.partsCodeId
+                                            )}`
+                                          );
+                                          const data = await res.json();
+
+                                          if (data?.data?.length > 0) {
+                                            const found = data.data.find(
+                                              (p) => p.id === item.partsCodeId
+                                            );
+                                            if (found?._id) {
+                                              window.location.href = `/singlepart/${found._id}`;
+                                            } else {
+                                              e.preventDefault();
+                                              alert(
+                                                "Part not found in backend data."
+                                              );
+                                            }
+                                          } else {
+                                            e.preventDefault();
+                                            alert(
+                                              "Part not found in backend data."
+                                            );
                                           }
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            if (!storedId) e.preventDefault(); // prevent navigation if not found
-                                          }}
+                                        } catch (err) {
+                                          console.error(
+                                            "Error fetching part:",
+                                            err
+                                          );
+                                          e.preventDefault();
+                                          alert(
+                                            "Failed to fetch part details."
+                                          );
+                                        }
+                                      };
+
+                                      return (
+                                        <button
+                                          onClick={handleRedirectClick}
                                           style={{
                                             color: "#007bff",
                                             textDecoration: "none",
@@ -1430,7 +1441,7 @@ const PartsTable = React.memo(
                                           }}
                                         >
                                           <FiExternalLink size={14} />
-                                        </Link>
+                                        </button>
                                       );
                                     })()}
                                   </div>
