@@ -832,97 +832,100 @@ useEffect(() => {
     return producedTotalsByTrackingId[trackingId] || 0;
   };
 
-  const handleDailyTrackingChange = (index, field, value) => {
-    if (field === "produced") {
-      const remainingQty = calculateRemainingQuantity();
-      const numericValue = Number(value) || 0;
-      const availableWarehouseQty = toWarehouseData?.quantity?.[0];
+ const handleDailyTrackingChange = (index, field, value) => {
+  if (field === "produced") {
+    const numericValue = Number(value) || 0;
 
-      // Get available quantity from previous process (handles both normal and Job Work)
-      const availableFromPrevious =
-        getAvailableQuantityFromPreviousProcess(selectedSectionIndex);
-      const currentProduced =
-        getCurrentProcessProducedQuantity(selectedSection);
-      const totalAfterUpdate = currentProduced + numericValue;
+    // --- Core Variables ---
+    const remainingQty = calculateRemainingQuantity();
+    const availableWarehouseQty = toWarehouseData?.quantity?.[0];
+    const availableFromPrevious = getAvailableQuantityFromPreviousProcess(selectedSectionIndex);
+    const currentProduced = getCurrentProcessProducedQuantity(selectedSection);
+    const totalAfterUpdate = currentProduced + numericValue;
 
-      // Check if previous process was Job Work for specific messaging
-      const previousSection =
-        selectedSectionIndex > 0 ? sections[selectedSectionIndex - 1] : null;
-      const isPreviousJobWork = previousSection?.isSpecialDay;
+    // --- Identify if previous process is Job Work ---
+    const previousSection =
+      selectedSectionIndex > 0 ? sections[selectedSectionIndex - 1] : null;
+    const isPreviousJobWork = previousSection?.isSpecialDay;
 
-      // Validation 1: Cannot exceed remaining quantity for this process
-      if (numericValue > remainingQty) {
-        toast.error(
-          `Produced quantity cannot exceed remaining quantity (${remainingQty})`
-        );
-        return;
-      }
-
-      // Validation 2: Cannot exceed available warehouse quantity
-      if (
-        availableWarehouseQty != null &&
-        numericValue > availableWarehouseQty
-      ) {
-        toast.error(
-          `Produced quantity cannot exceed available warehouse quantity (${availableWarehouseQty})`
-        );
-        return;
-      }
-
-      // Validation 3: Cannot exceed quantity from previous process
-      if (totalAfterUpdate > availableFromPrevious) {
-        if (isPreviousJobWork) {
-          toast.error(
-            `Produced quantity cannot exceed quantity received from Job Work (${availableFromPrevious}). Available: ${
-              availableFromPrevious - currentProduced
-            }`
-          );
-        } else {
-          toast.error(
-            `Produced quantity cannot exceed quantity produced by previous process (${availableFromPrevious}). Available: ${
-              availableFromPrevious - currentProduced
-            }`
-          );
-        }
-        return;
-      }
-
-      // Calculate warehouse changes
-      setWarehouseChanges({
-        fromWarehouseChange: -numericValue,
-        toWarehouseChange: numericValue,
-      });
+    // 🧭 Validation 1: Cannot exceed remaining planned quantity
+    if (numericValue > remainingQty) {
+      toast.error(
+        `Produced quantity cannot exceed remaining quantity (${remainingQty})`
+      );
+      return;
     }
 
-    setDailyTracking((prev) => {
-      const updated = [...prev];
+    // 🧭 Validation 2: Cannot exceed available warehouse quantity
+    if (availableWarehouseQty != null && numericValue > availableWarehouseQty) {
+      toast.error(
+        `Produced quantity cannot exceed available warehouse quantity (${availableWarehouseQty})`
+      );
+      return;
+    }
 
-      if (!updated[index]) {
-        console.warn(`Index ${index} is undefined`);
-        return prev;
+    // 🧭 Validation 3 (NEW): For Job Work, allow only up to total RECEIPT quantity
+    if (isPreviousJobWork) {
+      const totalReceiptQty = getQuantityFromJobWorkReceipt(selectedSectionIndex);
+      const previousProduced = getCurrentProcessProducedQuantity(selectedSection);
+
+      // remaining receipt-based capacity = total receipts - already produced
+      const availableForProduction = totalReceiptQty - previousProduced;
+
+      if (numericValue > availableForProduction) {
+        toast.error(
+          `You have received only ${totalReceiptQty} units from Job Work. You can produce up to ${availableForProduction} more at this stage.`
+        );
+        return;
       }
 
-      updated[index][field] = value;
-
-      if (field === "produced") {
-        const produced = Number(value) || 0;
-        const planned =
-          Number(updated[index].planned) ||
-          Number(selectedSection?.data[0]?.dailyPlannedQty) ||
-          0;
-
-        if (produced === planned) {
-          updated[index].dailyStatus = "On Track";
-        } else if (produced > planned) {
-          updated[index].dailyStatus = "Ahead";
-        } else {
-          updated[index].dailyStatus = "Delayed";
-        }
+      // Optional stricter rule (as per your note):
+      // Only allow exactly equal to receipt quantity (not less)
+      if (numericValue < availableForProduction && numericValue !== 0) {
+        toast.warning(
+          `You can produce exactly ${availableForProduction} units (not less or more) since that’s the Job Work receipt quantity.`
+        );
       }
+    }
 
-      return updated;
+    // --- Warehouse preview update ---
+    setWarehouseChanges({
+      fromWarehouseChange: -numericValue,
+      toWarehouseChange: numericValue,
     });
-  };
+  }
+
+  // Update state
+  setDailyTracking((prev) => {
+    const updated = [...prev];
+
+    if (!updated[index]) {
+      console.warn(`Index ${index} is undefined`);
+      return prev;
+    }
+
+    updated[index][field] = value;
+
+    if (field === "produced") {
+      const produced = Number(value) || 0;
+      const planned =
+        Number(updated[index].planned) ||
+        Number(selectedSection?.data[0]?.dailyPlannedQty) ||
+        0;
+
+      if (produced === planned) {
+        updated[index].dailyStatus = "On Track";
+      } else if (produced > planned) {
+        updated[index].dailyStatus = "Ahead";
+      } else {
+        updated[index].dailyStatus = "Delayed";
+      }
+    }
+
+    return updated;
+  });
+};
+
 
   // const handleDailyTrackingChange = (index, field, value) => {
   //   if (field === "produced") {

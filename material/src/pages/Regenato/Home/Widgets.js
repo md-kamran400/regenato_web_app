@@ -27,7 +27,7 @@ useEffect(() => {
             (res) => res.json()
           ),
           fetch(
-            `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects`
+            `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projectss`
           ).then((res) => res.json()),
         ]);
 
@@ -35,7 +35,7 @@ useEffect(() => {
         parts: partsRes.pagination ? partsRes.pagination.total : (Array.isArray(partsRes) ? partsRes.length : 0),
         assembly: assemblyRes.pagination ? assemblyRes.pagination.total : (Array.isArray(assemblyRes) ? assemblyRes.length : 0),
         subAssembly: subAssemblyRes.pagination ? subAssemblyRes.pagination.total : (Array.isArray(subAssemblyRes) ? subAssemblyRes.length : 0),
-        projects: projectsRes.pagination ? projectsRes.pagination.total : (Array.isArray(projectsRes) ? projectsRes.length : 0),
+        projects: projectsRes.pagination ? projectsRes.pagination.totalItems : (Array.isArray(projectsRes) ? projectsRes.length : 0),
       });
     } catch (error) {
       console.error("Error fetching counts:", error);
