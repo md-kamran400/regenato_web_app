@@ -1364,11 +1364,15 @@ export const PartListHrPlan = ({
   };
 
   const formatDateUTC = (date) => {
-    const d = new Date(date);
-    return new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()))
-      .toISOString()
-      .split("T")[0];
-  };
+  if (!date) return ""; // handle null or undefined
+ 
+  const d = new Date(date);
+  if (isNaN(d)) return ""; // handle invalid date strings
+ 
+  return new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()))
+    .toISOString()
+    .split("T")[0];
+};
 
   // Add minutes to a datetime while skipping Sundays entirely
   const addMinutesSkippingSundays = (startDateTime, minutesToAdd) => {

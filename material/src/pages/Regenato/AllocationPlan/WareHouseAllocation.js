@@ -323,7 +323,7 @@ const WareHouseAllocation = () => {
         <div className="table-responsive">
           <Table striped hover className="mb-0">
             <thead>
-              <tr>
+              {/* <tr>
                 <th>Project</th>
                 <th>Part Name</th>
                 <th>Process</th>
@@ -337,13 +337,26 @@ const WareHouseAllocation = () => {
                 <th>To WH Qty</th>
                 <th>To WH Remaining Qty</th>
                 <th>Status</th>
-                {/* <th>Remaining</th> */}
+                <th>Remaining</th>
                 <th>Machine</th>
                 <th>Shift</th>
                 <th>Date</th>
+              </tr> */}
+
+              <tr>
+                <th>Warehouse ID</th>
+                <th>Transaction Type</th>
+                <th>Quantity Change</th>
+                <th>Timestamp</th>
+                <th>Project</th>
+                <th>Part Name</th>
+                <th>Process</th>
+                <th>Machine</th>
+                <th>Operator</th>
+               
               </tr>
             </thead>
-            <tbody>
+            {/* <tbody>
               {currentItems.map((item, index) => (
                 <tr key={index}>
                   <td>{item.projectName || 'N/A'}</td>
@@ -363,13 +376,13 @@ const WareHouseAllocation = () => {
                       {item.dailyStatus || 'Not Started'}
                     </Badge>
                   </td>
-                  {/* <td>{item.remaining || 0}</td> */}
+                  <td>{item.remaining || 0}</td> //it's already commented out
                   <td>{item.machineId || 'N/A'}</td>
                   <td>{item.shift || 'N/A'}</td>
                   <td>{item.date ? new Date(item.date).toLocaleDateString() : 'N/A'}</td>
                 </tr>
               ))}
-            </tbody>
+            </tbody> */}
           </Table>
         </div>
 
