@@ -46,6 +46,7 @@ import {
   FiCpu,
   FiHome,
   FiUser,
+  FiLock,
 } from "react-icons/fi";
 import { Spinner } from "reactstrap";
 
@@ -1066,6 +1067,10 @@ export const PartListHrPlan = ({
     if (index === 0) {
       setHasStartDate(!!nextWorkingDay);
     }
+    if (index === 0 && nextWorkingDay) {
+      // Disable all start date pickers except the first one
+      setHasStartDate(true);
+    }
 
     setRows((prevRows) => {
       const newRows = { ...prevRows };
@@ -1078,7 +1083,9 @@ export const PartListHrPlan = ({
         let usedOperators = new Set(); // Track used operators
 
         manufacturingVariables.forEach((man, processIndex) => {
-          const shift = globalSelectedShift || (shiftOptions.length > 0 ? shiftOptions[0] : null);
+          const shift =
+            globalSelectedShift ||
+            (shiftOptions.length > 0 ? shiftOptions[0] : null);
           const machineList = machineOptions[man.categoryId] || [];
           const processInfo = getProcessSpecialDayInfo(
             man.name,
@@ -1090,7 +1097,9 @@ export const PartListHrPlan = ({
             let daysAddedForDowntime = 0;
 
             firstAvailableMachine = machineList.find((machine) => {
-              const shift = globalSelectedShift || (shiftOptions.length > 0 ? shiftOptions[0] : null);
+              const shift =
+                globalSelectedShift ||
+                (shiftOptions.length > 0 ? shiftOptions[0] : null);
               const endDateEstimate = calculateEndDateWithDowntime(
                 currentDate,
                 row.plannedQtyTime,
@@ -1271,9 +1280,9 @@ export const PartListHrPlan = ({
 
         return newRows;
       } else {
-        const shift = globalSelectedShift || shiftOptions.find(
-          (option) => option.name === currentRow.shift
-        );
+        const shift =
+          globalSelectedShift ||
+          shiftOptions.find((option) => option.name === currentRow.shift);
 
         // For non-auto schedule, calculate start time based on previous process
         let startTime = shift?.startTime || "09:00";
@@ -1366,15 +1375,15 @@ export const PartListHrPlan = ({
   };
 
   const formatDateUTC = (date) => {
-  if (!date) return ""; // handle null or undefined
- 
-  const d = new Date(date);
-  if (isNaN(d)) return ""; // handle invalid date strings
- 
-  return new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()))
-    .toISOString()
-    .split("T")[0];
-};
+    if (!date) return ""; // handle null or undefined
+
+    const d = new Date(date);
+    if (isNaN(d)) return ""; // handle invalid date strings
+
+    return new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()))
+      .toISOString()
+      .split("T")[0];
+  };
 
   // Add minutes to a datetime while skipping Sundays entirely
   const addMinutesSkippingSundays = (startDateTime, minutesToAdd) => {
@@ -3832,7 +3841,7 @@ export const PartListHrPlan = ({
                                   Start Date
                                 </label>
                                 <div style={{ position: "relative" }}>
-                                  <DatePicker
+                                  {/* <DatePicker
                                     selected={
                                       row.startDate
                                         ? new Date(row.startDate + "T00:00:00")
@@ -3896,7 +3905,130 @@ export const PartListHrPlan = ({
                                     customInput={<CustomInput />}
                                     dateFormat="dd-MM-yyyy"
                                     wrapperClassName="small-datepicker"
-                                  />
+                                    disabled={index !== 0 && hasStartDate}
+                                      {index !== 0 && hasStartDate && (
+    <div
+      style={{
+        position: "absolute",
+        top: 0,
+        left: 0,
+        width: "100%",
+        height: "100%",
+        backgroundColor: "rgba(240, 240, 240, 0.7)",
+        borderRadius: "4px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        pointerEvents: "none",
+      }}
+    >
+      <FiLock color="#999" size={16} title="Disabled after first process start" />
+    </div>
+  )}
+                                  /> */}
+                                  <div
+                                    style={{
+                                      position: "relative",
+                                      display: "inline-block",
+                                    }}
+                                  >
+                                    <DatePicker
+                                      selected={
+                                        row.startDate
+                                          ? new Date(
+                                              row.startDate + "T00:00:00"
+                                            )
+                                          : null
+                                      }
+                                      onChange={(date) => {
+                                        if (!date) return;
+
+                                        const utcDate = new Date(
+                                          Date.UTC(
+                                            date.getFullYear(),
+                                            date.getMonth(),
+                                            date.getDate()
+                                          )
+                                        );
+
+                                        handleStartDateChange(
+                                          index,
+                                          rowIndex,
+                                          utcDate
+                                        );
+                                      }}
+                                      filterDate={(date) => {
+                                        // ✅ Manual mode → allow any future date
+                                        if (!isAutoSchedule) {
+                                          return (
+                                            date >=
+                                            new Date(
+                                              new Date().setHours(0, 0, 0, 0)
+                                            )
+                                          );
+                                        }
+
+                                        // ✅ Auto-schedule → restrict all other start dates after first one
+                                        if (
+                                          isAutoSchedule &&
+                                          index !== 0 &&
+                                          hasStartDate
+                                        ) {
+                                          return false;
+                                        }
+
+                                        // ✅ Otherwise (auto, first process)
+                                        return (
+                                          date >=
+                                          new Date(
+                                            new Date().setHours(0, 0, 0, 0)
+                                          )
+                                        );
+                                      }}
+                                      dayClassName={(date) => {
+                                        const machine = machineOptions[
+                                          manufacturingVariables[index]
+                                            .categoryId
+                                        ]?.find(
+                                          (m) =>
+                                            m.subcategoryId === row.machineId
+                                        );
+
+                                        if (machine) {
+                                          const availability =
+                                            isMachineAvailable(
+                                              machine.subcategoryId,
+                                              date,
+                                              calculateEndDateWithDowntime(
+                                                date,
+                                                row.plannedQtyTime,
+                                                shiftOptions.find(
+                                                  (s) => s.name === row.shift
+                                                ),
+                                                machine,
+                                                index,
+                                                rowIndex
+                                              ),
+                                              row.startTime
+                                            );
+                                          return availability.available
+                                            ? ""
+                                            : "highlighted-date";
+                                        }
+                                        return "";
+                                      }}
+                                      renderDayContents={renderDayContents}
+                                      customInput={<CustomInput />}
+                                      dateFormat="dd-MM-yyyy"
+                                      wrapperClassName="small-datepicker"
+                                      disabled={
+                                        // ✅ Disable other pickers only if auto-schedule mode active
+                                        isAutoSchedule &&
+                                        index !== 0 &&
+                                        hasStartDate
+                                      }
+                                    />
+                                  </div>
                                 </div>
                               </div>
 
