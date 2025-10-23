@@ -28,7 +28,10 @@ const StoresVariable = () => {
     Name: [],
     location: [],
     quantity: "",
+    adjustmentQty: "",
+    adjustmentType: "+",
   });
+
   const [posting, setPosting] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
   const [modal_delete, setModal_delete] = useState(false);
@@ -155,7 +158,10 @@ const StoresVariable = () => {
       Name: store.Name,
       location: store.location,
       quantity: store.quantity,
+      adjustmentQty: store.adjustmentQty || "",
+      adjustmentType: store.adjustmentType || "+",
     });
+
     setEditModalOpen(true);
   };
 
@@ -236,6 +242,7 @@ const StoresVariable = () => {
                       <th>Names</th>
                       <th>Location</th>
                       <th>Quantity</th>
+                      <th>Adjustment Qty</th>
                       <th>Action</th>
                     </tr>
                   </thead>
@@ -283,6 +290,33 @@ const StoresVariable = () => {
                             )}
                           </td>
                           <td>{store.quantity}</td>
+                          <td>
+                            <span
+                              style={{
+                                color:
+                                  store.adjustmentType === "+"
+                                    ? "#00c853"
+                                    : "#ff1744", // better green/red shades
+                                fontWeight: "bold",
+                                fontSize: "1.3rem", // slightly larger text
+                                marginRight: "3px", // proper spacing between type and qty
+                                display: "inline-block",
+                                minWidth: "20px", // keeps consistent width for + or -
+                                textAlign: "center",
+                              }}
+                            >
+                              {store.adjustmentType}
+                            </span>
+                            <span
+                              style={{
+                                fontSize: "0.95rem",
+                                color: "#333",
+                              }}
+                            >
+                              {store.adjustmentQty}
+                            </span>
+                          </td>
+
                           <td>
                             <div className="d-flex gap-2">
                               <Button
@@ -370,16 +404,16 @@ const StoresVariable = () => {
             </FormGroup>
 
             <FormGroup className="mb-3">
-                  <Label className="form-label">Quantity</Label>
-                  <Input
-                    type="text"
-                    name="quantity"
-                    value={formData.quantity}
-                    onChange={handleChange}
-                    placeholder="Enter Quantity"
-                    className="form-control"
-                  />
-                </FormGroup>
+              <Label className="form-label">Quantity</Label>
+              <Input
+                type="text"
+                name="quantity"
+                value={formData.quantity}
+                onChange={handleChange}
+                placeholder="Enter Quantity"
+                className="form-control"
+              />
+            </FormGroup>
 
             <ModalFooter className="border-top-0 pt-3">
               <Button
@@ -463,6 +497,48 @@ const StoresVariable = () => {
                 onChange={handleChange}
                 placeholder="Enter quantity"
                 className="form-control bg-light"
+              />
+            </FormGroup>
+
+            <FormGroup className="mb-3">
+              <Label className="form-label">Adjustment Type</Label>
+              <div className="d-flex gap-3">
+                <FormGroup check>
+                  <Label check>
+                    <Input
+                      type="radio"
+                      name="adjustmentType"
+                      value="+"
+                      checked={formData.adjustmentType === "+"}
+                      onChange={handleChange}
+                    />{" "}
+                    Plus (+)
+                  </Label>
+                </FormGroup>
+                <FormGroup check>
+                  <Label check>
+                    <Input
+                      type="radio"
+                      name="adjustmentType"
+                      value="-"
+                      checked={formData.adjustmentType === "-"}
+                      onChange={handleChange}
+                    />{" "}
+                    Minus (-)
+                  </Label>
+                </FormGroup>
+              </div>
+            </FormGroup>
+
+            <FormGroup className="mb-3">
+              <Label className="form-label">Adjustment Quantity</Label>
+              <Input
+                type="number"
+                name="adjustmentQty"
+                value={formData.adjustmentQty || ""}
+                onChange={handleChange}
+                placeholder="Enter adjustment quantity"
+                className="form-control"
               />
             </FormGroup>
 
