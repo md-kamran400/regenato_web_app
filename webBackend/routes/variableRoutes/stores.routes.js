@@ -53,14 +53,39 @@ storeVariableRouter.get("/category/:categoryId", async (req, res) => {
 // Update a store variable by _id
 storeVariableRouter.put("/:id", async (req, res) => {
   try {
-    const storeVariable = await StoreVariableModal.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true }
-    );
+    const { adjustmentQty, adjustmentType } = req.body;
+ 
+    const storeVariable = await StoreVariableModal.findById(req.params.id);
     if (!storeVariable)
       return res.status(404).json({ error: "Store variable not found" });
-    res.json(storeVariable);
+ 
+    // Use current quantity
+    const currentQuantity = storeVariable.quantity[0] || 0;
+ 
+    let newQuantity = currentQuantity;
+ 
+    if (adjustmentType === "+") {
+      newQuantity = currentQuantity + Number(adjustmentQty || 0);
+    } else if (adjustmentType === "-") {
+      newQuantity = currentQuantity - Number(adjustmentQty || 0);
+    }
+ 
+    // Update fields
+    storeVariable.quantity[0] = newQuantity;
+    storeVariable.adjustmentQty = Number(adjustmentQty || 0);
+    storeVariable.adjustmentType = adjustmentType;
+ 
+    // Save updated document
+    await storeVariable.save();
+ 
+    res.json({
+      message: "Quantity updated successfully",
+      previousQuantity: currentQuantity,
+      adjustmentType,
+      adjustmentQty,
+      newQuantity,
+      storeVariable,
+    });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
