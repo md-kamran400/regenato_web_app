@@ -66,9 +66,7 @@ export const AllocatedPartListHrPlan = ({
   const [completeConfirmationModal, setCompleteConfirmationModal] =
     useState(false);
   const [updateConfirmationModal, setUpdateConfirmationModal] = useState(false);
-  const [completeProcess, setCompleteProcess] = useState(false);
   const [completingAllocation, setCompletingAllocation] = useState(false);
-  const [completingprocess, setCompletingprocess] = useState(false);
   const [existingDailyTracking, setExistingDailyTracking] = useState([]);
   const [actulEndDateData, setactulEndDateData] = useState([]);
   const [addRowModal, setAddRowModal] = useState(false);
@@ -578,7 +576,6 @@ export const AllocatedPartListHrPlan = ({
                   dailyPlannedQty: dailyPlannedQty, // Use the calculated value
                   shiftTotalTime: allocation.shiftTotalTime,
                   perMachinetotalTime: allocation.perMachinetotalTime,
-                  isProcessCompleted: allocation.isProcessCompleted || false,
                   warehouseQuantity: allocation.warehouseQuantity || 0, // Add warehouse quantity from allocation
                   partsCodeId: item.partsCodeId || null, // Add partsCodeId from the item
                 };
@@ -1506,102 +1503,6 @@ export const AllocatedPartListHrPlan = ({
     return totalProduced < row.plannedQty;
   };
 
-  // Add this function to handle completing the allocation
-  const handleCompleteProcess = async () => {
-    setCompletingprocess(true);
-    try {
-      if (!selectedSection) {
-        toast.error("No process selected for completion");
-        return;
-      }
-
-      const response = await axios.put(
-        `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/items/${partListItemId}/complete-process`,
-        {
-          processId: selectedSection.allocationId,
-          trackingId: selectedSection.data[0]?.trackingId,
-        }
-      );
-
-      if (response.status === 200) {
-        toast.success("Process marked as completed!");
-
-        // Close the modal first
-        setCompleteProcess(false);
-        setSelectedSection(null);
-
-        // Trigger a re-fetch of the allocations to ensure we have the latest data
-        const updatedResponse = await axios.get(
-          `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/allocation`
-        );
-
-        if (updatedResponse.data.data) {
-          const formattedSections = updatedResponse.data.data.map((item) => {
-            const processInfo = partManufacturingVariables?.find(
-              (mv) => mv.categoryId === item.processId
-            );
-
-            return {
-              allocationId: item._id,
-              title: item.processName,
-              isSpecialDay: processInfo?.isSpecialday || false,
-              data: item.allocations.map((allocation) => {
-                // Ensure we have valid values for calculation
-                const shiftTotalTime = allocation.shiftTotalTime || 510;
-                const perMachinetotalTime = allocation.perMachinetotalTime || 1;
-                const plannedQuantity = allocation.plannedQuantity || 0;
-
-                // Calculate daily planned quantity
-                let dailyPlannedQty;
-                if (perMachinetotalTime <= 0) {
-                  dailyPlannedQty = plannedQuantity;
-                } else {
-                  const totalTimeRequired =
-                    plannedQuantity * perMachinetotalTime;
-                  dailyPlannedQty =
-                    totalTimeRequired <= shiftTotalTime
-                      ? plannedQuantity
-                      : Math.floor(shiftTotalTime / perMachinetotalTime);
-                }
-
-                return {
-                  trackingId: allocation._id,
-                  plannedQty: allocation.plannedQuantity,
-                  startDate: moment(allocation.startDate).format("DD MMM YYYY"),
-                  endDate: moment(allocation.endDate).format("DD MMM YYYY"),
-                  startTime: allocation.startTime || null,
-                  endTime: allocation.endTime || null,
-                  machineId: allocation.machineId,
-                  wareHouse: allocation?.wareHouse || "N/A",
-                  warehouseId: allocation?.warehouseId || "N/A",
-                  shift: allocation.shift,
-                  plannedTime: `${allocation.plannedTime} min`,
-                  operator: allocation.operator,
-                  actualEndDate: allocation.actualEndDate || allocation.endDate,
-                  dailyPlannedQty: dailyPlannedQty,
-                  shiftTotalTime: allocation.shiftTotalTime,
-                  perMachinetotalTime: allocation.perMachinetotalTime,
-                  isProcessCompleted: allocation.isProcessCompleted || false,
-                  warehouseQuantity: allocation.warehouseQuantity || 0,
-                  partsCodeId: item.partsCodeId || null,
-                };
-              }),
-            };
-          });
-          setSections(formattedSections);
-        }
-
-        if (onUpdateAllocaitonStatus) {
-          onUpdateAllocaitonStatus();
-        }
-      }
-    } catch (error) {
-      toast.error("Failed to complete process.");
-      console.error("Error completing process:", error);
-    } finally {
-      setCompletingprocess(false);
-    }
-  };
 
   // Helper to get the part code (Itemcode) for the selected part
   const getSelectedPartCode = () => {
@@ -2550,22 +2451,15 @@ export const AllocatedPartListHrPlan = ({
                               >
                                 {section.isSpecialDay ? (
                                   <Button
-                                    color={
-                                      row.isProcessCompleted
-                                        ? "secondary"
-                                        : "primary"
-                                    }
+                                    color="primary"
                                     onClick={() => {
-                                      if (!row.isProcessCompleted) {
-                                        setSelectedSection({
-                                          ...section,
-                                          data: [row],
-                                        });
-                                        setSelectedSectionIndex(index);
-                                        setJobWorkModal(true);
-                                      }
+                                      setSelectedSection({
+                                        ...section,
+                                        data: [row],
+                                      });
+                                      setSelectedSectionIndex(index);
+                                      setJobWorkModal(true);
                                     }}
-                                    disabled={row.isProcessCompleted}
                                     style={{
                                       display: "flex",
                                       alignItems: "center",
@@ -2578,14 +2472,7 @@ export const AllocatedPartListHrPlan = ({
                                       width: "auto",
                                     }}
                                   >
-                                    {row.isProcessCompleted ? (
-                                      <>
-                                        <FiCheckCircle size={16} />
-                                        Completed
-                                      </>
-                                    ) : (
-                                      <>Update Job Work</>
-                                    )}
+                                    Update Job Work
                                   </Button>
                                 ) : (
                                   <Button
@@ -4327,72 +4214,6 @@ export const AllocatedPartListHrPlan = ({
         </ModalFooter>
       </Modal>
 
-      {/* Update the completion confirmation modal */}
-      <Modal
-        isOpen={completeProcess}
-        toggle={() => setCompleteProcess(false)}
-        key={`complete-process-modal-${selectedSection?.allocationId}-${selectedSection?.data[0]?.trackingId}`}
-      >
-        <ModalHeader toggle={() => setCompleteProcess(false)}>
-          Confirm Process Completion
-        </ModalHeader>
-        <ModalBody>
-          {selectedSection && (
-            <>
-              <p>Are you sure you want to mark this process as completed?</p>
-              <div className="process-details">
-                <p>
-                  <strong>Process:</strong> {selectedSection.title}
-                </p>
-                <p>
-                  <strong>Machine ID:</strong>{" "}
-                  {selectedSection.data[0]?.machineId}
-                </p>
-                <p>
-                  <strong>Start Date:</strong>{" "}
-                  {moment(selectedSection.data[0]?.startDate).format(
-                    "DD MMM YYYY"
-                  )}
-                </p>
-                <p>
-                  <strong>End Date:</strong>{" "}
-                  {moment(selectedSection.data[0]?.endDate).format(
-                    "DD MMM YYYY"
-                  )}
-                </p>
-                {selectedSection.data[0]?.SpecialDayTotalMinutes && (
-                  <p>
-                    <strong>Special Day Duration:</strong>{" "}
-                    {selectedSection.data[0].SpecialDayTotalMinutes} minutes
-                  </p>
-                )}
-                {selectedSection.data[0]?.plannedQty && (
-                  <p>
-                    <strong>Planned Quantity:</strong>{" "}
-                    {selectedSection.data[0].plannedQty}
-                  </p>
-                )}
-              </div>
-            </>
-          )}
-        </ModalBody>
-        <ModalFooter>
-          <Button
-            color="success"
-            onClick={handleCompleteProcess}
-            disabled={completingprocess}
-          >
-            {completingprocess ? "Completing..." : "Complete"}
-          </Button>
-          <Button
-            color="secondary"
-            onClick={() => setCompleteProcess(false)}
-            disabled={completingprocess}
-          >
-            Cancel
-          </Button>
-        </ModalFooter>
-      </Modal>
 
       {/* Update Confirmation Modal */}
       <Modal
