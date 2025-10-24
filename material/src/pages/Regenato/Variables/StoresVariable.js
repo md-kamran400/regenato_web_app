@@ -30,6 +30,8 @@ const StoresVariable = () => {
     quantity: "",
     adjustmentQty: "",
     adjustmentType: "+",
+    operator: "",
+    reason: "",
   });
 
   const [posting, setPosting] = useState(false);
@@ -123,6 +125,10 @@ const StoresVariable = () => {
         Name: [],
         location: [],
         quantity: "",
+        adjustmentQty: "",
+        adjustmentType: "+",
+        operator: "",
+        reason: "",
       });
     } catch (error) {
       console.error("Error adding store variable:", error);
@@ -160,6 +166,8 @@ const StoresVariable = () => {
       quantity: store.quantity,
       adjustmentQty: store.adjustmentQty || "",
       adjustmentType: store.adjustmentType || "+",
+      operator: "",
+      reason: "",
     });
 
     setEditModalOpen(true);
@@ -214,6 +222,10 @@ const StoresVariable = () => {
                         Name: [],
                         location: [],
                         quantity: "",
+                        adjustmentQty: "",
+                        adjustmentType: "+",
+                        operator: "",
+                        reason: "",
                       });
                       setModalOpen(true);
                     }}
@@ -541,6 +553,30 @@ const StoresVariable = () => {
                 className="form-control"
               />
             </FormGroup>
+
+            {/* <FormGroup className="mb-3">
+              <Label className="form-label">Operator</Label>
+              <Input
+                type="text"
+                name="operator"
+                value={formData.operator || ""}
+                onChange={handleChange}
+                placeholder="Enter operator name"
+                className="form-control"
+              />
+            </FormGroup> */}
+
+            {/* <FormGroup className="mb-3">
+              <Label className="form-label">Reason</Label>
+              <Input
+                type="text"
+                name="reason"
+                value={formData.reason || ""}
+                onChange={handleChange}
+                placeholder="Enter reason for adjustment"
+                className="form-control"
+              />
+            </FormGroup> */}
 
             <ModalFooter className="border-top-0 pt-3">
               <Button
