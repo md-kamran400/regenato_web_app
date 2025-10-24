@@ -53,7 +53,7 @@ storeVariableRouter.get("/category/:categoryId", async (req, res) => {
 // Update a store variable by _id
 storeVariableRouter.put("/:id", async (req, res) => {
   try {
-    const { adjustmentQty, adjustmentType } = req.body;
+    const { adjustmentQty, adjustmentType, operator, reason } = req.body;
  
     const storeVariable = await StoreVariableModal.findById(req.params.id);
     if (!storeVariable)
@@ -61,19 +61,37 @@ storeVariableRouter.put("/:id", async (req, res) => {
  
     // Use current quantity
     const currentQuantity = storeVariable.quantity[0] || 0;
+    const adjustmentAmount = Number(adjustmentQty || 0);
  
     let newQuantity = currentQuantity;
  
     if (adjustmentType === "+") {
-      newQuantity = currentQuantity + Number(adjustmentQty || 0);
+      newQuantity = currentQuantity + adjustmentAmount;
     } else if (adjustmentType === "-") {
-      newQuantity = currentQuantity - Number(adjustmentQty || 0);
+      newQuantity = currentQuantity - adjustmentAmount;
     }
+ 
+    // Create transaction history record
+    const transactionRecord = {
+      adjustmentQty: adjustmentAmount,
+      adjustmentType: adjustmentType,
+      previousQuantity: currentQuantity,
+      newQuantity: newQuantity,
+      timestamp: new Date(),
+      operator: operator || "System",
+      reason: reason || "Manual Adjustment"
+    };
  
     // Update fields
     storeVariable.quantity[0] = newQuantity;
-    storeVariable.adjustmentQty = Number(adjustmentQty || 0);
+    storeVariable.adjustmentQty = adjustmentAmount;
     storeVariable.adjustmentType = adjustmentType;
+    
+    // Add transaction to history
+    if (!storeVariable.transactionHistory) {
+      storeVariable.transactionHistory = [];
+    }
+    storeVariable.transactionHistory.push(transactionRecord);
  
     // Save updated document
     await storeVariable.save();
@@ -82,8 +100,9 @@ storeVariableRouter.put("/:id", async (req, res) => {
       message: "Quantity updated successfully",
       previousQuantity: currentQuantity,
       adjustmentType,
-      adjustmentQty,
+      adjustmentQty: adjustmentAmount,
       newQuantity,
+      transactionRecord,
       storeVariable,
     });
   } catch (error) {
@@ -94,7 +113,7 @@ storeVariableRouter.put("/:id", async (req, res) => {
 // Update warehouse quantity by adding additional quantity
 storeVariableRouter.put("/:id/quantity", async (req, res) => {
   try {
-    const { additionalQuantity } = req.body;
+    const { additionalQuantity, operator, reason } = req.body;
     
     if (additionalQuantity === undefined || additionalQuantity < 0) {
       return res.status(400).json({ error: "Valid additional quantity is required" });
@@ -107,7 +126,27 @@ storeVariableRouter.put("/:id/quantity", async (req, res) => {
 
     // Update the first quantity in the array (assuming single quantity per warehouse)
     const currentQuantity = storeVariable.quantity[0] || 0;
-    storeVariable.quantity[0] = currentQuantity + Number(additionalQuantity);
+    const adjustmentAmount = Number(additionalQuantity);
+    const newQuantity = currentQuantity + adjustmentAmount;
+
+    // Create transaction history record
+    const transactionRecord = {
+      adjustmentQty: adjustmentAmount,
+      adjustmentType: "+",
+      previousQuantity: currentQuantity,
+      newQuantity: newQuantity,
+      timestamp: new Date(),
+      operator: operator || "System",
+      reason: reason || "Quantity Addition"
+    };
+
+    storeVariable.quantity[0] = newQuantity;
+    
+    // Add transaction to history
+    if (!storeVariable.transactionHistory) {
+      storeVariable.transactionHistory = [];
+    }
+    storeVariable.transactionHistory.push(transactionRecord);
 
     await storeVariable.save();
 
@@ -115,8 +154,9 @@ storeVariableRouter.put("/:id/quantity", async (req, res) => {
       message: "Warehouse quantity updated successfully",
       warehouse: storeVariable.Name[0],
       previousQuantity: currentQuantity,
-      additionalQuantity: Number(additionalQuantity),
+      additionalQuantity: adjustmentAmount,
       newQuantity: storeVariable.quantity[0],
+      transactionRecord,
       storeVariable
     });
   } catch (error) {
