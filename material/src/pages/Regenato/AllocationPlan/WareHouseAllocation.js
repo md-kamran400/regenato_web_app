@@ -117,9 +117,51 @@ const WareHouseAllocation = () => {
 
     allocationsData.forEach((project) => {
       if (project.allocations && Array.isArray(project.allocations)) {
-        project.allocations.forEach((allocation) => {
+        let blnkTransferProcessed = false; // Flag to ensure BLNK transfer is only processed once per project
+        
+        project.allocations.forEach((allocation, allocationIndex) => {
           if (allocation.allocations && Array.isArray(allocation.allocations)) {
             allocation.allocations.forEach((alloc) => {
+              // Handle BLNK transfer transactions for first process only (index 0) and only once
+              if (alloc.blankStoreTransfer && allocationIndex === 0 && !blnkTransferProcessed) {
+                blnkTransferProcessed = true; // Mark as processed
+                const transfer = alloc.blankStoreTransfer;
+                
+                // Create OUT transaction for BLNK warehouse
+                allTransactions.push({
+                  warehouseId: transfer.blankStoreName,
+                  transactionType: "Out",
+                  quantityChange: `(-${transfer.blankStoreQty})`,
+                  timestamp: transfer.transferTimestamp,
+                  project: project.projectName,
+                  partName: allocation.partName,
+                  process: "--",
+                  machine: "--",
+                  operator: "--",
+                  rawQuantity: -transfer.blankStoreQty,
+                  dailyStatus: "Allocated",
+                  partsCodeId: allocation.partsCodeId,
+                  source: "blankStoreTransfer",
+                });
+
+                // Create IN transaction for first process warehouse
+                allTransactions.push({
+                  warehouseId: transfer.firstProcessWarehouseName,
+                  transactionType: "In",
+                  quantityChange: `(+${transfer.blankStoreQty}) (${transfer.firstProcessWarehouseQty})`,
+                  timestamp: transfer.transferTimestamp,
+                  project: project.projectName,
+                  partName: allocation.partName,
+                  process: allocation.processName,
+                  machine: alloc.machineId || "--",
+                  operator: alloc.operator || "--",
+                  rawQuantity: transfer.blankStoreQty,
+                  dailyStatus: "Allocated",
+                  partsCodeId: allocation.partsCodeId,
+                  source: "blankStoreTransfer",
+                });
+              }
+
               if (alloc.dailyTracking && Array.isArray(alloc.dailyTracking)) {
                 alloc.dailyTracking.forEach((tracking) => {
                   // Create OUT transaction for fromWarehouse
@@ -229,44 +271,109 @@ const WareHouseAllocation = () => {
     ? transformToAdjustmentTransactions(storeData)
     : [];
 
-  // Combine both types of transactions
-  const allTransactions = [...inventoryTransactions, ...adjustmentTransactions];
-
-  // Sort by timestamp (newest first)
-  const sortedTransactions = allTransactions.sort(
-    (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
+  // Combine both types of transactions and filter out invalid ones
+  const allTransactions = [...inventoryTransactions, ...adjustmentTransactions].filter(transaction => 
+    transaction && 
+    transaction.warehouseId && 
+    transaction.warehouseId !== "N/A" && 
+    transaction.warehouseId !== "" &&
+    transaction.rawQuantity !== undefined &&
+    transaction.rawQuantity !== null
   );
 
+  // Sort by source priority (BLNK transfer first), then timestamp, then transaction type
+  const sortedTransactions = allTransactions.sort((a, b) => {
+    // First sort by source priority (blankStoreTransfer first)
+    const sourceOrder = { 'blankStoreTransfer': 0, 'dailyTracking': 1, 'adjustment': 2 };
+    const aSourceOrder = sourceOrder[a.source] || 3;
+    const bSourceOrder = sourceOrder[b.source] || 3;
+    
+    if (aSourceOrder !== bSourceOrder) {
+      return aSourceOrder - bSourceOrder;
+    }
+    
+    // Then sort by timestamp (newest first)
+    const timeComparison = new Date(b.timestamp) - new Date(a.timestamp);
+    if (timeComparison !== 0) {
+      return timeComparison;
+    }
+    
+    // Finally sort by transaction type (OUT first, then IN)
+    const typeOrder = { 'Out': 0, 'In': 1, 'Adjustment': 2 };
+    const aOrder = typeOrder[a.transactionType] || 3;
+    const bOrder = typeOrder[b.transactionType] || 3;
+    
+    return aOrder - bOrder;
+  });
+
+  // Limit transactions to prevent too many rows (keep only recent ones)
+  const limitedTransactions = sortedTransactions.slice(0, 100); // Limit to 100 most recent transactions
+
+  // Calculate warehouse summary when a specific warehouse is selected
+  const calculateWarehouseSummary = () => {
+    if (warehouseFilter === "all") return null;
+    
+    const warehouseTransactions = limitedTransactions.filter(
+      (item) => item.warehouseId === warehouseFilter
+    );
+    
+    let totalQuantity = 0;
+    let warehouseName = warehouseFilter;
+    let currentStoreQuantity = 0;
+    
+    // Get current quantity from warehouseData if available
+    if (warehouseData.has(warehouseFilter)) {
+      const warehouseInfo = warehouseData.get(warehouseFilter);
+      warehouseName = warehouseInfo.name;
+      currentStoreQuantity = warehouseInfo.quantity || 0;
+    }
+    
+    // Calculate total from transactions
+    warehouseTransactions.forEach((transaction) => {
+      totalQuantity += transaction.rawQuantity || 0;
+    });
+    
+    return {
+      warehouseId: warehouseFilter,
+      warehouseName: warehouseName,
+      currentStoreQuantity: currentStoreQuantity,
+      calculatedQuantity: totalQuantity,
+      finalQuantity: currentStoreQuantity + totalQuantity
+    };
+  };
+
+  const warehouseSummary = calculateWarehouseSummary();
+
   // Get unique project names for filter dropdown
-  const projectOptions = sortedTransactions
-    ? [...new Set(sortedTransactions.map((item) => item.project))].filter(
+  const projectOptions = limitedTransactions
+    ? [...new Set(limitedTransactions.map((item) => item.project))].filter(
         Boolean
       )
     : [];
 
   // Get unique warehouse names for filter dropdown
-  const warehouseOptionsFromData = sortedTransactions
-    ? [...new Set(sortedTransactions.map((item) => item.warehouseId))]
+  const warehouseOptionsFromData = limitedTransactions
+    ? [...new Set(limitedTransactions.map((item) => item.warehouseId))]
         .filter(Boolean)
         .sort()
     : [];
 
   // Get unique statuses for filter dropdown
-  const statusOptions = sortedTransactions
-    ? [...new Set(sortedTransactions.map((item) => item.dailyStatus))].filter(
+  const statusOptions = limitedTransactions
+    ? [...new Set(limitedTransactions.map((item) => item.dailyStatus))].filter(
         Boolean
       )
     : [];
 
   // Get unique transaction types for filter dropdown
-  const transactionTypeOptions = sortedTransactions
+  const transactionTypeOptions = limitedTransactions
     ? [
-        ...new Set(sortedTransactions.map((item) => item.transactionType)),
+        ...new Set(limitedTransactions.map((item) => item.transactionType)),
       ].filter(Boolean)
     : [];
 
   // Filter data based on warehouse, status, project, and transaction type
-  const filteredData = sortedTransactions.filter((item) => {
+  const filteredData = limitedTransactions.filter((item) => {
     // Warehouse filter logic
     const warehouseMatch =
       warehouseFilter === "all" || item.warehouseId === warehouseFilter;
@@ -363,6 +470,8 @@ const WareHouseAllocation = () => {
   };
 
   console.log("Current inventory transactions:", currentItems);
+  console.log("Total transactions found:", limitedTransactions.length);
+  console.log("BLNK transfer transactions:", limitedTransactions.filter(t => t.source === 'blankStoreTransfer'));
 
   if (loading) {
     return (
@@ -495,6 +604,54 @@ const WareHouseAllocation = () => {
       </CardHeader>
 
       <CardBody className="p-0">
+        {/* Warehouse Summary Display */}
+        {warehouseSummary && (
+          <div className="bg-light border-bottom p-3">
+            <Row className="align-items-center">
+              <Col md={12}>
+                <div className="d-flex align-items-center justify-content-between">
+                  <div>
+                    <h6 className="mb-1 text-primary">
+                      <i className="ri-warehouse-line me-2"></i>
+                      Warehouse Summary: {warehouseSummary.warehouseName}
+                    </h6>
+                    <small className="text-muted">
+                      Warehouse ID: {warehouseSummary.warehouseId}
+                    </small>
+                  </div>
+                  <div className="text-end">
+                    <div className="d-flex align-items-center gap-3">
+                      <div className="text-center">
+                        <small className="text-muted d-block">Store Variable</small>
+                        <span className="fw-bold text-info">
+                          {warehouseSummary.currentStoreQuantity}
+                        </span>
+                      </div>
+                      <div className="text-center">
+                        <small className="text-muted d-block">Transaction Net</small>
+                        <span className={`fw-bold ${
+                          warehouseSummary.calculatedQuantity >= 0 
+                            ? 'text-success' 
+                            : 'text-danger'
+                        }`}>
+                          {warehouseSummary.calculatedQuantity >= 0 ? '+' : ''}
+                          {warehouseSummary.calculatedQuantity}
+                        </span>
+                      </div>
+                      <div className="text-center">
+                        <small className="text-muted d-block">Final Quantity</small>
+                        <span className="fw-bold text-primary fs-5">
+                          {warehouseSummary.finalQuantity}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </Col>
+            </Row>
+          </div>
+        )}
+
         <div className="table-responsive">
           <Table hover className="mb-0">
             <thead className="table-light">

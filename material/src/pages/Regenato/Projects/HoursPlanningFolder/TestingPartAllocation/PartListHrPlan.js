@@ -1910,6 +1910,10 @@ export const PartListHrPlan = ({
               (m) => m.subcategoryId === row.machineId
             );
 
+            // Get first process warehouse details for BLNK transfer
+            const firstProcessWarehouseName = machine?.wareHouse || "N/A";
+            const firstProcessWarehouseQty = machine?.quantity || 0;
+
             flatAllocations.push({
               partName,
               processName: `${man.categoryId} - ${man.name}`,
@@ -1942,6 +1946,16 @@ export const PartListHrPlan = ({
                     ? selectedShift.workingMinutes
                     : 510,
                   perMachinetotalTime: Math.ceil(man.hours * 60),
+                  // Add BLNK transfer data for first process only
+                  ...(index === 0 && {
+                    blankStoreTransfer: {
+                      blankStoreName: "BLNK",
+                      blankStoreQty: Number(quantity) || 0,
+                      firstProcessWarehouseName: firstProcessWarehouseName,
+                      firstProcessWarehouseQty: firstProcessWarehouseQty,
+                      transferTimestamp: new Date().toISOString(),
+                    },
+                  }),
                 },
               ],
             });
