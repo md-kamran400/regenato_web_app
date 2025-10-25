@@ -1370,7 +1370,7 @@ partproject.post(
       partItem.allocations = [];
  
       // Add all allocations in the same order
-      allocations.forEach((alloc) => {
+      allocations.forEach((alloc, allocationIndex) => {
         const newAllocation = {
           partName: alloc.partName,
           processName: alloc.processName,
@@ -1380,7 +1380,7 @@ partproject.post(
             const shiftTotalTime = a.shiftTotalTime || 510; // Default to 8.5 hours in minutes
             const perMachinetotalTime = a.perMachinetotalTime || 1; // Prevent division by zero
             const plannedQuantity = a.plannedQuantity || 0;
- 
+
             // Calculate daily planned quantity considering total quantity
             let dailyPlannedQty;
             if (perMachinetotalTime <= 0) {
@@ -1392,15 +1392,25 @@ partproject.post(
                   ? plannedQuantity // Can complete in one day
                   : Math.floor(shiftTotalTime / perMachinetotalTime); // Daily capacity
             }
- 
+
+            // Create BLNK transfer data for first process only (index 0)
+            let blankStoreTransfer = null;
+            if (allocationIndex === 0) {
+              blankStoreTransfer = {
+                blankStoreName: "BLNK",
+                blankStoreQty: plannedQuantity, // Set to required quantity
+                firstProcessWarehouseName: a.wareHouse || a.warehouseId,
+                firstProcessWarehouseQty: 0, // Will be updated when warehouse quantity is fetched
+                transferTimestamp: new Date().toISOString()
+              };
+            }
+
             return {
               ...a,
               dailyPlannedQty,
               dailyTracking: [],
-              // Include BLNK transfer data if present
-              ...(a.blankStoreTransfer && {
-                blankStoreTransfer: a.blankStoreTransfer
-              })
+              // Include BLNK transfer data for first process
+              ...(blankStoreTransfer && { blankStoreTransfer })
             };
           }),
         };
@@ -1535,7 +1545,7 @@ partproject.get(
 
           // Process each allocation to find and store matching warehouse quantity
           const updatedAllocations = await Promise.all(
-            partItem.allocations.map(async (allocation) => {
+            partItem.allocations.map(async (allocation, allocationIndex) => {
               let warehouseQuantity = 0;
 
               if (allocation.warehouseId) {
@@ -1558,6 +1568,11 @@ partproject.get(
 
                   // Update the allocation's warehouseQuantity in the database
                   allocation.warehouseQuantity = warehouseQuantity;
+                  
+                  // Update blankStoreTransfer for first process (index 0)
+                  if (allocationIndex === 0 && allocation.blankStoreTransfer) {
+                    allocation.blankStoreTransfer.firstProcessWarehouseQty = warehouseQuantity;
+                  }
                 }
               }
 
