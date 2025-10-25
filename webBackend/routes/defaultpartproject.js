@@ -1342,33 +1342,33 @@ partproject.post(
     try {
       const { projectId, partsListId, partsListItemsId } = req.params;
       const { allocations } = req.body;
-
+ 
       if (!Array.isArray(allocations) || allocations.length === 0) {
         return res.status(400).json({ message: "Invalid allocation data" });
       }
-
+ 
       const project = await PartListProjectModel.findById(projectId);
       if (!project) {
         return res.status(404).json({ message: "Project not found" });
       }
-
+ 
       const partsList = project.partsLists.find(
         (list) => list._id.toString() === partsListId
       );
       if (!partsList) {
         return res.status(404).json({ message: "Parts List not found" });
       }
-
+ 
       const partItem = partsList.partsListItems.find(
         (item) => item._id.toString() === partsListItemsId
       );
       if (!partItem) {
         return res.status(404).json({ message: "Part List Item not found" });
       }
-
+ 
       // Clear existing allocations
       partItem.allocations = [];
-
+ 
       // Add all allocations in the same order
       allocations.forEach((alloc) => {
         const newAllocation = {
@@ -1380,7 +1380,7 @@ partproject.post(
             const shiftTotalTime = a.shiftTotalTime || 510; // Default to 8.5 hours in minutes
             const perMachinetotalTime = a.perMachinetotalTime || 1; // Prevent division by zero
             const plannedQuantity = a.plannedQuantity || 0;
-
+ 
             // Calculate daily planned quantity considering total quantity
             let dailyPlannedQty;
             if (perMachinetotalTime <= 0) {
@@ -1392,24 +1392,28 @@ partproject.post(
                   ? plannedQuantity // Can complete in one day
                   : Math.floor(shiftTotalTime / perMachinetotalTime); // Daily capacity
             }
-
+ 
             return {
               ...a,
               dailyPlannedQty,
               dailyTracking: [],
+              // Include BLNK transfer data if present
+              ...(a.blankStoreTransfer && {
+                blankStoreTransfer: a.blankStoreTransfer
+              })
             };
           }),
         };
         partItem.allocations.push(newAllocation);
       });
-
+ 
       // Update status
       const status = partItem.calculateStatus();
       partItem.status = status.text;
       partItem.statusClass = status.class;
-
+ 
       await project.save();
-
+ 
       res.status(201).json({
         message: "Allocations added successfully",
         data: {
@@ -1424,6 +1428,7 @@ partproject.post(
     }
   }
 );
+ 
 
 partproject.delete(
   "/projects/:projectId/partsLists/:partsListId/partsListItems/:partsListItemsId/allocation",

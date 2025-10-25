@@ -17,19 +17,41 @@ const AllocationPlanningSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    allocations: [
-      {
-        splitNumber: {
-          type: String,
-        },
-        AllocationPartType: {
-          type: String,
-        },
-        plannedQuantity: {
-          type: Number,
-          required: true,
-          min: 0,
-        },
+        allocations: [
+          {
+            splitNumber: {
+              type: String,
+            },
+            AllocationPartType: {
+              type: String,
+            },
+            plannedQuantity: {
+              type: Number,
+              required: true,
+              min: 0,
+            },
+            // BLNK warehouse transfer fields
+            blankStoreTransfer: {
+              blankStoreName: {
+                type: String,
+                default: "BLNK"
+              },
+              blankStoreQty: {
+                type: Number,
+                default: 0
+              },
+              firstProcessWarehouseName: {
+                type: String
+              },
+              firstProcessWarehouseQty: {
+                type: Number,
+                default: 0
+              },
+              transferTimestamp: {
+                type: Date,
+                default: Date.now
+              }
+            },
         startDate: {
           type: Date,
           required: true,
