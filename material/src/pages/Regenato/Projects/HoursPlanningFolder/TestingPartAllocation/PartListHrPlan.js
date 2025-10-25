@@ -607,71 +607,147 @@ export const PartListHrPlan = ({
     return `${minutes}m`;
   };
 
-  const isOperatorAvailable = (operatorId, startDate, endDate) => {
+  // const isOperatorAvailable = (operatorId, startDate, endDate) => {
+  //   if (!startDate || !endDate) {
+  //     return {
+  //       available: true,
+  //       status: "Available",
+  //       allocation: null,
+  //     };
+  //   }
+
+  //   // Convert dates to Date objects if they aren't already
+  //   const parsedStart = new Date(startDate);
+  //   const parsedEnd = new Date(endDate);
+
+  //   // Set hours to start of day for proper date comparison
+  //   parsedStart.setHours(0, 0, 0, 0);
+  //   parsedEnd.setHours(0, 0, 0, 0);
+
+  //   // Find the operator
+  //   const operator = operators.find((op) => op._id === operatorId);
+  //   if (!operator) {
+  //     return {
+  //       available: true,
+  //       status: "Available",
+  //       allocation: null,
+  //     };
+  //   }
+
+  //   // Check if operator is on leave
+  //   if (isOperatorOnLeave(operator, parsedStart, parsedEnd)) {
+  //     return {
+  //       available: false,
+  //       status: "On Leave",
+  //       allocation: null,
+  //     };
+  //   }
+
+  //   // Check if operator has any allocations
+  //   if (
+  //     !operatorAllocations[operatorId] ||
+  //     operatorAllocations[operatorId].length === 0
+  //   ) {
+  //     return {
+  //       available: true,
+  //       status: "Available",
+  //       allocation: null,
+  //     };
+  //   }
+
+  //   // Find conflicting allocation
+  //   const conflictingAllocation = operatorAllocations[operatorId].find(
+  //     (alloc) => {
+  //       const allocStart = new Date(alloc.startDate);
+  //       const allocEnd = new Date(alloc.actualEndDate || alloc.endDate);
+
+  //       // Set hours to start of day for proper date comparison
+  //       allocStart.setHours(0, 0, 0, 0);
+  //       allocEnd.setHours(0, 0, 0, 0);
+
+  //       return (
+  //         (parsedStart >= allocStart && parsedStart <= allocEnd) ||
+  //         (parsedEnd >= allocStart && parsedEnd <= allocEnd) ||
+  //         (parsedStart <= allocStart && parsedEnd >= allocEnd)
+  //       );
+  //     }
+  //   );
+
+  //   return {
+  //     available: !conflictingAllocation,
+  //     status: conflictingAllocation ? "Occupied" : "Available",
+  //     allocation: conflictingAllocation || null,
+  //   };
+  // };
+
+  //  Updated Operator Availability Logic (Fixed for Job Work)
+  const isOperatorAvailable = (
+    operatorId,
+    startDate,
+    endDate,
+    startTime = null,
+    processName = ""
+  ) => {
     if (!startDate || !endDate) {
-      return {
-        available: true,
-        status: "Available",
-        allocation: null,
-      };
+      return { available: true, status: "Available", allocation: null };
     }
 
-    // Convert dates to Date objects if they aren't already
     const parsedStart = new Date(startDate);
     const parsedEnd = new Date(endDate);
 
-    // Set hours to start of day for proper date comparison
-    parsedStart.setHours(0, 0, 0, 0);
-    parsedEnd.setHours(0, 0, 0, 0);
-
-    // Find the operator
     const operator = operators.find((op) => op._id === operatorId);
     if (!operator) {
-      return {
-        available: true,
-        status: "Available",
-        allocation: null,
-      };
+      return { available: true, status: "Available", allocation: null };
     }
 
-    // Check if operator is on leave
-    if (isOperatorOnLeave(operator, parsedStart, parsedEnd)) {
-      return {
-        available: false,
-        status: "On Leave",
-        allocation: null,
-      };
-    }
-
-    // Check if operator has any allocations
+    // ✅ Step 1: Skip availability check if process is Job Work
     if (
-      !operatorAllocations[operatorId] ||
-      operatorAllocations[operatorId].length === 0
+      processName?.toLowerCase().includes("job work") ||
+      processName?.toLowerCase().includes("jobwork")
     ) {
-      return {
-        available: true,
-        status: "Available",
-        allocation: null,
-      };
+      return { available: true, status: "Available", allocation: null };
     }
 
-    // Find conflicting allocation
-    const conflictingAllocation = operatorAllocations[operatorId].find(
-      (alloc) => {
-        const allocStart = new Date(alloc.startDate);
-        const allocEnd = new Date(alloc.actualEndDate || alloc.endDate);
+    // ✅ Step 2: Check if operator is on leave
+    if (isOperatorOnLeave(operator, parsedStart, parsedEnd)) {
+      return { available: false, status: "On Leave", allocation: null };
+    }
 
-        // Set hours to start of day for proper date comparison
-        allocStart.setHours(0, 0, 0, 0);
-        allocEnd.setHours(0, 0, 0, 0);
+    const allocations = operatorAllocations[operatorId] || [];
+    if (allocations.length === 0) {
+      return { available: true, status: "Available", allocation: null };
+    }
 
-        return (
-          (parsedStart >= allocStart && parsedStart <= allocEnd) ||
-          (parsedEnd >= allocStart && parsedEnd <= allocEnd) ||
-          (parsedStart <= allocStart && parsedEnd >= allocEnd)
-        );
+    // ✅ Step 3: Check for conflicting allocation (same logic as machine)
+    const conflictingAllocation = allocations.find((alloc) => {
+      const allocStart = new Date(alloc.startDate);
+      const allocEnd = new Date(alloc.actualEndDate || alloc.endDate);
+
+      const datesOverlap =
+        (parsedStart >= allocStart && parsedStart <= allocEnd) ||
+        (parsedEnd >= allocStart && parsedEnd <= allocEnd) ||
+        (parsedStart <= allocStart && parsedEnd >= allocEnd);
+
+      if (!datesOverlap) return false;
+
+      // ✅ Step 4: Use actualEndTime logic (same as machine)
+      if (alloc.actualEndDate && alloc.actualEndTime) {
+        const actualEndDate = new Date(alloc.actualEndDate);
+
+        if (parsedStart.toDateString() === actualEndDate.toDateString()) {
+          if (startTime && isTimeAfter(startTime, alloc.actualEndTime)) {
+            return false; // ✅ Available after actualEndTime
+          }
+          return true; // ❌ Busy within same day
+        }
+
+        if (parsedStart > actualEndDate) {
+          return false; // ✅ Available if after actualEndDate
+        }
       }
-    );
+
+      return true; // ❌ Default overlap
+    });
 
     return {
       available: !conflictingAllocation,
@@ -916,6 +992,63 @@ export const PartListHrPlan = ({
         }
       }
       setMachineOptions(machineData);
+
+      // Auto-select first machine for first process to populate warehouse by default
+      if (manufacturingVariables.length > 0) {
+        const firstProcessCategoryId = manufacturingVariables[0].categoryId;
+        const firstProcessMachines = machineData[firstProcessCategoryId] || [];
+
+        if (firstProcessMachines.length > 0) {
+          const firstAvailableMachine =
+            firstProcessMachines.find((machine) => machine.isAvailable) ||
+            firstProcessMachines[0];
+
+          if (firstAvailableMachine) {
+            console.log(
+              "=== Auto-Selecting First Machine for Default Warehouse ==="
+            );
+            console.log(
+              "✅ Auto-selected machine:",
+              firstAvailableMachine.subcategoryId
+            );
+            console.log(
+              "✅ Auto-selected warehouse:",
+              firstAvailableMachine.wareHouse ||
+                firstAvailableMachine.warehouseId ||
+                firstAvailableMachine.wareHouseId
+            );
+
+            // Update rows to include the auto-selected machine
+            setRows((prevRows) => {
+              const updatedRows = { ...prevRows };
+              if (updatedRows[0] && updatedRows[0].length > 0) {
+                updatedRows[0][0] = {
+                  ...updatedRows[0][0],
+                  machineId: firstAvailableMachine.subcategoryId,
+                  wareHouse: firstAvailableMachine.wareHouse || "",
+                  warehouseId: firstAvailableMachine.warehouseId || "",
+                };
+              }
+              return updatedRows;
+            });
+
+            console.log("=== BLNK Transfer Values (Auto-Selected Machine) ===");
+            console.log("blankStoreName:", "BLNK");
+            console.log("blankStoreQty:", quantity || 0);
+            console.log(
+              "firstProcessWarehouseName:",
+              firstAvailableMachine.wareHouse ||
+                firstAvailableMachine.warehouseId ||
+                firstAvailableMachine.wareHouseId ||
+                "N/A"
+            );
+            console.log("firstProcessWarehouseQty:", quantity || 0);
+            console.log("transferTimestamp:", new Date().toISOString());
+            console.log("==================================================");
+          }
+        }
+      }
+
       // console.log("spectillsjfslj", machineData);
     };
     fetchMachines();
@@ -1070,6 +1203,54 @@ export const PartListHrPlan = ({
     if (index === 0 && nextWorkingDay) {
       // Disable all start date pickers except the first one
       setHasStartDate(true);
+
+      // Console log BLNK transfer values when start date is selected for first process
+      console.log("=== BLNK Transfer Values (Start Date Selected) ===");
+      console.log("blankStoreName:", "BLNK");
+      console.log("blankStoreQty:", quantity || 0);
+
+      // Get first process warehouse details from machine selection
+      const firstProcessRows = rows[0];
+      let firstProcessWarehouseName = "N/A";
+      if (Array.isArray(firstProcessRows)) {
+        for (const r of firstProcessRows) {
+          if (r && r.machineId) {
+            // Get warehouse from machine options
+            const firstProcessCategoryId =
+              manufacturingVariables[0]?.categoryId;
+            const machinesForProcess =
+              machineOptions[firstProcessCategoryId] || [];
+            const matchedMachine = machinesForProcess.find(
+              (m) => m?.subcategoryId === r.machineId
+            );
+
+            if (matchedMachine) {
+              firstProcessWarehouseName =
+                matchedMachine.wareHouse ||
+                matchedMachine.warehouseId ||
+                matchedMachine.wareHouseId ||
+                "N/A";
+              console.log(
+                "✅ Found warehouse from selected machine:",
+                firstProcessWarehouseName
+              );
+              break;
+            }
+          }
+        }
+      }
+
+      // If no machine selected yet, show message
+      if (firstProcessWarehouseName === "N/A") {
+        console.log(
+          "⚠️ No machine selected yet - warehouse will be updated when machine is selected"
+        );
+      }
+
+      console.log("firstProcessWarehouseName:", firstProcessWarehouseName);
+      console.log("firstProcessWarehouseQty:", quantity || 0);
+      console.log("transferTimestamp:", new Date().toISOString());
+      console.log("================================================");
     }
 
     setRows((prevRows) => {
@@ -1910,9 +2091,23 @@ export const PartListHrPlan = ({
               (m) => m.subcategoryId === row.machineId
             );
 
-            // Get first process warehouse details for BLNK transfer
-            const firstProcessWarehouseName = machine?.wareHouse || "N/A";
-            const firstProcessWarehouseQty = machine?.quantity || 0;
+            // Get first process warehouse details for BLNK transfer - use same logic as console logging
+            const firstProcessWarehouseName =
+              machine?.wareHouse ||
+              machine?.warehouseId ||
+              machine?.wareHouseId ||
+              "N/A";
+            const firstProcessWarehouseQty = row.plannedQuantity; // Use planned quantity for warehouse allocation display
+
+            // Console log to verify warehouse name is correct
+            if (index === 0) {
+              console.log("=== HandleSubmit Warehouse Verification ===");
+              console.log("✅ Machine ID:", row.machineId);
+              console.log("✅ Machine Object:", machine);
+              console.log("✅ Warehouse Name:", firstProcessWarehouseName);
+              console.log("✅ Planned Quantity:", firstProcessWarehouseQty);
+              console.log("==========================================");
+            }
 
             flatAllocations.push({
               partName,
@@ -1948,13 +2143,58 @@ export const PartListHrPlan = ({
                   perMachinetotalTime: Math.ceil(man.hours * 60),
                   // Add BLNK transfer data for first process only
                   ...(index === 0 && {
-                    blankStoreTransfer: {
-                      blankStoreName: "BLNK",
-                      blankStoreQty: Number(quantity) || 0,
-                      firstProcessWarehouseName: firstProcessWarehouseName,
-                      firstProcessWarehouseQty: firstProcessWarehouseQty,
-                      transferTimestamp: new Date().toISOString(),
-                    },
+                    blankStoreTransfer: (() => {
+                      const blankStoreTransfer = {
+                        blankStoreName: "BLNK",
+                        blankStoreQty: row.plannedQuantity, // Use the actual planned quantity for this row
+                        firstProcessWarehouseName: firstProcessWarehouseName,
+                        firstProcessWarehouseQty: row.plannedQuantity, // Send the required quantity to show correct warehouse allocation
+                        transferTimestamp: new Date().toISOString(),
+                      };
+
+                      // Console log BLNK transfer values before sending to backend
+                      console.log(
+                        "=== BLNK Transfer Values (Before Submit) ==="
+                      );
+                      console.log("✅ Machine ID:", row.machineId);
+                      console.log("✅ Machine Object:", machine);
+                      console.log(
+                        "✅ Warehouse from Machine:",
+                        firstProcessWarehouseName
+                      );
+                      console.log("✅ Machine wareHouse:", machine?.wareHouse);
+                      console.log(
+                        "✅ Machine warehouseId:",
+                        machine?.warehouseId
+                      );
+                      console.log(
+                        "✅ Machine wareHouseId:",
+                        machine?.wareHouseId
+                      );
+                      console.log(
+                        "blankStoreName:",
+                        blankStoreTransfer.blankStoreName
+                      );
+                      console.log(
+                        "blankStoreQty:",
+                        blankStoreTransfer.blankStoreQty
+                      );
+                      console.log(
+                        "firstProcessWarehouseName:",
+                        blankStoreTransfer.firstProcessWarehouseName
+                      );
+                      console.log(
+                        "firstProcessWarehouseQty:",
+                        blankStoreTransfer.firstProcessWarehouseQty
+                      );
+                      console.log(
+                        "transferTimestamp:",
+                        blankStoreTransfer.transferTimestamp
+                      );
+                      console.log("==========================================");
+
+                      return blankStoreTransfer;
+                    })(),
                   }),
                 },
               ],
@@ -4526,6 +4766,46 @@ export const PartListHrPlan = ({
                                           ? newValue.warehouseId
                                           : "",
                                       };
+
+                                      // Console log BLNK transfer values when machine is selected for first process
+                                      if (index === 0 && newValue) {
+                                        const warehouseName =
+                                          newValue.wareHouse ||
+                                          newValue.warehouseId ||
+                                          newValue.wareHouseId ||
+                                          "N/A";
+                                        console.log(
+                                          "=== BLNK Transfer Values (Machine Selected) ==="
+                                        );
+                                        console.log(
+                                          "✅ Machine Selected:",
+                                          newValue.subcategoryId
+                                        );
+                                        console.log(
+                                          "✅ Warehouse Found:",
+                                          warehouseName
+                                        );
+                                        console.log("blankStoreName:", "BLNK");
+                                        console.log(
+                                          "blankStoreQty:",
+                                          quantity || 0
+                                        );
+                                        console.log(
+                                          "firstProcessWarehouseName:",
+                                          warehouseName
+                                        );
+                                        console.log(
+                                          "firstProcessWarehouseQty:",
+                                          quantity || 0
+                                        );
+                                        console.log(
+                                          "transferTimestamp:",
+                                          new Date().toISOString()
+                                        );
+                                        console.log(
+                                          "============================================="
+                                        );
+                                      }
 
                                       if (
                                         newValue &&

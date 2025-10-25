@@ -127,39 +127,49 @@ const WareHouseAllocation = () => {
                 blnkTransferProcessed = true; // Mark as processed
                 const transfer = alloc.blankStoreTransfer;
                 
-                // Create OUT transaction for BLNK warehouse
-                allTransactions.push({
-                  warehouseId: transfer.blankStoreName,
-                  transactionType: "Out",
-                  quantityChange: `(-${transfer.blankStoreQty})`,
-                  timestamp: transfer.transferTimestamp,
-                  project: project.projectName,
-                  partName: allocation.partName,
-                  process: "--",
-                  machine: "--",
-                  operator: "--",
-                  rawQuantity: -transfer.blankStoreQty,
-                  dailyStatus: "Allocated",
-                  partsCodeId: allocation.partsCodeId,
-                  source: "blankStoreTransfer",
-                });
+                // Only create transactions if blankStoreQty > 0
+                if (transfer.blankStoreQty > 0) {
+                  console.log("Creating BLNK transfer transactions:", transfer);
+                  
+                   // Create IN transaction for first process warehouse (Row 2)
+                  allTransactions.push({
+                    warehouseId: transfer.firstProcessWarehouseName || alloc.wareHouse || alloc.warehouseId,
+                    transactionType: "In",
+                    quantityChange: `(+${transfer.blankStoreQty}) (${transfer.firstProcessWarehouseQty})`,
+                    timestamp: transfer.transferTimestamp,
+                    project: project.projectName,
+                    partName: allocation.partName,
+                    process: allocation.processName,
+                    machine: alloc.machineId || "--",
+                    operator: alloc.operator || "--",
+                    rawQuantity: transfer.blankStoreQty,
+                    dailyStatus: "Allocated",
+                    partsCodeId: allocation.partsCodeId,
+                    source: "blankStoreTransfer",
+                  });
 
-                // Create IN transaction for first process warehouse
-                allTransactions.push({
-                  warehouseId: transfer.firstProcessWarehouseName,
-                  transactionType: "In",
-                  quantityChange: `(+${transfer.blankStoreQty}) (${transfer.firstProcessWarehouseQty})`,
-                  timestamp: transfer.transferTimestamp,
-                  project: project.projectName,
-                  partName: allocation.partName,
-                  process: allocation.processName,
-                  machine: alloc.machineId || "--",
-                  operator: alloc.operator || "--",
-                  rawQuantity: transfer.blankStoreQty,
-                  dailyStatus: "Allocated",
-                  partsCodeId: allocation.partsCodeId,
-                  source: "blankStoreTransfer",
-                });
+                  
+                  // Create OUT transaction for BLNK warehouse (Row 1)
+                  allTransactions.push({
+                    warehouseId: transfer.blankStoreName || "BLNK",
+                    transactionType: "Out",
+                    quantityChange: `(-${transfer.blankStoreQty})`,
+                    timestamp: transfer.transferTimestamp,
+                    project: project.projectName,
+                    partName: allocation.partName,
+                    process: "--",
+                    machine: "--",
+                    operator: "--",
+                    rawQuantity: -transfer.blankStoreQty,
+                    dailyStatus: "Allocated",
+                    partsCodeId: allocation.partsCodeId,
+                    source: "blankStoreTransfer",
+                  });
+
+                 
+                  
+                  console.log("BLNK transfer transactions created successfully");
+                }
               }
 
               if (alloc.dailyTracking && Array.isArray(alloc.dailyTracking)) {
