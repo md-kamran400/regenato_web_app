@@ -2453,18 +2453,17 @@ partproject.put(
   async (req, res) => {
     try {
       const { projectId, partsListId, partListItemId } = req.params;
-      const { fromWarehouseId, toWarehouseId, quantity } = req.body;
-
+      const { fromWarehouseId, toWarehouseId, quantity, isRejectionTransfer = false } = req.body;
+ 
       if (!toWarehouseId || quantity === undefined) {
         return res.status(400).json({
           success: false,
-          error:
-            "toWarehouseId and quantity are required. fromWarehouseId is optional (last process).",
+          error: "toWarehouseId and quantity are required.",
         });
       }
-
+ 
       const StoreVariableModal = require("../model/storemodel");
-
+ 
       // Fetch both warehouses
       let [toWarehouse, fromWarehouse] = await Promise.all([
         StoreVariableModal.findOne({ categoryId: toWarehouseId }),
@@ -2472,66 +2471,62 @@ partproject.put(
           ? StoreVariableModal.findOne({ categoryId: fromWarehouseId })
           : Promise.resolve(null),
       ]);
-
+ 
       if (!toWarehouse) {
-        return res
-          .status(404)
-          .json({ success: false, error: "To warehouse not found" });
+        return res.status(404).json({ success: false, error: "To warehouse not found" });
       }
-
+ 
       const qty = Number(quantity || 0);
-
-      // Decrement TO warehouse (current process output warehouse)
-      if (
-        !Array.isArray(toWarehouse.quantity) ||
-        toWarehouse.quantity.length === 0
-      ) {
-        toWarehouse.quantity = [0];
-      }
-      const toPrev = Number(toWarehouse.quantity[0] || 0);
-      const toNew = Math.max(0, toPrev - qty);
-      toWarehouse.quantity[0] = toNew;
-
-      // Ensure FROM warehouse exists; if not, create a shell record so we can increment it
-      if (!fromWarehouse && fromWarehouseId) {
-        try {
-          fromWarehouse = new StoreVariableModal({
-            categoryId: fromWarehouseId,
-            Name: [fromWarehouseId],
-            location: [""],
-            quantity: [0],
-          });
-          await fromWarehouse.save();
-        } catch (e) {
-          // If creation fails, continue with decrement only
-          fromWarehouse = null;
+      let toPrev, toNew, fromPrev, fromNew;
+ 
+      if (isRejectionTransfer) {
+        // 🔄 REJECTION TRANSFER: Decrement FROM, Increment TO (Rejection)
+        if (fromWarehouse) {
+          if (!Array.isArray(fromWarehouse.quantity) || fromWarehouse.quantity.length === 0) {
+            fromWarehouse.quantity = [0];
+          }
+          fromPrev = Number(fromWarehouse.quantity[0] || 0);
+          fromNew = Math.max(0, fromPrev - qty);
+          fromWarehouse.quantity[0] = fromNew;
         }
-      }
-
-      // Increment FROM warehouse (next process input warehouse) if provided or created
-      let fromPrev = null;
-      let fromNew = null;
-      if (fromWarehouse) {
-        if (
-          !Array.isArray(fromWarehouse.quantity) ||
-          fromWarehouse.quantity.length === 0
-        ) {
-          fromWarehouse.quantity = [0];
+ 
+        // Increment rejection warehouse
+        if (!Array.isArray(toWarehouse.quantity) || toWarehouse.quantity.length === 0) {
+          toWarehouse.quantity = [0];
         }
-        fromPrev = Number(fromWarehouse.quantity[0] || 0);
-        fromNew = fromPrev + qty;
-        fromWarehouse.quantity[0] = fromNew;
+        toPrev = Number(toWarehouse.quantity[0] || 0);
+        toNew = toPrev + qty;
+        toWarehouse.quantity[0] = toNew;
+ 
+      } else {
+        // 🔄 NORMAL TRANSFER: Decrement FROM, Increment TO
+        if (fromWarehouse) {
+          if (!Array.isArray(fromWarehouse.quantity) || fromWarehouse.quantity.length === 0) {
+            fromWarehouse.quantity = [0];
+          }
+          fromPrev = Number(fromWarehouse.quantity[0] || 0);
+          fromNew = Math.max(0, fromPrev - qty);
+          fromWarehouse.quantity[0] = fromNew;
+        }
+ 
+        // Increment to warehouse
+        if (!Array.isArray(toWarehouse.quantity) || toWarehouse.quantity.length === 0) {
+          toWarehouse.quantity = [0];
+        }
+        toPrev = Number(toWarehouse.quantity[0] || 0);
+        toNew = toPrev + qty;
+        toWarehouse.quantity[0] = toNew;
       }
-
+ 
       // Save changes
       await Promise.all([
         toWarehouse.save(),
         fromWarehouse ? fromWarehouse.save() : Promise.resolve(),
       ]);
-
+ 
       return res.status(200).json({
         success: true,
-        message: "Transfer completed",
+        message: isRejectionTransfer ? "Rejection transfer completed" : "Transfer completed",
         data: {
           toWarehouse: {
             id: toWarehouseId,
@@ -2546,6 +2541,7 @@ partproject.put(
               }
             : null,
           transferred: qty,
+          isRejectionTransfer,
         },
       });
     } catch (error) {
