@@ -110,124 +110,166 @@ const WareHouseAllocation = () => {
   }, []);
 
   // Transform daily tracking data into inventory transactions
-  const transformToInventoryTransactions = (allocationsData) => {
-    if (!allocationsData || !Array.isArray(allocationsData)) return [];
+// Transform daily tracking data into inventory transactions
+const transformToInventoryTransactions = (allocationsData) => {
+  if (!allocationsData || !Array.isArray(allocationsData)) return [];
 
-    const allTransactions = [];
+  const allTransactions = [];
 
-    allocationsData.forEach((project) => {
-      if (project.allocations && Array.isArray(project.allocations)) {
-        let blnkTransferProcessed = false; // Flag to ensure BLNK transfer is only processed once per project
-        
-        project.allocations.forEach((allocation, allocationIndex) => {
-          if (allocation.allocations && Array.isArray(allocation.allocations)) {
-            allocation.allocations.forEach((alloc) => {
-              // Handle BLNK transfer transactions for first process only (index 0) and only once
-              if (alloc.blankStoreTransfer && allocationIndex === 0 && !blnkTransferProcessed) {
-                blnkTransferProcessed = true; // Mark as processed
-                const transfer = alloc.blankStoreTransfer;
+  allocationsData.forEach((project) => {
+    if (project.allocations && Array.isArray(project.allocations)) {
+      let blnkTransferProcessed = false; // Flag to ensure BLNK transfer is only processed once per project
+      
+      project.allocations.forEach((allocation, allocationIndex) => {
+        if (allocation.allocations && Array.isArray(allocation.allocations)) {
+          allocation.allocations.forEach((alloc) => {
+            // Handle BLNK transfer transactions for first process only (index 0) and only once
+            if (alloc.blankStoreTransfer && allocationIndex === 0 && !blnkTransferProcessed) {
+              blnkTransferProcessed = true; // Mark as processed
+              const transfer = alloc.blankStoreTransfer;
+              
+              // Only create transactions if blankStoreQty > 0
+              if (transfer.blankStoreQty > 0) {
+                console.log("Creating BLNK transfer transactions:", transfer);
                 
-                // Only create transactions if blankStoreQty > 0
-                if (transfer.blankStoreQty > 0) {
-                  console.log("Creating BLNK transfer transactions:", transfer);
-                  
-                   // Create IN transaction for first process warehouse (Row 2)
+                // Create IN transaction for first process warehouse (Row 2)
+                allTransactions.push({
+                  warehouseId: transfer.firstProcessWarehouseName || alloc.wareHouse || alloc.warehouseId,
+                  transactionType: "In",
+                  quantityChange: `(+${transfer.blankStoreQty}) (${transfer.firstProcessWarehouseQty})`,
+                  timestamp: transfer.transferTimestamp,
+                  project: project.projectName,
+                  partName: allocation.partName,
+                  process: allocation.processName,
+                  machine: alloc.machineId || "--",
+                  operator: alloc.operator || "--",
+                  rawQuantity: transfer.blankStoreQty,
+                  dailyStatus: "Allocated",
+                  partsCodeId: allocation.partsCodeId,
+                  source: "blankStoreTransfer",
+                });
+
+                // Create OUT transaction for BLNK warehouse (Row 1)
+                allTransactions.push({
+                  warehouseId: transfer.blankStoreName || "BLNK",
+                  transactionType: "Out",
+                  quantityChange: `(-${transfer.blankStoreQty})`,
+                  timestamp: transfer.transferTimestamp,
+                  project: project.projectName,
+                  partName: allocation.partName,
+                  process: "--",
+                  machine: "--",
+                  operator: "--",
+                  rawQuantity: -transfer.blankStoreQty,
+                  dailyStatus: "Allocated",
+                  partsCodeId: allocation.partsCodeId,
+                  source: "blankStoreTransfer",
+                });
+
+                console.log("BLNK transfer transactions created successfully");
+              }
+            }
+
+            if (alloc.dailyTracking && Array.isArray(alloc.dailyTracking)) {
+              alloc.dailyTracking.forEach((tracking) => {
+                // Create OUT transaction for fromWarehouse (for produced quantity)
+                if (
+                  tracking.fromWarehouse &&
+                  tracking.fromWarehouse !== "N/A" &&
+                  tracking.produced > 0
+                ) {
                   allTransactions.push({
-                    warehouseId: transfer.firstProcessWarehouseName || alloc.wareHouse || alloc.warehouseId,
-                    transactionType: "In",
-                    quantityChange: `(+${transfer.blankStoreQty}) (${transfer.firstProcessWarehouseQty})`,
-                    timestamp: transfer.transferTimestamp,
+                    warehouseId: tracking.fromWarehouse,
+                    transactionType: "Out",
+                    quantityChange: `(-${tracking.produced}) ${tracking.fromWarehouseQty || 0}`,
+                    timestamp: tracking.date,
                     project: project.projectName,
                     partName: allocation.partName,
                     process: allocation.processName,
-                    machine: alloc.machineId || "--",
-                    operator: alloc.operator || "--",
-                    rawQuantity: transfer.blankStoreQty,
-                    dailyStatus: "Allocated",
+                    machine: tracking.machineId || alloc.machineId,
+                    operator: tracking.operator || alloc.operator,
+                    rawQuantity: -tracking.produced,
+                    dailyStatus: tracking.dailyStatus,
                     partsCodeId: allocation.partsCodeId,
-                    source: "blankStoreTransfer",
+                    source: "dailyTracking",
                   });
+                }
 
-                  
-                  // Create OUT transaction for BLNK warehouse (Row 1)
+                // Create IN transaction for toWarehouse (for produced quantity)
+                if (
+                  tracking.toWarehouse &&
+                  tracking.toWarehouse !== "N/A" &&
+                  tracking.produced > 0
+                ) {
                   allTransactions.push({
-                    warehouseId: transfer.blankStoreName || "BLNK",
-                    transactionType: "Out",
-                    quantityChange: `(-${transfer.blankStoreQty})`,
-                    timestamp: transfer.transferTimestamp,
+                    warehouseId: tracking.toWarehouse,
+                    transactionType: "In",
+                    quantityChange: `(+${tracking.produced}) ${tracking.toWarehouseQty || 0}`,
+                    timestamp: tracking.date,
                     project: project.projectName,
                     partName: allocation.partName,
-                    process: "--",
-                    machine: "--",
-                    operator: "--",
-                    rawQuantity: -transfer.blankStoreQty,
-                    dailyStatus: "Allocated",
+                    process: allocation.processName,
+                    machine: tracking.machineId || alloc.machineId,
+                    operator: tracking.operator || alloc.operator,
+                    rawQuantity: tracking.produced,
+                    dailyStatus: tracking.dailyStatus,
                     partsCodeId: allocation.partsCodeId,
-                    source: "blankStoreTransfer",
+                    source: "dailyTracking",
+                  });
+                }
+
+                // Create REJECTION transactions if rejected quantity exists
+                if (
+                  tracking.rejectedWarehouse &&
+                  tracking.rejectedWarehouse !== "N/A" &&
+                  tracking.rejectedWarehouseQuantity > 0
+                ) {
+                  // OUT transaction from fromWarehouse for rejected quantity
+                  allTransactions.push({
+                    warehouseId: tracking.fromWarehouse,
+                    transactionType: "Out",
+                    quantityChange: `(-${tracking.rejectedWarehouseQuantity}) ${tracking.fromWarehouseQty || 0}`,
+                    timestamp: tracking.date,
+                    project: project.projectName,
+                    partName: allocation.partName,
+                    process: allocation.processName,
+                    machine: tracking.machineId || alloc.machineId,
+                    operator: tracking.operator || alloc.operator,
+                    rawQuantity: -tracking.rejectedWarehouseQuantity,
+                    dailyStatus: "Rejected",
+                    partsCodeId: allocation.partsCodeId,
+                    source: "dailyTracking",
+                    remarks: tracking.remarks || "Part rejected during production",
                   });
 
-                 
-                  
-                  console.log("BLNK transfer transactions created successfully");
+                  // IN transaction to rejected warehouse
+                  allTransactions.push({
+                    warehouseId: tracking.rejectedWarehouse,
+                    transactionType: "In",
+                    quantityChange: `(+${tracking.rejectedWarehouseQuantity})`,
+                    timestamp: tracking.date,
+                    project: project.projectName,
+                    partName: allocation.partName,
+                    process: allocation.processName,
+                    machine: tracking.machineId || alloc.machineId,
+                    operator: tracking.operator || alloc.operator,
+                    rawQuantity: tracking.rejectedWarehouseQuantity,
+                    dailyStatus: "Rejected",
+                    partsCodeId: allocation.partsCodeId,
+                    source: "dailyTracking",
+                    remarks: tracking.remarks || "Part rejected during production",
+                  });
                 }
-              }
+              });
+            }
+          });
+        }
+      });
+    }
+  });
 
-              if (alloc.dailyTracking && Array.isArray(alloc.dailyTracking)) {
-                alloc.dailyTracking.forEach((tracking) => {
-                  // Create OUT transaction for fromWarehouse
-                  if (
-                    tracking.fromWarehouse &&
-                    tracking.fromWarehouse !== "N/A"
-                  ) {
-                    allTransactions.push({
-                      warehouseId: tracking.fromWarehouse,
-                      transactionType: "Out",
-                      quantityChange: `(-${tracking.produced}) ${
-                        tracking.fromWarehouseQty || 0
-                      }`,
-                      timestamp: tracking.date,
-                      project: project.projectName,
-                      partName: allocation.partName,
-                      process: allocation.processName,
-                      machine: tracking.machineId || alloc.machineId,
-                      operator: tracking.operator || alloc.operator,
-                      rawQuantity: -tracking.produced,
-                      dailyStatus: tracking.dailyStatus,
-                      partsCodeId: allocation.partsCodeId,
-                      source: "dailyTracking",
-                    });
-                  }
-
-                  // Create IN transaction for toWarehouse
-                  if (tracking.toWarehouse && tracking.toWarehouse !== "N/A") {
-                    allTransactions.push({
-                      warehouseId: tracking.toWarehouse,
-                      transactionType: "In",
-                      quantityChange: `(+${tracking.produced}) ${
-                        tracking.toWarehouseQty || 0
-                      }`,
-                      timestamp: tracking.date,
-                      project: project.projectName,
-                      partName: allocation.partName,
-                      process: allocation.processName,
-                      machine: tracking.machineId || alloc.machineId,
-                      operator: tracking.operator || alloc.operator,
-                      rawQuantity: tracking.produced,
-                      dailyStatus: tracking.dailyStatus,
-                      partsCodeId: allocation.partsCodeId,
-                      source: "dailyTracking",
-                    });
-                  }
-                });
-              }
-            });
-          }
-        });
-      }
-    });
-
-    return allTransactions;
-  };
+  return allTransactions;
+};
 
   // Transform store data into adjustment transactions from transaction history
   const transformToAdjustmentTransactions = (storeData) => {
