@@ -101,6 +101,23 @@ export const AllocatedPartListHrPlan = ({
   const [receiptStatus, setReceiptStatus] = useState({}); // { [itemcode]: { lastQty, status } }
   const jobWorkIntervalRef = React.useRef(null);
 
+  const [storesVariables, setStoresVariables] = useState([]);
+  useEffect(() => {
+    const fetchStores = async () => {
+      try {
+        const res = await fetch(
+          `${process.env.REACT_APP_BASE_URL}/api/storesVariable`
+        );
+        const data = await res.json();
+        setStoresVariables(data);
+      } catch (err) {
+        console.error("Error fetching storesVariable:", err);
+      }
+    };
+
+    fetchStores();
+  }, []);
+
   console.log(partName);
   useEffect(() => {
     // fetch project name once
@@ -1197,620 +1214,233 @@ export const AllocatedPartListHrPlan = ({
     return totalQuantity - totalProduced;
   };
 
-  // const submitDailyTracking = async () => {
-  //   setIsUpdating(true);
+  const submitDailyTracking = async () => {
+    setIsUpdating(true);
+    try {
+      console.log("🟢 Starting submitDailyTracking...");
 
-  //   // Track all operations for potential rollback
-  //   let operations = [];
-  //   let dailyTrackingPosted = false;
-  //   let inventoryPosted = false;
-  //   let transfersCompleted = [];
+      const totalQty = selectedSection?.data?.[0]?.plannedQty || 0;
+      const producedQty = Number(dailyTracking[0]?.produced) || 0;
+      const rejectionQty =
+        Number(dailyTracking[0]?.rejectedWarehouseQuantity) || 0;
 
-  //   try {
-  //     console.log("🟢 Starting submitDailyTracking...");
+      // ✅ Basic validation
+      if (producedQty + rejectionQty > totalQty) {
+        toast.error(
+          `Invalid entry: Produced (${producedQty}) + Rejection (${rejectionQty}) exceeds total (${totalQty}).`
+        );
+        setIsUpdating(false);
+        return;
+      }
 
-  //     const totalQty = selectedSection?.data?.[0]?.plannedQty || 0;
-  //     const producedQty = Number(dailyTracking[0]?.produced) || 0;
-  //     const rejectionQty =
-  //       Number(dailyTracking[0]?.rejectedWarehouseQuantity) || 0;
+      if (!selectedSection || !selectedSection.data.length) {
+        toast.error("No allocation selected.");
+        return;
+      }
 
-  //     // ✅ Basic validation
-  //     if (producedQty + rejectionQty > totalQty) {
-  //       toast.error(
-  //         `Invalid entry: Produced (${producedQty}) + Rejection (${rejectionQty}) exceeds total (${totalQty}).`
-  //       );
-  //       setIsUpdating(false);
-  //       return;
-  //     }
+      const allocationId = selectedSection.allocationId;
+      const trackingId = selectedSection.data[0]?.trackingId;
+      if (!allocationId || !trackingId) {
+        toast.error("Allocation or Tracking ID missing.");
+        return;
+      }
 
-  //     if (!selectedSection || !selectedSection.data.length) {
-  //       toast.error("No allocation selected.");
-  //       return;
-  //     }
+      const actualEndTime = moment().format("HH:mm");
+      const fromWarehouse = selectedSection?.data[0]?.wareHouse || "N/A";
+      const fromWarehouseId = selectedSection?.data[0]?.warehouseId || "";
+      const toWarehouse =
+        sections[selectedSectionIndex + 1]?.data?.[0]?.wareHouse ||
+        (sections[selectedSectionIndex + 1]
+          ? "N/A"
+          : fromWarehouseData?.Name?.[0] || "Store");
+      const toWarehouseId =
+        sections[selectedSectionIndex + 1]?.data?.[0]?.warehouseId ||
+        (sections[selectedSectionIndex + 1] ? null : "Store");
 
-  //     const allocationId = selectedSection.allocationId;
-  //     const trackingId = selectedSection.data[0]?.trackingId;
-  //     if (!allocationId || !trackingId) {
-  //       toast.error("Allocation or Tracking ID missing.");
-  //       return;
-  //     }
+      // ✅ Determine selected rejection warehouse
+      let rejectedWarehouseId = dailyTracking[0]?.rejectedWarehouseId || "";
+      let rejectedWarehouseName = dailyTracking[0]?.rejectedWarehouse || "";
+      let rejectionCategoryId = "";
 
-  //     const actualEndTime = moment().format("HH:mm");
-  //     const fromWarehouse = selectedSection?.data[0]?.wareHouse || "N/A";
-  //     const fromWarehouseId = selectedSection?.data[0]?.warehouseId || "";
-  //     const toWarehouse =
-  //       sections[selectedSectionIndex + 1]?.data?.[0]?.wareHouse ||
-  //       (sections[selectedSectionIndex + 1]
-  //         ? "N/A"
-  //         : fromWarehouseData?.Name?.[0] || "Store");
-  //     const toWarehouseId =
-  //       sections[selectedSectionIndex + 1]?.data?.[0]?.warehouseId ||
-  //       (sections[selectedSectionIndex + 1] ? null : "Store");
+      if (rejectionQty > 0) {
+        if (!rejectedWarehouseId && dailyTracking[0]?.rejectedWarehouse) {
+          try {
+            const selectedRej = dailyTracking[0]?.rejectedWarehouse.trim();
+            const res = await axios.get(
+              `${process.env.REACT_APP_BASE_URL}/api/storesVariable/category/${selectedRej}`
+            );
+            rejectedWarehouseId = res?.data?.categoryId || selectedRej;
+            rejectedWarehouseName = res?.data?.Name?.[0] || selectedRej;
+          } catch (e) {
+            console.warn("⚠️ Could not fetch rejection warehouse info:", e);
+            rejectedWarehouseId = dailyTracking[0]?.rejectedWarehouse;
+            rejectedWarehouseName = dailyTracking[0]?.rejectedWarehouse;
+          }
+        }
 
-  //     // ✅ Determine selected rejection warehouse
-  //     let rejectedWarehouseId = dailyTracking[0]?.rejectedWarehouseId || "";
-  //     let rejectedWarehouseName = dailyTracking[0]?.rejectedWarehouse || "";
-  //     let rejectionCategoryId = "";
-
-  //     if (rejectionQty > 0) {
-  //       if (!rejectedWarehouseId && dailyTracking[0]?.rejectedWarehouse) {
-  //         try {
-  //           const selectedRej = dailyTracking[0]?.rejectedWarehouse.trim();
-  //           const res = await axios.get(
-  //             `${process.env.REACT_APP_BASE_URL}/api/storesVariable/category/${selectedRej}`
-  //           );
-  //           rejectedWarehouseId = res?.data?.categoryId || selectedRej;
-  //           rejectedWarehouseName = res?.data?.Name?.[0] || selectedRej;
-  //         } catch (e) {
-  //           console.warn("⚠️ Could not fetch rejection warehouse info:", e);
-  //           rejectedWarehouseId = dailyTracking[0]?.rejectedWarehouse;
-  //           rejectedWarehouseName = dailyTracking[0]?.rejectedWarehouse;
-  //         }
-  //       }
-
-  //       // Get rejection category ID
-  //       try {
-  //         const rejWarehouseRes = await axios.get(
-  //           `${process.env.REACT_APP_BASE_URL}/api/storesVariable`
-  //         );
-  //         const foundRej = rejWarehouseRes.data.find(
-  //           (store) =>
-  //             store.categoryId === rejectedWarehouseId ||
-  //             store._id === rejectedWarehouseId
-  //         );
-  //         rejectionCategoryId = foundRej?.categoryId || "REJ";
-  //         rejectedWarehouseName = foundRej?.Name?.[0] || rejectedWarehouseName;
-  //       } catch (e) {
-  //         console.warn("⚠️ Could not fetch rejection warehouse category:", e);
-  //         rejectionCategoryId = "REJ";
-  //       }
-  //     }
-
-  //     // ✅ Prepare data for main daily tracking POST
-  //     const trackingData = {
-  //       ...dailyTracking[0],
-  //       wareHouseTotalQty: warehouseQuantities.total,
-  //       wareHouseremainingQty: warehouseQuantities.remaining,
-  //       projectName: sections[0]?.projectName || "N/A",
-  //       partName: partName || "N/A",
-  //       processName: selectedSection?.title || "N/A",
-  //       fromWarehouse,
-  //       fromWarehouseId,
-  //       fromWarehouseQty: toWarehouseData?.quantity?.[0] || 0,
-  //       toWarehouse,
-  //       toWarehouseId,
-  //       toWarehouseQty: fromWarehouseData?.quantity?.[0] || 0,
-  //       remaining: calculateRemainingQuantity(),
-  //       machineId: selectedSection?.data[0]?.machineId || "N/A",
-  //       shift: selectedSection?.data[0]?.shift || "N/A",
-  //       partsCodeId: selectedSection?.data[0]?.partsCodeId || "N/A",
-  //       actualEndTime,
-  //       rejectedWarehouse: rejectedWarehouseName,
-  //       rejectedWarehouseId,
-  //       rejectedWarehouseQuantity: rejectionQty,
-  //       remarks: dailyTracking[0]?.remarks || "",
-  //     };
-
-  //     // === STEP 1: POST DAILY TRACKING ===
-  //     console.log("📤 Posting daily tracking...");
-  //     const dailyTrackingResponse = await axios.post(
-  //       `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/allocations/${allocationId}/allocations/${trackingId}/dailyTracking`,
-  //       trackingData
-  //     );
-
-  //     if (!dailyTrackingResponse.data || dailyTrackingResponse.status !== 201) {
-  //       throw new Error("Failed to post daily tracking");
-  //     }
-
-  //     dailyTrackingPosted = true;
-  //     operations.push({
-  //       type: "dailyTracking",
-  //       id: dailyTrackingResponse.data._id,
-  //     });
-  //     console.log("✅ Daily tracking posted");
-
-  //     // === Helper to post to both inventory APIs with rollback ===
-  //     const postInventory = async (payload) => {
-  //       try {
-  //         const [inventoryRes, inventoryVariableRes] = await Promise.all([
-  //           axios.post(
-  //             `${process.env.REACT_APP_BASE_URL}/api/Inventory/PostInventory`,
-  //             payload
-  //           ),
-  //           axios.post(
-  //             `${process.env.REACT_APP_BASE_URL}/api/InventoryVaraible/PostInventoryVaraibleVaraible`,
-  //             payload
-  //           ),
-  //         ]);
-
-  //         // Check if both inventory posts were successful
-  //         if (!inventoryRes.data || !inventoryVariableRes.data) {
-  //           throw new Error("Inventory post failed");
-  //         }
-
-  //         inventoryPosted = true;
-  //         operations.push({
-  //           type: "inventory",
-  //           payload,
-  //           responses: {
-  //             inventory: inventoryRes.data,
-  //             inventoryVariable: inventoryVariableRes.data,
-  //           },
-  //         });
-
-  //         console.log("✅ Inventory posted", payload);
-  //         return true;
-  //       } catch (err) {
-  //         console.error("❌ Inventory post failed", err);
-  //         throw new Error("Inventory post failed");
-  //       }
-  //     };
-
-  //     // === Helper for warehouse transfers with rollback ===
-  //     const executeWarehouseTransfer = async (transferData) => {
-  //       const response = await axios.put(
-  //         `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/transfer-warehouse-quantity`,
-  //         transferData
-  //       );
-
-  //       if (!response.data.success) {
-  //         throw new Error(`Warehouse transfer failed: ${response.data.error}`);
-  //       }
-
-  //       transfersCompleted.push({
-  //         type: transferData.isRejectionTransfer ? "rejection" : "production",
-  //         data: transferData,
-  //         response: response.data,
-  //       });
-
-  //       return response.data;
-  //     };
-
-  //     // Track warehouse changes for sequential updates
-  //     let currentFromQty = toWarehouseData?.quantity?.[0] || 0;
-  //     let currentToQty = fromWarehouseData?.quantity?.[0] || 0;
-  //     let currentRejQty = 0;
-
-  //     // Get current rejection warehouse quantity
-  //     if (rejectionQty > 0) {
-  //       try {
-  //         const rejWarehouse = rejectionWarehouses.find(
-  //           (w) =>
-  //             w._id === rejectedWarehouseId ||
-  //             w.categoryId === rejectedWarehouseId
-  //         );
-  //         currentRejQty = rejWarehouse?.quantity?.[0] || 0;
-  //       } catch (e) {
-  //         console.warn("Could not fetch current rejection quantity:", e);
-  //       }
-  //     }
-
-  //     // === STEP 2: Handle Production Transfer (Normal Transfer) ===
-  //     if (producedQty > 0) {
-  //       const prodPayload = {
-  //         DocDate: dailyTracking[0].date || new Date(),
-  //         ItemCode: selectedSection.data[0]?.partsCodeId || "",
-  //         Dscription: partName || "",
-  //         Quantity: producedQty,
-  //         WhsCode: toWarehouseId || "Store",
-  //         FromWhsCod: fromWarehouseId,
-  //       };
-
-  //       // Post inventory first
-  //       await postInventory(prodPayload);
-
-  //       // Then execute warehouse transfer
-  //       const transferResponse = await executeWarehouseTransfer({
-  //         fromWarehouseId,
-  //         toWarehouseId,
-  //         quantity: producedQty,
-  //         isRejectionTransfer: false,
-  //       });
-
-  //       // Update current quantities for next transfer
-  //       if (transferResponse.success) {
-  //         currentFromQty =
-  //           transferResponse.data.fromWarehouse?.newQuantity || currentFromQty;
-  //         currentToQty = transferResponse.data.toWarehouse.newQuantity;
-  //       }
-
-  //       toast.success(
-  //         `Production ${producedQty} transferred ${fromWarehouse} → ${toWarehouse}`
-  //       );
-  //     }
-
-  //     // === STEP 3: Handle Rejection Transfer (Special Logic: Decrement FROM, Increment REJECTION) ===
-  //     if (rejectionQty > 0 && rejectedWarehouseId) {
-  //       console.log("🔄 Processing rejection transfer...");
-
-  //       // ✅ Use categoryId for inventory & transfer
-  //       const rejPayload = {
-  //         DocDate: dailyTracking[0].date || new Date(),
-  //         ItemCode: selectedSection.data[0]?.partsCodeId || "",
-  //         Dscription: partName || "",
-  //         Quantity: rejectionQty,
-  //         WhsCode: rejectionCategoryId,
-  //         FromWhsCod: fromWarehouseId,
-  //       };
-
-  //       // Post inventory first
-  //       await postInventory(rejPayload);
-
-  //       // ✅ REJECTION TRANSFER: From Warehouse → Rejection Warehouse
-  //       const rejectionResponse = await executeWarehouseTransfer({
-  //         fromWarehouseId,
-  //         toWarehouseId: rejectionCategoryId,
-  //         quantity: rejectionQty,
-  //         isRejectionTransfer: true,
-  //       });
-
-  //       // Update current quantities
-  //       if (rejectionResponse.success) {
-  //         currentFromQty =
-  //           rejectionResponse.data.fromWarehouse?.newQuantity || currentFromQty;
-  //         currentRejQty = rejectionResponse.data.toWarehouse.newQuantity;
-  //       }
-
-  //       toast.warning(
-  //         `Rejected ${rejectionQty} transferred ${fromWarehouse} → ${rejectedWarehouseName}`
-  //       );
-  //     }
-
-  //     // === STEP 4: All operations completed successfully ===
-
-  //     // Refresh daily tracking after success
-  //     const updated = await axios.get(
-  //       `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/allocations/${allocationId}/allocations/${trackingId}/dailyTracking`
-  //     );
-  //     setExistingDailyTracking(updated.data.dailyTracking || []);
-  //     setactulEndDateData(updated.data);
-
-  //     // Refresh warehouse data to show updated quantities
-  //     await refreshWarehouseData();
-
-  //     // Reset fields
-  //     setDailyTracking([
-  //       {
-  //         date: "",
-  //         planned: selectedSection.data[0].dailyPlannedQty || 0,
-  //         produced: 0,
-  //         dailyStatus: "On Track",
-  //         operator: selectedSection.data[0].operator || "",
-  //         rejectedWarehouse: "",
-  //         rejectedWarehouseId: "",
-  //         rejectedWarehouseQuantity: 0,
-  //         rejectedCombinedId: "",
-  //         remarks: "",
-  //       },
-  //     ]);
-
-  //     // Close modals
-  //     setAddRowModal(false);
-  //     setUpdateConfirmationModal(false);
-
-  //     toast.success("✅ Daily Tracking Updated Successfully!");
-  //     await fetchAllocations(); // Refresh allocations dynamically after tracking update
-  //   } catch (err) {
-  //     console.error("❌ submitDailyTracking Error:", err);
-
-  //     // === ROLLBACK LOGIC ===
-  //     try {
-  //       console.warn("🔄 Starting rollback due to error...");
-
-  //       // Rollback in reverse order of operations
-
-  //       // 1. Rollback warehouse transfers
-  //       if (transfersCompleted.length > 0) {
-  //         console.log("🔄 Rolling back warehouse transfers...");
-  //         for (const transfer of transfersCompleted.reverse()) {
-  //           try {
-  //             await axios.put(
-  //               `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/transfer-warehouse-quantity`,
-  //               {
-  //                 fromWarehouseId: transfer.data.toWarehouseId, // Reverse from/to
-  //                 toWarehouseId: transfer.data.fromWarehouseId,
-  //                 quantity: transfer.data.quantity,
-  //                 isRejectionTransfer: transfer.data.isRejectionTransfer,
-  //               }
-  //             );
-  //           } catch (rollbackErr) {
-  //             console.error(
-  //               "❌ Failed to rollback warehouse transfer:",
-  //               rollbackErr
-  //             );
-  //           }
-  //         }
-  //       }
-
-  //       // 2. Rollback daily tracking (delete the posted entry)
-  //       if (dailyTrackingPosted) {
-  //         console.log("🔄 Rolling back daily tracking...");
-  //         try {
-  //           // Note: You'll need to implement a DELETE endpoint for daily tracking
-  //           // For now, we'll just log the need for rollback
-  //           console.warn(
-  //             "⚠️ Daily tracking rollback needed - implement DELETE endpoint"
-  //           );
-  //         } catch (rollbackErr) {
-  //           console.error("❌ Failed to rollback daily tracking:", rollbackErr);
-  //         }
-  //       }
-
-  //       console.log("🔄 Rollback completed");
-  //     } catch (rollbackErr) {
-  //       console.error("❌ Rollback failed:", rollbackErr);
-  //     }
-
-  //     toast.error(`Failed to update daily tracking: ${err.message}`);
-
-  //     // Refresh data to ensure UI is in sync
-  //     try {
-  //       await refreshWarehouseData();
-  //       if (
-  //         selectedSection?.allocationId &&
-  //         selectedSection.data[0]?.trackingId
-  //       ) {
-  //         const updated = await axios.get(
-  //           `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/allocations/${selectedSection.allocationId}/allocations/${selectedSection.data[0].trackingId}/dailyTracking`
-  //         );
-  //         setExistingDailyTracking(updated.data.dailyTracking || []);
-  //       }
-  //     } catch (refreshErr) {
-  //       console.error("Failed to refresh data after error:", refreshErr);
-  //     }
-  //   } finally {
-  //     setIsUpdating(false);
-  //   }
-  // };
-
-const submitDailyTracking = async () => {
-  setIsUpdating(true);
-  try {
-    console.log("🟢 Starting submitDailyTracking...");
-
-    const totalQty = selectedSection?.data?.[0]?.plannedQty || 0;
-    const producedQty = Number(dailyTracking[0]?.produced) || 0;
-    const rejectionQty = Number(dailyTracking[0]?.rejectedWarehouseQuantity) || 0;
-
-    // ✅ Basic validation
-    if (producedQty + rejectionQty > totalQty) {
-      toast.error(
-        `Invalid entry: Produced (${producedQty}) + Rejection (${rejectionQty}) exceeds total (${totalQty}).`
-      );
-      setIsUpdating(false);
-      return;
-    }
-
-    if (!selectedSection || !selectedSection.data.length) {
-      toast.error("No allocation selected.");
-      return;
-    }
-
-    const allocationId = selectedSection.allocationId;
-    const trackingId = selectedSection.data[0]?.trackingId;
-    if (!allocationId || !trackingId) {
-      toast.error("Allocation or Tracking ID missing.");
-      return;
-    }
-
-    const actualEndTime = moment().format("HH:mm");
-    const fromWarehouse = selectedSection?.data[0]?.wareHouse || "N/A";
-    const fromWarehouseId = selectedSection?.data[0]?.warehouseId || "";
-    const toWarehouse =
-      sections[selectedSectionIndex + 1]?.data?.[0]?.wareHouse ||
-      (sections[selectedSectionIndex + 1]
-        ? "N/A"
-        : fromWarehouseData?.Name?.[0] || "Store");
-    const toWarehouseId =
-      sections[selectedSectionIndex + 1]?.data?.[0]?.warehouseId ||
-      (sections[selectedSectionIndex + 1] ? null : "Store");
-
-    // ✅ Determine selected rejection warehouse
-    let rejectedWarehouseId = dailyTracking[0]?.rejectedWarehouseId || "";
-    let rejectedWarehouseName = dailyTracking[0]?.rejectedWarehouse || "";
-    let rejectionCategoryId = "";
-
-    if (rejectionQty > 0) {
-      if (!rejectedWarehouseId && dailyTracking[0]?.rejectedWarehouse) {
+        // Get rejection category ID
         try {
-          const selectedRej = dailyTracking[0]?.rejectedWarehouse.trim();
-          const res = await axios.get(
-            `${process.env.REACT_APP_BASE_URL}/api/storesVariable/category/${selectedRej}`
+          const rejWarehouseRes = await axios.get(
+            `${process.env.REACT_APP_BASE_URL}/api/storesVariable`
           );
-          rejectedWarehouseId = res?.data?.categoryId || selectedRej;
-          rejectedWarehouseName = res?.data?.Name?.[0] || selectedRej;
+          const foundRej = rejWarehouseRes.data.find(
+            (store) =>
+              store.categoryId === rejectedWarehouseId ||
+              store._id === rejectedWarehouseId
+          );
+          rejectionCategoryId = foundRej?.categoryId || "REJ";
+          rejectedWarehouseName = foundRej?.Name?.[0] || rejectedWarehouseName;
         } catch (e) {
-          console.warn("⚠️ Could not fetch rejection warehouse info:", e);
-          rejectedWarehouseId = dailyTracking[0]?.rejectedWarehouse;
-          rejectedWarehouseName = dailyTracking[0]?.rejectedWarehouse;
+          console.warn("⚠️ Could not fetch rejection warehouse category:", e);
+          rejectionCategoryId = "REJ";
         }
       }
 
-      // Get rejection category ID
-      try {
-        const rejWarehouseRes = await axios.get(
-          `${process.env.REACT_APP_BASE_URL}/api/storesVariable`
+      // ✅ Prepare data for main daily tracking POST
+      const trackingData = {
+        ...dailyTracking[0],
+        wareHouseTotalQty: warehouseQuantities.total,
+        wareHouseremainingQty: warehouseQuantities.remaining,
+        projectName: sections[0]?.projectName || "N/A",
+        partName: partName || "N/A",
+        processName: selectedSection?.title || "N/A",
+        fromWarehouse,
+        fromWarehouseId,
+        fromWarehouseQty: toWarehouseData?.quantity?.[0] || 0,
+        toWarehouse,
+        toWarehouseId,
+        toWarehouseQty: fromWarehouseData?.quantity?.[0] || 0,
+        remaining: calculateRemainingQuantity(),
+        machineId: selectedSection?.data[0]?.machineId || "N/A",
+        shift: selectedSection?.data[0]?.shift || "N/A",
+        partsCodeId: selectedSection?.data[0]?.partsCodeId || "N/A",
+        actualEndTime,
+        rejectedWarehouse: rejectedWarehouseName,
+        rejectedWarehouseId,
+        rejectedWarehouseQuantity: rejectionQty,
+        remarks: dailyTracking[0]?.remarks || "",
+      };
+
+      // === POST DAILY TRACKING ===
+      console.log("📤 Posting daily tracking...");
+
+      const dailyTrackingPost = axios.post(
+        `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/allocations/${allocationId}/allocations/${trackingId}/dailyTracking`,
+        trackingData
+      );
+
+      // === Helper to post to both inventory APIs ===
+      const postInventory = (payload) =>
+        Promise.all([
+          axios.post(
+            `${process.env.REACT_APP_BASE_URL}/api/Inventory/PostInventory`,
+            payload
+          ),
+          axios.post(
+            `${process.env.REACT_APP_BASE_URL}/api/InventoryVaraible/PostInventoryVaraibleVaraible`,
+            payload
+          ),
+        ]);
+
+      const allRequests = [dailyTrackingPost]; // collect all requests here
+
+      // === Handle Production Transfer (Normal Transfer) ===
+      if (producedQty > 0) {
+        const prodPayload = {
+          DocDate: dailyTracking[0].date || new Date(),
+          ItemCode: selectedSection.data[0]?.partsCodeId || "",
+          Dscription: partName || "",
+          Quantity: producedQty,
+          WhsCode: toWarehouseId || "Store",
+          FromWhsCod: fromWarehouseId,
+        };
+
+        const prodTransfer = axios.put(
+          `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/transfer-warehouse-quantity`,
+          {
+            fromWarehouseId,
+            toWarehouseId,
+            quantity: producedQty,
+            isRejectionTransfer: false,
+          }
         );
-        const foundRej = rejWarehouseRes.data.find(
-          (store) =>
-            store.categoryId === rejectedWarehouseId ||
-            store._id === rejectedWarehouseId
-        );
-        rejectionCategoryId = foundRej?.categoryId || "REJ";
-        rejectedWarehouseName = foundRej?.Name?.[0] || rejectedWarehouseName;
-      } catch (e) {
-        console.warn("⚠️ Could not fetch rejection warehouse category:", e);
-        rejectionCategoryId = "REJ";
+
+        // push both inventory + transfer together
+        allRequests.push(postInventory(prodPayload));
+        allRequests.push(prodTransfer);
       }
-    }
 
-    // ✅ Prepare data for main daily tracking POST
-    const trackingData = {
-      ...dailyTracking[0],
-      wareHouseTotalQty: warehouseQuantities.total,
-      wareHouseremainingQty: warehouseQuantities.remaining,
-      projectName: sections[0]?.projectName || "N/A",
-      partName: partName || "N/A",
-      processName: selectedSection?.title || "N/A",
-      fromWarehouse,
-      fromWarehouseId,
-      fromWarehouseQty: toWarehouseData?.quantity?.[0] || 0,
-      toWarehouse,
-      toWarehouseId,
-      toWarehouseQty: fromWarehouseData?.quantity?.[0] || 0,
-      remaining: calculateRemainingQuantity(),
-      machineId: selectedSection?.data[0]?.machineId || "N/A",
-      shift: selectedSection?.data[0]?.shift || "N/A",
-      partsCodeId: selectedSection?.data[0]?.partsCodeId || "N/A",
-      actualEndTime,
-      rejectedWarehouse: rejectedWarehouseName,
-      rejectedWarehouseId,
-      rejectedWarehouseQuantity: rejectionQty,
-      remarks: dailyTracking[0]?.remarks || "",
-    };
+      // === Handle Rejection Transfer ===
+      if (rejectionQty > 0 && rejectedWarehouseId) {
+        const rejPayload = {
+          DocDate: dailyTracking[0].date || new Date(),
+          ItemCode: selectedSection.data[0]?.partsCodeId || "",
+          Dscription: partName || "",
+          Quantity: rejectionQty,
+          WhsCode: rejectionCategoryId,
+          FromWhsCod: fromWarehouseId,
+        };
 
-    // === POST DAILY TRACKING ===
-    console.log("📤 Posting daily tracking...");
+        const rejTransfer = axios.put(
+          `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/transfer-warehouse-quantity`,
+          {
+            fromWarehouseId,
+            toWarehouseId: rejectionCategoryId,
+            quantity: rejectionQty,
+            isRejectionTransfer: true,
+          }
+        );
 
-    const dailyTrackingPost = axios.post(
-      `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/allocations/${allocationId}/allocations/${trackingId}/dailyTracking`,
-      trackingData
-    );
+        allRequests.push(postInventory(rejPayload));
+        allRequests.push(rejTransfer);
+      }
 
-    // === Helper to post to both inventory APIs ===
-    const postInventory = (payload) =>
-      Promise.all([
-        axios.post(
-          `${process.env.REACT_APP_BASE_URL}/api/Inventory/PostInventory`,
-          payload
-        ),
-        axios.post(
-          `${process.env.REACT_APP_BASE_URL}/api/InventoryVaraible/PostInventoryVaraibleVaraible`,
-          payload
-        ),
+      // ✅ Execute all critical requests together
+      await Promise.all(allRequests)
+        .then(() => console.log("✅ All API requests completed successfully"))
+        .catch((err) => {
+          console.error("❌ One or more API requests failed:", err);
+          throw new Error("One or more API requests failed. Rolling back.");
+        });
+
+      // === Refresh daily tracking after success ===
+      const updated = await axios.get(
+        `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/allocations/${allocationId}/allocations/${trackingId}/dailyTracking`
+      );
+      setExistingDailyTracking(updated.data.dailyTracking || []);
+      setactulEndDateData(updated.data);
+
+      // === Refresh warehouse data to show updated quantities ===
+      await refreshWarehouseData();
+
+      // === Reset fields ===
+      setDailyTracking([
+        {
+          date: "",
+          planned: selectedSection.data[0].dailyPlannedQty || 0,
+          produced: 0,
+          dailyStatus: "On Track",
+          operator: selectedSection.data[0].operator || "",
+          rejectedWarehouse: "",
+          rejectedWarehouseId: "",
+          rejectedWarehouseQuantity: 0,
+          rejectedCombinedId: "",
+          remarks: "",
+        },
       ]);
 
-    const allRequests = [dailyTrackingPost]; // collect all requests here
+      setAddRowModal(false);
+      setUpdateConfirmationModal(false);
 
-    // === Handle Production Transfer (Normal Transfer) ===
-    if (producedQty > 0) {
-      const prodPayload = {
-        DocDate: dailyTracking[0].date || new Date(),
-        ItemCode: selectedSection.data[0]?.partsCodeId || "",
-        Dscription: partName || "",
-        Quantity: producedQty,
-        WhsCode: toWarehouseId || "Store",
-        FromWhsCod: fromWarehouseId,
-      };
-
-      const prodTransfer = axios.put(
-        `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/transfer-warehouse-quantity`,
-        {
-          fromWarehouseId,
-          toWarehouseId,
-          quantity: producedQty,
-          isRejectionTransfer: false,
-        }
-      );
-
-      // push both inventory + transfer together
-      allRequests.push(postInventory(prodPayload));
-      allRequests.push(prodTransfer);
+      toast.success("✅ Daily Tracking Updated Successfully!");
+      await fetchAllocations(); // refresh allocations dynamically
+    } catch (err) {
+      console.error("❌ submitDailyTracking Error:", err);
+      toast.error("Failed to update daily tracking. All operations aborted.");
+    } finally {
+      setIsUpdating(false);
     }
-
-    // === Handle Rejection Transfer ===
-    if (rejectionQty > 0 && rejectedWarehouseId) {
-      const rejPayload = {
-        DocDate: dailyTracking[0].date || new Date(),
-        ItemCode: selectedSection.data[0]?.partsCodeId || "",
-        Dscription: partName || "",
-        Quantity: rejectionQty,
-        WhsCode: rejectionCategoryId,
-        FromWhsCod: fromWarehouseId,
-      };
-
-      const rejTransfer = axios.put(
-        `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/transfer-warehouse-quantity`,
-        {
-          fromWarehouseId,
-          toWarehouseId: rejectionCategoryId,
-          quantity: rejectionQty,
-          isRejectionTransfer: true,
-        }
-      );
-
-      allRequests.push(postInventory(rejPayload));
-      allRequests.push(rejTransfer);
-    }
-
-    // ✅ Execute all critical requests together
-    await Promise.all(allRequests)
-      .then(() => console.log("✅ All API requests completed successfully"))
-      .catch((err) => {
-        console.error("❌ One or more API requests failed:", err);
-        throw new Error("One or more API requests failed. Rolling back.");
-      });
-
-    // === Refresh daily tracking after success ===
-    const updated = await axios.get(
-      `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/allocations/${allocationId}/allocations/${trackingId}/dailyTracking`
-    );
-    setExistingDailyTracking(updated.data.dailyTracking || []);
-    setactulEndDateData(updated.data);
-
-    // === Refresh warehouse data to show updated quantities ===
-    await refreshWarehouseData();
-
-    // === Reset fields ===
-    setDailyTracking([
-      {
-        date: "",
-        planned: selectedSection.data[0].dailyPlannedQty || 0,
-        produced: 0,
-        dailyStatus: "On Track",
-        operator: selectedSection.data[0].operator || "",
-        rejectedWarehouse: "",
-        rejectedWarehouseId: "",
-        rejectedWarehouseQuantity: 0,
-        rejectedCombinedId: "",
-        remarks: "",
-      },
-    ]);
-
-    setAddRowModal(false);
-    setUpdateConfirmationModal(false);
-
-    toast.success("✅ Daily Tracking Updated Successfully!");
-    await fetchAllocations(); // refresh allocations dynamically
-  } catch (err) {
-    console.error("❌ submitDailyTracking Error:", err);
-    toast.error("Failed to update daily tracking. All operations aborted.");
-  } finally {
-    setIsUpdating(false);
-  }
-};
-
-
+  };
 
   const closeDailyTaskModal = () => {
     setDailyTaskModal(false);
@@ -1922,26 +1552,63 @@ const submitDailyTracking = async () => {
   };
 
   // Function to get matching warehouse quantity
-  const getMatchingWarehouseQuantity = (partsCodeId, warehouseId) => {
-    if (!goodsReceiptData || goodsReceiptData.length === 0) {
-      console.log("No goods receipt data available");
-      return null;
+  // const getMatchingWarehouseQuantity = (partsCodeId, warehouseId) => {
+  //   if (!goodsReceiptData || goodsReceiptData.length === 0) {
+  //     console.log("No goods receipt data available");
+  //     return null;
+  //   }
+
+  //   console.log("Searching for:", { partsCodeId, warehouseId });
+  //   console.log("Available goods receipt data:", goodsReceiptData);
+
+  //   const matchingItem = goodsReceiptData.find(
+  //     (item) => item.Itemcode === partsCodeId && item.WhsCode === warehouseId
+  //   );
+
+  //   if (matchingItem) {
+  //     console.log("Found matching item:", matchingItem);
+  //     return matchingItem.Quantity;
+  //   } else {
+  //     console.log("No matching item found");
+  //     return null;
+  //   }
+  // };
+
+  // ✅ Updated robust function for From/To Warehouse quantity
+  const getMatchingWarehouseQuantity = (partsCodeId, warehouseIdOrCategory) => {
+    // --- First, try goodsReceiptData (existing logic) ---
+    if (goodsReceiptData && goodsReceiptData.length > 0) {
+      const matchingItem = goodsReceiptData.find(
+        (item) =>
+          item.Itemcode === partsCodeId &&
+          item.WhsCode === warehouseIdOrCategory
+      );
+      if (matchingItem) {
+        console.log("Found in goodsReceiptData:", matchingItem);
+        return matchingItem.Quantity;
+      }
     }
 
-    console.log("Searching for:", { partsCodeId, warehouseId });
-    console.log("Available goods receipt data:", goodsReceiptData);
+    // --- Fallback: try in storesVariables ---
+    if (storesVariables && storesVariables.length > 0) {
+      const store = storesVariables.find(
+        (store) =>
+          store._id === warehouseIdOrCategory ||
+          store.categoryId === warehouseIdOrCategory ||
+          store.Name?.[0] === warehouseIdOrCategory
+      );
 
-    const matchingItem = goodsReceiptData.find(
-      (item) => item.Itemcode === partsCodeId && item.WhsCode === warehouseId
-    );
-
-    if (matchingItem) {
-      console.log("Found matching item:", matchingItem);
-      return matchingItem.Quantity;
-    } else {
-      console.log("No matching item found");
-      return null;
+      if (store) {
+        console.log("Found in storesVariables:", store);
+        const qty = Array.isArray(store.quantity)
+          ? store.quantity[0]
+          : store.quantity;
+        return Number(qty) || 0;
+      }
     }
+
+    console.warn("No warehouse match found for:", warehouseIdOrCategory);
+    return null;
   };
 
   // Add this function to check if all processes are completed
@@ -3473,10 +3140,19 @@ const submitDailyTracking = async () => {
               <div className="card-body">
                 <h6 className="card-title mb-3">Production Overview</h6>
                 <div className="row">
-                  <div className="col-md-3">
+                  {/* <div className="col-md-3">
                     <strong>Project:</strong>{" "}
                     {sections[0]?.projectName || "N/A"}
+                  </div> */}
+                  <div className="col-md-3">
+                    <strong>Project:</strong>{" "}
+                    {projectNameState ? (
+                      projectNameState
+                    ) : (
+                      <span className="text-muted">Loading...</span>
+                    )}
                   </div>
+
                   <div className="col-md-3">
                     <strong>Part Name:</strong> {partName || "N/A"}
                   </div>
@@ -3588,7 +3264,7 @@ const submitDailyTracking = async () => {
                             </span>
                           ) : null}
                         </td>
-                        <td>{task.planned - task.produced}</td>
+                        <td>{task.remaining}</td>
                         <td>{task.machineId || "N/A"}</td>
                         <td>{task.shift || "N/A"}</td>
                         <td>{task.operator || "N/A"}</td>
@@ -4883,6 +4559,16 @@ const submitDailyTracking = async () => {
                   {dailyTracking[0]?.date
                     ? moment(dailyTracking[0].date).format("DD MMM YYYY")
                     : "N/A"}
+                </Col>
+              </Row>
+              <Row className="mb-2">
+                <Col md={3}>
+                  <strong>Machine Id:</strong>
+                </Col>
+                <Col md={9}>
+                  {dailyTracking[0]?.machineId ||
+                    selectedSection?.data[0]?.machineId ||
+                    "N/A"}
                 </Col>
               </Row>
 

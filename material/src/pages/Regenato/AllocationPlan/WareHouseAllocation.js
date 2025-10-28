@@ -124,8 +124,72 @@ const WareHouseAllocation = () => {
         let blnkTransferProcessed = false; // Flag to ensure BLNK transfer is only processed once per project
 
         project.allocations.forEach((allocation, allocationIndex) => {
-          if (allocation.allocations && Array.isArray(allocation.allocations)) {
-            allocation.allocations.forEach((alloc) => {
+          // allocation here is a part-level object now (contains allocations[] and jobWorkMovements[])
+          const partLevelAllocations = allocation.allocations || [];
+
+          // 1) Surface jobWorkMovements as inventory transactions
+          if (
+            allocation.jobWorkMovements &&
+            Array.isArray(allocation.jobWorkMovements)
+          ) {
+            allocation.jobWorkMovements.forEach((move) => {
+              const base = {
+                timestamp: move.timestamp || new Date().toISOString(),
+                project: project.projectName,
+                partName: allocation.partName,
+                process: "Job Work",
+                machine: "--",
+                operator: "--",
+                partsCodeId: allocation.partsCodeId,
+                source: "jobWork",
+              };
+
+              if (move.type === "issue") {
+                allTransactions.push({
+                  ...base,
+                  warehouseId: move.warehouseId,
+                  transactionType: "Out",
+                  quantityChange: `(-${move.quantity || 0})`,
+                  rawQuantity: -(Number(move.quantity) || 0),
+                  dailyStatus: "Job-Work Issue",
+                });
+              } else if (move.type === "receipt") {
+                allTransactions.push({
+                  ...base,
+                  warehouseId: move.warehouseId,
+                  transactionType: "In",
+                  quantityChange: `(+${move.quantity || 0})`,
+                  rawQuantity: Number(move.quantity) || 0,
+                  dailyStatus: "Job-Work Receipt",
+                });
+              } else if (move.type === "autoMove") {
+                // Out from current (job-work) and In to next process
+                if (move.fromWarehouseId) {
+                  allTransactions.push({
+                    ...base,
+                    warehouseId: move.fromWarehouseId,
+                    transactionType: "Out",
+                    quantityChange: `(-${move.quantity || 0})`,
+                    rawQuantity: -(Number(move.quantity) || 0),
+                    dailyStatus: "Auto Move",
+                  });
+                }
+                if (move.toWarehouseId) {
+                  allTransactions.push({
+                    ...base,
+                    warehouseId: move.toWarehouseId,
+                    transactionType: "In",
+                    quantityChange: `(+${move.quantity || 0})`,
+                    rawQuantity: Number(move.quantity) || 0,
+                    dailyStatus: "Auto Move",
+                  });
+                }
+              }
+            });
+          }
+
+          if (partLevelAllocations && Array.isArray(partLevelAllocations)) {
+            partLevelAllocations.forEach((alloc) => {
               // Handle BLNK transfer transactions for first process only (index 0) and only once
               if (
                 alloc.blankStoreTransfer &&
@@ -362,33 +426,41 @@ const WareHouseAllocation = () => {
   );
 
   // Sort by source priority (BLNK transfer first), then timestamp, then transaction type
-  const sortedTransactions = allTransactions.sort((a, b) => {
-    // First sort by source priority (blankStoreTransfer first)
-    const sourceOrder = {
-      blankStoreTransfer: 0,
-      dailyTracking: 1,
-      adjustment: 2,
-    };
-    const aSourceOrder = sourceOrder[a.source] || 3;
-    const bSourceOrder = sourceOrder[b.source] || 3;
+  // const sortedTransactions = allTransactions.sort((a, b) => {
+  //   // First sort by source priority (blankStoreTransfer first)
+  //   const sourceOrder = {
+  //     blankStoreTransfer: 0,
+  //     dailyTracking: 1,
+  //     adjustment: 2,
+  //   };
+  //   const aSourceOrder = sourceOrder[a.source] || 3;
+  //   const bSourceOrder = sourceOrder[b.source] || 3;
 
-    if (aSourceOrder !== bSourceOrder) {
-      return aSourceOrder - bSourceOrder;
-    }
+  //   if (aSourceOrder !== bSourceOrder) {
+  //     return aSourceOrder - bSourceOrder;
+  //   }
 
-    // Then sort by timestamp (newest first)
-    const timeComparison = new Date(b.timestamp) - new Date(a.timestamp);
-    if (timeComparison !== 0) {
-      return timeComparison;
-    }
+  //   // Then sort by timestamp (newest first)
+  //   const timeComparison = new Date(b.timestamp) - new Date(a.timestamp);
+  //   if (timeComparison !== 0) {
+  //     return timeComparison;
+  //   }
 
-    // Finally sort by transaction type (OUT first, then IN)
-    const typeOrder = { Out: 0, In: 1, Adjustment: 2 };
-    const aOrder = typeOrder[a.transactionType] || 3;
-    const bOrder = typeOrder[b.transactionType] || 3;
+  //   // Finally sort by transaction type (OUT first, then IN)
+  //   const typeOrder = { Out: 0, In: 1, Adjustment: 2 };
+  //   const aOrder = typeOrder[a.transactionType] || 3;
+  //   const bOrder = typeOrder[b.transactionType] || 3;
 
-    return aOrder - bOrder;
-  });
+  //   return aOrder - bOrder;
+  // });
+
+    // ✅ Sort all transactions by timestamp (latest first)
+    const sortedTransactions = allTransactions.sort((a, b) => {
+      const timeA = new Date(a.timestamp).getTime();
+      const timeB = new Date(b.timestamp).getTime();
+      return timeB - timeA; // latest first
+    });
+
 
   // Limit transactions to prevent too many rows (keep only recent ones)
   const limitedTransactions = sortedTransactions.slice(0, 100); // Limit to 100 most recent transactions
@@ -429,11 +501,21 @@ const WareHouseAllocation = () => {
   const warehouseSummary = calculateWarehouseSummary();
 
   // Get unique project names for filter dropdown
-  const projectOptions = limitedTransactions
-    ? [...new Set(limitedTransactions.map((item) => item.project))].filter(
-        Boolean
-      )
-    : [];
+  // const projectOptions = limitedTransactions
+  //   ? [...new Set(limitedTransactions.map((item) => item.project))].filter(
+  //       Boolean
+  //     )
+  //   : [];
+
+  // Exclude projects with "--" or "N/A" (used by Adjustment type)
+const projectOptions = limitedTransactions
+  ? [...new Set(
+      limitedTransactions
+        .map((item) => item.project)
+        .filter((project) => project && project !== "--" && project !== "N/A")
+    )]
+  : [];
+
 
   // Get unique warehouse names for filter dropdown
   // Get unique warehouse names for filter dropdown
@@ -627,7 +709,7 @@ const WareHouseAllocation = () => {
           </Col>
           <Col md={8}>
             <Row className="g-2">
-              <Col md={3}>
+              <Col md={4}>
                 <Input
                   type="select"
                   value={warehouseFilter}
@@ -683,7 +765,7 @@ const WareHouseAllocation = () => {
                   })} */}
                 </Input>
               </Col>
-              <Col md={3}>
+              <Col md={4}>
                 <Input
                   type="select"
                   value={projectFilter}
@@ -701,25 +783,8 @@ const WareHouseAllocation = () => {
                   ))}
                 </Input>
               </Col>
-              <Col md={3}>
-                <Input
-                  type="select"
-                  value={statusFilter}
-                  onChange={(e) => {
-                    setStatusFilter(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className="form-control-sm border"
-                >
-                  <option value="all">All Statuses</option>
-                  {statusOptions.map((status) => (
-                    <option key={status} value={status.toLowerCase()}>
-                      {status}
-                    </option>
-                  ))}
-                </Input>
-              </Col>
-              <Col md={3}>
+              
+              <Col md={4}>
                 <Input
                   type="select"
                   value={transactionTypeFilter}
@@ -806,7 +871,7 @@ const WareHouseAllocation = () => {
                   {warehouseFilter !== "all" && filteredData.length > 0 && (
                     <tr className="bg-light fw-bold text-end">
                       <td colSpan="9" className="pe-4">
-                        Total Quantity Change:{" "}
+                        Total Quantity:{" "}
                         <span className="text-primary">
                           {filteredData
                             .reduce(

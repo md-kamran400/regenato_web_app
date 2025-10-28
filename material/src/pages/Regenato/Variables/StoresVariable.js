@@ -254,7 +254,7 @@ const StoresVariable = () => {
                       <th>Names</th>
                       <th>Location</th>
                       <th>Quantity</th>
-                      <th>Adjustment Qty</th>
+                      {/* <th>Adjustment Qty</th> */}
                       <th>Action</th>
                     </tr>
                   </thead>
@@ -302,7 +302,7 @@ const StoresVariable = () => {
                             )}
                           </td>
                           <td>{store.quantity}</td>
-                          <td>
+                          {/* <td>
                             <span
                               style={{
                                 color:
@@ -327,7 +327,7 @@ const StoresVariable = () => {
                             >
                               {store.adjustmentQty}
                             </span>
-                          </td>
+                          </td> */}
 
                           <td>
                             <div className="d-flex gap-2">
