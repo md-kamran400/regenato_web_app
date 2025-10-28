@@ -420,35 +420,20 @@ const WareHouseAllocation = () => {
   );
 
   // Sort by source priority (BLNK transfer first), then timestamp, then transaction type
-  const sortedTransactions = allTransactions.sort((a, b) => {
-    // First sort by source priority (blankStoreTransfer first)
-    const sourceOrder = {
-      blankStoreTransfer: 0,
-      dailyTracking: 1,
-      adjustment: 2,
-    };
-    const aSourceOrder = sourceOrder[a.source] || 3;
-    const bSourceOrder = sourceOrder[b.source] || 3;
+ //  Sort all transactions by timestamp (latest first)
+const sortedTransactions = [...allTransactions].sort((a, b) => {
+  const timeA = new Date(a.timestamp).getTime();
+  const timeB = new Date(b.timestamp).getTime();
 
-    if (aSourceOrder !== bSourceOrder) {
-      return aSourceOrder - bSourceOrder;
-    }
+  // fallback if timestamp is invalid
+  if (isNaN(timeA)) return 1;
+  if (isNaN(timeB)) return -1;
 
-    // Then sort by timestamp (newest first)
-    const timeComparison = new Date(b.timestamp) - new Date(a.timestamp);
-    if (timeComparison !== 0) {
-      return timeComparison;
-    }
+  return timeB - timeA; // latest first
+});
 
-    // Finally sort by transaction type (OUT first, then IN)
-    const typeOrder = { Out: 0, In: 1, Adjustment: 2 };
-    const aOrder = typeOrder[a.transactionType] || 3;
-    const bOrder = typeOrder[b.transactionType] || 3;
 
-    return aOrder - bOrder;
-  });
-
-  // ✅ Sort all transactions by timestamp (latest first)
+  //  Sort all transactions by timestamp (latest first)
   // const sortedTransactions = allTransactions.sort((a, b) => {
   //   const timeA = new Date(a.timestamp).getTime();
   //   const timeB = new Date(b.timestamp).getTime();
