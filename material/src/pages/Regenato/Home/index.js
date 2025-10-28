@@ -40,16 +40,16 @@ const Home = () => {
 
               <Row>
                 <Col lg={12}>
-                  <ChartJSPieChart />
+                  {/* <ChartJSPieChart /> */}
                 </Col>
               </Row>
 
               <Row>
                 <Col lg={6}>
-                  <MachineCapacityChart />
+                  {/* <MachineCapacityChart /> */}
                 </Col>
                 <Col lg={6}>
-                  <OperatorCapacityChart />
+                  {/* <OperatorCapacityChart /> */}
                 </Col>
               </Row>
 

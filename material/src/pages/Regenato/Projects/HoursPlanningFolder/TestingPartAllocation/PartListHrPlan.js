@@ -2236,14 +2236,24 @@ export const PartListHrPlan = ({
         toast.success(invMsg);
 
         // Also reflect this movement in StoreVariable quantities so UI shows updated stock
-        try {
+        // try {
+        //   await axios.put(
+            // `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/transfer-warehouse-quantity`,
+            // {
+            //   // Route semantics: it decrements 'toWarehouseId' and increments 'fromWarehouseId'
+            //   // We want to decrement BLNK and increment first process warehouse
+            //   toWarehouseId: "BLNK",
+            //   fromWarehouseId: whsCode,
+            //   quantity: Number(quantity) || 0,
+            // }
+             try {
           await axios.put(
             `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/transfer-warehouse-quantity`,
             {
               // Route semantics: it decrements 'toWarehouseId' and increments 'fromWarehouseId'
               // We want to decrement BLNK and increment first process warehouse
-              toWarehouseId: "BLNK",
-              fromWarehouseId: whsCode,
+              toWarehouseId: whsCode,
+              fromWarehouseId:"BLNK" ,
               quantity: Number(quantity) || 0,
             }
           );

@@ -993,7 +993,10 @@ export const AllocatedPartListHrPlan = ({
       const numericValue = Number(value) || 0;
 
       // --- Core Variables ---
-      const remainingQty = calculateRemainingQuantity();
+      // const remainingQty = calculateRemainingQuantity();
+      const currentRejected = Number(dailyTracking[0]?.rejectedWarehouseQuantity) || 0;
+const remainingQty = calculateRemainingQuantity(numericValue, currentRejected);
+
       const availableWarehouseQty = toWarehouseData?.quantity?.[0];
       const availableFromPrevious =
         getAvailableQuantityFromPreviousProcess(selectedSectionIndex);
@@ -1007,12 +1010,12 @@ export const AllocatedPartListHrPlan = ({
       const isPreviousJobWork = previousSection?.isSpecialDay;
 
       // 🧭 Validation 1: Cannot exceed remaining planned quantity
-      if (numericValue > remainingQty) {
-        toast.error(
-          `Produced quantity cannot exceed remaining quantity (${remainingQty})`
-        );
-        return;
-      }
+      // if (numericValue > remainingQty) {
+      //   toast.error(
+      //     `Produced quantity cannot exceed remaining quantity (${remainingQty})`
+      //   );
+      //   return;
+      // }
 
       // 🧭 Validation 2: Cannot exceed available warehouse quantity
       if (
@@ -1202,17 +1205,46 @@ export const AllocatedPartListHrPlan = ({
   //   });
   // };
 
-  const calculateRemainingQuantity = () => {
-    if (!selectedSection || !selectedSection.data[0]) return 0;
+  // const calculateRemainingQuantity = () => {
+  //   if (!selectedSection || !selectedSection.data[0]) return 0;
 
-    const totalQuantity = selectedSection.data[0].plannedQty;
-    const totalProduced = existingDailyTracking.reduce(
-      (sum, task) => sum + task.produced,
-      0
-    );
+  //   const totalQuantity = selectedSection.data[0].plannedQty;
+  //   const totalProduced = existingDailyTracking.reduce(
+  //     (sum, task) => sum + task.produced,
+  //     0
+  //   );
 
-    return totalQuantity - totalProduced;
-  };
+  //   return totalQuantity - totalProduced;
+  // };
+
+
+  // Calculate remaining quantity for the current allocation.
+// It sums existing daily tracking (produced + rejected) and also includes the
+// current input values (currentProduced, currentRejected) for accurate preview.
+const calculateRemainingQuantity = (
+  currentProduced = Number(dailyTracking[0]?.produced) || 0,
+  currentRejected = Number(dailyTracking[0]?.rejectedWarehouseQuantity) || 0
+) => {
+  if (!selectedSection || !selectedSection.data?.[0]) return 0;
+
+  const totalQuantity = Number(selectedSection.data[0].plannedQty) || 0;
+
+  // Sum up existing produced + rejected from server-cached tracking
+  const totalFromExisting = (existingDailyTracking || []).reduce(
+    (sum, task) =>
+      sum +
+      (Number(task.produced) || 0) +
+      (Number(task.rejectedWarehouseQuantity) || 0),
+    0
+  );
+
+  // Remaining = planned - (existing processed + current input processed)
+  const remaining = totalQuantity - (totalFromExisting + currentProduced + currentRejected);
+
+  // Don't return negative numbers
+  return Math.max(0, remaining);
+};
+
 
   const submitDailyTracking = async () => {
     setIsUpdating(true);
