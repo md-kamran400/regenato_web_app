@@ -59,12 +59,14 @@ const WareHouseAllocation = () => {
         if (response.ok) {
           const warehouses = await response.json();
           const warehouseMap = new Map();
+
           warehouses.forEach((warehouse) => {
             if (
               warehouse.categoryId &&
               warehouse.Name &&
               warehouse.Name.length > 0
             ) {
+              // store plain warehouse name (without categoryId). We'll combine when rendering.
               warehouseMap.set(warehouse.categoryId, {
                 name: warehouse.Name[0],
                 location:
@@ -78,6 +80,7 @@ const WareHouseAllocation = () => {
               });
             }
           });
+
           setWarehouseData(warehouseMap);
         }
       } catch (err) {
@@ -110,166 +113,187 @@ const WareHouseAllocation = () => {
   }, []);
 
   // Transform daily tracking data into inventory transactions
-// Transform daily tracking data into inventory transactions
-const transformToInventoryTransactions = (allocationsData) => {
-  if (!allocationsData || !Array.isArray(allocationsData)) return [];
+  // Transform daily tracking data into inventory transactions
+  const transformToInventoryTransactions = (allocationsData) => {
+    if (!allocationsData || !Array.isArray(allocationsData)) return [];
 
-  const allTransactions = [];
+    const allTransactions = [];
 
-  allocationsData.forEach((project) => {
-    if (project.allocations && Array.isArray(project.allocations)) {
-      let blnkTransferProcessed = false; // Flag to ensure BLNK transfer is only processed once per project
-      
-      project.allocations.forEach((allocation, allocationIndex) => {
-        if (allocation.allocations && Array.isArray(allocation.allocations)) {
-          allocation.allocations.forEach((alloc) => {
-            // Handle BLNK transfer transactions for first process only (index 0) and only once
-            if (alloc.blankStoreTransfer && allocationIndex === 0 && !blnkTransferProcessed) {
-              blnkTransferProcessed = true; // Mark as processed
-              const transfer = alloc.blankStoreTransfer;
-              
-              // Only create transactions if blankStoreQty > 0
-              if (transfer.blankStoreQty > 0) {
-                console.log("Creating BLNK transfer transactions:", transfer);
-                
-                // Create IN transaction for first process warehouse (Row 2)
-                allTransactions.push({
-                  warehouseId: transfer.firstProcessWarehouseName || alloc.wareHouse || alloc.warehouseId,
-                  transactionType: "In",
-                  quantityChange: `(+${transfer.blankStoreQty}) (${transfer.firstProcessWarehouseQty})`,
-                  timestamp: transfer.transferTimestamp,
-                  project: project.projectName,
-                  partName: allocation.partName,
-                  process: allocation.processName,
-                  machine: alloc.machineId || "--",
-                  operator: alloc.operator || "--",
-                  rawQuantity: transfer.blankStoreQty,
-                  dailyStatus: "Allocated",
-                  partsCodeId: allocation.partsCodeId,
-                  source: "blankStoreTransfer",
-                });
+    allocationsData.forEach((project) => {
+      if (project.allocations && Array.isArray(project.allocations)) {
+        let blnkTransferProcessed = false; // Flag to ensure BLNK transfer is only processed once per project
 
-                // Create OUT transaction for BLNK warehouse (Row 1)
-                allTransactions.push({
-                  warehouseId: transfer.blankStoreName || "BLNK",
-                  transactionType: "Out",
-                  quantityChange: `(-${transfer.blankStoreQty})`,
-                  timestamp: transfer.transferTimestamp,
-                  project: project.projectName,
-                  partName: allocation.partName,
-                  process: "--",
-                  machine: "--",
-                  operator: "--",
-                  rawQuantity: -transfer.blankStoreQty,
-                  dailyStatus: "Allocated",
-                  partsCodeId: allocation.partsCodeId,
-                  source: "blankStoreTransfer",
-                });
+        project.allocations.forEach((allocation, allocationIndex) => {
+          if (allocation.allocations && Array.isArray(allocation.allocations)) {
+            allocation.allocations.forEach((alloc) => {
+              // Handle BLNK transfer transactions for first process only (index 0) and only once
+              if (
+                alloc.blankStoreTransfer &&
+                allocationIndex === 0 &&
+                !blnkTransferProcessed
+              ) {
+                blnkTransferProcessed = true; // Mark as processed
+                const transfer = alloc.blankStoreTransfer;
 
-                console.log("BLNK transfer transactions created successfully");
+                // Only create transactions if blankStoreQty > 0
+                if (transfer.blankStoreQty > 0) {
+                  console.log("Creating BLNK transfer transactions:", transfer);
+
+                  // Create IN transaction for first process warehouse (Row 2)
+                  allTransactions.push({
+                    warehouseId:
+                      transfer.firstProcessWarehouseName ||
+                      alloc.wareHouse ||
+                      alloc.warehouseId,
+                    transactionType: "In",
+                    quantityChange: `(+${transfer.blankStoreQty}) (${transfer.firstProcessWarehouseQty})`,
+                    timestamp: transfer.transferTimestamp,
+                    project: project.projectName,
+                    partName: allocation.partName,
+                    process: allocation.processName,
+                    machine: alloc.machineId || "--",
+                    operator: alloc.operator || "--",
+                    rawQuantity: transfer.blankStoreQty,
+                    dailyStatus: "Allocated",
+                    partsCodeId: allocation.partsCodeId,
+                    source: "blankStoreTransfer",
+                  });
+
+                  // Create OUT transaction for BLNK warehouse (Row 1)
+                  allTransactions.push({
+                    warehouseId: transfer.blankStoreName || "BLNK",
+                    transactionType: "Out",
+                    quantityChange: `(-${transfer.blankStoreQty})`,
+                    timestamp: transfer.transferTimestamp,
+                    project: project.projectName,
+                    partName: allocation.partName,
+                    process: "--",
+                    machine: "--",
+                    operator: "--",
+                    rawQuantity: -transfer.blankStoreQty,
+                    dailyStatus: "Allocated",
+                    partsCodeId: allocation.partsCodeId,
+                    source: "blankStoreTransfer",
+                  });
+
+                  console.log(
+                    "BLNK transfer transactions created successfully"
+                  );
+                }
               }
-            }
 
-            if (alloc.dailyTracking && Array.isArray(alloc.dailyTracking)) {
-              alloc.dailyTracking.forEach((tracking) => {
-                // Create OUT transaction for fromWarehouse (for produced quantity)
-                if (
-                  tracking.fromWarehouse &&
-                  tracking.fromWarehouse !== "N/A" &&
-                  tracking.produced > 0
-                ) {
-                  allTransactions.push({
-                    warehouseId: tracking.fromWarehouse,
-                    transactionType: "Out",
-                    quantityChange: `(-${tracking.produced}) ${tracking.fromWarehouseQty || 0}`,
-                    timestamp: tracking.date,
-                    project: project.projectName,
-                    partName: allocation.partName,
-                    process: allocation.processName,
-                    machine: tracking.machineId || alloc.machineId,
-                    operator: tracking.operator || alloc.operator,
-                    rawQuantity: -tracking.produced,
-                    dailyStatus: tracking.dailyStatus,
-                    partsCodeId: allocation.partsCodeId,
-                    source: "dailyTracking",
-                  });
-                }
+              if (alloc.dailyTracking && Array.isArray(alloc.dailyTracking)) {
+                alloc.dailyTracking.forEach((tracking) => {
+                  // Create OUT transaction for fromWarehouse (for produced quantity)
+                  if (
+                    tracking.fromWarehouse &&
+                    tracking.fromWarehouse !== "N/A" &&
+                    tracking.produced > 0
+                  ) {
+                    allTransactions.push({
+                      warehouseId: tracking.fromWarehouse,
+                      transactionType: "Out",
+                      quantityChange: `(-${tracking.produced}) ${
+                        tracking.fromWarehouseQty || 0
+                      }`,
+                      timestamp: tracking.date,
+                      project: project.projectName,
+                      partName: allocation.partName,
+                      process: allocation.processName,
+                      machine: tracking.machineId || alloc.machineId,
+                      operator: tracking.operator || alloc.operator,
+                      rawQuantity: -tracking.produced,
+                      dailyStatus: tracking.dailyStatus,
+                      partsCodeId: allocation.partsCodeId,
+                      source: "dailyTracking",
+                    });
+                  }
 
-                // Create IN transaction for toWarehouse (for produced quantity)
-                if (
-                  tracking.toWarehouse &&
-                  tracking.toWarehouse !== "N/A" &&
-                  tracking.produced > 0
-                ) {
-                  allTransactions.push({
-                    warehouseId: tracking.toWarehouse,
-                    transactionType: "In",
-                    quantityChange: `(+${tracking.produced}) ${tracking.toWarehouseQty || 0}`,
-                    timestamp: tracking.date,
-                    project: project.projectName,
-                    partName: allocation.partName,
-                    process: allocation.processName,
-                    machine: tracking.machineId || alloc.machineId,
-                    operator: tracking.operator || alloc.operator,
-                    rawQuantity: tracking.produced,
-                    dailyStatus: tracking.dailyStatus,
-                    partsCodeId: allocation.partsCodeId,
-                    source: "dailyTracking",
-                  });
-                }
+                  // Create IN transaction for toWarehouse (for produced quantity)
+                  if (
+                    tracking.toWarehouse &&
+                    tracking.toWarehouse !== "N/A" &&
+                    tracking.produced > 0
+                  ) {
+                    allTransactions.push({
+                      warehouseId: tracking.toWarehouse,
+                      transactionType: "In",
+                      quantityChange: `(+${tracking.produced}) ${
+                        tracking.toWarehouseQty || 0
+                      }`,
+                      timestamp: tracking.date,
+                      project: project.projectName,
+                      partName: allocation.partName,
+                      process: allocation.processName,
+                      machine: tracking.machineId || alloc.machineId,
+                      operator: tracking.operator || alloc.operator,
+                      rawQuantity: tracking.produced,
+                      dailyStatus: tracking.dailyStatus,
+                      partsCodeId: allocation.partsCodeId,
+                      source: "dailyTracking",
+                    });
+                  }
 
-                // Create REJECTION transactions if rejected quantity exists
-                if (
-                  tracking.rejectedWarehouse &&
-                  tracking.rejectedWarehouse !== "N/A" &&
-                  tracking.rejectedWarehouseQuantity > 0
-                ) {
-                  // OUT transaction from fromWarehouse for rejected quantity
-                  allTransactions.push({
-                    warehouseId: tracking.fromWarehouse,
-                    transactionType: "Out",
-                    quantityChange: `(-${tracking.rejectedWarehouseQuantity}) ${tracking.fromWarehouseQty || 0}`,
-                    timestamp: tracking.date,
-                    project: project.projectName,
-                    partName: allocation.partName,
-                    process: allocation.processName,
-                    machine: tracking.machineId || alloc.machineId,
-                    operator: tracking.operator || alloc.operator,
-                    rawQuantity: -tracking.rejectedWarehouseQuantity,
-                    dailyStatus: "Rejected",
-                    partsCodeId: allocation.partsCodeId,
-                    source: "dailyTracking",
-                    remarks: tracking.remarks || "Part rejected during production",
-                  });
+                  // Create REJECTION transactions if rejected quantity exists
+                  if (
+                    tracking.rejectedWarehouse &&
+                    tracking.rejectedWarehouse !== "N/A" &&
+                    tracking.rejectedWarehouseQuantity > 0
+                  ) {
+                    // OUT transaction from fromWarehouse for rejected quantity
+                    allTransactions.push({
+                      warehouseId: tracking.fromWarehouse,
+                      transactionType: "Out",
+                      quantityChange: `(-${
+                        tracking.rejectedWarehouseQuantity
+                      }) ${tracking.fromWarehouseQty || 0}`,
+                      timestamp: tracking.date,
+                      project: project.projectName,
+                      partName: allocation.partName,
+                      process: allocation.processName,
+                      machine: tracking.machineId || alloc.machineId,
+                      operator: tracking.operator || alloc.operator,
+                      rawQuantity: -tracking.rejectedWarehouseQuantity,
+                      dailyStatus: "Rejected",
+                      partsCodeId: allocation.partsCodeId,
+                      source: "dailyTracking",
+                      remarks:
+                        tracking.remarks || "Part rejected during production",
+                    });
 
-                  // IN transaction to rejected warehouse
-                  allTransactions.push({
-                    warehouseId: tracking.rejectedWarehouse,
-                    transactionType: "In",
-                    quantityChange: `(+${tracking.rejectedWarehouseQuantity})`,
-                    timestamp: tracking.date,
-                    project: project.projectName,
-                    partName: allocation.partName,
-                    process: allocation.processName,
-                    machine: tracking.machineId || alloc.machineId,
-                    operator: tracking.operator || alloc.operator,
-                    rawQuantity: tracking.rejectedWarehouseQuantity,
-                    dailyStatus: "Rejected",
-                    partsCodeId: allocation.partsCodeId,
-                    source: "dailyTracking",
-                    remarks: tracking.remarks || "Part rejected during production",
-                  });
-                }
-              });
-            }
-          });
-        }
-      });
-    }
-  });
+                    // IN transaction to rejected warehouse
+                    allTransactions.push({
+                      warehouseId:
+                        tracking.rejectedWarehouseId &&
+                        tracking.rejectedWarehouse
+                          ? `${tracking.rejectedWarehouseId} - ${tracking.rejectedWarehouse}`
+                          : tracking.rejectedWarehouse || "N/A",
+                      transactionType: "In",
+                      quantityChange: `(+${tracking.rejectedWarehouseQuantity})`,
+                      timestamp: tracking.date,
+                      project: project.projectName,
+                      partName: allocation.partName,
+                      process: allocation.processName,
+                      machine: tracking.machineId || alloc.machineId,
+                      operator: tracking.operator || alloc.operator,
+                      rawQuantity: tracking.rejectedWarehouseQuantity,
+                      dailyStatus: "Rejected",
+                      partsCodeId: allocation.partsCodeId,
+                      source: "dailyTracking",
+                      remarks:
+                        tracking.remarks || "Part rejected during production",
+                    });
+                  }
+                });
+              }
+            });
+          }
+        });
+      }
+    });
 
-  return allTransactions;
-};
+    return allTransactions;
+  };
 
   // Transform store data into adjustment transactions from transaction history
   const transformToAdjustmentTransactions = (storeData) => {
@@ -324,37 +348,45 @@ const transformToInventoryTransactions = (allocationsData) => {
     : [];
 
   // Combine both types of transactions and filter out invalid ones
-  const allTransactions = [...inventoryTransactions, ...adjustmentTransactions].filter(transaction => 
-    transaction && 
-    transaction.warehouseId && 
-    transaction.warehouseId !== "N/A" && 
-    transaction.warehouseId !== "" &&
-    transaction.rawQuantity !== undefined &&
-    transaction.rawQuantity !== null
+  const allTransactions = [
+    ...inventoryTransactions,
+    ...adjustmentTransactions,
+  ].filter(
+    (transaction) =>
+      transaction &&
+      transaction.warehouseId &&
+      transaction.warehouseId !== "N/A" &&
+      transaction.warehouseId !== "" &&
+      transaction.rawQuantity !== undefined &&
+      transaction.rawQuantity !== null
   );
 
   // Sort by source priority (BLNK transfer first), then timestamp, then transaction type
   const sortedTransactions = allTransactions.sort((a, b) => {
     // First sort by source priority (blankStoreTransfer first)
-    const sourceOrder = { 'blankStoreTransfer': 0, 'dailyTracking': 1, 'adjustment': 2 };
+    const sourceOrder = {
+      blankStoreTransfer: 0,
+      dailyTracking: 1,
+      adjustment: 2,
+    };
     const aSourceOrder = sourceOrder[a.source] || 3;
     const bSourceOrder = sourceOrder[b.source] || 3;
-    
+
     if (aSourceOrder !== bSourceOrder) {
       return aSourceOrder - bSourceOrder;
     }
-    
+
     // Then sort by timestamp (newest first)
     const timeComparison = new Date(b.timestamp) - new Date(a.timestamp);
     if (timeComparison !== 0) {
       return timeComparison;
     }
-    
+
     // Finally sort by transaction type (OUT first, then IN)
-    const typeOrder = { 'Out': 0, 'In': 1, 'Adjustment': 2 };
+    const typeOrder = { Out: 0, In: 1, Adjustment: 2 };
     const aOrder = typeOrder[a.transactionType] || 3;
     const bOrder = typeOrder[b.transactionType] || 3;
-    
+
     return aOrder - bOrder;
   });
 
@@ -364,33 +396,33 @@ const transformToInventoryTransactions = (allocationsData) => {
   // Calculate warehouse summary when a specific warehouse is selected
   const calculateWarehouseSummary = () => {
     if (warehouseFilter === "all") return null;
-    
+
     const warehouseTransactions = limitedTransactions.filter(
       (item) => item.warehouseId === warehouseFilter
     );
-    
+
     let totalQuantity = 0;
     let warehouseName = warehouseFilter;
     let currentStoreQuantity = 0;
-    
+
     // Get current quantity from warehouseData if available
     if (warehouseData.has(warehouseFilter)) {
       const warehouseInfo = warehouseData.get(warehouseFilter);
       warehouseName = warehouseInfo.name;
       currentStoreQuantity = warehouseInfo.quantity || 0;
     }
-    
+
     // Calculate total from transactions
     warehouseTransactions.forEach((transaction) => {
       totalQuantity += transaction.rawQuantity || 0;
     });
-    
+
     return {
       warehouseId: warehouseFilter,
       warehouseName: warehouseName,
       currentStoreQuantity: currentStoreQuantity,
       calculatedQuantity: totalQuantity,
-      finalQuantity: currentStoreQuantity + totalQuantity
+      finalQuantity: currentStoreQuantity + totalQuantity,
     };
   };
 
@@ -404,10 +436,26 @@ const transformToInventoryTransactions = (allocationsData) => {
     : [];
 
   // Get unique warehouse names for filter dropdown
+  // Get unique warehouse names for filter dropdown
   const warehouseOptionsFromData = limitedTransactions
-    ? [...new Set(limitedTransactions.map((item) => item.warehouseId))]
-        .filter(Boolean)
-        .sort()
+    ? Array.from(
+        new Map(
+          limitedTransactions
+            .filter((item) => item.warehouseId && item.warehouseId !== "N/A")
+            .map((item) => {
+              // Normalize ID and name spacing
+              const cleanId = item.warehouseId.trim();
+
+              // If it contains " - ", extract the ID part before dash (e.g. "REJ - REJECTED" => "REJ")
+              const idKey = cleanId.includes(" - ")
+                ? cleanId.split(" - ")[0].trim()
+                : cleanId;
+
+              // Keep first unique entry for this ID
+              return [idKey, cleanId];
+            })
+        ).values()
+      ).sort()
     : [];
 
   // Get unique statuses for filter dropdown
@@ -427,8 +475,17 @@ const transformToInventoryTransactions = (allocationsData) => {
   // Filter data based on warehouse, status, project, and transaction type
   const filteredData = limitedTransactions.filter((item) => {
     // Warehouse filter logic
+    const normalizeId = (value) => {
+      if (!value) return "";
+      // If it has " - ", take only the first part (e.g., "01 - General Warehouse" => "01")
+      return value.split(" - ")[0].trim();
+    };
+
     const warehouseMatch =
-      warehouseFilter === "all" || item.warehouseId === warehouseFilter;
+      warehouseFilter === "all" ||
+      normalizeId(item.warehouseId) === normalizeId(warehouseFilter) ||
+      (item.transactionType === "Adjustment" &&
+        normalizeId(warehouseFilter) === normalizeId(item.warehouseId));
 
     // Status filter logic
     const statusMatch =
@@ -523,7 +580,10 @@ const transformToInventoryTransactions = (allocationsData) => {
 
   console.log("Current inventory transactions:", currentItems);
   console.log("Total transactions found:", limitedTransactions.length);
-  console.log("BLNK transfer transactions:", limitedTransactions.filter(t => t.source === 'blankStoreTransfer'));
+  console.log(
+    "BLNK transfer transactions:",
+    limitedTransactions.filter((t) => t.source === "blankStoreTransfer")
+  );
 
   if (loading) {
     return (
@@ -578,11 +638,49 @@ const transformToInventoryTransactions = (allocationsData) => {
                   className="form-control-sm border"
                 >
                   <option value="all">All Warehouses</option>
-                  {warehouseOptionsFromData.map((wh) => (
+                  {/* {warehouseOptionsFromData.map((wh) => (
                     <option key={wh} value={wh}>
                       {wh}
                     </option>
-                  ))}
+                  ))} */}
+
+                  {warehouseOptionsFromData.map((wh) => {
+                    const storeInfo = warehouseData.get(wh);
+
+                    // Case 1: If value already contains " - " (like "CMILL - CNC MILLING"), keep as-is
+                    if (wh.includes(" - ")) {
+                      return (
+                        <option key={wh} value={wh}>
+                          {wh}
+                        </option>
+                      );
+                    }
+
+                    // Case 2: If found in storeVariable, show "ID - Name"
+                    if (storeInfo && storeInfo.name) {
+                      return (
+                        <option key={wh} value={wh}>
+                          {`${wh} - ${storeInfo.name}`}
+                        </option>
+                      );
+                    }
+
+                    // Case 3: Fallback (just ID)
+                    return (
+                      <option key={wh} value={wh}>
+                        {wh}
+                      </option>
+                    );
+                  })}
+
+                  {/* {warehouseOptionsFromData.map((wh) => {
+                    const shortName = wh.includes(" - ") ? wh.split(" - ")[0] : wh;
+                    return (
+                      <option key={wh} value={wh}>
+                        {shortName}
+                      </option>
+                    );
+                  })} */}
                 </Input>
               </Col>
               <Col md={3}>
@@ -671,33 +769,55 @@ const transformToInventoryTransactions = (allocationsData) => {
                       Warehouse ID: {warehouseSummary.warehouseId}
                     </small>
                   </div>
-                  <div className="text-end">
+                  {/* <div className="text-end">
                     <div className="d-flex align-items-center gap-3">
                       <div className="text-center">
-                        <small className="text-muted d-block">Store Variable</small>
+                        <small className="text-muted d-block">
+                          Store Variable
+                        </small>
                         <span className="fw-bold text-info">
                           {warehouseSummary.currentStoreQuantity}
                         </span>
-                      </div>
-                      <div className="text-center">
-                        <small className="text-muted d-block">Transaction Net</small>
-                        <span className={`fw-bold ${
-                          warehouseSummary.calculatedQuantity >= 0 
-                            ? 'text-success' 
-                            : 'text-danger'
-                        }`}>
-                          {warehouseSummary.calculatedQuantity >= 0 ? '+' : ''}
+                      </div> */}
+                  {/* <div className="text-center">
+                        <small className="text-muted d-block">
+                          Transaction Net
+                        </small>
+                        <span
+                          className={`fw-bold ${
+                            warehouseSummary.calculatedQuantity >= 0
+                              ? "text-success"
+                              : "text-danger"
+                          }`}
+                        >
+                          {warehouseSummary.calculatedQuantity >= 0 ? "+" : ""}
                           {warehouseSummary.calculatedQuantity}
                         </span>
-                      </div>
-                      <div className="text-center">
+                      </div> */}
+                  {/* <div className="text-center">
                         <small className="text-muted d-block">Final Quantity</small>
                         <span className="fw-bold text-primary fs-5">
                           {warehouseSummary.finalQuantity}
                         </span>
-                      </div>
-                    </div>
-                  </div>
+                      </div> */}
+                  {/* </div> */}
+                  {/* </div> */}
+
+                  {warehouseFilter !== "all" && filteredData.length > 0 && (
+                    <tr className="bg-light fw-bold text-end">
+                      <td colSpan="9" className="pe-4">
+                        Total Quantity Change:{" "}
+                        <span className="text-primary">
+                          {filteredData
+                            .reduce(
+                              (sum, item) => sum + (item.rawQuantity || 0),
+                              0
+                            )
+                            .toLocaleString()}
+                        </span>
+                      </td>
+                    </tr>
+                  )}
                 </div>
               </Col>
             </Row>
@@ -724,9 +844,15 @@ const transformToInventoryTransactions = (allocationsData) => {
                 <tr key={index} className="align-middle">
                   <td className="ps-4">
                     <span className="fw-semibold text-dark">
-                      {item.warehouseId || "N/A"}
+                      {item.transactionType === "Adjustment" &&
+                      warehouseData.has(item.warehouseId)
+                        ? `${item.warehouseId} - ${
+                            warehouseData.get(item.warehouseId).name
+                          }`
+                        : item.warehouseId || "N/A"}
                     </span>
                   </td>
+
                   <td>
                     <Badge
                       color={getTransactionBadgeColor(
@@ -756,9 +882,15 @@ const transformToInventoryTransactions = (allocationsData) => {
                         item.adjustmentType
                       )}
                     >
-                      {item.quantityChange}
+                      {item.transactionType === "Adjustment"
+                        ? `${item.adjustmentType || ""}${Math.abs(
+                            item.rawQuantity || 0
+                          )}`
+                        : item.quantityChange.match(/[+-]?\d+/)?.[0] ||
+                          item.quantityChange}
                     </span>
                   </td>
+
                   <td>
                     <small className="text-muted">
                       {formatDate(item.timestamp)}
