@@ -17,41 +17,41 @@ const AllocationPlanningSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-        allocations: [
-          {
-            splitNumber: {
-              type: String,
-            },
-            AllocationPartType: {
-              type: String,
-            },
-            plannedQuantity: {
-              type: Number,
-              required: true,
-              min: 0,
-            },
-            // BLNK warehouse transfer fields
-            blankStoreTransfer: {
-              blankStoreName: {
-                type: String,
-                default: "BLNK"
-              },
-              blankStoreQty: {
-                type: Number,
-                default: 0
-              },
-              firstProcessWarehouseName: {
-                type: String
-              },
-              firstProcessWarehouseQty: {
-                type: Number,
-                default: 0
-              },
-              transferTimestamp: {
-                type: Date,
-                default: Date.now
-              }
-            },
+    allocations: [
+      {
+        splitNumber: {
+          type: String,
+        },
+        AllocationPartType: {
+          type: String,
+        },
+        plannedQuantity: {
+          type: Number,
+          required: true,
+          min: 0,
+        },
+        // BLNK warehouse transfer fields
+        blankStoreTransfer: {
+          blankStoreName: {
+            type: String,
+            default: "BLNK",
+          },
+          blankStoreQty: {
+            type: Number,
+            default: 0,
+          },
+          firstProcessWarehouseName: {
+            type: String,
+          },
+          firstProcessWarehouseQty: {
+            type: Number,
+            default: 0,
+          },
+          transferTimestamp: {
+            type: Date,
+            default: Date.now,
+          },
+        },
         startDate: {
           type: Date,
           required: true,
@@ -274,6 +274,25 @@ const partSchema = new mongoose.Schema({
   ],
   image: { type: String },
   allocations: [AllocationPlanningSchema],
+  // Logs for job-work issues/receipts and automatic moves to next process
+  jobWorkMovements: [
+    {
+      type: {
+        type: String,
+        enum: ["issue", "receipt", "autoMove"],
+        required: true,
+      },
+      productionNo: { type: String },
+      partsCodeId: { type: String },
+      fromWarehouseId: { type: String },
+      toWarehouseId: { type: String },
+      warehouseId: { type: String }, // for single-warehouse logs like issue/receipt
+      warehouseName: { type: String },
+      quantity: { type: Number, default: 0 },
+      timestamp: { type: Date, default: Date.now },
+      note: { type: String },
+    },
+  ],
 });
 
 // New partsListSchema

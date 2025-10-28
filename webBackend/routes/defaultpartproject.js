@@ -1342,33 +1342,33 @@ partproject.post(
     try {
       const { projectId, partsListId, partsListItemsId } = req.params;
       const { allocations } = req.body;
- 
+
       if (!Array.isArray(allocations) || allocations.length === 0) {
         return res.status(400).json({ message: "Invalid allocation data" });
       }
- 
+
       const project = await PartListProjectModel.findById(projectId);
       if (!project) {
         return res.status(404).json({ message: "Project not found" });
       }
- 
+
       const partsList = project.partsLists.find(
         (list) => list._id.toString() === partsListId
       );
       if (!partsList) {
         return res.status(404).json({ message: "Parts List not found" });
       }
- 
+
       const partItem = partsList.partsListItems.find(
         (item) => item._id.toString() === partsListItemsId
       );
       if (!partItem) {
         return res.status(404).json({ message: "Part List Item not found" });
       }
- 
+
       // Clear existing allocations
       partItem.allocations = [];
- 
+
       // Add all allocations in the same order
       allocations.forEach((alloc, allocationIndex) => {
         const newAllocation = {
@@ -1401,7 +1401,7 @@ partproject.post(
                 blankStoreQty: plannedQuantity, // Set to required quantity
                 firstProcessWarehouseName: a.wareHouse || a.warehouseId,
                 firstProcessWarehouseQty: 0, // Will be updated when warehouse quantity is fetched
-                transferTimestamp: new Date().toISOString()
+                transferTimestamp: new Date().toISOString(),
               };
             }
 
@@ -1410,20 +1410,20 @@ partproject.post(
               dailyPlannedQty,
               dailyTracking: [],
               // Include BLNK transfer data for first process
-              ...(blankStoreTransfer && { blankStoreTransfer })
+              ...(blankStoreTransfer && { blankStoreTransfer }),
             };
           }),
         };
         partItem.allocations.push(newAllocation);
       });
- 
+
       // Update status
       const status = partItem.calculateStatus();
       partItem.status = status.text;
       partItem.statusClass = status.class;
- 
+
       await project.save();
- 
+
       res.status(201).json({
         message: "Allocations added successfully",
         data: {
@@ -1438,7 +1438,6 @@ partproject.post(
     }
   }
 );
- 
 
 partproject.delete(
   "/projects/:projectId/partsLists/:partsListId/partsListItems/:partsListItemsId/allocation",
@@ -1568,10 +1567,11 @@ partproject.get(
 
                   // Update the allocation's warehouseQuantity in the database
                   allocation.warehouseQuantity = warehouseQuantity;
-                  
+
                   // Update blankStoreTransfer for first process (index 0)
                   if (allocationIndex === 0 && allocation.blankStoreTransfer) {
-                    allocation.blankStoreTransfer.firstProcessWarehouseQty = warehouseQuantity;
+                    allocation.blankStoreTransfer.firstProcessWarehouseQty =
+                      warehouseQuantity;
                   }
                 }
               }
@@ -1620,6 +1620,7 @@ partproject.get(
 //         processId,
 //         allocationId,
 //       } = req.params;
+
 //       const {
 //         date,
 //         planned,
@@ -1628,7 +1629,6 @@ partproject.get(
 //         dailyStatus,
 //         wareHouseTotalQty,
 //         wareHouseremainingQty,
-//         // Additional fields for complete tracking
 //         projectName,
 //         partName,
 //         processName,
@@ -1642,7 +1642,13 @@ partproject.get(
 //         machineId,
 //         shift,
 //         partsCodeId,
-//         actualEndTime: requestedActualEndTime, // ✅ Extract actualEndTime from request body
+//         actualEndTime: requestedActualEndTime,
+
+//         // ✅ Newly added fields
+//         rejectedWarehouse,
+//         rejectedWarehouseId,
+//         rejectedWarehouseQuantity,
+//         remarks,
 //       } = req.body;
 
 //       if (!date || produced === undefined) {
@@ -1651,6 +1657,7 @@ partproject.get(
 //           .json({ error: "Date and produced quantity are required" });
 //       }
 
+//       // Fetch project
 //       const project = await PartListProjectModel.findById(projectId);
 //       if (!project) return res.status(404).json({ error: "Project not found" });
 
@@ -1669,7 +1676,7 @@ partproject.get(
 //       if (!allocation)
 //         return res.status(404).json({ error: "Allocation not found" });
 
-//       // Calculate daily planned quantity
+//       // === Calculate daily planned quantity ===
 //       const shiftTotalTime = allocation.shiftTotalTime || 510;
 //       const perMachinetotalTime = allocation.perMachinetotalTime || 1;
 //       const plannedQuantity = allocation.plannedQuantity || 0;
@@ -1688,11 +1695,12 @@ partproject.get(
 //       dailyPlannedQty = Math.max(1, dailyPlannedQty);
 //       allocation.dailyPlannedQty = dailyPlannedQty;
 
-//       // Add / update daily tracking
+//       // === Check if entry for same date exists ===
 //       const existingEntryIndex = allocation.dailyTracking.findIndex(
 //         (e) => new Date(e.date).toISOString() === new Date(date).toISOString()
 //       );
 
+//       // === Build tracking entry ===
 //       const trackingEntry = {
 //         date,
 //         planned: dailyPlannedQty,
@@ -1707,7 +1715,7 @@ partproject.get(
 //             : "On Track"),
 //         wareHouseTotalQty: Number(wareHouseTotalQty) || 0,
 //         wareHouseremainingQty: Number(wareHouseremainingQty) || 0,
-//         // Additional fields for complete tracking
+
 //         projectName: projectName || project.projectName,
 //         partName: partName || partItem.partName,
 //         processName: processName || process.processName,
@@ -1721,57 +1729,37 @@ partproject.get(
 //         machineId: machineId || allocation.machineId,
 //         shift: shift || allocation.shift,
 //         partsCodeId: partsCodeId || partItem.partsCodeId,
+
+//         // ✅ Add newly added fields
+//         rejectedWarehouse: rejectedWarehouse || "",
+//         rejectedWarehouseId: rejectedWarehouseId || "",
+//         rejectedWarehouseQuantity: Number(rejectedWarehouseQuantity) || 0,
+//         remarks: remarks || "",
 //       };
 
+//       // === Push or update ===
 //       if (existingEntryIndex >= 0) {
 //         allocation.dailyTracking[existingEntryIndex] = trackingEntry;
 //       } else {
 //         allocation.dailyTracking.push(trackingEntry);
 //       }
 
-//       // Sort by date
 //       allocation.dailyTracking.sort(
 //         (a, b) => new Date(a.date) - new Date(b.date)
 //       );
 
-//       // Calculate totals
+//       // === Totals & Remaining ===
 //       const totalProduced = allocation.dailyTracking.reduce(
 //         (sum, entry) => sum + entry.produced,
 //         0
 //       );
 //       const remainingQuantity = Math.max(0, plannedQuantity - totalProduced);
 
-//       // Get holidays for working day calc
-//       const holidaysResponse = await axios.get(`${baseUrl}/api/eventScheduler/events`);
-//       const holidays = holidaysResponse.data
-//         .filter((event) => event.eventName === "HOLIDAY")
-//         .flatMap((event) => {
-//           const start = new Date(event.startDate);
-//           const end = new Date(event.endDate);
-//           let current = new Date(start);
-//           const dates = [];
-//           while (current <= end) {
-//             dates.push(new Date(current));
-//             current.setDate(current.getDate() + 1);
-//           }
-//           return dates;
-//         });
-
-//       const isWorkingDay = (d) => {
-//         const dateObj = new Date(d);
-//         if (dateObj.getDay() === 0) return false; // Sunday
-//         const dateStr = dateObj.toISOString().split("T")[0];
-//         return !holidays.some(
-//           (holiday) => new Date(holiday).toISOString().split("T")[0] === dateStr
-//         );
-//       };
-
-//       // === Actual End Date & Time calculation ===
+//       // === Calculate Actual End Date & Time ===
 //       let actualEndDate = allocation.endDate;
 //       let actualEndTime = allocation.endTime;
 
 //       if (remainingQuantity <= 0) {
-//         // Production complete - use the actualEndTime from request body (current time when tracking was submitted)
 //         const productionDates = allocation.dailyTracking
 //           .filter((entry) => entry.produced > 0)
 //           .map((entry) => new Date(entry.date));
@@ -1779,27 +1767,11 @@ partproject.get(
 //         if (productionDates.length > 0) {
 //           const lastProductionDate = new Date(Math.max(...productionDates));
 //           actualEndDate = lastProductionDate;
-
-//           // ✅ Use the actualEndTime from request body (current time) if provided, otherwise use allocation.endTime
 //           actualEndTime = requestedActualEndTime || allocation.endTime;
 //         }
 //       } else {
-//         // Production ongoing - use the actualEndTime from request body (current time when tracking was submitted)
-//         // This captures the current time when daily tracking is being performed
 //         actualEndTime = requestedActualEndTime || allocation.endTime;
-
-//         // Estimate future completion date
-//         let currentDate = new Date(date);
-//         let remainingQty = remainingQuantity;
-
-//         while (remainingQty > 0) {
-//           currentDate.setDate(currentDate.getDate() + 1);
-//           if (isWorkingDay(currentDate)) {
-//             remainingQty -= dailyPlannedQty;
-//           }
-//         }
-
-//         actualEndDate = currentDate;
+//         actualEndDate = allocation.endDate;
 //       }
 
 //       allocation.actualEndDate = actualEndDate;
@@ -1817,6 +1789,11 @@ partproject.get(
 //           actualEndTime: allocation.actualEndTime,
 //           wareHouseTotalQty: trackingEntry.wareHouseTotalQty,
 //           wareHouseremainingQty: trackingEntry.wareHouseremainingQty,
+//           rejectedWarehouse: trackingEntry.rejectedWarehouse,
+//           rejectedWarehouseId: trackingEntry.rejectedWarehouseId,
+//           rejectedWarehouseQuantity:
+//             trackingEntry.rejectedWarehouseQuantity || 0,
+//           remarks: trackingEntry.remarks || "",
 //         },
 //         allocation,
 //       });
@@ -1925,7 +1902,7 @@ partproject.post(
       const trackingEntry = {
         date,
         planned: dailyPlannedQty,
-        produced: Number(produced),
+        produced: Number(produced) || 0,
         operator: operator || allocation.operator,
         dailyStatus:
           dailyStatus ||
@@ -1951,7 +1928,7 @@ partproject.post(
         shift: shift || allocation.shift,
         partsCodeId: partsCodeId || partItem.partsCodeId,
 
-        // ✅ Add newly added fields
+        // ✅ Add newly added fields (ensure numeric default)
         rejectedWarehouse: rejectedWarehouse || "",
         rejectedWarehouseId: rejectedWarehouseId || "",
         rejectedWarehouseQuantity: Number(rejectedWarehouseQuantity) || 0,
@@ -1970,10 +1947,13 @@ partproject.post(
       );
 
       // === Totals & Remaining ===
-      const totalProduced = allocation.dailyTracking.reduce(
-        (sum, entry) => sum + entry.produced,
-        0
-      );
+      // IMPORTANT: include both produced and rejection when summing 'consumed' qty
+      const totalProduced = allocation.dailyTracking.reduce((sum, entry) => {
+        const p = Number(entry.produced) || 0;
+        const r = Number(entry.rejectedWarehouseQuantity) || 0;
+        return sum + p + r;
+      }, 0);
+
       const remainingQuantity = Math.max(0, plannedQuantity - totalProduced);
 
       // === Calculate Actual End Date & Time ===
@@ -1982,7 +1962,7 @@ partproject.post(
 
       if (remainingQuantity <= 0) {
         const productionDates = allocation.dailyTracking
-          .filter((entry) => entry.produced > 0)
+          .filter((entry) => (Number(entry.produced) || 0) > 0)
           .map((entry) => new Date(entry.date));
 
         if (productionDates.length > 0) {
@@ -2004,7 +1984,7 @@ partproject.post(
         message: "Daily tracking updated successfully",
         data: {
           dailyPlannedQty,
-          totalProduced,
+          totalProduced, // now includes rejection
           remainingQuantity,
           actualEndDate: allocation.actualEndDate,
           actualEndTime: allocation.actualEndTime,
@@ -2326,24 +2306,39 @@ partproject.get("/all-allocations", async (req, res) => {
         select: "machineId startDate endDate actualEndDate partName",
       });
 
-    // Extract allocations with projectName
+    // Extract allocations with projectName and include jobWorkMovements per part
     const allocationData = projects.map((project) => ({
       projectName: project.projectName,
       createdAt: project.createdAt,
       allocations: [
         ...project.partsLists.flatMap((pl) =>
-          pl.partsListItems.flatMap((p) => p.allocations)
+          pl.partsListItems.flatMap((p) => ({
+            ...p.toObject(),
+          }))
         ),
         ...project.subAssemblyListFirst.flatMap((sa) =>
-          sa.partsListItems.flatMap((p) => p.allocations)
+          sa.partsListItems.flatMap((p) => ({
+            ...p.toObject(),
+          }))
         ),
         ...project.assemblyList.flatMap((al) => [
-          ...al.partsListItems.flatMap((p) => p.allocations),
+          ...al.partsListItems.flatMap((p) => ({
+            ...p.toObject(),
+          })),
           ...al.subAssemblies.flatMap((sub) =>
-            sub.partsListItems.flatMap((p) => p.allocations)
+            sub.partsListItems.flatMap((p) => ({
+              ...p.toObject(),
+            }))
           ),
         ]),
-      ].flat(),
+      ]
+        .flat()
+        .map((partObj) => ({
+          partName: partObj.partName,
+          partsCodeId: partObj.partsCodeId,
+          allocations: partObj.allocations || [],
+          jobWorkMovements: partObj.jobWorkMovements || [],
+        })),
     }));
 
     return res.status(200).json({
@@ -2453,17 +2448,22 @@ partproject.put(
   async (req, res) => {
     try {
       const { projectId, partsListId, partListItemId } = req.params;
-      const { fromWarehouseId, toWarehouseId, quantity, isRejectionTransfer = false } = req.body;
- 
+      const {
+        fromWarehouseId,
+        toWarehouseId,
+        quantity,
+        isRejectionTransfer = false,
+      } = req.body;
+
       if (!toWarehouseId || quantity === undefined) {
         return res.status(400).json({
           success: false,
           error: "toWarehouseId and quantity are required.",
         });
       }
- 
+
       const StoreVariableModal = require("../model/storemodel");
- 
+
       // Fetch both warehouses
       let [toWarehouse, fromWarehouse] = await Promise.all([
         StoreVariableModal.findOne({ categoryId: toWarehouseId }),
@@ -2471,62 +2471,77 @@ partproject.put(
           ? StoreVariableModal.findOne({ categoryId: fromWarehouseId })
           : Promise.resolve(null),
       ]);
- 
+
       if (!toWarehouse) {
-        return res.status(404).json({ success: false, error: "To warehouse not found" });
+        return res
+          .status(404)
+          .json({ success: false, error: "To warehouse not found" });
       }
- 
+
       const qty = Number(quantity || 0);
       let toPrev, toNew, fromPrev, fromNew;
- 
+
       if (isRejectionTransfer) {
         // 🔄 REJECTION TRANSFER: Decrement FROM, Increment TO (Rejection)
         if (fromWarehouse) {
-          if (!Array.isArray(fromWarehouse.quantity) || fromWarehouse.quantity.length === 0) {
+          if (
+            !Array.isArray(fromWarehouse.quantity) ||
+            fromWarehouse.quantity.length === 0
+          ) {
             fromWarehouse.quantity = [0];
           }
           fromPrev = Number(fromWarehouse.quantity[0] || 0);
           fromNew = Math.max(0, fromPrev - qty);
           fromWarehouse.quantity[0] = fromNew;
         }
- 
+
         // Increment rejection warehouse
-        if (!Array.isArray(toWarehouse.quantity) || toWarehouse.quantity.length === 0) {
+        if (
+          !Array.isArray(toWarehouse.quantity) ||
+          toWarehouse.quantity.length === 0
+        ) {
           toWarehouse.quantity = [0];
         }
         toPrev = Number(toWarehouse.quantity[0] || 0);
         toNew = toPrev + qty;
         toWarehouse.quantity[0] = toNew;
- 
       } else {
         // 🔄 NORMAL TRANSFER: Decrement FROM, Increment TO
         if (fromWarehouse) {
-          if (!Array.isArray(fromWarehouse.quantity) || fromWarehouse.quantity.length === 0) {
+          if (
+            !Array.isArray(fromWarehouse.quantity) ||
+            fromWarehouse.quantity.length === 0
+          ) {
             fromWarehouse.quantity = [0];
           }
           fromPrev = Number(fromWarehouse.quantity[0] || 0);
           fromNew = Math.max(0, fromPrev - qty);
           fromWarehouse.quantity[0] = fromNew;
         }
- 
+
         // Increment to warehouse
-        if (!Array.isArray(toWarehouse.quantity) || toWarehouse.quantity.length === 0) {
+        if (
+          !Array.isArray(toWarehouse.quantity) ||
+          toWarehouse.quantity.length === 0
+        ) {
           toWarehouse.quantity = [0];
         }
         toPrev = Number(toWarehouse.quantity[0] || 0);
         toNew = toPrev + qty;
         toWarehouse.quantity[0] = toNew;
       }
- 
+
       // Save changes
       await Promise.all([
         toWarehouse.save(),
         fromWarehouse ? fromWarehouse.save() : Promise.resolve(),
       ]);
- 
+
       return res.status(200).json({
         success: true,
-        message: isRejectionTransfer ? "Rejection transfer completed" : "Transfer completed",
+        message: isRejectionTransfer
+          ? "Rejection transfer completed"
+          : "Transfer completed",
         data: {
           toWarehouse: {
             id: toWarehouseId,
@@ -2724,13 +2739,46 @@ partproject.post(
           { timeout: 15000 }
         );
 
-        // Fetch part name for inventory description
+        // Fetch project/part to log job-work movement entries
         let partName = "";
         try {
-          const project = await PartListProjectModel.findById(projectId);
-          const partsList = project?.partsLists?.id(partsListId);
-          const partItem = partsList?.partsListItems?.id(partListItemId);
-          partName = partItem?.partName || "";
+          const projectDoc = await PartListProjectModel.findById(projectId);
+          const partsListDoc = projectDoc?.partsLists?.id(partsListId);
+          const partItemDoc = partsListDoc?.partsListItems?.id(partListItemId);
+          partName = partItemDoc?.partName || "";
+
+          if (partItemDoc) {
+            // Store latest issue/receipt snapshot
+            partItemDoc.jobWorkMovements = partItemDoc.jobWorkMovements || [];
+            partItemDoc.jobWorkMovements.push(
+              {
+                type: "issue",
+                productionNo: productionNo || "",
+                partsCodeId: partsCodeId,
+                warehouseId: currentWarehouseId,
+                quantity: Number(issueQty) || 0,
+                note: "Job-work issue snapshot",
+              },
+              {
+                type: "receipt",
+                productionNo: productionNo || "",
+                partsCodeId: partsCodeId,
+                warehouseId: currentWarehouseId,
+                quantity: Number(receiptQty) || 0,
+                note: "Job-work receipt snapshot",
+              },
+              {
+                type: "autoMove",
+                productionNo: productionNo || "",
+                partsCodeId: partsCodeId,
+                fromWarehouseId: currentWarehouseId,
+                toWarehouseId: nextWarehouseId,
+                quantity: Number(eligible) || 0,
+                note: "Auto move from job-work to next process on receipt",
+              }
+            );
+            await projectDoc.save();
+          }
         } catch (e) {}
 
         // Post inventory movements to both routes
@@ -2841,7 +2889,7 @@ setInterval(async () => {
             { timeout: 15000 }
           );
 
-          // Try to get the part name for description
+          // Try to get the part name for description and log movement
           let partName = "";
           try {
             const PartListProjectModel = require("../model/project/PartListProjectModel");
@@ -2849,6 +2897,20 @@ setInterval(async () => {
             const partsList = projectDoc?.partsLists?.id(partsListId);
             const partItem = partsList?.partsListItems?.id(partListItemId);
             partName = partItem?.partName || "";
+
+            if (partItem) {
+              partItem.jobWorkMovements = partItem.jobWorkMovements || [];
+              partItem.jobWorkMovements.push({
+                type: "autoMove",
+                productionNo: productionNo || "",
+                partsCodeId: partsCodeId,
+                fromWarehouseId: currentWarehouseId,
+                toWarehouseId: nextWarehouseId,
+                quantity: Number(eligible) || 0,
+                note: "Scheduler auto move from job-work to next process",
+              });
+              await projectDoc.save();
+            }
           } catch (e) {}
 
           // Post inventory movements to both routes
