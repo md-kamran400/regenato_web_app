@@ -91,6 +91,9 @@ export const AllocatedPartListHrPlan = ({
   const [producedTotalsByTrackingId, setProducedTotalsByTrackingId] = useState(
     {}
   );
+  const [rejectedTotalsByTrackingId, setRejectedTotalsByTrackingId] = useState(
+    {}
+  );
 
   const [jobWorkModal, setJobWorkModal] = useState(false);
   const [goodsIssueData, setGoodsIssueData] = useState([]);
@@ -692,29 +695,47 @@ export const AllocatedPartListHrPlan = ({
                     .get(url)
                     .then((res) => {
                       const daily = res?.data?.dailyTracking || [];
-                      const total = daily.reduce(
+                      const produced = daily.reduce(
                         (sum, t) => sum + (Number(t.produced) || 0),
                         0
                       );
-                      return { trackingId: row.trackingId, total };
+                      const rejected = daily.reduce(
+                        (sum, t) =>
+                          sum + (Number(t.rejectedWarehouseQuantity) || 0),
+                        0
+                      );
+                      return {
+                        trackingId: row.trackingId,
+                        produced,
+                        rejected,
+                      };
                     })
-                    .catch(() => ({ trackingId: row.trackingId, total: 0 }))
+                    .catch(() => ({
+                      trackingId: row.trackingId,
+                      produced: 0,
+                      rejected: 0,
+                    }))
                 );
               }
             });
           });
           if (requests.length) {
             const results = await Promise.all(requests);
-            const map = {};
-            results.forEach(({ trackingId, total }) => {
-              map[trackingId] = total;
+            const prodMap = {};
+            const rejMap = {};
+            results.forEach(({ trackingId, produced, rejected }) => {
+              prodMap[trackingId] = produced;
+              rejMap[trackingId] = rejected;
             });
-            setProducedTotalsByTrackingId(map);
+            setProducedTotalsByTrackingId(prodMap);
+            setRejectedTotalsByTrackingId(rejMap);
           } else {
             setProducedTotalsByTrackingId({});
+            setRejectedTotalsByTrackingId({});
           }
         } catch (e) {
           setProducedTotalsByTrackingId({});
+          setRejectedTotalsByTrackingId({});
         }
         // console.log(setSections);
       }
@@ -846,7 +867,15 @@ export const AllocatedPartListHrPlan = ({
     );
     const defaultRejectionData = {
       date: new Date(),
-      planned: Number(row.dailyPlannedQty) || 0,
+      planned: (() => {
+        // Use computed actual planned for current process
+        try {
+          const val = getActualPlannedForCurrentProcess();
+          return Number(val) || 0;
+        } catch (_) {
+          return Number(row.dailyPlannedQty) || 0;
+        }
+      })(),
       produced: 0,
       dailyStatus: "On Track",
       operator: row.operator || "",
@@ -963,7 +992,7 @@ export const AllocatedPartListHrPlan = ({
   };
 
   // Add this function to get available quantity from previous process
-  // Enhanced function to get available quantity from previous process
+  // Enhanced function to get available (usable) quantity from previous process
   const getAvailableQuantityFromPreviousProcess = (currentSectionIndex) => {
     if (currentSectionIndex === 0) {
       return 200; // Initial quantity for first process
@@ -976,9 +1005,11 @@ export const AllocatedPartListHrPlan = ({
       return getQuantityFromJobWorkReceipt(currentSectionIndex);
     }
 
-    // For normal processes, use produced quantity
+    // For normal processes, usable = previous planned total - previous total rejection
     const previousTrackingId = previousSection?.data?.[0]?.trackingId;
-    return producedTotalsByTrackingId[previousTrackingId] || 0;
+    const prevPlanned = previousSection?.data?.[0]?.plannedQty || 0;
+    const prevRejected = rejectedTotalsByTrackingId[previousTrackingId] || 0;
+    return Math.max(0, Number(prevPlanned) - Number(prevRejected));
   };
 
   // Add this function to get current process produced quantity
@@ -994,8 +1025,12 @@ export const AllocatedPartListHrPlan = ({
 
       // --- Core Variables ---
       // const remainingQty = calculateRemainingQuantity();
-      const currentRejected = Number(dailyTracking[0]?.rejectedWarehouseQuantity) || 0;
-const remainingQty = calculateRemainingQuantity(numericValue, currentRejected);
+      const currentRejected =
+        Number(dailyTracking[0]?.rejectedWarehouseQuantity) || 0;
+      const remainingQty = calculateRemainingQuantity(
+        numericValue,
+        currentRejected
+      );
 
       const availableWarehouseQty = toWarehouseData?.quantity?.[0];
       const availableFromPrevious =
@@ -1081,13 +1116,13 @@ const remainingQty = calculateRemainingQuantity(numericValue, currentRejected);
       const producedQty = Number(dailyTracking[index]?.produced) || 0;
       const totalQty = selectedSection?.data?.[0]?.plannedQty || 0;
 
-      // 🧭 Step 1: Get last process produced quantity
+      //  Step 1: Get last process produced quantity
       const lastProducedQty =
         selectedSectionIndex > 0
           ? getAvailableQuantityFromPreviousProcess(selectedSectionIndex)
           : totalQty; // for first process, use plannedQty as limit
 
-      // 🧭 Step 2: Basic validations
+      //  Step 2: Basic validations
       if (producedQty + rejectionQty > totalQty) {
         toast.error(
           `Invalid: Produced (${producedQty}) + Rejection (${rejectionQty}) exceeds total planned (${totalQty}).`
@@ -1095,7 +1130,7 @@ const remainingQty = calculateRemainingQuantity(numericValue, currentRejected);
         return;
       }
 
-      // 🧭 Step 3: Core logic - cannot exceed last process produced
+      //  Step 3: Core logic - cannot exceed last process produced
       if (producedQty + rejectionQty > lastProducedQty) {
         toast.error(
           `Invalid: Total (${
@@ -1105,7 +1140,7 @@ const remainingQty = calculateRemainingQuantity(numericValue, currentRejected);
         return;
       }
 
-      // 🧭 Step 4: Ensure rejection ≤ produced if needed (optional)
+      //  Step 4: Ensure rejection ≤ produced if needed (optional)
       if (rejectionQty > producedQty) {
         toast.warning(
           `Warning: Rejection (${rejectionQty}) is higher than produced (${producedQty}). Please verify.`
@@ -1125,10 +1160,18 @@ const remainingQty = calculateRemainingQuantity(numericValue, currentRejected);
 
       if (field === "produced") {
         const produced = Number(value) || 0;
-        const planned =
-          Number(updated[index].planned) ||
-          Number(selectedSection?.data[0]?.dailyPlannedQty) ||
-          0;
+        const planned = (() => {
+          try {
+            const p = getActualPlannedForCurrentProcess();
+            return Number(p) || 0;
+          } catch (_) {
+            return (
+              Number(updated[index].planned) ||
+              Number(selectedSection?.data[0]?.dailyPlannedQty) ||
+              0
+            );
+          }
+        })();
 
         if (produced === planned) {
           updated[index].dailyStatus = "On Track";
@@ -1217,46 +1260,58 @@ const remainingQty = calculateRemainingQuantity(numericValue, currentRejected);
   //   return totalQuantity - totalProduced;
   // };
 
-
   // Calculate remaining quantity for the current allocation.
-// It sums existing daily tracking (produced + rejected) and also includes the
-// current input values (currentProduced, currentRejected) for accurate preview.
-const calculateRemainingQuantity = (
-  currentProduced = Number(dailyTracking[0]?.produced) || 0,
-  currentRejected = Number(dailyTracking[0]?.rejectedWarehouseQuantity) || 0
-) => {
-  if (!selectedSection || !selectedSection.data?.[0]) return 0;
+  // It sums existing daily tracking (produced + rejected) and also includes the
+  // current input values (currentProduced, currentRejected) for accurate preview.
+  // Helper: compute actual planned/usable total for current process
+  const getActualPlannedForCurrentProcess = () => {
+    if (!selectedSection || !selectedSection.data?.[0]) return 0;
+    // First process => total planned quantity for the part
+    if (selectedSectionIndex === 0 || !Number.isInteger(selectedSectionIndex)) {
+      return Number(selectedSection.data[0].plannedQty) || 0;
+    }
+    // From second process => total usable from previous process
+    const availableFromPrevious =
+      getAvailableQuantityFromPreviousProcess(selectedSectionIndex);
+    return Number(availableFromPrevious) || 0;
+  };
+  const calculateRemainingQuantity = (
+    currentProduced = Number(dailyTracking[0]?.produced) || 0,
+    currentRejected = Number(dailyTracking[0]?.rejectedWarehouseQuantity) || 0
+  ) => {
+    if (!selectedSection || !selectedSection.data?.[0]) return 0;
 
-  const totalQuantity = Number(selectedSection.data[0].plannedQty) || 0;
+    // Use actual planned/usable total for this process
+    const totalQuantity = getActualPlannedForCurrentProcess();
 
-  // Sum up existing produced + rejected from server-cached tracking
-  const totalFromExisting = (existingDailyTracking || []).reduce(
-    (sum, task) =>
-      sum +
-      (Number(task.produced) || 0) +
-      (Number(task.rejectedWarehouseQuantity) || 0),
-    0
-  );
+    // Sum up existing produced + rejected from server-cached tracking
+    const totalFromExisting = (existingDailyTracking || []).reduce(
+      (sum, task) =>
+        sum +
+        (Number(task.produced) || 0) +
+        (Number(task.rejectedWarehouseQuantity) || 0),
+      0
+    );
 
-  // Remaining = planned - (existing processed + current input processed)
-  const remaining = totalQuantity - (totalFromExisting + currentProduced + currentRejected);
+    // Remaining = planned - (existing processed + current input processed)
+    const remaining =
+      totalQuantity - (totalFromExisting + currentProduced + currentRejected);
 
-  // Don't return negative numbers
-  return Math.max(0, remaining);
-};
-
+    // Don't return negative numbers
+    return Math.max(0, remaining);
+  };
 
   const submitDailyTracking = async () => {
     setIsUpdating(true);
     try {
-      console.log("🟢 Starting submitDailyTracking...");
+      console.log(" Starting submitDailyTracking...");
 
       const totalQty = selectedSection?.data?.[0]?.plannedQty || 0;
       const producedQty = Number(dailyTracking[0]?.produced) || 0;
       const rejectionQty =
         Number(dailyTracking[0]?.rejectedWarehouseQuantity) || 0;
 
-      // ✅ Basic validation
+      //  Basic validation
       if (producedQty + rejectionQty > totalQty) {
         toast.error(
           `Invalid entry: Produced (${producedQty}) + Rejection (${rejectionQty}) exceeds total (${totalQty}).`
@@ -1289,7 +1344,7 @@ const calculateRemainingQuantity = (
         sections[selectedSectionIndex + 1]?.data?.[0]?.warehouseId ||
         (sections[selectedSectionIndex + 1] ? null : "Store");
 
-      // ✅ Determine selected rejection warehouse
+      //  Determine selected rejection warehouse
       let rejectedWarehouseId = dailyTracking[0]?.rejectedWarehouseId || "";
       let rejectedWarehouseName = dailyTracking[0]?.rejectedWarehouse || "";
       let rejectionCategoryId = "";
@@ -1328,7 +1383,7 @@ const calculateRemainingQuantity = (
         }
       }
 
-      // ✅ Prepare data for main daily tracking POST
+      //  Prepare data for main daily tracking POST
       const trackingData = {
         ...dailyTracking[0],
         wareHouseTotalQty: warehouseQuantities.total,
@@ -1427,11 +1482,11 @@ const calculateRemainingQuantity = (
         allRequests.push(rejTransfer);
       }
 
-      // ✅ Execute all critical requests together
+      //  Execute all critical requests together
       await Promise.all(allRequests)
-        .then(() => console.log("✅ All API requests completed successfully"))
+        .then(() => console.log(" All API requests completed successfully"))
         .catch((err) => {
-          console.error("❌ One or more API requests failed:", err);
+          console.error(" One or more API requests failed:", err);
           throw new Error("One or more API requests failed. Rolling back.");
         });
 
@@ -1464,10 +1519,10 @@ const calculateRemainingQuantity = (
       setAddRowModal(false);
       setUpdateConfirmationModal(false);
 
-      toast.success("✅ Daily Tracking Updated Successfully!");
+      toast.success(" Daily Tracking Updated Successfully!");
       await fetchAllocations(); // refresh allocations dynamically
     } catch (err) {
-      console.error("❌ submitDailyTracking Error:", err);
+      console.error(" submitDailyTracking Error:", err);
       toast.error("Failed to update daily tracking. All operations aborted.");
     } finally {
       setIsUpdating(false);
@@ -1606,7 +1661,7 @@ const calculateRemainingQuantity = (
   //   }
   // };
 
-  // ✅ Updated robust function for From/To Warehouse quantity
+  //  Updated robust function for From/To Warehouse quantity
   const getMatchingWarehouseQuantity = (partsCodeId, warehouseIdOrCategory) => {
     // --- First, try goodsReceiptData (existing logic) ---
     if (goodsReceiptData && goodsReceiptData.length > 0) {
@@ -2057,31 +2112,99 @@ const calculateRemainingQuantity = (
                               >
                                 Quantity Status
                               </div>
-                              <div
-                                style={{
-                                  display: "flex",
-                                  gap: "0.5rem",
-                                  marginTop: "0.25rem",
-                                }}
-                              >
-                                <span
-                                  style={{
-                                    color: "#4f46e5",
-                                    fontWeight: 700,
-                                  }}
-                                >
-                                  {(() => {
-                                    const produced =
-                                      getSectionProducedTotal(section);
-                                    const plannedQty =
-                                      section.data[0]?.plannedQty || 0;
-                                    return `${produced}/${plannedQty}`;
-                                  })()}
-                                </span>
-                                <span style={{ color: "#64748b" }}>
-                                  produced/planned
-                                </span>
-                              </div>
+                              {(() => {
+                                // Totals for this section (usually one row)
+                                const produced =
+                                  getSectionProducedTotal(section);
+                                const rejected = (section.data || []).reduce(
+                                  (sum, r) => {
+                                    const rid = r?.trackingId;
+                                    return (
+                                      sum +
+                                      (rid
+                                        ? rejectedTotalsByTrackingId[rid] || 0
+                                        : 0)
+                                    );
+                                  },
+                                  0
+                                );
+                                // Planned (real) for this section's first row
+                                const firstRow = section.data?.[0];
+                                let plannedReal = firstRow?.plannedQty || 0;
+                                if (index > 0) {
+                                  const prevSection = sections[index - 1];
+                                  const prevRow = prevSection?.data?.[0];
+                                  const prevPlanned = prevRow?.plannedQty || 0;
+                                  const prevRejected = prevRow?.trackingId
+                                    ? rejectedTotalsByTrackingId[
+                                        prevRow.trackingId
+                                      ] || 0
+                                    : 0;
+                                  plannedReal = Math.max(
+                                    0,
+                                    Number(prevPlanned) - Number(prevRejected)
+                                  );
+                                }
+
+                                return (
+                                  <div style={{ marginTop: "0.25rem" }}>
+                                    <div>
+                                      <span
+                                        style={{
+                                          color: "#64748b",
+                                          marginRight: 6,
+                                        }}
+                                      >
+                                        Planned -
+                                      </span>
+                                      <span
+                                        style={{
+                                          color: "#3b82f6",
+                                          fontWeight: 700,
+                                        }}
+                                      >
+                                        {plannedReal}
+                                      </span>
+                                    </div>
+                                    <div>
+                                      <span
+                                        style={{
+                                          color: "#64748b",
+                                          marginRight: 6,
+                                        }}
+                                      >
+                                        Produced -
+                                      </span>
+                                      <span
+                                        style={{
+                                          color: "#16a34a",
+                                          fontWeight: 700,
+                                        }}
+                                      >
+                                        {produced}
+                                      </span>
+                                    </div>
+                                    <div>
+                                      <span
+                                        style={{
+                                          color: "#64748b",
+                                          marginRight: 6,
+                                        }}
+                                      >
+                                        Rejection -
+                                      </span>
+                                      <span
+                                        style={{
+                                          color: "#dc2626",
+                                          fontWeight: 700,
+                                        }}
+                                      >
+                                        {rejected}
+                                      </span>
+                                    </div>
+                                  </div>
+                                );
+                              })()}
                             </div>
                           </div>
                         </div>
@@ -2157,7 +2280,7 @@ const calculateRemainingQuantity = (
                                       >
                                         <FiBox size={16} color="#3b82f6" />
                                       </div>
-                                      Production Quantity Progress
+                                      Plan / Prod / Rej
                                     </label>
                                     <div
                                       style={{
@@ -2168,12 +2291,82 @@ const calculateRemainingQuantity = (
                                       }}
                                     >
                                       {(() => {
+                                        // Produced and rejection for this row
                                         const produced =
                                           producedTotalsByTrackingId[
                                             row.trackingId
                                           ] || 0;
-                                        const plannedQty = row.plannedQty || 0;
-                                        return `${produced}/${plannedQty}`;
+                                        const rejected =
+                                          rejectedTotalsByTrackingId[
+                                            row.trackingId
+                                          ] || 0;
+
+                                        // Planned (real) for this process row
+                                        let plannedReal = row.plannedQty || 0;
+                                        if (index > 0) {
+                                          const prevSection =
+                                            sections[index - 1];
+                                          const prevRow =
+                                            prevSection?.data?.[0];
+                                          const prevPlanned =
+                                            prevRow?.plannedQty || 0;
+                                          const prevRejected =
+                                            prevRow?.trackingId
+                                              ? rejectedTotalsByTrackingId[
+                                                  prevRow.trackingId
+                                                ] || 0
+                                              : 0;
+                                          plannedReal = Math.max(
+                                            0,
+                                            Number(prevPlanned) -
+                                              Number(prevRejected)
+                                          );
+                                        }
+
+                                        return (
+                                          <span>
+                                            <span
+                                              style={{
+                                                color: "#3b82f6",
+                                                fontWeight: 700,
+                                              }}
+                                            >
+                                              {plannedReal}
+                                            </span>
+                                            <span
+                                              style={{
+                                                color: "#64748b",
+                                                margin: "0 6px",
+                                              }}
+                                            >
+                                              /
+                                            </span>
+                                            <span
+                                              style={{
+                                                color: "#16a34a",
+                                                fontWeight: 700,
+                                              }}
+                                            >
+                                              {produced}
+                                            </span>
+                                            <span
+                                              style={{
+                                                color: "#64748b",
+                                                margin: "0 6px",
+                                              }}
+                                            >
+                                              /
+                                            </span>
+                                            <span
+                                              style={{
+                                                color: "#dc2626",
+                                                fontWeight: 700,
+                                              }}
+                                            >
+                                              {rejected}
+                                            </span>
+                                          </span>
+                                        );
                                       })()}
                                     </div>
                                   </div>
@@ -2821,10 +3014,14 @@ const calculateRemainingQuantity = (
                       marginBottom: "8px",
                     }}
                   >
-                    Daily Planned Quantity
+                    {/* Daily Planned Quantity */}
+                    Actual Planned
                   </h5>
                   <span style={{ fontSize: "14px" }}>
-                    {selectedSection?.data?.[0]?.dailyPlannedQty || "N/A"}
+                    {(() => {
+                      const p = getActualPlannedForCurrentProcess();
+                      return p || "N/A";
+                    })()}
                   </span>
                 </div>
               </Col>
@@ -3254,7 +3451,14 @@ const calculateRemainingQuantity = (
                     existingDailyTracking.map((task, index) => (
                       <tr key={index}>
                         <td>{moment(task.date).format("DD MMM YYYY")}</td>
-                        <td>{task.planned || 0}</td>
+                        {/* <td>{task.planned || 0}</td> */}
+                        <td>
+                          {(() => {
+                            const p = getActualPlannedForCurrentProcess();
+                            return p || "N/A";
+                          })()}
+                        </td>
+
                         <td>{task.produced || 0}</td>
                         {/* <td>{task.fromWarehouse || "N/A"}</td> */}
                         {/* <td>{task.fromWarehouseQty || 0}</td> */}
@@ -3296,7 +3500,8 @@ const calculateRemainingQuantity = (
                             </span>
                           ) : null}
                         </td>
-                        <td>{task.remaining}</td>
+                        {/* <td>{task.remaining}</td> */}
+                        <td>{calculateRemainingQuantity()}</td>
                         <td>{task.machineId || "N/A"}</td>
                         <td>{task.shift || "N/A"}</td>
                         <td>{task.operator || "N/A"}</td>
@@ -3479,7 +3684,15 @@ const calculateRemainingQuantity = (
                         {(() => {
                           const produced =
                             Number(dailyTracking[0].produced) || 0;
-                          const planned = Number(dailyTracking[0].planned) || 0;
+                          const planned = (() => {
+                            try {
+                              return (
+                                Number(getActualPlannedForCurrentProcess()) || 0
+                              );
+                            } catch (_) {
+                              return Number(dailyTracking[0].planned) || 0;
+                            }
+                          })();
 
                           if (produced === 0) {
                             return (
@@ -4084,10 +4297,14 @@ const calculateRemainingQuantity = (
                           marginBottom: "8px",
                         }}
                       >
-                        Daily Planned Quantity
+                        {/* Daily Planned Quantity */}
+                        Actula Planned
                       </h5>
                       <span style={{ fontSize: "14px" }}>
-                        {selectedSection?.data?.[0]?.dailyPlannedQty || "N/A"}
+                        {(() => {
+                          const p = getActualPlannedForCurrentProcess();
+                          return p || "N/A";
+                        })()}
                       </span>
                     </div>
                   </Col>
@@ -4618,7 +4835,13 @@ const calculateRemainingQuantity = (
                 <Col md={9}>
                   {(() => {
                     const produced = Number(dailyTracking[0]?.produced) || 0;
-                    const planned = Number(dailyTracking[0]?.planned) || 0;
+                    const planned = (() => {
+                      try {
+                        return Number(getActualPlannedForCurrentProcess()) || 0;
+                      } catch (_) {
+                        return Number(dailyTracking[0]?.planned) || 0;
+                      }
+                    })();
 
                     if (produced === 0) return "Not Started";
                     if (produced === planned) return "On Track";
