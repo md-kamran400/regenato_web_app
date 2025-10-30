@@ -1005,11 +1005,10 @@ export const AllocatedPartListHrPlan = ({
       return getQuantityFromJobWorkReceipt(currentSectionIndex);
     }
 
-    // For normal processes, usable = previous planned total - previous total rejection
+    // For normal processes, usable = previous produced quantity
     const previousTrackingId = previousSection?.data?.[0]?.trackingId;
-    const prevPlanned = previousSection?.data?.[0]?.plannedQty || 0;
-    const prevRejected = rejectedTotalsByTrackingId[previousTrackingId] || 0;
-    return Math.max(0, Number(prevPlanned) - Number(prevRejected));
+    const prevProduced = producedTotalsByTrackingId[previousTrackingId] || 0;
+    return Math.max(0, Number(prevProduced));
   };
 
   // Add this function to get current process produced quantity
@@ -2128,21 +2127,21 @@ export const AllocatedPartListHrPlan = ({
                                   },
                                   0
                                 );
-                                // Planned (real) for this section's first row
+                                // Planned for display = previous process produced (or 0 if unavailable). For first process, use its plannedQty
                                 const firstRow = section.data?.[0];
                                 let plannedReal = firstRow?.plannedQty || 0;
                                 if (index > 0) {
                                   const prevSection = sections[index - 1];
                                   const prevRow = prevSection?.data?.[0];
-                                  const prevPlanned = prevRow?.plannedQty || 0;
-                                  const prevRejected = prevRow?.trackingId
-                                    ? rejectedTotalsByTrackingId[
-                                        prevRow.trackingId
+                                  const prevTrackingId = prevRow?.trackingId;
+                                  const lastProduced = prevTrackingId
+                                    ? producedTotalsByTrackingId[
+                                        prevTrackingId
                                       ] || 0
                                     : 0;
                                   plannedReal = Math.max(
                                     0,
-                                    Number(prevPlanned) - Number(prevRejected)
+                                    Number(lastProduced)
                                   );
                                 }
 
@@ -2301,25 +2300,23 @@ export const AllocatedPartListHrPlan = ({
                                             row.trackingId
                                           ] || 0;
 
-                                        // Planned (real) for this process row
+                                        // Planned (real) for this process row = previous produced; first row uses its own planned
                                         let plannedReal = row.plannedQty || 0;
                                         if (index > 0) {
                                           const prevSection =
                                             sections[index - 1];
                                           const prevRow =
                                             prevSection?.data?.[0];
-                                          const prevPlanned =
-                                            prevRow?.plannedQty || 0;
-                                          const prevRejected =
-                                            prevRow?.trackingId
-                                              ? rejectedTotalsByTrackingId[
-                                                  prevRow.trackingId
-                                                ] || 0
-                                              : 0;
+                                          const prevTrackingId =
+                                            prevRow?.trackingId;
+                                          const lastProduced = prevTrackingId
+                                            ? producedTotalsByTrackingId[
+                                                prevTrackingId
+                                              ] || 0
+                                            : 0;
                                           plannedReal = Math.max(
                                             0,
-                                            Number(prevPlanned) -
-                                              Number(prevRejected)
+                                            Number(lastProduced)
                                           );
                                         }
 
