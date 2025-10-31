@@ -533,3 +533,51 @@
   background-color: #6c757d;
   color: #fff;
 }
+
+
+/* Add these styles to your PlanPage.css */
+
+.split-box {
+  transition: all 0.2s ease-in-out;
+  border-left: 4px solid #3b82f6;
+}
+
+.split-box:hover {
+  background: #f8fafc;
+  border-left-color: #1d4ed8;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Status badge enhancements */
+.bg-primary { background-color: #3b82f6 !important; }
+.bg-success { background-color: #10b981 !important; }
+.bg-danger { background-color: #ef4444 !important; }
+.bg-dark { background-color: #374151 !important; }
+.bg-info { background-color: #06b6d4 !important; }
+
+/* Ensure text is white in badges */
+.badge.text-white {
+  color: white !important;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .split-header {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 8px;
+  }
+  
+  .split-details {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 8px;
+  }
+  
+  .details-process {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 4px;
+  }
+}

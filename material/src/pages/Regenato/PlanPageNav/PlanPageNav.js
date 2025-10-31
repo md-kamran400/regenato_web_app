@@ -2,28 +2,24 @@ import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import FullCalendar from "@fullcalendar/react";
 import resourceTimelinePlugin from "@fullcalendar/resource-timeline";
-import { FaArrowLeft, FaArrowRight } from "react-icons/fa";
 import adaptivePlugin from "@fullcalendar/adaptive";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import { FaRegCalendarAlt } from "react-icons/fa";
-import { Calendar, Clock } from "lucide-react";
-import { Card, CardBody, Badge, Row, Col, Table, CardTitle } from "reactstrap";
+import { Card, CardBody, Badge, Row, Col, CardTitle } from "reactstrap";
 import "./PlanPage.css";
 
 const generateRandomColor = () => {
-  const letters = "89ABCDEF"; // Exclude low brightness values (0-7)
+  const letters = "89ABCDEF";
   let color = "#";
-
   for (let i = 0; i < 6; i++) {
     color += letters[Math.floor(Math.random() * letters.length)];
   }
-
   return color;
 };
 
 const processColors = {};
-
 const getProcessColor = (processName) => {
+  if (!processName) return "#B0BEC5";
   if (!processColors[processName]) {
     processColors[processName] = generateRandomColor();
   }
@@ -40,19 +36,22 @@ export function PlanPageNav() {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [dailyTrackingEvents, setDailyTrackingEvents] = useState([]);
   const [selectedSplit, setSelectedSplit] = useState(null);
 
+  // Autocomplete UI state
   const [projectQuery, setProjectQuery] = useState("");
   const [partQuery, setPartQuery] = useState("");
   const [showProjectDropdown, setShowProjectDropdown] = useState(false);
   const [showPartDropdown, setShowPartDropdown] = useState(false);
 
+  // BASE_URL fallback - important if REACT_APP_BASE_URL is not set
+  const BASE_URL = process.env.REACT_APP_BASE_URL || "http://localhost:4040";
+
   useEffect(() => {
     fetchAllocationData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allocationId]);
 
-  
   // Keep queries in sync with selected values
   useEffect(() => {
     setProjectQuery(selectedProject || "");
@@ -62,28 +61,93 @@ export function PlanPageNav() {
     setPartQuery(selectedPart || "");
   }, [selectedPart]);
 
+  // Helper: find first project & part that actually have allocations
+  const findFirstValidProjectPart = (dataArray) => {
+    if (!Array.isArray(dataArray)) return null;
 
+    for (const project of dataArray) {
+      if (!project || !Array.isArray(project.allocations)) continue;
+
+      for (const partAllocation of project.allocations) {
+        if (!partAllocation || !Array.isArray(partAllocation.allocations))
+          continue;
+
+        // Check if any process allocation has allocations with actual allocation data
+        const hasValidAllocations = partAllocation.allocations.some(
+          (processAllocation) =>
+            processAllocation &&
+            Array.isArray(processAllocation.allocations) &&
+            processAllocation.allocations.length > 0
+        );
+
+        if (hasValidAllocations && partAllocation.partName) {
+          return {
+            projectName: project.projectName,
+            partName: partAllocation.partName,
+          };
+        }
+      }
+    }
+    return null;
+  };
 
   const fetchAllocationData = async () => {
+    setLoading(true);
+    setError(null);
+
     try {
       const response = await fetch(
-        `${process.env.REACT_APP_BASE_URL}/api/defpartproject/all-allocations`
+        `${BASE_URL}/api/defpartproject/all-allocations`
       );
-      const data = await response.json();
-      setAllocationData(data.data);
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`Fetch failed (${response.status}): ${text}`);
+      }
+      const json = await response.json();
+      console.log("all-allocations response:", json);
+      const dataArray = json?.data || [];
+      setAllocationData(dataArray);
 
+      // Debug: Log all projects with valid allocations
+      console.log("=== Projects with valid allocations ===");
+      const projectsWithAllocations = [];
+      dataArray.forEach((project) => {
+        if (project && Array.isArray(project.allocations)) {
+          const validParts = project.allocations.filter(
+            (partAlloc) =>
+              partAlloc &&
+              Array.isArray(partAlloc.allocations) &&
+              partAlloc.allocations.some(
+                (processAlloc) =>
+                  processAlloc &&
+                  Array.isArray(processAlloc.allocations) &&
+                  processAlloc.allocations.length > 0
+              )
+          );
+          if (validParts.length > 0) {
+            console.log(
+              `- ${project.projectName}: ${validParts.length} part(s) with allocations`
+            );
+            projectsWithAllocations.push(project.projectName);
+          }
+        }
+      });
+      console.log("Total projects with allocations:", projectsWithAllocations);
+
+      // If allocationId provided, try to find it
       if (allocationId) {
-        // Find the allocation by ID
         let foundAllocation = null;
         let foundProject = null;
         let foundPart = null;
         let foundProcess = null;
 
-        // Search through all projects and their allocations
-        for (const project of data.data) {
+        for (const project of dataArray) {
+          if (!project || !Array.isArray(project.allocations)) continue;
           for (const partProcess of project.allocations) {
+            if (!partProcess || !Array.isArray(partProcess.allocations))
+              continue;
             for (const allocation of partProcess.allocations) {
-              if (allocation._id === allocationId) {
+              if (allocation && allocation._id === allocationId) {
                 foundAllocation = allocation;
                 foundProject = project.projectName;
                 foundPart = partProcess.partName;
@@ -100,186 +164,197 @@ export function PlanPageNav() {
           setSelectedProject(foundProject);
           setSelectedPart(foundPart);
           setSelectedProcess(foundProcess);
-          transformData(foundProject, foundPart, data.data);
+          transformData(foundProject, foundPart, dataArray);
         } else {
-          // If allocation not found, set default project and part
-          if (data.data.length > 0 && data.data[0].allocations.length > 0) {
-            setSelectedProject(data.data[0].projectName);
-            setSelectedPart(data.data[0].allocations[0].partName);
-            transformData(
-              data.data[0].projectName,
-              data.data[0].allocations[0].partName,
-              data.data
-            );
-          }
+          // DON'T auto-select first project - let user choose
+          setSelectedProject("");
+          setSelectedPart(null);
+          setEvents([]);
+          setResources([]);
         }
       } else {
-        // No allocation ID provided, set default project and part
-        if (data.data.length > 0 && data.data[0].allocations.length > 0) {
-          setSelectedProject(data.data[0].projectName);
-          setSelectedPart(data.data[0].allocations[0].partName);
-          transformData(
-            data.data[0].projectName,
-            data.data[0].allocations[0].partName,
-            data.data
-          );
-        }
+        // DON'T auto-select first project - let user choose from dropdown
+        setSelectedProject("");
+        setSelectedPart(null);
+        setEvents([]);
+        setResources([]);
       }
 
       setLoading(false);
     } catch (err) {
-      setError("Failed to fetch allocation data");
+      console.error("Error fetching allocations:", err);
+      setError("Failed to fetch allocation data. Check console for details.");
       setLoading(false);
     }
   };
 
   const getStatusBadge = (allocations) => {
-    if (allocations.length === 0) {
+    if (!allocations || allocations.length === 0) {
       return <Badge className="bg-info text-white">Not Allocated</Badge>;
     }
 
-    const allocation = allocations[0]; // Assuming we check the first allocation for status
+    const allocation = allocations[0];
     if (!allocation.actualEndDate) {
       return <Badge className="bg-dark text-white">Allocated</Badge>;
     }
-
-    const endDate = new Date(allocation.endDate);
-    const actualEndDate = new Date(allocation.actualEndDate);
-
-    if (endDate.getTime() === actualEndDate.getTime()) {
-      return <Badge className="bg-primary text-white pill">On Track</Badge>;
-    } else if (actualEndDate > endDate) {
-      return <Badge className="bg-danger text-white pill">Delayed</Badge>;
-    } else {
-      return <Badge className="bg-success text-white pill">Ahead</Badge>;
+    try {
+      const endDate = new Date(allocation.endDate);
+      const actualEndDate = new Date(allocation.actualEndDate);
+      if (endDate.getTime() === actualEndDate.getTime()) {
+        return <Badge className="bg-primary text-white pill">On Track</Badge>;
+      } else if (actualEndDate > endDate) {
+        return <Badge className="bg-danger text-white pill">Delayed</Badge>;
+      } else {
+        return <Badge className="bg-success text-white pill">Ahead</Badge>;
+      }
+    } catch (e) {
+      return <Badge className="bg-secondary text-white">Unknown</Badge>;
     }
   };
 
   const transformData = (projectName, partName, data) => {
-    // Find the selected project
-    const selectedProjectData = data.find(
-      (project) => project.projectName === projectName
-    );
+    if (!data || !projectName || !partName) {
+      setResources([]);
+      setEvents([]);
+      return;
+    }
 
-    if (!selectedProjectData) return;
+    const selectedProjectData = data.find((p) => p.projectName === projectName);
+    if (!selectedProjectData) {
+      setResources([]);
+      setEvents([]);
+      return;
+    }
 
-    // Create resources (parts)
+    // Resources: include the selected part
     const resourcesList = [{ id: partName, title: `Part ${partName}` }];
     setResources(resourcesList);
 
-    // Create events
     const eventsList = [];
+
+    // Process the allocations array from the project data
     selectedProjectData.allocations
       .filter((alloc) => alloc.partName === partName)
-      .forEach((alloc) => {
-        alloc.allocations.forEach((a) => {
-          const machineCode = a.machineId.split("-")[0];
-          const colors = getProcessColor(alloc.processName);
+      .forEach((partAllocation) => {
+        // Check if this part allocation has allocations array
+        if (!Array.isArray(partAllocation.allocations)) return;
 
-          // Calculate the status based on actual end date and daily tracking
-          let statusColor = "#B0BEC5"; // Default Grey
-          if (a.actualEndDate) {
-            const actualEndDate = new Date(a.actualEndDate);
-            const plannedEndDate = new Date(a.endDate);
+        // Process each process allocation within the part
+        partAllocation.allocations.forEach((processAllocation) => {
+          if (
+            !processAllocation ||
+            !Array.isArray(processAllocation.allocations)
+          )
+            return;
 
-            if (actualEndDate < plannedEndDate) {
-              statusColor = "#10B981"; // Green (Ahead)
-            } else if (actualEndDate > plannedEndDate) {
-              statusColor = "#EF4444"; // Red (Delayed)
-            } else {
-              statusColor = "#3B82F6"; // Blue (On Track)
+          // Process each individual allocation within the process
+          processAllocation.allocations.forEach((allocation) => {
+            if (!allocation) return;
+
+            // Compute status color
+            let statusColor = "#B0BEC5";
+            if (allocation.actualEndDate) {
+              const actualEndDate = new Date(allocation.actualEndDate);
+              const plannedEndDate = new Date(allocation.endDate);
+              if (actualEndDate < plannedEndDate) statusColor = "#10B981";
+              else if (actualEndDate > plannedEndDate) statusColor = "#EF4444";
+              else statusColor = "#3B82F6";
             }
-          }
 
-          eventsList.push({
-            id: a._id,
-            resourceId: partName,
-            start: a.startDate,
-            end: a.actualEndDate || a.endDate,
-            title: `${alloc.processName} - ${a.machineId}`,
-            backgroundColor: statusColor,
-            borderColor: statusColor,
-            extendedProps: {
-              processName: alloc.processName,
-              machineId: a.machineId,
-              operator: a.operator,
-              plannedQuantity: a.plannedQuantity,
-              shift: a.shift,
-              splitNumber: a.splitNumber || a.orderNumber,
-              AllocationPartType: a.AllocationPartType,
-              startDate: a.startDate,
-              endDate: a.endDate,
-              startTime: a.startTime,
-              dailyTracking: a.dailyTracking,
-            },
+            eventsList.push({
+              id: allocation._id,
+              resourceId: partName,
+              start: allocation.startDate,
+              end: allocation.actualEndDate || allocation.endDate,
+              title: `${processAllocation.processName} - ${
+                allocation.machineId || ""
+              }`,
+              backgroundColor: statusColor,
+              borderColor: statusColor,
+              extendedProps: {
+                processName: processAllocation.processName,
+                machineId: allocation.machineId,
+                operator: allocation.operator,
+                plannedQuantity: allocation.plannedQuantity,
+                shift: allocation.shift,
+                splitNumber: allocation.splitNumber,
+                AllocationPartType: allocation.AllocationPartType,
+                startDate: allocation.startDate,
+                endDate: allocation.endDate,
+                startTime: allocation.startTime,
+                dailyTracking: allocation.dailyTracking || [],
+              },
+            });
           });
         });
       });
-    setEvents(eventsList);
-  };
 
-  const transformDailyTrackingData = (dailyTracking, processName) => {
-    return dailyTracking.map((tracking) => ({
-      id: tracking._id,
-      title: `${processName} - ${tracking.dailyStatus}`,
-      start: tracking.date,
-      allDay: true,
-      backgroundColor: "#3B82F6", // You can customize the color
-      borderColor: "#2563EB", // You can customize the color
-      extendedProps: {
-        planned: tracking.planned,
-        produced: tracking.produced,
-        operator: tracking.operator,
-        status: tracking.dailyStatus,
-      },
-    }));
+    setEvents(eventsList);
   };
 
   const handleProcessClick = (processAllocation) => {
     setSelectedProcess(processAllocation.processName);
     setSelectedSplit({
       processName: processAllocation.processName,
-      allocations: processAllocation.allocations, // Pass all splits
+      allocations: processAllocation.allocations,
     });
   };
 
   const handleProjectChange = (eOrValue) => {
-    const newProject = typeof eOrValue === "string" ? eOrValue : eOrValue.target.value;
+    const newProject =
+      typeof eOrValue === "string" ? eOrValue : eOrValue.target.value;
     setSelectedProject(newProject);
     setSelectedPart(null);
     setSelectedProcess(null);
-
-    // Reset resources and events
     setResources([]);
     setEvents([]);
 
-    // Find the selected project data
     const selectedProjectData = allocationData.find(
       (project) => project.projectName === newProject
     );
+    if (
+      selectedProjectData &&
+      selectedProjectData.allocations &&
+      selectedProjectData.allocations.length > 0
+    ) {
+      // Find ALL parts that have valid process allocations
+      const validParts = selectedProjectData.allocations.filter((partAlloc) => {
+        if (!partAlloc || !Array.isArray(partAlloc.allocations)) return false;
 
-    // If the selected project has allocations, set the first part as selected
-    if (selectedProjectData && selectedProjectData.allocations.length > 0) {
-      setSelectedPart(selectedProjectData.allocations[0].partName);
-      transformData(
-        newProject,
-        selectedProjectData.allocations[0].partName,
-        allocationData
-      );
+        // Check if any process allocation has actual allocations
+        return partAlloc.allocations.some(
+          (processAlloc) =>
+            processAlloc &&
+            Array.isArray(processAlloc.allocations) &&
+            processAlloc.allocations.length > 0
+        );
+      });
+
+      if (validParts.length > 0) {
+        // Use the first valid part
+        const firstValidPart = validParts[0];
+        setSelectedPart(firstValidPart.partName);
+        transformData(newProject, firstValidPart.partName, allocationData);
+      } else {
+        // no part with allocations in this project
+        console.log(`No valid allocations found for project: ${newProject}`);
+        setSelectedPart(null);
+        setEvents([]);
+        setResources([]);
+      }
+    } else {
+      console.log(`No allocations found for project: ${newProject}`);
+      setSelectedPart(null);
+      setEvents([]);
+      setResources([]);
     }
   };
-
   const handlePartChange = (eOrValue) => {
-    const newPart = typeof eOrValue === "string" ? eOrValue : eOrValue.target.value;
+    const newPart =
+      typeof eOrValue === "string" ? eOrValue : eOrValue.target.value;
     setSelectedPart(newPart);
     setSelectedProcess(null);
     transformData(selectedProject, newPart, allocationData);
-  };
-
-  const handleEventClick = (info) => {
-    const { splitNumber, processName } = info.event.extendedProps;
-    setSelectedPart(splitNumber);
-    setSelectedProcess(processName);
   };
 
   const formatDate = (dateString) => {
@@ -310,25 +385,54 @@ export function PlanPageNav() {
     );
   if (error) return <div>{error}</div>;
 
-  // Get unique projects for the dropdown
-  const uniqueProjects = [
-    ...new Set(allocationData.map((project) => project.projectName)),
-  ];
+  // unique project list
+  // const uniqueProjects = [...new Set((allocationData || []).map((project) => project.projectName))];
+  // unique project list - ONLY projects that have allocations
+  const uniqueProjects = (allocationData || [])
+    .filter((project) => {
+      if (!project || !Array.isArray(project.allocations)) return false;
 
-  // Get parts for the selected project
+      // Check if project has at least one part with process allocations
+      return project.allocations.some(
+        (partAlloc) =>
+          partAlloc &&
+          Array.isArray(partAlloc.allocations) &&
+          partAlloc.allocations.some(
+            (processAlloc) =>
+              processAlloc &&
+              Array.isArray(processAlloc.allocations) &&
+              processAlloc.allocations.length > 0
+          )
+      );
+    })
+    .map((project) => project.projectName);
+
   const selectedProjectData = allocationData.find(
     (project) => project.projectName === selectedProject
   );
 
-  // Extract unique part names from all projects
+  // build unique part list from selected project - ONLY PARTS WITH VALID ALLOCATIONS
   const uniqueParts = new Set();
-  if (selectedProjectData) {
-    selectedProjectData.allocations.forEach((part) => {
-      uniqueParts.add(part.partName);
+  if (selectedProjectData && Array.isArray(selectedProjectData.allocations)) {
+    selectedProjectData.allocations.forEach((partAlloc) => {
+      if (partAlloc && partAlloc.partName) {
+        // Check if this part has any valid process allocations
+        const hasValidAllocations =
+          partAlloc.allocations &&
+          Array.isArray(partAlloc.allocations) &&
+          partAlloc.allocations.some(
+            (processAlloc) =>
+              processAlloc &&
+              Array.isArray(processAlloc.allocations) &&
+              processAlloc.allocations.length > 0
+          );
+
+        if (hasValidAllocations) {
+          uniqueParts.add(partAlloc.partName);
+        }
+      }
     });
   }
-
-  // Convert Set to an Array
   const uniquePartList = [...uniqueParts];
 
   const filteredProjects = uniqueProjects.filter((p) =>
@@ -338,32 +442,45 @@ export function PlanPageNav() {
   const filteredParts = uniquePartList.filter((p) =>
     (p || "").toLowerCase().includes((partQuery || "").toLowerCase())
   );
-  
-  // Get filtered allocations for the selected project and part
+
+  // const filteredAllocations = selectedProjectData
+  //   ? selectedProjectData.allocations.filter((alloc) => alloc.partName === selectedPart)
+  //   : [];
+
   const filteredAllocations = selectedProjectData
-    ? selectedProjectData.allocations.filter(
-        (alloc) => alloc.partName === selectedPart
-      )
+    ? selectedProjectData.allocations
+        .filter((partAlloc) => partAlloc.partName === selectedPart)
+        .flatMap((partAlloc) =>
+          (partAlloc.allocations || []).filter(
+            (processAlloc) =>
+              processAlloc &&
+              Array.isArray(processAlloc.allocations) &&
+              processAlloc.allocations.length > 0
+          )
+        )
     : [];
 
   const getStatusColor = (status) => {
-    if (status === "On Track") return "#3B82F6"; // Green
-    if (status === "Ahead") return "#10B981"; // Blue
-    if (status === "Delayed") return "#EF4444"; // Red
-    return "#666"; // Default Grey
+    if (status === "On Track") return "#3B82F6";
+    if (status === "Ahead") return "#10B981";
+    if (status === "Delayed") return "#EF4444";
+    return "#666";
   };
 
   const generateCalendarEvents = (processAllocation) => {
+    if (!Array.isArray(processAllocation.allocations)) return [];
     return processAllocation.allocations.map((allocation) => {
-      const statusColor = getStatusColor(
-        allocation.actualEndDate
-          ? new Date(allocation.actualEndDate) > new Date(allocation.endDate)
-            ? "Delayed" // Red
-            : new Date(allocation.actualEndDate) < new Date(allocation.endDate)
-            ? "Ahead" // Green
-            : "On Track" // Blue
-          : "On Track" // Default to Blue if no actualEndDate
+      const plannedEndDate = new Date(
+        allocation.endDate || allocation.startDate
       );
+      const actualEndDate = new Date(
+        allocation.actualEndDate || allocation.endDate || allocation.startDate
+      );
+      let statusColor;
+      if (actualEndDate.getTime() === plannedEndDate.getTime())
+        statusColor = "#3B82F6";
+      else if (actualEndDate < plannedEndDate) statusColor = "#10B981";
+      else statusColor = "#EF4444";
 
       return {
         id: allocation._id,
@@ -393,7 +510,7 @@ export function PlanPageNav() {
         <div className="flex items-center gap-4">
           <h2 className="text-2xl font-bold">Production Planning</h2>
         </div>
-        <div style={{display: "flex"}} className="flex items-center gap-2">
+        <div style={{ display: "flex" }} className="flex items-center gap-2">
           {/* Project Autocomplete */}
           <div style={{ position: "relative", minWidth: "240px" }}>
             <input
@@ -405,7 +522,6 @@ export function PlanPageNav() {
               }}
               onFocus={() => setShowProjectDropdown(true)}
               onBlur={() => {
-                // Delay to allow click selection
                 setTimeout(() => setShowProjectDropdown(false), 150);
               }}
               placeholder="Select Production Type"
@@ -428,7 +544,10 @@ export function PlanPageNav() {
                   boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
                 }}
               >
-                {(filteredProjects.length ? filteredProjects : uniqueProjects).map((project) => (
+                {(filteredProjects.length
+                  ? filteredProjects
+                  : uniqueProjects
+                ).map((project) => (
                   <div
                     key={project}
                     onMouseDown={() => {
@@ -451,7 +570,13 @@ export function PlanPageNav() {
           </div>
 
           {/* Part Autocomplete */}
-          <div style={{ position: "relative", minWidth: "240px", opacity: !selectedProject ? 0.6 : 1 }}>
+          <div
+            style={{
+              position: "relative",
+              minWidth: "240px",
+              opacity: !selectedProject ? 0.6 : 1,
+            }}
+          >
             <input
               type="text"
               value={partQuery}
@@ -485,40 +610,37 @@ export function PlanPageNav() {
                   boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
                 }}
               >
-                {(filteredParts.length ? filteredParts : uniquePartList).map((part) => (
-                  <div
-                    key={part}
-                    onMouseDown={() => {
-                      handlePartChange(part);
-                      setPartQuery(part);
-                      setShowPartDropdown(false);
-                    }}
-                    style={{
-                      padding: "8px 12px",
-                      cursor: "pointer",
-                      background:
-                        part === selectedPart ? "#f3f4f6" : "transparent",
-                    }}
-                  >
-                    {part}
-                  </div>
-                ))}
+                {(filteredParts.length ? filteredParts : uniquePartList).map(
+                  (part) => (
+                    <div
+                      key={part}
+                      onMouseDown={() => {
+                        handlePartChange(part);
+                        setPartQuery(part);
+                        setShowPartDropdown(false);
+                      }}
+                      style={{
+                        padding: "8px 12px",
+                        cursor: "pointer",
+                        background:
+                          part === selectedPart ? "#f3f4f6" : "transparent",
+                      }}
+                    >
+                      {part}
+                    </div>
+                  )
+                )}
               </div>
             )}
           </div>
         </div>
       </div>
 
-      {/* FullCalendar with Year View */}
       <FullCalendar
         plugins={[resourceTimelinePlugin, adaptivePlugin]}
         initialView="resourceTimelineMonth"
         schedulerLicenseKey="CC-Attribution-NonCommercial-NoDerivatives"
-        buttonText={{
-          prev: "<", // Single left arrow
-          next: ">", // Single right arrow
-          today: "Today",
-        }}
+        buttonText={{ prev: "<", next: ">", today: "Today" }}
         headerToolbar={{
           left: "prev today next",
           center: "title",
@@ -546,7 +668,6 @@ export function PlanPageNav() {
           },
         }}
         eventClick={(e) => {
-          // Prevent clicking behavior
           e.jsEvent.preventDefault();
           e.jsEvent.stopPropagation();
         }}
@@ -560,8 +681,8 @@ export function PlanPageNav() {
               style={{
                 backgroundColor: processColor,
                 pointerEvents: "none",
-                cursor: "not-allowed", // Visual feedback
-                opacity: 0.6, // Optional dim effect
+                cursor: "not-allowed",
+                opacity: 0.6,
               }}
             >
               <div
@@ -590,26 +711,17 @@ export function PlanPageNav() {
           const event = info.event;
           const props = event.extendedProps;
           const processColor = getProcessColor(props.processName);
-
-          const tooltipContent = `
-            Process: ${props.processName}
-            Machine: ${props.machineId}
-            Operator: ${props.operator}
-            Quantity: ${props.plannedQuantity}
-            Shift: ${props.shift}
-            Start: ${event.start?.toLocaleDateString()}
-            End: ${event.end?.toLocaleDateString()}
-          `;
-
-          // Ensure the event is visually disabled but still allows hover
           info.el.style.backgroundColor = processColor;
           info.el.style.borderColor = processColor;
-          info.el.style.cursor = "not-allowed"; // Prevent clicking
-          info.el.style.opacity = "0.6"; // Optional dim effect
-          info.el.style.pointerEvents = "auto"; // Allow hover effects
-
-          // Use a better tooltip approach (e.g., Tippy.js)
+          info.el.style.cursor = "not-allowed";
+          info.el.style.opacity = "0.6";
+          info.el.style.pointerEvents = "auto";
           if (window.tippy) {
+            const tooltipContent = `Process: ${props.processName}\nMachine: ${
+              props.machineId
+            }\nOperator: ${props.operator}\nQuantity: ${
+              props.plannedQuantity
+            }\nStart: ${event.start?.toLocaleDateString()}\nEnd: ${event.end?.toLocaleDateString()}`;
             window.tippy(info.el, {
               content: tooltipContent,
               allowHTML: false,
@@ -617,12 +729,12 @@ export function PlanPageNav() {
               theme: "light-border",
             });
           } else {
-            info.el.setAttribute("title", tooltipContent);
+            info.el.setAttribute("title", props.processName || "");
           }
         }}
       />
 
-      {/* Bottom Panels */}
+      {/* Bottom Panels - Orders, Processes, Details */}
       <div
         className="panels-container"
         style={{
@@ -632,7 +744,6 @@ export function PlanPageNav() {
           gap: "10px",
         }}
       >
-        {/* Orders Panel */}
         <div className="orders-panel">
           {selectedPart && filteredAllocations.length > 0 && (
             <Card key={selectedPart} className="order-card">
@@ -641,7 +752,6 @@ export function PlanPageNav() {
                   <Col>
                     <div className="order-header">
                       <h5 className="order-title">{selectedPart}</h5>
-
                       <div
                         style={{
                           display: "flex",
@@ -666,81 +776,119 @@ export function PlanPageNav() {
                         </Badge>
                       </div>
                     </div>
+
                     <div className="order-info">
                       <div>
                         <span>Start Date:</span>
                         <strong>
                           {formatDate(
-                            filteredAllocations.reduce(
-                              (min, alloc) =>
-                                new Date(
-                                  alloc.allocations.reduce((a, b) =>
-                                    new Date(a.startDate) <
-                                    new Date(b.startDate)
-                                      ? a
-                                      : b
-                                  ).startDate
-                                ) < new Date(min)
-                                  ? alloc.allocations[0].startDate
-                                  : min,
-                              filteredAllocations[0].allocations[0].startDate
-                            )
+                            filteredAllocations.reduce((min, alloc) => {
+                              if (
+                                !alloc.allocations ||
+                                alloc.allocations.length === 0
+                              )
+                                return min;
+                              const earliestAlloc = alloc.allocations.reduce(
+                                (a, b) =>
+                                  new Date(a.startDate) < new Date(b.startDate)
+                                    ? a
+                                    : b
+                              );
+                              return new Date(earliestAlloc.startDate) <
+                                new Date(min)
+                                ? earliestAlloc.startDate
+                                : min;
+                            }, filteredAllocations.find((alloc) => alloc.allocations && alloc.allocations.length > 0)?.allocations[0]?.startDate || new Date().toISOString())
                           )}
                         </strong>
                       </div>
+
                       <div>
                         <span>End Date:</span>
                         <strong>
                           {formatDate(
-                            filteredAllocations.reduce(
-                              (max, alloc) =>
-                                new Date(
-                                  alloc.allocations.reduce((a, b) =>
-                                    new Date(a.endDate) > new Date(b.endDate)
-                                      ? a
-                                      : b
-                                  ).endDate
-                                ) > new Date(max)
-                                  ? alloc.allocations[0].endDate
-                                  : max,
-                              filteredAllocations[0].allocations[0].endDate
-                            )
+                            filteredAllocations.reduce((max, alloc) => {
+                              if (
+                                !alloc.allocations ||
+                                alloc.allocations.length === 0
+                              )
+                                return max;
+                              const latestAlloc = alloc.allocations.reduce(
+                                (a, b) =>
+                                  new Date(a.endDate) > new Date(b.endDate)
+                                    ? a
+                                    : b
+                              );
+                              return new Date(latestAlloc.endDate) >
+                                new Date(max)
+                                ? latestAlloc.endDate
+                                : max;
+                            }, filteredAllocations.find((alloc) => alloc.allocations && alloc.allocations.length > 0)?.allocations[0]?.endDate || new Date().toISOString())
                           )}
                         </strong>
                       </div>
+
                       <div>
                         <span>Total Duration:</span>
                         <strong>
-                          {getDaysBetweenDates(
-                            filteredAllocations.reduce(
-                              (min, alloc) =>
-                                new Date(
-                                  alloc.allocations.reduce((a, b) =>
+                          {(() => {
+                            const startDate = filteredAllocations.reduce(
+                              (min, alloc) => {
+                                if (
+                                  !alloc.allocations ||
+                                  alloc.allocations.length === 0
+                                )
+                                  return min;
+                                const earliestAlloc = alloc.allocations.reduce(
+                                  (a, b) =>
                                     new Date(a.startDate) <
                                     new Date(b.startDate)
                                       ? a
                                       : b
-                                  ).startDate
-                                ) < new Date(min)
-                                  ? alloc.allocations[0].startDate
-                                  : min,
-                              filteredAllocations[0].allocations[0].startDate
-                            ),
-                            filteredAllocations.reduce(
-                              (max, alloc) =>
-                                new Date(
-                                  alloc.allocations.reduce((a, b) =>
+                                );
+                                return new Date(earliestAlloc.startDate) <
+                                  new Date(min)
+                                  ? earliestAlloc.startDate
+                                  : min;
+                              },
+                              filteredAllocations.find(
+                                (alloc) =>
+                                  alloc.allocations &&
+                                  alloc.allocations.length > 0
+                              )?.allocations[0]?.startDate ||
+                                new Date().toISOString()
+                            );
+
+                            const endDate = filteredAllocations.reduce(
+                              (max, alloc) => {
+                                if (
+                                  !alloc.allocations ||
+                                  alloc.allocations.length === 0
+                                )
+                                  return max;
+                                const latestAlloc = alloc.allocations.reduce(
+                                  (a, b) =>
                                     new Date(a.endDate) > new Date(b.endDate)
                                       ? a
                                       : b
-                                  ).endDate
-                                ) > new Date(max)
-                                  ? alloc.allocations[0].endDate
-                                  : max,
-                              filteredAllocations[0].allocations[0].endDate
-                            )
-                          )}{" "}
-                          days
+                                );
+                                return new Date(latestAlloc.endDate) >
+                                  new Date(max)
+                                  ? latestAlloc.endDate
+                                  : max;
+                              },
+                              filteredAllocations.find(
+                                (alloc) =>
+                                  alloc.allocations &&
+                                  alloc.allocations.length > 0
+                              )?.allocations[0]?.endDate ||
+                                new Date().toISOString()
+                            );
+
+                            return (
+                              getDaysBetweenDates(startDate, endDate) + " days"
+                            );
+                          })()}
                         </strong>
                       </div>
                     </div>
@@ -751,7 +899,6 @@ export function PlanPageNav() {
           )}
         </div>
 
-        {/* Processes Panel */}
         <div className="processes-panel">
           <div className="panel-header">
             <h2 className="panel-title">Processes</h2>
@@ -766,69 +913,59 @@ export function PlanPageNav() {
                 const isSelected =
                   processAllocation.processName === selectedProcess;
 
-                // Function to get status for a process's allocations
+                // Get allocations for this process
+                const processAllocations = processAllocation.allocations || [];
+
                 const getProcessStatus = (allocations) => {
-                  if (allocations.length === 0) {
+                  if (!allocations || allocations.length === 0)
                     return {
                       text: "Not Allocated",
                       className: "bg-info text-white",
                     };
-                  }
-
-                  // Check all allocations in this process
                   const hasUnfinished = allocations.some(
                     (a) => !a.actualEndDate
                   );
-                  const hasDelayed = allocations.some((a) => {
-                    if (!a.actualEndDate) return false;
-                    return new Date(a.actualEndDate) > new Date(a.endDate);
-                  });
-                  const hasAhead = allocations.some((a) => {
-                    if (!a.actualEndDate) return false;
-                    return new Date(a.actualEndDate) < new Date(a.endDate);
-                  });
-                  const allOnTrack = allocations.every((a) => {
-                    if (!a.actualEndDate) return false;
-                    return (
+                  const hasDelayed = allocations.some(
+                    (a) =>
+                      a.actualEndDate &&
+                      new Date(a.actualEndDate) > new Date(a.endDate)
+                  );
+                  const hasAhead = allocations.some(
+                    (a) =>
+                      a.actualEndDate &&
+                      new Date(a.actualEndDate) < new Date(a.endDate)
+                  );
+                  const allOnTrack = allocations.every(
+                    (a) =>
+                      a.actualEndDate &&
                       new Date(a.actualEndDate).getTime() ===
-                      new Date(a.endDate).getTime()
-                    );
-                  });
+                        new Date(a.endDate).getTime()
+                  );
 
-                  if (hasUnfinished) {
+                  if (hasUnfinished)
                     return {
                       text: "In Progress",
                       className: "bg-success text-white",
                     };
-                  }
-                  if (hasDelayed) {
+                  if (hasDelayed)
                     return {
                       text: "Delayed",
                       className: "bg-danger text-white",
                     };
-                  }
-                  if (hasAhead) {
+                  if (hasAhead)
                     return {
                       text: "Ahead",
                       className: "bg-success text-white",
                     };
-                  }
-                  if (allOnTrack) {
+                  if (allOnTrack)
                     return {
                       text: "On Track",
                       className: "bg-primary text-white",
                     };
-                  }
-
-                  return {
-                    text: "Allocated",
-                    className: "bg-dark text-white",
-                  };
+                  return { text: "Allocated", className: "bg-dark text-white" };
                 };
 
-                const processStatus = getProcessStatus(
-                  processAllocation.allocations
-                );
+                const processStatus = getProcessStatus(processAllocations);
 
                 return (
                   <Card
@@ -841,41 +978,35 @@ export function PlanPageNav() {
                         <h5 className="process-title">
                           {processAllocation.processName}
                         </h5>
-                        {/* <Badge className={processStatus.className}>
+                        <Badge className={processStatus.className}>
                           {processStatus.text}
-                        </Badge> */}
+                        </Badge>
                       </div>
-                      {processAllocation.allocations.map((allocation) => {
-                        // Function to get status for individual split
+                      {processAllocations.map((allocation) => {
                         const getSplitStatus = (allocation) => {
-                          if (!allocation.actualEndDate) {
+                          if (!allocation.actualEndDate)
                             return {
                               text: "Allocated",
                               className: "bg-dark text-white",
                             };
-                          }
-
                           const endDate = new Date(allocation.endDate);
                           const actualEndDate = new Date(
                             allocation.actualEndDate
                           );
-
-                          if (endDate.getTime() === actualEndDate.getTime()) {
+                          if (endDate.getTime() === actualEndDate.getTime())
                             return {
                               text: "On Track",
                               className: "bg-primary text-white",
                             };
-                          } else if (actualEndDate > endDate) {
+                          if (actualEndDate > endDate)
                             return {
                               text: "Delayed",
                               className: "bg-danger text-white",
                             };
-                          } else {
-                            return {
-                              text: "Ahead",
-                              className: "bg-success text-white",
-                            };
-                          }
+                          return {
+                            text: "Ahead",
+                            className: "bg-success text-white",
+                          };
                         };
 
                         const splitStatus = getSplitStatus(allocation);
@@ -886,49 +1017,203 @@ export function PlanPageNav() {
                             className="split-box"
                             style={{
                               cursor: "pointer",
+                              marginBottom: "16px",
+                              padding: "16px",
+                              border: "1px solid #e2e8f0",
+                              borderRadius: "12px",
+                              background: "white",
+                              boxShadow:
+                                "0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)",
+                              transition: "all 0.2s ease-in-out",
                             }}
                           >
-                            <div>
-                              <Badge
-                                className={splitStatus.className}
-                                style={{
-                                  height: "1rem",
-                                  padding: "0.1rem 0.rem",
-                                  fontSize: "0.65rem",
-                                  marginLeft: "14rem",
-                                  marginBottom: "5px",
-                                }}
-                                // style={{}}
-                              >
-                                {splitStatus.text}
-                              </Badge>
-                            </div>
-                            <div className="split-header">
-                              <span className="split-machine">
-                                Machine ID: {allocation.machineId}
-                              </span>
-                              <span className="split-operator">
-                                Operator: {allocation.operator}
-                              </span>
-                            </div>
-                            <div className="split-details">
-                              <div className="details-process">
-                                <div className="detail-item">
-                                  <span className="detail-value">
-                                    <FaRegCalendarAlt className="calendar-icon" />
-                                    {formatDate(allocation.startDate)}
-                                  </span>
+                            {/* Main Content Row */}
+                            <div
+                              style={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "flex-start",
+                                marginBottom: "12px",
+                              }}
+                            >
+                              {/* Left Side - Machine and Operator */}
+                              <div style={{ flex: 1 }}>
+                                <div style={{ marginBottom: "8px" }}>
+                                  <div
+                                    style={{
+                                      display: "flex",
+                                      alignItems: "center",
+                                      gap: "8px",
+                                      marginBottom: "4px",
+                                    }}
+                                  >
+                                    <div>
+                                      <div
+                                        style={{
+                                          fontSize: "16px",
+                                          fontWeight: "600",
+                                          color: "#1e293b",
+                                        }}
+                                      >
+                                        {allocation.machineId}
+                                      </div>
+                                      <div
+                                        style={{
+                                          fontSize: "14px",
+                                          color: "#64748b",
+                                          display: "flex",
+                                          alignItems: "center",
+                                          gap: "4px",
+                                        }}
+                                      >
+                                        {allocation.operator}
+                                      </div>
+                                    </div>
+                                  </div>
                                 </div>
-                                <div className="detail-item">
-                                  <span className="detail-value">
-                                    {formatDate(allocation.endDate)}
-                                  </span>
+
+                                {/* Date Range */}
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "12px",
+                                    flexWrap: "wrap",
+                                  }}
+                                >
+                                  <div
+                                    style={{
+                                      display: "flex",
+                                      alignItems: "center",
+                                      gap: "6px",
+                                    }}
+                                  >
+                                    <FaRegCalendarAlt
+                                      style={{
+                                        color: "#64748b",
+                                        fontSize: "14px",
+                                      }}
+                                    />
+                                    <span
+                                      style={{
+                                        fontSize: "13px",
+                                        color: "#475569",
+                                        fontWeight: "500",
+                                      }}
+                                    >
+                                      {formatDate(allocation.startDate)} -{" "}
+                                      {allocation.startTime}
+                                    </span>
+                                  </div>
+                                  <div
+                                    style={{
+                                      color: "#cbd5e1",
+                                      fontSize: "12px",
+                                    }}
+                                  >
+                                    →
+                                  </div>
+                                  <div
+                                    style={{
+                                      display: "flex",
+                                      alignItems: "center",
+                                      gap: "6px",
+                                    }}
+                                  >
+                                    <span
+                                      style={{
+                                        fontSize: "13px",
+                                        color: "#475569",
+                                        fontWeight: "500",
+                                      }}
+                                    >
+                                      {formatDate(allocation.endDate)} -{" "}
+                                      {allocation.endTime}
+                                    </span>
+                                  </div>
                                 </div>
                               </div>
-                              <div className="detail-item">
-                                <span className="detail-value">
-                                  {allocation.plannedQuantity}
-                                </span>
+
+                              {/* Right Side - Status and Quantity */}
+                              <div
+                                style={{
+                                  display: "flex",
+                                  flexDirection: "column",
+                                  alignItems: "flex-end",
+                                  gap: "8px",
+                                }}
+                              >
+                                <Badge
+                                  className={splitStatus.className}
+                                  style={{
+                                    fontSize: "0.7rem",
+                                    padding: "6px 12px",
+                                    borderRadius: "20px",
+                                    fontWeight: "600",
+                                    textTransform: "uppercase",
+                                    letterSpacing: "0.5px",
+                                  }}
+                                >
+                                  {splitStatus.text}
+                                </Badge>
+
+                                <div style={{ textAlign: "right" }}>
+                                  <div
+                                    style={{
+                                      fontSize: "20px",
+                                      fontWeight: "700",
+                                      color: "#1e293b",
+                                      lineHeight: "1",
+                                    }}
+                                  >
+                                    {allocation.plannedQuantity}
+                                  </div>
+                                  <div
+                                    style={{
+                                      fontSize: "12px",
+                                      color: "#64748b",
+                                      fontWeight: "500",
+                                    }}
+                                  >
+                                    units
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Bottom Info Bar */}
+                            <div
+                              style={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "center",
+                                paddingTop: "12px",
+                                borderTop: "1px solid #f1f5f9",
+                                fontSize: "12px",
+                                color: "#64748b",
+                              }}
+                            >
+                              <div
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "16px",
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "6px",
+                                  }}
+                                >
+                                  <span style={{ fontWeight: "600" }}>
+                                    Shift:
+                                  </span>
+                                  <span style={{ fontWeight: "500" }}>
+                                    {allocation.shift}
+                                  </span>
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -941,7 +1226,6 @@ export function PlanPageNav() {
           </div>
         </div>
 
-        {/* Process Details Panel */}
         <div className="panel details-panel">
           <div className="panel-header">
             <h2 className="panel-title">Process Details</h2>
@@ -953,7 +1237,6 @@ export function PlanPageNav() {
           <div className="panel-content">
             {selectedSplit ? (
               <>
-                {/* Process Details Table */}
                 <Card className="details-card">
                   <CardBody>
                     <CardTitle tag="h4" className="details-subtitle">
@@ -988,37 +1271,31 @@ export function PlanPageNav() {
                   </CardBody>
                 </Card>
 
-                {/* Small Calendar for Process Timeline */}
                 <div className="small-calendar">
                   <FullCalendar
                     plugins={[dayGridPlugin]}
                     initialView="dayGridMonth"
-                    buttonText={{
-                      prev: "<", // Single left arrow
-                      next: ">", // Single right arrow
-                      today: "Today",
-                    }}
+                    buttonText={{ prev: "<", next: ">", today: "Today" }}
                     headerToolbar={{
                       left: "prev today next",
                       center: "title",
                       right: "dayGridDay,dayGridWeek,dayGridMonth",
                     }}
                     events={selectedSplit.allocations?.map((allocation) => {
-                      const plannedEndDate = new Date(allocation.endDate);
-                      const actualEndDate = new Date(
-                        allocation.actualEndDate || allocation.endDate
+                      const plannedEndDate = new Date(
+                        allocation.endDate || allocation.startDate
                       );
-
+                      const actualEndDate = new Date(
+                        allocation.actualEndDate ||
+                          allocation.endDate ||
+                          allocation.startDate
+                      );
                       let statusColor;
-                      if (
-                        actualEndDate.getTime() === plannedEndDate.getTime()
-                      ) {
-                        statusColor = "#3B82F6"; // Blue (On Track)
-                      } else if (actualEndDate < plannedEndDate) {
-                        statusColor = "#10B981"; // Green (Ahead)
-                      } else {
-                        statusColor = "#EF4444"; // Red (Delayed)
-                      }
+                      if (actualEndDate.getTime() === plannedEndDate.getTime())
+                        statusColor = "#3B82F6";
+                      else if (actualEndDate < plannedEndDate)
+                        statusColor = "#10B981";
+                      else statusColor = "#EF4444";
 
                       return {
                         id: allocation._id,
@@ -1049,23 +1326,18 @@ export function PlanPageNav() {
                     eventDidMount={(info) => {
                       const event = info.event;
                       const props = event.extendedProps;
-
-                      let tooltipContent = `
-                              Process: ${props.processName}
-                              Machine: ${props.machineId}
-                              Operator: ${props.operator}
-                              Planned Quantity: ${props.plannedQuantity}
-                              Start: ${event.start?.toLocaleDateString()}
-                              End: ${event.end?.toLocaleDateString()}
-                            `;
-
-                      // Set tooltip on hover
+                      let tooltipContent = `Process: ${
+                        props.processName
+                      }\nMachine: ${props.machineId}\nOperator: ${
+                        props.operator
+                      }\nPlanned Quantity: ${
+                        props.plannedQuantity
+                      }\nStart: ${event.start?.toLocaleDateString()}\nEnd: ${event.end?.toLocaleDateString()}`;
                       info.el.setAttribute("title", tooltipContent);
                     }}
                   />
                 </div>
 
-                {/* Daily Tracking Table */}
                 <div className="daily-tracking-table">
                   <h4 className="daily-tracking-title">Daily Tracking</h4>
                   <div className="table-responsive">

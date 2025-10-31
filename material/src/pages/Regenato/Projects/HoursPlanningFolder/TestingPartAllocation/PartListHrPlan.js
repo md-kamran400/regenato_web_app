@@ -241,146 +241,153 @@ export const PartListHrPlan = ({
     fetchAllocatedData();
   }, [porjectID, partID, partListItemId]);
 
-  useEffect(() => {
-    const fetchAllocations = async () => {
-      try {
-        const response = await axios.get(
-          `${process.env.REACT_APP_BASE_URL}/api/defpartproject/all-allocations`
-        );
-        if (response.data && response.data.data) {
-          const operatorAllocations = {};
-          const machineAllocations = {};
-          response.data.data.forEach((project) => {
-            project.allocations.forEach((process) => {
-              // process.allocations.forEach((alloc) => {
-              //   // Process machine allocations
-              //   if (alloc.machineId) {
-              //     if (!machineAllocations[alloc.machineId]) {
-              //       machineAllocations[alloc.machineId] = [];
-              //     }
-              //     machineAllocations[alloc.machineId].push({
-              //       startDate: new Date(alloc.startDate),
-              //       endDate: new Date(alloc.actualEndDate || alloc.endDate),
-              //       projectName: project.projectName,
-              //       partName: process.partName,
-              //       processName: process.processName,
-              //       operator: alloc.operator,
-              //     });
-              //   }
-              //   // Process operator allocations using operatorId instead of name
-              //   if (alloc.operator) {
-              //     const operator = operators.find(
-              //       (op) =>
-              //         op.name === alloc.operator ||
-              //         `${op.categoryId} - ${op.name}` === alloc.operator
-              //     );
-              //     if (operator) {
-              //       const operatorId = operator._id;
-              //       if (!operatorAllocations[operatorId]) {
-              //         operatorAllocations[operatorId] = [];
-              //       }
-              //       operatorAllocations[operatorId].push({
-              //         startDate: new Date(alloc.startDate),
-              //         endDate: new Date(alloc.actualEndDate || alloc.endDate),
-              //         projectName: project.projectName,
-              //         partName: process.partName,
-              //         processName: process.processName,
-              //       });
-              //     }
-              //   }
-              // });
-              process.allocations.forEach((alloc) => {
-                // Check if process is completed based on actualEndDate and actualEndTime
-                const hasActualEndData =
-                  alloc.actualEndDate && alloc.actualEndTime;
 
-                // Also check if daily tracking shows completed status
-                const hasCompletedTracking =
-                  Array.isArray(alloc.dailyTracking) &&
-                  alloc.dailyTracking.some(
-                    (t) => t.dailyStatus === "Completed"
-                  );
+const fetchAllocations = async () => {
+  try {
+    console.log("🔄 Fetching allocations from API...");
+    const response = await axios.get(
+      `${process.env.REACT_APP_BASE_URL}/api/defpartproject/all-allocations`
+    );
+    
+    console.log("📦 Raw API response:", response.data);
+    
+    if (response.data && response.data.data) {
+      const operatorAllocations = {};
+      const machineAllocations = {};
+      
+      response.data.data.forEach((project) => {
+        console.log(`📋 Processing project: ${project.projectName}`);
+        
+        project.allocations.forEach((process) => {
+          console.log(`  🔧 Process: ${process.partName}`);
+          
+          process.allocations.forEach((alloc) => {
+            console.log(`    📊 Allocation process:`, alloc.processName);
+            
+            alloc.allocations.forEach((allocation) => {
+              console.log(`      🔍 Individual allocation:`, {
+                machineId: allocation.machineId,
+                operator: allocation.operator,
+                startDate: allocation.startDate,
+                endDate: allocation.endDate,
+                isProcessCompleted: allocation.isProcessCompleted
+              });
 
-                const now = new Date();
-                const actualEndDate = alloc.actualEndDate
-                  ? new Date(alloc.actualEndDate)
-                  : null;
-                const endDate = alloc.endDate ? new Date(alloc.endDate) : null;
-                const effectiveEndDate = actualEndDate || endDate;
+              // Process machine allocations
+              if (allocation.machineId) {
+                if (!machineAllocations[allocation.machineId]) {
+                  machineAllocations[allocation.machineId] = [];
+                }
+                
+                // Check if the allocation is completed
+                const hasActualEndData = allocation.actualEndDate && allocation.actualEndTime;
+                const hasCompletedTracking = Array.isArray(allocation.dailyTracking) && 
+                  allocation.dailyTracking.some(t => t.dailyStatus === "Completed");
+                const isCompleted = hasActualEndData || hasCompletedTracking || allocation.isProcessCompleted;
 
-                // Get effective end time - use actualEndTime if available, otherwise endTime
-                const effectiveEndTime = alloc.actualEndTime || alloc.endTime;
+                const machineAlloc = {
+                  startDate: new Date(allocation.startDate),
+                  endDate: new Date(allocation.actualEndDate || allocation.endDate),
+                  startTime: allocation.startTime,
+                  endTime: allocation.actualEndTime || allocation.endTime,
+                  projectName: project.projectName,
+                  partName: process.partName,
+                  processName: alloc.processName,
+                  operator: allocation.operator,
+                  isCompleted: isCompleted,
+                  actualEndDate: allocation.actualEndDate,
+                  actualEndTime: allocation.actualEndTime,
+                };
 
-                // Determine machine availability logic
-                // Machine is available if it has actual end data OR completed tracking OR isProcessCompleted
-                const isMachineCurrentlyAvailable =
-                  hasActualEndData ||
-                  hasCompletedTracking ||
-                  alloc.isProcessCompleted ||
-                  (actualEndDate && now < actualEndDate);
+                machineAllocations[allocation.machineId].push(machineAlloc);
+                console.log(`      🤖 Added machine allocation for ${allocation.machineId}:`, {
+                  start: machineAlloc.startDate,
+                  end: machineAlloc.endDate,
+                  isCompleted: machineAlloc.isCompleted
+                });
+              }
 
-                if (alloc.machineId) {
-                  if (!machineAllocations[alloc.machineId]) {
-                    machineAllocations[alloc.machineId] = [];
+              // Process operator allocations
+              if (allocation.operator) {
+                console.log(`      👷 Looking for operator: "${allocation.operator}"`);
+                
+                // Find operator by name - try different matching strategies
+                const operator = operators.find((op) => {
+                  // Exact match
+                  if (op.name === allocation.operator) return true;
+                  // Case insensitive match
+                  if (op.name.toLowerCase() === allocation.operator.toLowerCase()) return true;
+                  // Partial match (in case of extra spaces)
+                  if (op.name.trim() === allocation.operator.trim()) return true;
+                  return false;
+                });
+                
+                if (operator) {
+                  const operatorId = operator._id;
+                  if (!operatorAllocations[operatorId]) {
+                    operatorAllocations[operatorId] = [];
                   }
+                  
+                  const hasActualEndData = allocation.actualEndDate && allocation.actualEndTime;
+                  const hasCompletedTracking = Array.isArray(allocation.dailyTracking) && 
+                    allocation.dailyTracking.some(t => t.dailyStatus === "Completed");
+                  const isCompleted = hasActualEndData || hasCompletedTracking || allocation.isProcessCompleted;
 
-                  machineAllocations[alloc.machineId].push({
-                    startDate: new Date(alloc.startDate),
-                    endDate: effectiveEndDate,
-                    startTime: alloc.startTime,
-                    endTime: effectiveEndTime,
+                  const operatorAlloc = {
+                    startDate: new Date(allocation.startDate),
+                    endDate: new Date(allocation.actualEndDate || allocation.endDate),
+                    startTime: allocation.startTime,
+                    endTime: allocation.actualEndTime || allocation.endTime,
                     projectName: project.projectName,
                     partName: process.partName,
-                    processName: process.processName,
-                    operator: alloc.operator,
-                    // 👇 new flags to use later in availability checks
-                    isCompleted:
-                      hasActualEndData ||
-                      hasCompletedTracking ||
-                      alloc.isProcessCompleted,
-                    isMachineCurrentlyAvailable,
-                    actualEndDate: alloc.actualEndDate,
-                    actualEndTime: alloc.actualEndTime,
-                  });
-                }
+                    processName: alloc.processName,
+                    isCompleted: isCompleted,
+                    actualEndDate: allocation.actualEndDate,
+                    actualEndTime: allocation.actualEndTime,
+                  };
 
-                // Process operator allocations (same as before)
-                if (alloc.operator) {
-                  const operator = operators.find(
-                    (op) =>
-                      op.name === alloc.operator ||
-                      `${op.categoryId} - ${op.name}` === alloc.operator
-                  );
-                  if (operator) {
-                    const operatorId = operator._id;
-                    if (!operatorAllocations[operatorId]) {
-                      operatorAllocations[operatorId] = [];
-                    }
-                    operatorAllocations[operatorId].push({
-                      startDate: new Date(alloc.startDate),
-                      endDate: effectiveEndDate,
-                      startTime: alloc.startTime,
-                      endTime: effectiveEndTime,
-                      projectName: project.projectName,
-                      partName: process.partName,
-                      processName: process.processName,
-                      actualEndDate: alloc.actualEndDate,
-                      actualEndTime: alloc.actualEndTime,
-                    });
-                  }
+                  operatorAllocations[operatorId].push(operatorAlloc);
+                  console.log(`      ✅ Added operator allocation for ${allocation.operator} (ID: ${operatorId}):`, {
+                    start: operatorAlloc.startDate,
+                    end: operatorAlloc.endDate,
+                    isCompleted: operatorAlloc.isCompleted
+                  });
+                } else {
+                  console.log(`      ❌ Operator not found: "${allocation.operator}". Available operators:`, operators.map(op => op.name));
                 }
-              });
+              }
             });
           });
-          setAllocatedMachines(machineAllocations);
-          setOperatorAllocations(operatorAllocations);
-        }
-      } catch (error) {
-        console.error("Error fetching allocations:", error);
-      }
-    };
-    fetchAllocations();
+        });
+      });
+      
+      console.log("🎯 Final Machine Allocations:", Object.keys(machineAllocations));
+      console.log("🎯 Final Operator Allocations:", Object.keys(operatorAllocations));
+      
+      // Log specific allocations for debugging
+      Object.keys(machineAllocations).forEach(machineId => {
+        console.log(`🤖 Machine ${machineId} allocations:`, machineAllocations[machineId]);
+      });
+      
+      Object.keys(operatorAllocations).forEach(operatorId => {
+        const operator = operators.find(op => op._id === operatorId);
+        console.log(`👷 Operator ${operator ? operator.name : operatorId} allocations:`, operatorAllocations[operatorId]);
+      });
+      
+      setAllocatedMachines(machineAllocations);
+      setOperatorAllocations(operatorAllocations);
+    } else {
+      console.log("❌ No allocation data found in response");
+    }
+  } catch (error) {
+    console.error("❌ Error fetching allocations:", error);
+  }
+};
+  useEffect(() => {
+fetchAllocations()
   }, [operators]); // Add operators as dependency
+
+
 
   // Helper function to compare times in HH:MM format
   const compareTimes = (time1, time2) => {
@@ -397,71 +404,96 @@ export const PartListHrPlan = ({
     return compareTimes(time1, time2) > 0;
   };
 
-  const isMachineAvailable = (
-    machineId,
-    startDate,
-    endDate,
-    startTime = null
-  ) => {
-    if (!allocatedMachines[machineId]) {
-      return {
-        available: true,
-        status: "Available",
-        conflictingAllocation: null,
-      };
-    }
+const isMachineAvailable = (machineId, startDate, endDate, startTime = null) => {
+  console.log(`🔍 Checking machine availability for: ${machineId}`);
+  console.log(`   Requested: ${startDate} to ${endDate}, Time: ${startTime}`);
+  
+  if (!allocatedMachines[machineId] || allocatedMachines[machineId].length === 0) {
+    console.log(`   ✅ No allocations found for machine ${machineId} - AVAILABLE`);
+    return {
+      available: true,
+      status: "Available",
+      conflictingAllocation: null,
+    };
+  }
 
-    const parsedStart = new Date(startDate);
-    const parsedEnd = new Date(endDate);
+  const parsedStart = new Date(startDate);
+  const parsedEnd = new Date(endDate);
 
-    const conflictingAllocation = allocatedMachines[machineId].find((alloc) => {
-      const allocStart = new Date(alloc.startDate);
-      const allocEnd = new Date(alloc.endDate);
+  console.log(`   Checking ${allocatedMachines[machineId].length} allocations for machine ${machineId}`);
 
-      // Check if dates overlap first
-      const datesOverlap =
-        (parsedStart >= allocStart && parsedStart <= allocEnd) ||
-        (parsedEnd >= allocStart && parsedEnd <= allocEnd) ||
-        (parsedStart <= allocStart && parsedEnd >= allocEnd);
-
-      if (!datesOverlap) return false;
-
-      // If the allocation has actualEndDate and actualEndTime, use time-based availability
-      if (alloc.actualEndDate && alloc.actualEndTime) {
-        const actualEndDate = new Date(alloc.actualEndDate);
-
-        // If the new allocation is on the same day as actualEndDate
-        if (parsedStart.toDateString() === actualEndDate.toDateString()) {
-          // Check if the new startTime is after the actualEndTime
-          if (startTime && isTimeAfter(startTime, alloc.actualEndTime)) {
-            return false; // Machine is available after actualEndTime
-          }
-          // If no startTime provided or startTime is before actualEndTime, machine is occupied
-          return true;
-        }
-
-        // If the new allocation is on a different day than actualEndDate
-        // and the actualEndDate is before the new start date, machine is available
-        if (parsedStart > actualEndDate) {
-          return false; // Machine is available
-        }
-      }
-
-      // If the allocation is marked as completed, machine should be available
-      if (alloc.isCompleted || alloc.isMachineCurrentlyAvailable) {
-        return false; // Machine is available
-      }
-
-      // If no actualEndTime or other conditions, use the original logic
-      return datesOverlap;
+  const conflictingAllocation = allocatedMachines[machineId].find((alloc) => {
+    console.log(`   🔄 Checking against allocation:`, {
+      allocStart: alloc.startDate.toISOString().split('T')[0],
+      allocEnd: alloc.endDate.toISOString().split('T')[0],
+      isCompleted: alloc.isCompleted,
+      project: alloc.projectName
     });
 
-    return {
-      available: !conflictingAllocation,
-      status: conflictingAllocation ? "Occupied" : "Available",
-      conflictingAllocation: conflictingAllocation || null,
-    };
+    // Skip completed allocations
+    if (alloc.isCompleted) {
+      console.log(`      ⏩ Skipping - allocation is completed`);
+      return false;
+    }
+
+    const allocStart = new Date(alloc.startDate);
+    const allocEnd = new Date(alloc.endDate);
+
+    // Reset times to compare only dates
+    allocStart.setHours(0, 0, 0, 0);
+    allocEnd.setHours(0, 0, 0, 0);
+    parsedStart.setHours(0, 0, 0, 0);
+    parsedEnd.setHours(0, 0, 0, 0);
+
+    // Check if dates overlap
+    const datesOverlap = 
+      (parsedStart >= allocStart && parsedStart <= allocEnd) ||
+      (parsedEnd >= allocStart && parsedEnd <= allocEnd) ||
+      (parsedStart <= allocStart && parsedEnd >= allocEnd);
+
+    console.log(`      📅 Date overlap: ${datesOverlap} (${parsedStart.toDateString()} - ${parsedEnd.toDateString()} vs ${allocStart.toDateString()} - ${allocEnd.toDateString()})`);
+
+    if (!datesOverlap) {
+      console.log(`      ⏩ Skipping - no date overlap`);
+      return false;
+    }
+
+    // If we have actual end time data, check time-based availability
+    if (alloc.actualEndDate && alloc.actualEndTime) {
+      const actualEndDate = new Date(alloc.actualEndDate);
+      console.log(`      ⏰ Has actual end: ${alloc.actualEndTime} on ${alloc.actualEndDate}`);
+      
+      // If the new allocation starts after the actual end date, it's available
+      if (parsedStart > actualEndDate) {
+        console.log(`      ✅ Available - starts after actual end date`);
+        return false;
+      }
+      
+      // If same day and we have start time, check time
+      if (parsedStart.toDateString() === actualEndDate.toDateString() && startTime) {
+        console.log(`      📍 Same day time check: ${startTime} vs ${alloc.actualEndTime}`);
+        if (isTimeAfter(startTime, alloc.actualEndTime)) {
+          console.log(`      ✅ Available - start time is after actual end time`);
+          return false;
+        }
+        console.log(`      ❌ Occupied - time conflict`);
+        return true;
+      }
+    }
+
+    console.log(`      ❌ Occupied - date overlap detected`);
+    return true;
+  });
+
+  const result = {
+    available: !conflictingAllocation,
+    status: conflictingAllocation ? "Occupied" : "Available",
+    conflictingAllocation: conflictingAllocation || null,
   };
+
+  console.log(`   📊 Machine ${machineId} availability result:`, result);
+  return result;
+};
 
   const isMachineOnDowntimeDuringPeriod = (machine, startDate, endDate) => {
     if (!machine?.downtimeHistory?.length) {
@@ -681,80 +713,118 @@ export const PartListHrPlan = ({
   // };
 
   //  Updated Operator Availability Logic (Fixed for Job Work)
-  const isOperatorAvailable = (
-    operatorId,
-    startDate,
-    endDate,
-    startTime = null,
-    processName = ""
-  ) => {
-    if (!startDate || !endDate) {
-      return { available: true, status: "Available", allocation: null };
-    }
 
-    const parsedStart = new Date(startDate);
-    const parsedEnd = new Date(endDate);
+const isOperatorAvailable = (operatorId, startDate, endDate, startTime = null, processName = "") => {
+  console.log(`🔍 Checking operator availability for ID: ${operatorId}`);
+  console.log(`   Start Date: ${startDate}, End Date: ${endDate}, Start Time: ${startTime}, Process: ${processName}`);
+  
+  if (!startDate || !endDate) {
+    console.log(`   ⚠️ No dates provided - returning available`);
+    return { available: true, status: "Available", allocation: null };
+  }
 
-    const operator = operators.find((op) => op._id === operatorId);
-    if (!operator) {
-      return { available: true, status: "Available", allocation: null };
-    }
+  const parsedStart = new Date(startDate);
+  const parsedEnd = new Date(endDate);
 
-    // ✅ Step 1: Skip availability check if process is Job Work
-    if (
-      processName?.toLowerCase().includes("job work") ||
-      processName?.toLowerCase().includes("jobwork")
-    ) {
-      return { available: true, status: "Available", allocation: null };
-    }
+  const operator = operators.find((op) => op._id === operatorId);
+  if (!operator) {
+    console.log(`   ❌ Operator not found with ID: ${operatorId}`);
+    return { available: true, status: "Available", allocation: null };
+  }
 
-    // ✅ Step 2: Check if operator is on leave
-    if (isOperatorOnLeave(operator, parsedStart, parsedEnd)) {
-      return { available: false, status: "On Leave", allocation: null };
-    }
+  console.log(`   👷 Operator: ${operator.name}`);
 
-    const allocations = operatorAllocations[operatorId] || [];
-    if (allocations.length === 0) {
-      return { available: true, status: "Available", allocation: null };
-    }
+  // Skip availability check for Job Work processes
+  if (processName?.toLowerCase().includes("job work") || processName?.toLowerCase().includes("jobwork")) {
+    console.log(`   ⏩ Skipping check - Job Work process`);
+    return { available: true, status: "Available", allocation: null };
+  }
 
-    // ✅ Step 3: Check for conflicting allocation (same logic as machine)
-    const conflictingAllocation = allocations.find((alloc) => {
-      const allocStart = new Date(alloc.startDate);
-      const allocEnd = new Date(alloc.actualEndDate || alloc.endDate);
+  // Check if operator is on leave
+  if (isOperatorOnLeave(operator, parsedStart, parsedEnd)) {
+    console.log(`   ❌ Operator on leave`);
+    return { available: false, status: "On Leave", allocation: null };
+  }
 
-      const datesOverlap =
-        (parsedStart >= allocStart && parsedStart <= allocEnd) ||
-        (parsedEnd >= allocStart && parsedEnd <= allocEnd) ||
-        (parsedStart <= allocStart && parsedEnd >= allocEnd);
+  const allocations = operatorAllocations[operatorId] || [];
+  console.log(`   Found ${allocations.length} allocations for operator`);
 
-      if (!datesOverlap) return false;
+  if (allocations.length === 0) {
+    console.log(`   ✅ No allocations found - AVAILABLE`);
+    return { available: true, status: "Available", allocation: null };
+  }
 
-      // ✅ Step 4: Use actualEndTime logic (same as machine)
-      if (alloc.actualEndDate && alloc.actualEndTime) {
-        const actualEndDate = new Date(alloc.actualEndDate);
-
-        if (parsedStart.toDateString() === actualEndDate.toDateString()) {
-          if (startTime && isTimeAfter(startTime, alloc.actualEndTime)) {
-            return false; // ✅ Available after actualEndTime
-          }
-          return true; // ❌ Busy within same day
-        }
-
-        if (parsedStart > actualEndDate) {
-          return false; // ✅ Available if after actualEndDate
-        }
-      }
-
-      return true; // ❌ Default overlap
+  const conflictingAllocation = allocations.find((alloc) => {
+    console.log(`   🔄 Checking allocation:`, {
+      allocStart: alloc.startDate,
+      allocEnd: alloc.endDate,
+      allocStartTime: alloc.startTime,
+      allocEndTime: alloc.endTime,
+      isCompleted: alloc.isCompleted,
+      project: alloc.projectName,
+      part: alloc.partName
     });
 
-    return {
-      available: !conflictingAllocation,
-      status: conflictingAllocation ? "Occupied" : "Available",
-      allocation: conflictingAllocation || null,
-    };
+    // Skip completed allocations
+    if (alloc.isCompleted) {
+      console.log(`      ⏩ Skipping - allocation is completed`);
+      return false;
+    }
+
+    const allocStart = new Date(alloc.startDate);
+    const allocEnd = new Date(alloc.endDate);
+
+    // Check if dates overlap
+    const datesOverlap = 
+      (parsedStart >= allocStart && parsedStart <= allocEnd) ||
+      (parsedEnd >= allocStart && parsedEnd <= allocEnd) ||
+      (parsedStart <= allocStart && parsedEnd >= allocEnd);
+
+    console.log(`      📅 Date overlap: ${datesOverlap}`);
+
+    if (!datesOverlap) {
+      console.log(`      ⏩ Skipping - no date overlap`);
+      return false;
+    }
+
+    // If we have actual end time data, check time-based availability
+    if (alloc.actualEndDate && alloc.actualEndTime) {
+      const actualEndDate = new Date(alloc.actualEndDate);
+      
+      console.log(`      ⏰ Checking actual end time: ${alloc.actualEndTime} on ${alloc.actualEndDate}`);
+      
+      // If the new allocation is on the same day as actual end date
+      if (parsedStart.toDateString() === actualEndDate.toDateString()) {
+        console.log(`      📍 Same day check - Start: ${startTime}, Actual End: ${alloc.actualEndTime}`);
+        // Check if the new startTime is after the actualEndTime
+        if (startTime && isTimeAfter(startTime, alloc.actualEndTime)) {
+          console.log(`      ✅ Available - start time is after actual end time`);
+          return false; // Operator is available after actualEndTime
+        }
+        console.log(`      ❌ Occupied - start time conflicts with actual end time`);
+        return true; // Operator is occupied
+      }
+
+      // If the new allocation starts after the actual end date, it's available
+      if (parsedStart > actualEndDate) {
+        console.log(`      ✅ Available - starts after actual end date`);
+        return false;
+      }
+    }
+
+    console.log(`      ❌ Occupied - date overlap detected`);
+    return true; // Default overlap case
+  });
+
+  const result = {
+    available: !conflictingAllocation,
+    status: conflictingAllocation ? "Occupied" : "Available",
+    allocation: conflictingAllocation || null,
   };
+
+  console.log(`   📊 Operator ${operator.name} availability result:`, result);
+  return result;
+};
 
   const isOperatorOnLeave = (operator, startDate, endDate) => {
     if (!operator?.leavePeriod || operator.leavePeriod.length === 0) {
@@ -4594,26 +4664,26 @@ export const PartListHrPlan = ({
                                     ) || null
                                   }
                                   getOptionLabel={(option) => {
-                                    if (!option) return "";
-                                    const status = getMachineStatus(
-                                      option,
-                                      row.startDate,
-                                      row.endDate,
-                                      row.startTime
-                                    );
-                                    let label = `${option.subcategoryId} - ${option.name}`;
-                                    if (
-                                      status.isAllocated &&
-                                      !status.isDowntime
-                                    ) {
-                                      label += " (Occupied)";
-                                    } else if (status.isDowntime) {
-                                      label += ` (Downtime: ${formatDowntime(
-                                        status.downtimeMinutes
-                                      )})`;
-                                    }
-                                    return label;
-                                  }}
+  if (!option) return "";
+  const status = getMachineStatus(
+    option,
+    row.startDate,
+    row.endDate,
+    row.startTime
+  );
+  
+  let label = `${option.subcategoryId} - ${option.name}`;
+  
+  if (status.status === "Occupied") {
+    label += " (Occupied)";
+  } else if (status.status.includes("Downtime")) {
+    label += ` (${status.status})`;
+  } else if (status.status === "Available") {
+    label += " (Available)";
+  }
+  
+  return label;
+}}
                                   renderOption={(props, option) => {
                                     const status = getMachineStatus(
                                       option,
@@ -4969,25 +5039,28 @@ export const PartListHrPlan = ({
                                     ) || null
                                   }
                                   getOptionLabel={(option) => {
-                                    if (!option) return "";
-                                    const isOnLeave = isOperatorOnLeave(
-                                      option,
-                                      row.startDate,
-                                      row.endDate
-                                    );
-                                    const { status } = isOperatorAvailable(
-                                      option._id,
-                                      row.startDate,
-                                      row.endDate
-                                    );
-                                    return `${option.name}${
-                                      isOnLeave
-                                        ? " (On Leave)"
-                                        : status === "Occupied"
-                                        ? " (Occupied)"
-                                        : ""
-                                    }`;
-                                  }}
+  if (!option) return "";
+  const isOnLeave = isOperatorOnLeave(
+    option,
+    row.startDate,
+    row.endDate
+  );
+  const { status } = isOperatorAvailable(
+    option._id,
+    row.startDate,
+    row.endDate,
+    row.startTime,
+    row.processName
+  );
+  
+  if (isOnLeave) {
+    return `${option.name} (On Leave)`;
+  } else if (status === "Occupied") {
+    return `${option.name} (Occupied)`;
+  } else {
+    return `${option.name} (Available)`;
+  }
+}}
                                   onChange={(event, newValue) => {
                                     if (!hasStartDate || !newValue) return;
 

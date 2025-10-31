@@ -16,6 +16,7 @@ import {
   ButtonGroup,
   Button,
 } from "reactstrap";
+import { FaSort } from "react-icons/fa";
 
 const WareHouseAllocation = () => {
   const [data, setData] = useState(null);
@@ -29,6 +30,7 @@ const WareHouseAllocation = () => {
   const [projectFilter, setProjectFilter] = useState("all");
   const [transactionTypeFilter, setTransactionTypeFilter] = useState("all");
   const [warehouseData, setWarehouseData] = useState(new Map());
+  const [sortOrder, setSortOrder] = useState("desc"); // default latest first
 
   // Fetch store data for adjustments
   useEffect(() => {
@@ -420,18 +422,18 @@ const WareHouseAllocation = () => {
   );
 
   // Sort by source priority (BLNK transfer first), then timestamp, then transaction type
- //  Sort all transactions by timestamp (latest first)
-const sortedTransactions = [...allTransactions].sort((a, b) => {
-  const timeA = new Date(a.timestamp).getTime();
-  const timeB = new Date(b.timestamp).getTime();
+  //  Sort all transactions by timestamp (latest first)
+  const sortedTransactions = [...allTransactions].sort((a, b) => {
+    const timeA = new Date(a.timestamp).getTime();
+    const timeB = new Date(b.timestamp).getTime();
+    if (isNaN(timeA)) return 1;
+    if (isNaN(timeB)) return -1;
+    return sortOrder === "asc" ? timeA - timeB : timeB - timeA;
+  });
 
-  // fallback if timestamp is invalid
-  if (isNaN(timeA)) return 1;
-  if (isNaN(timeB)) return -1;
-
-  return timeB - timeA; // latest first
-});
-
+  const toggleSortOrder = () => {
+    setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
+  };
 
   //  Sort all transactions by timestamp (latest first)
   // const sortedTransactions = allTransactions.sort((a, b) => {
@@ -487,11 +489,15 @@ const sortedTransactions = [...allTransactions].sort((a, b) => {
 
   // Exclude projects with "--" or "N/A" (used by Adjustment type)
   const projectOptions = limitedTransactions
-    ? [...new Set(
-        limitedTransactions
-          .map((item) => item.project)
-          .filter((project) => project && project !== "--" && project !== "N/A")
-      )]
+    ? [
+        ...new Set(
+          limitedTransactions
+            .map((item) => item.project)
+            .filter(
+              (project) => project && project !== "--" && project !== "N/A"
+            )
+        ),
+      ]
     : [];
 
   // Get unique warehouse names for filter dropdown
@@ -575,22 +581,43 @@ const sortedTransactions = [...allTransactions].sort((a, b) => {
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
   // Format date for display (25 Aug 2025 - 10:12 AM/PM)
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    const day = date.getDate().toString().padStart(2, "0");
-    const month = date.toLocaleString("en", { month: "short" });
-    const year = date.getFullYear();
+  // const formatDate = (dateString) => {
+  //   const date = new Date(dateString);
+  //   const day = date.getDate().toString().padStart(2, "0");
+  //   const month = date.toLocaleString("en", { month: "short" });
+  //   const year = date.getFullYear();
 
-    let hours = date.getHours();
-    const minutes = date.getMinutes().toString().padStart(2, "0");
-    const ampm = hours >= 12 ? "PM" : "AM";
+  //   let hours = date.getHours();
+  //   const minutes = date.getMinutes().toString().padStart(2, "0");
+  //   const ampm = hours >= 12 ? "PM" : "AM";
 
-    hours = hours % 12;
-    hours = hours ? hours : 12; // the hour '0' should be '12'
-    const formattedHours = hours.toString().padStart(2, "0");
+  //   hours = hours % 12;
+  //   hours = hours ? hours : 12; // the hour '0' should be '12'
+  //   const formattedHours = hours.toString().padStart(2, "0");
 
-    return `${day} ${month} ${year} - ${formattedHours}:${minutes} ${ampm}`;
-  };
+  //   return `${day} ${month} ${year} - ${formattedHours}:${minutes} ${ampm}`;
+  // };
+
+const formatDate = (dateString) => {
+  const date = new Date(dateString);
+  if (!dateString) return "--";
+
+  // detect midnight-UTC pattern: ends with "T00:00:00.000Z"
+  if (dateString.endsWith("T00:00:00.000Z")) {
+    return `${date.getUTCDate().toString().padStart(2,"0")} ${date.toLocaleString("en", { month:"short" })} ${date.getUTCFullYear()} - 12:00 AM`;
+  }
+
+  const day = date.getDate().toString().padStart(2, "0");
+  const month = date.toLocaleString("en", { month: "short" });
+  const year = date.getFullYear();
+  let hours = date.getHours();
+  const minutes = date.getMinutes().toString().padStart(2, "0");
+  const ampm = hours >= 12 ? "PM" : "AM";
+  hours = hours % 12 || 12;
+  return `${day} ${month} ${year} - ${hours.toString().padStart(2, "0")}:${minutes} ${ampm}`;
+};
+
+
 
   // Get badge color based on transaction type
   const getTransactionBadgeColor = (transactionType, adjustmentType) => {
@@ -873,7 +900,14 @@ const sortedTransactions = [...allTransactions].sort((a, b) => {
                 <th className="ps-4">Warehouse ID</th>
                 <th>Transaction Type</th>
                 <th>Quantity Change</th>
-                <th>Timestamp</th>
+                <th
+                  onClick={toggleSortOrder}
+                  style={{ cursor: "pointer" }}
+                  title="Sort by Timestamp"
+                >
+                  Timestamp <FaSort className="ms-2" />
+                </th>
+
                 <th>Project</th>
                 <th>Part Name</th>
                 <th>Process</th>
