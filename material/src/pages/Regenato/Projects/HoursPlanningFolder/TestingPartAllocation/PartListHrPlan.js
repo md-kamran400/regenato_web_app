@@ -146,7 +146,7 @@ export const PartListHrPlan = ({
       setBlankStoreError("Failed to fetch blank store quantity");
       setBlankStoreQty(0);
       setBlankStoreStatus("error");
-      toast.error("Failed to fetch blank store quantity from API");
+      // toast.error("Failed to fetch blank store quantity from API");
     } finally {
       setIsLoadingBlankStore(false);
     }

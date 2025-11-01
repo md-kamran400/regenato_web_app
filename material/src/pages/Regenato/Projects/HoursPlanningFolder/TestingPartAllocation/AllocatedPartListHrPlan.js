@@ -1258,22 +1258,34 @@ export const AllocatedPartListHrPlan = ({
 
   //   return totalQuantity - totalProduced;
   // };
-
-  // Calculate remaining quantity for the current allocation.
-  // It sums existing daily tracking (produced + rejected) and also includes the
-  // current input values (currentProduced, currentRejected) for accurate preview.
-  // Helper: compute actual planned/usable total for current process
+  
+  
   const getActualPlannedForCurrentProcess = () => {
-    if (!selectedSection || !selectedSection.data?.[0]) return 0;
-    // First process => total planned quantity for the part
-    if (selectedSectionIndex === 0 || !Number.isInteger(selectedSectionIndex)) {
-      return Number(selectedSection.data[0].plannedQty) || 0;
+  if (!selectedSection || !selectedSection.data?.[0]) return 0;
+
+  // First process → use total planned quantity
+  if (selectedSectionIndex === 0 || !Number.isInteger(selectedSectionIndex)) {
+    return Number(selectedSection.data[0].plannedQty) || 0;
+  }
+
+  // For all other processes → use previous process produced qty
+  const previousSection = sections[selectedSectionIndex - 1];
+  if (previousSection?.data?.[0]) {
+    const prevTrackingId = previousSection.data[0].trackingId;
+    const prevProduced = producedTotalsByTrackingId[prevTrackingId];
+    if (typeof prevProduced === "number" && !isNaN(prevProduced)) {
+      return prevProduced;
     }
-    // From second process => total usable from previous process
-    const availableFromPrevious =
-      getAvailableQuantityFromPreviousProcess(selectedSectionIndex);
-    return Number(availableFromPrevious) || 0;
-  };
+  }
+
+  // Fallback if producedTotalsByTrackingId not yet available
+  const availableFromPrevious =
+    getAvailableQuantityFromPreviousProcess(selectedSectionIndex);
+  return Number(availableFromPrevious) || 0;
+};
+
+
+
   const calculateRemainingQuantity = (
     currentProduced = Number(dailyTracking[0]?.produced) || 0,
     currentRejected = Number(dailyTracking[0]?.rejectedWarehouseQuantity) || 0
