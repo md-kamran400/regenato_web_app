@@ -104,12 +104,12 @@ export function PlanPageNav() {
         throw new Error(`Fetch failed (${response.status}): ${text}`);
       }
       const json = await response.json();
-      console.log("all-allocations response:", json);
+      // console.log("all-allocations response:", json);
       const dataArray = json?.data || [];
       setAllocationData(dataArray);
 
       // Debug: Log all projects with valid allocations
-      console.log("=== Projects with valid allocations ===");
+      // console.log("=== Projects with valid allocations ===");
       const projectsWithAllocations = [];
       dataArray.forEach((project) => {
         if (project && Array.isArray(project.allocations)) {
@@ -125,14 +125,14 @@ export function PlanPageNav() {
               )
           );
           if (validParts.length > 0) {
-            console.log(
-              `- ${project.projectName}: ${validParts.length} part(s) with allocations`
-            );
+            // console.log(
+            //   `- ${project.projectName}: ${validParts.length} part(s) with allocations`
+            // );
             projectsWithAllocations.push(project.projectName);
           }
         }
       });
-      console.log("Total projects with allocations:", projectsWithAllocations);
+      // console.log("Total projects with allocations:", projectsWithAllocations);
 
       // If allocationId provided, try to find it
       if (allocationId) {
@@ -337,13 +337,13 @@ export function PlanPageNav() {
         transformData(newProject, firstValidPart.partName, allocationData);
       } else {
         // no part with allocations in this project
-        console.log(`No valid allocations found for project: ${newProject}`);
+        // console.log(`No valid allocations found for project: ${newProject}`);
         setSelectedPart(null);
         setEvents([]);
         setResources([]);
       }
     } else {
-      console.log(`No allocations found for project: ${newProject}`);
+      // console.log(`No allocations found for project: ${newProject}`);
       setSelectedPart(null);
       setEvents([]);
       setResources([]);

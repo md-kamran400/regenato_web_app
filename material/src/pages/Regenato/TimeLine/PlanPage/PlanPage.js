@@ -106,7 +106,7 @@ export function PlanPage() {
       }
       const json = await response.json();
       // Expect json.data to be array; log it so we can debug structure easily
-      console.log("all-allocations response:", json);
+      // console.log("all-allocations response:", json);
       const dataArray = json?.data || [];
       setAllocationData(dataArray);
 
