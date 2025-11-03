@@ -120,6 +120,10 @@ const AllocationPlanningSchema = new mongoose.Schema(
           type: Boolean,
           default: false,
         },
+        remaining: {
+          type: Number,
+          default: 0,
+        },
         dailyTracking: [
           {
             date: {

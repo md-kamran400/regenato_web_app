@@ -1409,6 +1409,7 @@ partproject.post(
               ...a,
               dailyPlannedQty,
               dailyTracking: [],
+              remaining: 0, // Initialize remaining to plannedQuantity for first process
               // Include BLNK transfer data for first process
               ...(blankStoreTransfer && { blankStoreTransfer }),
             };
@@ -1954,7 +1955,41 @@ partproject.post(
         return sum + p + r;
       }, 0);
 
-      const remainingQuantity = Math.max(0, plannedQuantity - totalProduced);
+      // === Calculate Actual Planned Quantity for Current Process ===
+      // For first process: use plannedQuantity
+      // For subsequent processes: use previous process's produced quantity (not including rejection)
+      let actualPlannedForCurrentProcess = plannedQuantity;
+      
+      // Find the current process index in the allocations array
+      const currentProcessIndex = partItem.allocations.findIndex(
+        (p) => p._id.toString() === processId
+      );
+      
+      // If this is not the first process, get previous process's produced quantity
+      if (currentProcessIndex > 0) {
+        const previousProcess = partItem.allocations[currentProcessIndex - 1];
+        if (previousProcess && previousProcess.allocations && previousProcess.allocations.length > 0) {
+          // Get the first allocation from previous process (usually there's one per process)
+          const previousAllocation = previousProcess.allocations[0];
+          if (previousAllocation && previousAllocation.dailyTracking && previousAllocation.dailyTracking.length > 0) {
+            // Sum only produced (not rejection) from previous process
+            const previousProduced = previousAllocation.dailyTracking.reduce(
+              (sum, entry) => sum + (Number(entry.produced) || 0),
+              0
+            );
+            actualPlannedForCurrentProcess = previousProduced;
+          } else {
+            // If previous process has no daily tracking yet, use its plannedQuantity
+            actualPlannedForCurrentProcess = previousAllocation?.plannedQuantity || 0;
+          }
+        }
+      }
+
+      // Calculate remaining: actualPlanned - (produced + rejected)
+      const remainingQuantity = Math.max(0, actualPlannedForCurrentProcess - totalProduced);
+      
+      // Store remaining in the allocation document
+      allocation.remaining = remainingQuantity;
 
       // === Calculate Actual End Date & Time ===
       let actualEndDate = allocation.endDate;
@@ -1986,6 +2021,8 @@ partproject.post(
           dailyPlannedQty,
           totalProduced, // now includes rejection
           remainingQuantity,
+          remaining: allocation.remaining, // Return stored remaining value
+          actualPlannedForCurrentProcess,
           actualEndDate: allocation.actualEndDate,
           actualEndTime: allocation.actualEndTime,
           wareHouseTotalQty: trackingEntry.wareHouseTotalQty,
@@ -2099,6 +2136,13 @@ partproject.put(
           return res.status(404).json({ message: "Allocation not found" });
         }
 
+        // Check if remaining is 0 for this allocation
+        if (allocation.remaining !== undefined && allocation.remaining > 0) {
+          return res.status(400).json({ 
+            message: `Cannot complete allocation. Remaining quantity is ${allocation.remaining}. All remaining quantities must be 0 to complete.` 
+          });
+        }
+
         // Mark this specific allocation as completed
         allocation.actualEndDate = new Date();
         if (allocation.dailyTracking && allocation.dailyTracking.length > 0) {
@@ -2107,6 +2151,30 @@ partproject.put(
           });
         }
       } else {
+        // Complete all allocations - Check if all processes have remaining = 0
+        let allRemainingZero = true;
+        const processesWithRemaining = [];
+
+        partsListItem.allocations.forEach((process) => {
+          process.allocations.forEach((alloc) => {
+            // Ensure remaining is calculated and stored
+            if (alloc.remaining === undefined || alloc.remaining > 0) {
+              allRemainingZero = false;
+              processesWithRemaining.push({
+                processName: process.processName,
+                remaining: alloc.remaining || 0
+              });
+            }
+          });
+        });
+
+        if (!allRemainingZero) {
+          return res.status(400).json({ 
+            message: "Cannot complete allocation. All processes must have remaining quantity = 0.",
+            details: processesWithRemaining
+          });
+        }
+
         // Complete all allocations
         partsListItem.status = "Completed";
         partsListItem.statusClass = "badge bg-success text-white";
