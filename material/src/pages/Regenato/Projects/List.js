@@ -1265,15 +1265,9 @@ const List = () => {
                             : item.projectName}
                         </Link>
                       </td>
-                      <td>
-                        {item?.partsLists?.[0]?.partsListItems?.[0]?.partName ||
-                          "--"}
-                      </td>
-                      <td>
-                        {item?.partsLists?.[0]?.partsListItems?.[0]
-                          ?.partsCodeId || "--"}
-                      </td>
-
+                     <td>{item?.partsLists?.[0]?.partsListItems?.[0]?.partName || "--"}</td>
+                    <td>{item?.partsLists?.[0]?.partsListItems?.[0]?.partsCodeId || "--"}</td>
+    
                       <td>
                         {item.createdAt
                           ? (() => {

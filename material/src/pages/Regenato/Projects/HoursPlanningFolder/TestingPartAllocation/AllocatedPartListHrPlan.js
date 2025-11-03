@@ -3894,12 +3894,12 @@ export const AllocatedPartListHrPlan = ({
                       );
 
                       // --- Validation ---
-                      if (enteredValue > actualMax) {
-                        toast.error(
-                          `Produced quantity cannot exceed maximum allowed (${actualMax}).`
-                        );
-                        return;
-                      }
+                      // if (enteredValue > actualMax) {
+                      //   toast.error(
+                      //     `Produced quantity cannot exceed maximum allowed (${actualMax}).`
+                      //   );
+                      //   return;
+                      // }
 
                       // ✅ Update if valid
                       handleDailyTrackingChange(0, "produced", enteredValue);
