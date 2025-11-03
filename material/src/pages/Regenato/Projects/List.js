@@ -852,10 +852,12 @@ const List = () => {
 
   // Combine search and filter logic locally to ensure correct "No Data Found"
   const filteredPaginatedData = useMemo(() => {
+    if (!projectListsData || projectListsData.length === 0) return [];
+
     let data = projectListsData;
 
-    // If a status filter is selected, filter by it using getStatus text content
-    if (filterStatus) {
+    // Filter by Status (local check using text content of getStatus)
+    if (filterStatus && filterStatus.trim() !== "") {
       data = data.filter((item) => {
         const statusElement = getStatus(item);
         const statusText =
@@ -863,12 +865,14 @@ const List = () => {
             ? statusElement.props.children
             : "";
 
-        return statusText.toLowerCase() === filterStatus.toLowerCase();
+        return (
+          statusText.toLowerCase().trim() === filterStatus.toLowerCase().trim()
+        );
       });
     }
 
-    // If in search mode, filter by selected search term(s)
-    if (searchTerm.length > 0) {
+    //  Filter by Search term(s)
+    if (searchTerm && searchTerm.length > 0) {
       data = data.filter((item) =>
         searchTerm.some((term) =>
           item.projectName?.toLowerCase().includes(term.toLowerCase())
@@ -1215,6 +1219,8 @@ const List = () => {
                   >
                     Name
                   </th>
+                  <th className="child_parts">Part Name</th>
+                  <th className="child_parts">Part Number</th>
                   {/* <th className="child_parts">Date</th> */}
                   <th className="child_parts" style={{ cursor: "pointer" }}>
                     <span style={{ marginLeft: "5px", marginRight: "10px" }}>
@@ -1235,13 +1241,16 @@ const List = () => {
                   <th className="sticky-col">Actions</th>
                 </tr>
               </thead>
+
               <tbody>
                 {filteredPaginatedData.length === 0 ? (
-                  <p colSpan="100%" className="text-center py-3">
-                    No Data Found
-                  </p>
+                  <tr>
+                    <td colSpan="100%" className="text-center py-3">
+                      No Data Found
+                    </td>
+                  </tr>
                 ) : (
-                  paginatedData?.map((item, index) => (
+                  filteredPaginatedData.map((item, index) => (
                     <tr key={index}>
                       <td
                         className="sticky-col"
@@ -1256,12 +1265,15 @@ const List = () => {
                             : item.projectName}
                         </Link>
                       </td>
+                      <td>
+                        {item?.partsLists?.[0]?.partsListItems?.[0]?.partName ||
+                          "--"}
+                      </td>
+                      <td>
+                        {item?.partsLists?.[0]?.partsListItems?.[0]
+                          ?.partsCodeId || "--"}
+                      </td>
 
-                      {/* <td>
-                      {item.createdAt
-                        ? new Date(item.createdAt).toLocaleDateString()
-                        : "--"}
-                    </td> */}
                       <td>
                         {item.createdAt
                           ? (() => {
@@ -1270,11 +1282,10 @@ const List = () => {
                                 "en-GB",
                                 {
                                   day: "2-digit",
-                                  month: "short", // gives "Oct" instead of "10"
-                                  year: "numeric", // gives "2025" instead of "25"
+                                  month: "short",
+                                  year: "numeric",
                                 }
                               );
-
                               const formattedTime = date.toLocaleTimeString(
                                 "en-GB",
                                 {
@@ -1283,7 +1294,7 @@ const List = () => {
                                   hour12: true,
                                 }
                               );
-                              return `${formattedDate} - ${formattedTime} `;
+                              return `${formattedDate} - ${formattedTime}`;
                             })()
                           : "--"}
                       </td>
@@ -1340,6 +1351,7 @@ const List = () => {
                   ))
                 )}
               </tbody>
+
               {/* <tfoot>
                 <tr>
                   <td

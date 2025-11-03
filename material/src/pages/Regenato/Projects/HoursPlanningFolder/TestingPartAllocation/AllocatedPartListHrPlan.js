@@ -995,7 +995,7 @@ export const AllocatedPartListHrPlan = ({
   // Enhanced function to get available (usable) quantity from previous process
   const getAvailableQuantityFromPreviousProcess = (currentSectionIndex) => {
     if (currentSectionIndex === 0) {
-      return 200; // Initial quantity for first process
+      return 2000; // Initial quantity for first process
     }
 
     const previousSection = sections[currentSectionIndex - 1];
@@ -1258,33 +1258,30 @@ export const AllocatedPartListHrPlan = ({
 
   //   return totalQuantity - totalProduced;
   // };
-  
-  
+
   const getActualPlannedForCurrentProcess = () => {
-  if (!selectedSection || !selectedSection.data?.[0]) return 0;
+    if (!selectedSection || !selectedSection.data?.[0]) return 0;
 
-  // First process → use total planned quantity
-  if (selectedSectionIndex === 0 || !Number.isInteger(selectedSectionIndex)) {
-    return Number(selectedSection.data[0].plannedQty) || 0;
-  }
-
-  // For all other processes → use previous process produced qty
-  const previousSection = sections[selectedSectionIndex - 1];
-  if (previousSection?.data?.[0]) {
-    const prevTrackingId = previousSection.data[0].trackingId;
-    const prevProduced = producedTotalsByTrackingId[prevTrackingId];
-    if (typeof prevProduced === "number" && !isNaN(prevProduced)) {
-      return prevProduced;
+    // First process → use total planned quantity
+    if (selectedSectionIndex === 0 || !Number.isInteger(selectedSectionIndex)) {
+      return Number(selectedSection.data[0].plannedQty) || 0;
     }
-  }
 
-  // Fallback if producedTotalsByTrackingId not yet available
-  const availableFromPrevious =
-    getAvailableQuantityFromPreviousProcess(selectedSectionIndex);
-  return Number(availableFromPrevious) || 0;
-};
+    // For all other processes → use previous process produced qty
+    const previousSection = sections[selectedSectionIndex - 1];
+    if (previousSection?.data?.[0]) {
+      const prevTrackingId = previousSection.data[0].trackingId;
+      const prevProduced = producedTotalsByTrackingId[prevTrackingId];
+      if (typeof prevProduced === "number" && !isNaN(prevProduced)) {
+        return prevProduced;
+      }
+    }
 
-
+    // Fallback if producedTotalsByTrackingId not yet available
+    const availableFromPrevious =
+      getAvailableQuantityFromPreviousProcess(selectedSectionIndex);
+    return Number(availableFromPrevious) || 0;
+  };
 
   const calculateRemainingQuantity = (
     currentProduced = Number(dailyTracking[0]?.produced) || 0,
@@ -1710,18 +1707,39 @@ export const AllocatedPartListHrPlan = ({
   };
 
   // Add this function to check if all processes are completed
-  const isAllocationCompleted = () => {
-    if (sections.length === 0) return false;
+  // const isAllocationCompleted = () => {
+  //   if (sections.length === 0) return false;
 
-    return sections.every((section) => {
-      return section.data.every((row) => {
-        const totalProduced = existingDailyTracking.reduce(
-          (sum, task) => sum + task.produced,
-          0
+  //   return sections.every((section) => {
+  //     return section.data.every((row) => {
+  //       const totalProduced = existingDailyTracking.reduce(
+  //         (sum, task) => sum + task.produced,
+  //         0
+  //       );
+  //       return totalProduced >= row.plannedQty;
+  //     });
+  //   });
+  // };
+
+  // Check if all allocations have remaining = 0
+  const isAllocationCompleted = () => {
+    if (!sections || sections.length === 0) return false;
+
+    // Flatten and check all process allocations
+    for (const section of sections) {
+      for (const row of section.data || []) {
+        // Check remaining value inside allocation arrays
+        const hasPending = row.allocations?.some(
+          (alloc) => alloc.remaining > 0
         );
-        return totalProduced >= row.plannedQty;
-      });
-    });
+
+        // If any process still has remaining qty > 0, return false
+        if (hasPending) return false;
+      }
+    }
+
+    // If all remaining == 0
+    return true;
   };
 
   // Add new function to check remaining quantity for a specific process
@@ -2886,6 +2904,7 @@ export const AllocatedPartListHrPlan = ({
                 >
                   Complete Allocation
                 </Button>
+
                 <Button
                   color="danger"
                   onClick={() => setDeleteConfirmationModal(true)}
@@ -3509,8 +3528,8 @@ export const AllocatedPartListHrPlan = ({
                             </span>
                           ) : null}
                         </td>
-                        {/* <td>{task.remaining}</td> */}
-                        <td>{calculateRemainingQuantity()}</td>
+                        <td>{task.remaining}</td>
+                        {/* <td>{calculateRemainingQuantity()}</td> */}
                         <td>{task.machineId || "N/A"}</td>
                         <td>{task.shift || "N/A"}</td>
                         <td>{task.operator || "N/A"}</td>
