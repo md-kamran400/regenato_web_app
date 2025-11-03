@@ -995,7 +995,7 @@ export const AllocatedPartListHrPlan = ({
   // Enhanced function to get available (usable) quantity from previous process
   const getAvailableQuantityFromPreviousProcess = (currentSectionIndex) => {
     if (currentSectionIndex === 0) {
-      return 200; // Initial quantity for first process
+      return 2000; // Initial quantity for first process
     }
 
     const previousSection = sections[currentSectionIndex - 1];
@@ -3875,12 +3875,12 @@ export const AllocatedPartListHrPlan = ({
                       );
 
                       // --- Validation ---
-                      if (enteredValue > actualMax) {
-                        toast.error(
-                          `Produced quantity cannot exceed maximum allowed (${actualMax}).`
-                        );
-                        return;
-                      }
+                      // if (enteredValue > actualMax) {
+                      //   toast.error(
+                      //     `Produced quantity cannot exceed maximum allowed (${actualMax}).`
+                      //   );
+                      //   return;
+                      // }
 
                       // ✅ Update if valid
                       handleDailyTrackingChange(0, "produced", enteredValue);
