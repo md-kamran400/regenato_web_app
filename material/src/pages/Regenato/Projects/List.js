@@ -341,29 +341,54 @@ const List = () => {
       const result = await response.json();
 
       if (result.success && Array.isArray(result.data)) {
-        // ✅ Filter only unique project names
-        const uniqueProjectsMap = new Map();
+        const newOptions = [];
+
         result.data.forEach((project) => {
-          if (!uniqueProjectsMap.has(project.projectName)) {
-            uniqueProjectsMap.set(project.projectName, {
+          //  Add projectName option
+          if (project.projectName) {
+            newOptions.push({
               value: project.projectName,
-              label: project.projectName,
+              label: `Project: ${project.projectName}`,
+              type: "projectName",
             });
           }
+
+          //  Add partsCodeId suggestions from nested arrays
+          const addPartCodes = (listArray) => {
+            if (Array.isArray(listArray)) {
+              listArray.forEach((list) => {
+                list.partsListItems?.forEach((item) => {
+                  if (item.partsCodeId) {
+                    newOptions.push({
+                      value: item.partsCodeId,
+                      label: `Part Code: ${item.partsCodeId}`,
+                      type: "partsCodeId",
+                    });
+                  }
+                });
+              });
+            }
+          };
+
+          addPartCodes(project.partsLists);
+          addPartCodes(project.subAssemblyListFirst);
+          addPartCodes(project.assemblyList);
         });
 
-        const newOptions = Array.from(uniqueProjectsMap.values());
+        // Remove duplicates
+        const uniqueOptions = Array.from(
+          new Map(newOptions.map((opt) => [opt.value, opt])).values()
+        );
 
-        // ✅ Combine unique results across pages
         setSearchOptions((prev) => {
-          const combined = [...prev, ...newOptions];
-          const uniqueByLabel = Array.from(
-            new Map(combined.map((opt) => [opt.label, opt])).values()
+          const combined = [...prev, ...uniqueOptions];
+          const uniqueByValue = Array.from(
+            new Map(combined.map((opt) => [opt.value, opt])).values()
           );
-          return uniqueByLabel;
+          return uniqueByValue;
         });
 
-        setHasMoreSearch(newOptions.length > 0);
+        setHasMoreSearch(uniqueOptions.length > 0);
       }
     } catch (error) {
       console.error("Error fetching search options:", error);
@@ -379,60 +404,14 @@ const List = () => {
     debouncedSearch(inputValue);
     return inputValue;
   };
-
-  // const filteredData = useMemo(() => {
-  //   // If searchTerm is empty and no filterType, return all projects directly
-  //   if (searchTerm.length === 0 && filterType === "") {
-  //     return projectListsData;
-  //   }
-
-  //   return projectListsData.filter((item) => {
-  //     if (!item) return false;
-
-  //     // Handle search term filtering
-  //     const matchesSearch =
-  //       searchTerm.length === 0 ||
-  //       (item.projectName &&
-  //         searchTerm.some((term) =>
-  //           item.projectName.toLowerCase().includes(term.toLowerCase())
-  //         ));
-
-  //     // Handle project type filtering
-  //     const matchesType = filterType === "" || item.projectType === filterType;
-
-  //     return matchesSearch && matchesType;
-  //   });
-  // }, [projectListsData, searchTerm, filterType]);
-  // const paginatedData = useMemo(() => {
-  //   // If no filtering is applied, use direct pagination on projectListsData
-  //   if (searchTerm.length === 0 && filterType === "") {
-  //     return projectListsData.slice(
-  //       (currentPage - 1) * itemsPerPage,
-  //       currentPage * itemsPerPage
-  //     );
-  //   }
-
-  //   // Otherwise use filteredData
-  //   return filteredData.slice(
-  //     (currentPage - 1) * itemsPerPage,
-  //     currentPage * itemsPerPage
-  //   );
-  // }, [
-  //   filteredData,
-  //   projectListsData,
-  //   currentPage,
-  //   itemsPerPage,
-  //   searchTerm,
-  //   filterType,
-  // ]);
-  // Since we're doing server-side filtering and pagination,
   // we can directly use projectListsData as it already contains the filtered results
+  
   const paginatedData = useMemo(() => {
     return projectListsData;
   }, [projectListsData]);
 
   useEffect(() => {
-    // ✅ Prevent reloading when in search mode
+    //  Prevent reloading when in search mode
     if (isSearchMode) return;
 
     if (currentSearch && !searchTerm.length) {
@@ -448,17 +427,7 @@ const List = () => {
     searchTerm.length,
     isSearchMode,
   ]);
-  // projectOptions removed - now using async search with loadOptions
-
-  // const handleSearchChange = (selectedOptions) => {
-  //   const selectedValues = selectedOptions
-  //     ? selectedOptions.map((opt) => opt.value)
-  //     : [];
-  //   setSearchTerm(selectedValues);
-  //   setCurrentPage(1);
-  //   setSelectedItems(selectedValues);
-  // };
-
+  
   const handleSearchChange = async (selectedOptions) => {
     const selectedValues = selectedOptions
       ? selectedOptions.map((opt) => opt.value)
@@ -472,51 +441,52 @@ const List = () => {
 
     if (selectedValues.length > 0) {
       setIsSearchMode(true);
+      setIsLoading(true);
+
       try {
-        setIsLoading(true);
         const allResults = [];
 
-        for (const projectName of selectedValues) {
+        //  Fetch projects for every selected search term
+        for (const term of selectedValues) {
           const response = await fetch(
             `${
               process.env.REACT_APP_BASE_URL
             }/api/defpartproject/projectss?search=${encodeURIComponent(
-              projectName
+              term
             )}&page=1&limit=1000`
           );
 
           if (response.ok) {
             const data = await response.json();
             if (data.success && Array.isArray(data.data)) {
-              const exactMatches = data.data.filter(
-                (project) =>
-                  project.projectName &&
-                  project.projectName.trim().toLowerCase() ===
-                    projectName.trim().toLowerCase()
-              );
-              allResults.push(...exactMatches);
+              allResults.push(...data.data);
             }
           }
         }
 
-        // ✅ Deduplicate by projectName (or _id)
+        //  Deduplicate projects by _id
         const uniqueResults = [];
-        const seenNames = new Set();
-
+        const seenIds = new Set();
         for (const project of allResults) {
-          const nameKey = project.projectName?.trim().toLowerCase();
-          if (!seenNames.has(nameKey)) {
-            seenNames.add(nameKey);
+          if (!seenIds.has(project._id)) {
+            seenIds.add(project._id);
             uniqueResults.push(project);
           }
         }
 
-        // ✅ Sort by latest creation
+        //  Sort newest first
         uniqueResults.sort(
           (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
         );
 
+        //  Update your main table data
         setprojectListsData(uniqueResults);
+
+        //  Handle case when user searches by partCodeId
+        if (uniqueResults.length === 0) {
+          toast.info("No projects found for this Part Code ID");
+        }
+
         setTotalPages(1);
         setCurrentSearch(selectedValues.join(", "));
       } catch (error) {
@@ -526,7 +496,7 @@ const List = () => {
         setIsLoading(false);
       }
     } else {
-      // when search is cleared
+      //  Reset view when search cleared
       setIsSearchMode(false);
       setCurrentSearch("");
       setSearchInputValue("");
@@ -851,12 +821,13 @@ const List = () => {
   };
 
   // Combine search and filter logic locally to ensure correct "No Data Found"
+
   const filteredPaginatedData = useMemo(() => {
     if (!projectListsData || projectListsData.length === 0) return [];
 
     let data = projectListsData;
 
-    // Filter by Status (local check using text content of getStatus)
+    // Filter by Status
     if (filterStatus && filterStatus.trim() !== "") {
       data = data.filter((item) => {
         const statusElement = getStatus(item);
@@ -864,7 +835,6 @@ const List = () => {
           typeof statusElement?.props?.children === "string"
             ? statusElement.props.children
             : "";
-
         return (
           statusText.toLowerCase().trim() === filterStatus.toLowerCase().trim()
         );
@@ -874,9 +844,25 @@ const List = () => {
     //  Filter by Search term(s)
     if (searchTerm && searchTerm.length > 0) {
       data = data.filter((item) =>
-        searchTerm.some((term) =>
-          item.projectName?.toLowerCase().includes(term.toLowerCase())
-        )
+        searchTerm.some((term) => {
+          const termLower = term.toLowerCase();
+
+          const matchesProjectName = item.projectName
+            ?.toLowerCase()
+            .includes(termLower);
+
+          const matchesPartCode = [
+            ...(item.partsLists || []),
+            ...(item.subAssemblyListFirst || []),
+            ...(item.assemblyList || []),
+          ].some((list) =>
+            (list.partsListItems || []).some((p) =>
+              p.partsCodeId?.toLowerCase().includes(termLower)
+            )
+          );
+
+          return matchesProjectName || matchesPartCode;
+        })
       );
     }
 
@@ -1041,10 +1027,10 @@ const List = () => {
                   }),
                   menuPortal: (base) => ({
                     ...base,
-                    zIndex: 9999, // ✅ make sure dropdown is above
+                    zIndex: 9999, //  make sure dropdown is above
                   }),
                 }}
-                menuPortalTarget={document.body} // ✅ render dropdown outside scroll clipping
+                menuPortalTarget={document.body} //  render dropdown outside scroll clipping
                 menuPosition="fixed"
               />
             </div>
@@ -1265,9 +1251,15 @@ const List = () => {
                             : item.projectName}
                         </Link>
                       </td>
-                     <td>{item?.partsLists?.[0]?.partsListItems?.[0]?.partName || "--"}</td>
-                    <td>{item?.partsLists?.[0]?.partsListItems?.[0]?.partsCodeId || "--"}</td>
-    
+                      <td>
+                        {item?.partsLists?.[0]?.partsListItems?.[0]?.partName ||
+                          "--"}
+                      </td>
+                      <td>
+                        {item?.partsLists?.[0]?.partsListItems?.[0]
+                          ?.partsCodeId || "--"}
+                      </td>
+
                       <td>
                         {item.createdAt
                           ? (() => {

@@ -94,6 +94,8 @@ export const AllocatedPartListHrPlan = ({
   const [rejectedTotalsByTrackingId, setRejectedTotalsByTrackingId] = useState(
     {}
   );
+  const [storedGoodsIssueData, setStoredGoodsIssueData] = useState([]);
+  const [storedGoodsReceiptData, setStoredGoodsReceiptData] = useState([]);
 
   const [jobWorkModal, setJobWorkModal] = useState(false);
   const [goodsIssueData, setGoodsIssueData] = useState([]);
@@ -1831,6 +1833,104 @@ export const AllocatedPartListHrPlan = ({
       });
       return next;
     });
+  };
+
+  // Persist external Goods Issue/Receipt into our DB for the current tracking (when status is Yes)
+  const persistGoodsMovement = async (issueList = [], receiptList = []) => {
+    try {
+      if (
+        !selectedSection?.allocationId ||
+        !selectedSection?.data?.[0]?.trackingId
+      )
+        return;
+      const allocationId = selectedSection.allocationId;
+      const trackingId = selectedSection.data[0].trackingId;
+
+      const currentItemCode = String(
+        selectedSection?.data?.[0]?.partsCodeId || ""
+      );
+      const currentProduction = (
+        projectNameState ||
+        sections[0]?.projectName ||
+        ""
+      )
+        .toString()
+        .trim()
+        .toLowerCase();
+
+      const filteredIssues = (issueList || []).filter((g) => {
+        const matchProd =
+          (g.ProductionNo || "").toString().trim().toLowerCase() ===
+          currentProduction;
+        const matchItem = String(g.Itemcode).trim() === currentItemCode;
+        return matchItem && matchProd;
+      });
+      const filteredReceipts = (receiptList || []).filter((g) => {
+        const matchProd =
+          (g.ProductionNo || "").toString().trim().toLowerCase() ===
+          currentProduction;
+        const matchItem = String(g.Itemcode).trim() === currentItemCode;
+        return matchItem && matchProd;
+      });
+
+      const baseUrl = `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/allocations/${allocationId}/allocations/${trackingId}`;
+
+      // Post Issues
+      for (const g of filteredIssues) {
+        try {
+          await axios.post(`${baseUrl}/goods-issue`, {
+            Itemcode: g.Itemcode,
+            WhsCode: g.WhsCode || g.Whscode || g.Whs,
+            Quantity: Number(g.Quantity) || 0,
+            Status: "Yes",
+            FromWhsCod: g.FromWhsCod || g.WhsCode || g.Whs,
+            postingdate:
+              g.postingdate || g.PostingDate || g.DocDate || new Date(),
+          });
+        } catch (_) {}
+      }
+
+      // Post Receipts
+      for (const g of filteredReceipts) {
+        try {
+          await axios.post(`${baseUrl}/goods-receipt`, {
+            Itemcode: g.Itemcode,
+            WhsCode: g.WhsCode || g.Whscode || g.Whs,
+            Quantity: Number(g.Quantity) || 0,
+            Status: "Yes",
+            FromWhsCod: g.FromWhsCod || g.WhsCode || g.Whs,
+            postingdate:
+              g.postingdate || g.PostingDate || g.DocDate || new Date(),
+          });
+        } catch (_) {}
+      }
+
+      // Refresh stored lists
+      await fetchStoredGoodsMovement();
+    } catch (e) {
+      console.error("Persist goods movement failed", e);
+    }
+  };
+
+  const fetchStoredGoodsMovement = async () => {
+    try {
+      if (
+        !selectedSection?.allocationId ||
+        !selectedSection?.data?.[0]?.trackingId
+      )
+        return;
+      const allocationId = selectedSection.allocationId;
+      const trackingId = selectedSection.data[0].trackingId;
+      const baseUrl = `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projects/${porjectID}/partsLists/${partID}/partsListItems/${partListItemId}/allocations/${allocationId}/allocations/${trackingId}`;
+      const [issRes, recRes] = await Promise.all([
+        axios.get(`${baseUrl}/goods-issue`),
+        axios.get(`${baseUrl}/goods-receipt`),
+      ]);
+      setStoredGoodsIssueData(issRes?.data?.data || []);
+      setStoredGoodsReceiptData(recRes?.data?.data || []);
+    } catch (e) {
+      console.error("Fetch stored goods movement failed", e);
+    }
   };
 
   // Auto-refresh Goods Issue/Receipt every 10 minutes while Job Work modal is open
@@ -5130,6 +5230,7 @@ export const AllocatedPartListHrPlan = ({
       </Modal>
 
       {/* Job Work Modal for Special Day processes */}
+      {/* Job Work Modal for Special Day processes */}
       <Modal
         isOpen={jobWorkModal}
         toggle={() => setJobWorkModal(false)}
@@ -5364,7 +5465,10 @@ export const AllocatedPartListHrPlan = ({
                       </tr>
                     </thead>
                     <tbody>
-                      {goodsIssueData
+                      {(storedGoodsIssueData?.length
+                        ? storedGoodsIssueData
+                        : goodsIssueData
+                      )
                         .filter((g) => {
                           const matchProd =
                             (g.ProductionNo || "")
@@ -5376,7 +5480,7 @@ export const AllocatedPartListHrPlan = ({
                               .trim()
                               .toLowerCase();
                           const matchItem =
-                            String(g.Itemcode).trim() ===
+                            String(g.Itemcode || g.ItemCode).trim() ===
                             String(
                               selectedSection?.data?.[0]?.partsCodeId || ""
                             );
@@ -5386,14 +5490,14 @@ export const AllocatedPartListHrPlan = ({
                         .map((g, i) => (
                           <tr key={`gi-${i}`}>
                             <td>
-                              <strong>{g.Itemcode}</strong>
+                              <strong>{g.Itemcode || g.ItemCode}</strong>
                             </td>
-                            <td>{g.WhsCode}</td>
+                            <td>{g.WhsCode || g.Whscode || g.Whs}</td>
                             <td>
                               <span
                                 style={{ color: "#dc3545", fontWeight: "bold" }}
                               >
-                                {g.Quantity}
+                                {Number(g.Quantity)}
                               </span>
                             </td>
                             <td>
@@ -5401,15 +5505,17 @@ export const AllocatedPartListHrPlan = ({
                                 className="badge"
                                 style={{
                                   backgroundColor:
-                                    issueStatus[String(g.Itemcode)?.trim()]
-                                      ?.status === "Yes"
+                                    issueStatus[
+                                      String(g.Itemcode || g.ItemCode)?.trim()
+                                    ]?.status === "Yes"
                                       ? "#198754"
                                       : "#6c757d",
                                   color: "white",
                                 }}
                               >
-                                {issueStatus[String(g.Itemcode)?.trim()]
-                                  ?.status || "Yes"}
+                                {issueStatus[
+                                  String(g.Itemcode || g.ItemCode)?.trim()
+                                ]?.status || "Yes"}
                               </span>
                             </td>
                           </tr>
@@ -5482,7 +5588,10 @@ export const AllocatedPartListHrPlan = ({
                       </tr>
                     </thead>
                     <tbody>
-                      {goodsReceiptDataModal
+                      {(storedGoodsReceiptData?.length
+                        ? storedGoodsReceiptData
+                        : goodsReceiptDataModal
+                      )
                         .filter((g) => {
                           const matchProd =
                             (g.ProductionNo || "")
@@ -5494,7 +5603,7 @@ export const AllocatedPartListHrPlan = ({
                               .trim()
                               .toLowerCase();
                           const matchItem =
-                            String(g.Itemcode).trim() ===
+                            String(g.Itemcode || g.ItemCode).trim() ===
                             String(
                               selectedSection?.data?.[0]?.partsCodeId || ""
                             );
@@ -5504,9 +5613,9 @@ export const AllocatedPartListHrPlan = ({
                         .map((g, i) => (
                           <tr key={`gr-${i}`}>
                             <td>
-                              <strong>{g.Itemcode}</strong>
+                              <strong>{g.Itemcode || g.ItemCode}</strong>
                             </td>
-                            <td>{g.WhsCode}</td>
+                            <td>{g.WhsCode || g.Whscode || g.Whs}</td>
                             <td>
                               <span
                                 style={{ color: "#198754", fontWeight: "bold" }}
@@ -5519,15 +5628,17 @@ export const AllocatedPartListHrPlan = ({
                                 className="badge"
                                 style={{
                                   backgroundColor:
-                                    receiptStatus[String(g.Itemcode)?.trim()]
-                                      ?.status === "Yes"
+                                    receiptStatus[
+                                      String(g.Itemcode || g.ItemCode)?.trim()
+                                    ]?.status === "Yes"
                                       ? "#198754"
                                       : "#6c757d",
                                   color: "white",
                                 }}
                               >
-                                {receiptStatus[String(g.Itemcode)?.trim()]
-                                  ?.status || "Yes"}
+                                {receiptStatus[
+                                  String(g.Itemcode || g.ItemCode)?.trim()
+                                ]?.status || "Yes"}
                               </span>
                             </td>
                           </tr>
