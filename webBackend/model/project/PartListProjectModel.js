@@ -213,6 +213,30 @@ const AllocationPlanningSchema = new mongoose.Schema(
             },
           },
         ],
+
+        // Embedded Job Work Goods Issue/Receipt captured from external source and stored locally
+        goodsIssues: [
+          {
+            Itemcode: { type: String, required: true },
+            WhsCode: { type: String, required: true },
+            Quantity: { type: Number, required: true, min: 0 },
+            Status: { type: String, default: "Yes" },
+            fromWarehouseKey: { type: String }, // optional external FromWhsCod or key
+            postingdate: { type: Date },
+            createdAt: { type: Date, default: Date.now },
+          },
+        ],
+        goodsReceipts: [
+          {
+            Itemcode: { type: String, required: true },
+            WhsCode: { type: String, required: true },
+            Quantity: { type: Number, required: true, min: 0 },
+            Status: { type: String, default: "Yes" },
+            fromWarehouseKey: { type: String },
+            postingdate: { type: Date },
+            createdAt: { type: Date, default: Date.now },
+          },
+        ],
       },
     ],
   },

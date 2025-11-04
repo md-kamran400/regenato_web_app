@@ -531,6 +531,120 @@ partproject.get("/projects", async (req, res) => {
 //   }
 // });
 
+// partproject.get("/projectss", async (req, res) => {
+//   try {
+//     const {
+//       filterType,
+//       page = 1,
+//       limit = 20,
+//       search,
+//       excludeExisting,
+//     } = req.query;
+
+//     // Build query for projects table itself
+//     const query = {};
+//     if (filterType) query.projectType = filterType;
+//     if (search) query.projectName = { $regex: search, $options: "i" };
+
+//     // If excludeExisting=true, filter out projects that already exist
+//     if (excludeExisting === "true") {
+//       const existingNames = await PartListProjectModel.distinct("projectName");
+//       if (existingNames.length > 0) {
+//         query.projectName = { ...query.projectName, $nin: existingNames };
+//       }
+//     }
+
+//     // Pagination setup
+//     const pageNum = Math.max(1, parseInt(page));
+//     const limitNum = Math.max(1, parseInt(limit));
+//     const skip = (pageNum - 1) * limitNum;
+
+//     const totalCount = await PartListProjectModel.countDocuments(query);
+
+//     const projects = await PartListProjectModel.find(query)
+//       .select(
+//         "projectName createdAt projectType costPerUnit timePerUnit machineHours partsLists subAssemblyListFirst assemblyList"
+//       )
+//       .sort({ createdAt: -1 })
+//       .skip(skip)
+//       .limit(limitNum)
+//       .lean();
+
+//     const processedProjects = projects.map((project) => {
+//       let totalProjectCost = 0;
+//       let totalProjectHours = 0;
+//       const machineHours = {};
+
+//       const processItems = (items) => {
+//         items.forEach((item) => {
+//           const costPerUnit = Number(item.costPerUnit) || 0;
+//           const timePerUnit = Number(item.timePerUnit) || 0;
+//           const quantity = Number(item.quantity) || 0;
+
+//           totalProjectCost += costPerUnit * quantity;
+//           totalProjectHours += timePerUnit * quantity;
+
+//           if (Array.isArray(item.manufacturingVariables)) {
+//             item.manufacturingVariables.forEach((machine) => {
+//               const machineName = machine.name;
+//               const machineHoursVal = Number(machine.hours) || 0;
+//               const totalHours = machineHoursVal * quantity;
+//               machineHours[machineName] =
+//                 (machineHours[machineName] || 0) + totalHours;
+//             });
+//           }
+//         });
+//       };
+
+//       if (project.partsLists) {
+//         project.partsLists.forEach((pl) => {
+//           if (pl.partsListItems) processItems(pl.partsListItems);
+//         });
+//       }
+//       if (project.subAssemblyListFirst) {
+//         project.subAssemblyListFirst.forEach((sa) => {
+//           if (sa.partsListItems) processItems(sa.partsListItems);
+//         });
+//       }
+//       if (project.assemblyList) {
+//         project.assemblyList.forEach((assembly) => {
+//           if (assembly.partsListItems) processItems(assembly.partsListItems);
+//           if (assembly.subAssemblies) {
+//             assembly.subAssemblies.forEach((subAssembly) => {
+//               if (subAssembly.partsListItems)
+//                 processItems(subAssembly.partsListItems);
+//             });
+//           }
+//         });
+//       }
+
+//       return {
+//         ...project,
+//         costPerUnit: totalProjectCost,
+//         timePerUnit: totalProjectHours,
+//         machineHours,
+//       };
+//     });
+
+//     res.status(200).json({
+//       success: true,
+//       data: processedProjects,
+//       pagination: {
+//         currentPage: pageNum,
+//         totalPages: Math.ceil(totalCount / limitNum),
+//         totalItems: totalCount,
+//         itemsPerPage: limitNum,
+//         hasNextPage: pageNum < Math.ceil(totalCount / limitNum),
+//         hasPrevPage: pageNum > 1,
+//       },
+//     });
+//   } catch (error) {
+//     console.error("Error in /projects route:", error);
+//     res.status(500).json({ success: false, error: error.message });
+//   }
+// });
+
+
 partproject.get("/projectss", async (req, res) => {
   try {
     const {
@@ -544,9 +658,19 @@ partproject.get("/projectss", async (req, res) => {
     // Build query for projects table itself
     const query = {};
     if (filterType) query.projectType = filterType;
-    if (search) query.projectName = { $regex: search, $options: "i" };
 
-    // If excludeExisting=true, filter out projects that already exist
+    //  Search by projectName OR partsCodeId across all nested arrays
+    if (search && search.trim() !== "") {
+      const regex = new RegExp(search.trim(), "i");
+      query.$or = [
+        { projectName: regex },
+        { "partsLists.partsListItems.partsCodeId": regex },
+        { "subAssemblyListFirst.partsListItems.partsCodeId": regex },
+        { "assemblyList.partsListItems.partsCodeId": regex },
+      ];
+    }
+
+    //  Exclude existing projects if specified
     if (excludeExisting === "true") {
       const existingNames = await PartListProjectModel.distinct("projectName");
       if (existingNames.length > 0) {
@@ -554,13 +678,14 @@ partproject.get("/projectss", async (req, res) => {
       }
     }
 
-    // Pagination setup
+    //  Pagination setup
     const pageNum = Math.max(1, parseInt(page));
     const limitNum = Math.max(1, parseInt(limit));
     const skip = (pageNum - 1) * limitNum;
 
     const totalCount = await PartListProjectModel.countDocuments(query);
 
+    //  Fetch projects
     const projects = await PartListProjectModel.find(query)
       .select(
         "projectName createdAt projectType costPerUnit timePerUnit machineHours partsLists subAssemblyListFirst assemblyList"
@@ -570,6 +695,7 @@ partproject.get("/projectss", async (req, res) => {
       .limit(limitNum)
       .lean();
 
+    // Calculate totals and machine hours
     const processedProjects = projects.map((project) => {
       let totalProjectCost = 0;
       let totalProjectHours = 0;
@@ -626,6 +752,7 @@ partproject.get("/projectss", async (req, res) => {
       };
     });
 
+    //  Send response
     res.status(200).json({
       success: true,
       data: processedProjects,
@@ -639,10 +766,11 @@ partproject.get("/projectss", async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Error in /projects route:", error);
+    console.error("Error in /projectss route:", error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
+
 
 partproject.get("/projects/:id", async (req, res) => {
   try {
@@ -3032,5 +3160,144 @@ setInterval(async () => {
     }
   }
 }, 1 * 60 * 1000);
+
+
+ 
+// ==================== Goods Issue/Receipt (persist external job work) ====================
+partproject.get(
+  "/projects/:projectId/partsLists/:partsListId/partsListItems/:partListItemId/allocations/:allocationId/allocations/:trackingId/goods-issue",
+  async (req, res) => {
+    try {
+      const { projectId, partsListId, partListItemId, allocationId, trackingId } = req.params;
+      const project = await PartListProjectModel.findById(projectId);
+      if (!project) return res.status(404).json({ message: "Project not found" });
+ 
+      const partsList = (project.partsLists || []).id(partsListId);
+      if (!partsList) return res.status(404).json({ message: "Parts list not found" });
+ 
+      const partItem = (partsList.partsListItems || []).id(partListItemId);
+      if (!partItem) return res.status(404).json({ message: "Part list item not found" });
+ 
+      const processNode = (partItem.allocations || []).id(allocationId);
+      if (!processNode) return res.status(404).json({ message: "Allocation (process) not found" });
+ 
+      const inner = (processNode.allocations || []).id(trackingId);
+      if (!inner) return res.status(404).json({ message: "Tracking allocation not found" });
+ 
+      res.json({ data: inner.goodsIssues || [] });
+    } catch (e) {
+      console.error("GET goods-issue failed", e);
+      res.status(500).json({ message: "Server error" });
+    }
+  }
+);
+ 
+partproject.post(
+  "/projects/:projectId/partsLists/:partsListId/partsListItems/:partListItemId/allocations/:allocationId/allocations/:trackingId/goods-issue",
+  async (req, res) => {
+    try {
+      const { projectId, partsListId, partListItemId, allocationId, trackingId } = req.params;
+      const body = req.body || {};
+      const project = await PartListProjectModel.findById(projectId);
+      if (!project) return res.status(404).json({ message: "Project not found" });
+ 
+      const partsList = (project.partsLists || []).id(partsListId);
+      if (!partsList) return res.status(404).json({ message: "Parts list not found" });
+ 
+      const partItem = (partsList.partsListItems || []).id(partListItemId);
+      if (!partItem) return res.status(404).json({ message: "Part list item not found" });
+ 
+      const processNode = (partItem.allocations || []).id(allocationId);
+      if (!processNode) return res.status(404).json({ message: "Allocation (process) not found" });
+ 
+      const inner = (processNode.allocations || []).id(trackingId);
+      if (!inner) return res.status(404).json({ message: "Tracking allocation not found" });
+ 
+      if (!inner.goodsIssues) inner.goodsIssues = [];
+      inner.goodsIssues.push({
+        Itemcode: body.Itemcode,
+        WhsCode: body.WhsCode,
+        Quantity: Number(body.Quantity) || 0,
+        Status: body.Status || "Yes",
+        fromWarehouseKey: body.FromWhsCod || body.fromWarehouseKey || "",
+        postingdate: body.postingdate ? new Date(body.postingdate) : undefined,
+      });
+ 
+      await project.save();
+      res.status(201).json({ message: "Goods Issue stored", data: inner.goodsIssues });
+    } catch (e) {
+      console.error("POST goods-issue failed", e);
+      res.status(500).json({ message: "Server error" });
+    }
+  }
+);
+ 
+partproject.get(
+  "/projects/:projectId/partsLists/:partsListId/partsListItems/:partListItemId/allocations/:allocationId/allocations/:trackingId/goods-receipt",
+  async (req, res) => {
+    try {
+      const { projectId, partsListId, partListItemId, allocationId, trackingId } = req.params;
+      const project = await PartListProjectModel.findById(projectId);
+      if (!project) return res.status(404).json({ message: "Project not found" });
+ 
+      const partsList = (project.partsLists || []).id(partsListId);
+      if (!partsList) return res.status(404).json({ message: "Parts list not found" });
+ 
+      const partItem = (partsList.partsListItems || []).id(partListItemId);
+      if (!partItem) return res.status(404).json({ message: "Part list item not found" });
+ 
+      const processNode = (partItem.allocations || []).id(allocationId);
+      if (!processNode) return res.status(404).json({ message: "Allocation (process) not found" });
+ 
+      const inner = (processNode.allocations || []).id(trackingId);
+      if (!inner) return res.status(404).json({ message: "Tracking allocation not found" });
+ 
+      res.json({ data: inner.goodsReceipts || [] });
+    } catch (e) {
+      console.error("GET goods-receipt failed", e);
+      res.status(500).json({ message: "Server error" });
+    }
+  }
+);
+ 
+partproject.post(
+  "/projects/:projectId/partsLists/:partsListId/partsListItems/:partListItemId/allocations/:allocationId/allocations/:trackingId/goods-receipt",
+  async (req, res) => {
+    try {
+      const { projectId, partsListId, partListItemId, allocationId, trackingId } = req.params;
+      const body = req.body || {};
+      const project = await PartListProjectModel.findById(projectId);
+      if (!project) return res.status(404).json({ message: "Project not found" });
+ 
+      const partsList = (project.partsLists || []).id(partsListId);
+      if (!partsList) return res.status(404).json({ message: "Parts list not found" });
+ 
+      const partItem = (partsList.partsListItems || []).id(partListItemId);
+      if (!partItem) return res.status(404).json({ message: "Part list item not found" });
+ 
+      const processNode = (partItem.allocations || []).id(allocationId);
+      if (!processNode) return res.status(404).json({ message: "Allocation (process) not found" });
+ 
+      const inner = (processNode.allocations || []).id(trackingId);
+      if (!inner) return res.status(404).json({ message: "Tracking allocation not found" });
+ 
+      if (!inner.goodsReceipts) inner.goodsReceipts = [];
+      inner.goodsReceipts.push({
+        Itemcode: body.Itemcode,
+        WhsCode: body.WhsCode,
+        Quantity: Number(body.Quantity) || 0,
+        Status: body.Status || "Yes",
+        fromWarehouseKey: body.FromWhsCod || body.fromWarehouseKey || "",
+        postingdate: body.postingdate ? new Date(body.postingdate) : undefined,
+      });
+ 
+      await project.save();
+      res.status(201).json({ message: "Goods Receipt stored", data: inner.goodsReceipts });
+    } catch (e) {
+      console.error("POST goods-receipt failed", e);
+      res.status(500).json({ message: "Server error" });
+    }
+  }
+);
 
 module.exports = partproject;
