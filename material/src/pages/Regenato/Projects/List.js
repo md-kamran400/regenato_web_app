@@ -405,7 +405,7 @@ const List = () => {
     return inputValue;
   };
   // we can directly use projectListsData as it already contains the filtered results
-  
+
   const paginatedData = useMemo(() => {
     return projectListsData;
   }, [projectListsData]);
@@ -427,7 +427,7 @@ const List = () => {
     searchTerm.length,
     isSearchMode,
   ]);
-  
+
   const handleSearchChange = async (selectedOptions) => {
     const selectedValues = selectedOptions
       ? selectedOptions.map((opt) => opt.value)
@@ -1207,6 +1207,8 @@ const List = () => {
                   </th>
                   <th className="child_parts">Part Name</th>
                   <th className="child_parts">Part Number</th>
+                  <th className="child_parts">Quantity</th>
+
                   {/* <th className="child_parts">Date</th> */}
                   <th className="child_parts" style={{ cursor: "pointer" }}>
                     <span style={{ marginLeft: "5px", marginRight: "10px" }}>
@@ -1216,7 +1218,9 @@ const List = () => {
                   </th>
                   <th className="child_parts">Posting Date</th>
                   <th className="child_parts">Production Order-Types</th>
+                  {userRole === "admin" && (
                   <th className="child_parts">Total Cost (INR)</th>
+                  )}
                   <th className="child_parts">Total Hour</th>
                   <th className="child_parts">Status</th>
                   {manufacturingData?.map((item) => (
@@ -1259,7 +1263,10 @@ const List = () => {
                         {item?.partsLists?.[0]?.partsListItems?.[0]
                           ?.partsCodeId || "--"}
                       </td>
-
+                        <td>
+                        {item?.partsLists?.[0]?.partsListItems?.[0]
+                          ?.quantity || "--"}
+                      </td>
                       <td>
                         {item.createdAt
                           ? (() => {
@@ -1287,7 +1294,10 @@ const List = () => {
 
                       <td>{item.postingdate || "--"}</td>
                       <td>{item.projectType}</td>
+                       {userRole === "admin" && (
                       <td>{Math.ceil(item.costPerUnit)}</td>
+
+                  )}
                       <td>{formatTime(item.timePerUnit)}</td>
                       <td>{getStatus(item)}</td>
                       {getMachineHoursCells(item)}

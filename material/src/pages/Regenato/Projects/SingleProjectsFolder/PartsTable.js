@@ -1035,7 +1035,9 @@ const PartsTable = React.memo(
                           <th>Cost Per Unit</th>
                           <th>Machining Hours</th>
                           <th>Quantity</th>
+                          {userRole === "admin" && (
                           <th>Total Cost (INR)</th>
+                          )}
                           <th>Total Machining Hours</th>
                           <th>Action</th>
                         </tr>
@@ -1477,12 +1479,15 @@ const PartsTable = React.memo(
                                   </div>
                                 </td>
 
-                                <td>
+                               
+                                  {userRole === "admin" && (
+                                     <td>
                                   {Math.ceil(
                                     parseFloat(item.costPerUnit || 0) *
                                       parseInt(item.quantity || 0)
                                   )}
                                 </td>
+                          )}
                                 <td>
                                   {formatTime(
                                     parseFloat(item.timePerUnit || 0) *
@@ -1491,7 +1496,9 @@ const PartsTable = React.memo(
                                 </td>
                                 <td className="action-cell">
                                   <div className="action-buttons">
-                                    <span
+                                   
+                                    {userRole === "admin" && (
+                                     <span
                                       style={{
                                         color: "blue",
                                         cursor: "pointer",
@@ -1508,6 +1515,7 @@ const PartsTable = React.memo(
                                         }`}
                                       />
                                     </span>
+                          )}
                                     <span
                                       style={{
                                         color: "red",
