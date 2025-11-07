@@ -150,7 +150,11 @@ const AllocationPlan = () => {
               Section: `${process.processName} (${
                 allocation.machineId || process.processId || "N/A"
               }) - ${allocation.operator || "N/A"}`,
-              "Part No": allocation.splitNumber || part.partsCodeId || "N/A",
+              "Part No":
+                allocation.partsCodeId ||
+                part.partsCodeId ||
+                process.partsCodeId ||
+                "N/A",
               Description: part.partName || "N/A",
               "Nature of Work": process.processId || "N/A",
               "QTY Planned": allocation.plannedQuantity || 0,
@@ -422,7 +426,14 @@ const AllocationPlan = () => {
             </div>
           ) : (
             <div id="print-area">
-              {/* {filteredAllocations
+              {filteredAllocations
+                .filter((project) =>
+                  project.allocations?.some((part) =>
+                    part.allocations?.some(
+                      (process) => process.allocations?.length > 0
+                    )
+                  )
+                )
                 .map((project, projectIndex) => (
                   <div key={project.projectName} className="print-section">
                     <Card
@@ -430,414 +441,289 @@ const AllocationPlan = () => {
                       style={{
                         pageBreakInside: "avoid",
                         boxShadow: "none",
-                        marginTop: "-20px",
-                        border: "2px solid red",
+                        marginTop: "-2px",
                       }}
                     >
-                      {project.allocations.map((part) =>
-                        part.allocations.map((process) => (
-                          <div
-                            key={`${process.processId}-${process._id}`}
-                            className="mb-3"
-                            style={{ borderBottom: "1px solid black" }}
-                          >
-                            <div className="bg-light p-2 px-3 small d-flex justify-content-between align-items-center">
-                              <div>
-                                <h5 style={{ fontWeight: "bold" }}>
-                                  {process.processName} (
-                                  {process.allocations[0]?.machineId || "N/A"})
-                                  - {process.allocations[0]?.operator || "N/A"}
-                                </h5>
-                              </div>
-                            </div>
+                      {project.allocations
+                        .filter((part) =>
+                          part.allocations?.some(
+                            (process) => process.allocations?.length > 0
+                          )
+                        )
+                        .map((part) =>
+                          part.allocations
+                            .filter(
+                              (process) => process.allocations?.length > 0
+                            )
+                            .map((process) => (
+                              <div
+                                key={`${process.processId}-${process._id}`}
+                                className="mb-3"
+                                style={{
+                                  borderBottom: "1px solid black",
+                                  display:
+                                    process.allocations.length === 0
+                                      ? "none"
+                                      : "block",
+                                }}
+                              >
+                                <div className="bg-light p-2 px-3 small d-flex justify-content-between align-items-center">
+                                  <div>
+                                    <h5 style={{ fontWeight: "bold" }}>
+                                      {process.processName} (
+                                      {process.allocations[0]?.machineId ||
+                                        "N/A"}
+                                      ) -{" "}
+                                      {process.allocations[0]?.operator ||
+                                        "N/A"}
+                                    </h5>
+                                  </div>
+                                </div>
 
-                            <div className="table-responsive">
-                              <Table bordered hover className="mb-0">
-                                <thead className="table-light">
-                                  <tr>
-                                    <th rowSpan="2" className="align-middle">
-                                      Part No.
-                                    </th>
-                                    <th rowSpan="2" className="align-middle">
-                                      Description
-                                    </th>
-                                    <th rowSpan="2" className="align-middle">
-                                      Nature of Work
-                                    </th>
-                                    <th
-                                      rowSpan="2"
-                                      className="align-middle text-center"
-                                    >
-                                      QTY Planned
-                                    </th>
-                                    <th
-                                      rowSpan="2"
-                                      className="align-middle text-center"
-                                    >
-                                      Time (min)
-                                    </th>
-                                    <th colSpan="2" className="text-center">
-                                      Date
-                                    </th>
-                                    <th
-                                      rowSpan="2"
-                                      className="align-middle text-center"
-                                    >
-                                      Status
-                                    </th>
-                                    <th colSpan="2" className="text-center">
-                                      Material Location
-                                    </th>
-                                    <th colSpan="2" className="text-center">
-                                      Next Location/Process
-                                    </th>
-                                  </tr>
-                                  <tr>
-                                    <th className="text-center">Target</th>
-                                    <th className="text-center">Completion</th>
-                                    <th className="text-center">From</th>
-                                    <th className="text-center">To</th>
-                                    <th className="text-center">From</th>
-                                    <th className="text-center">To</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {process.allocations.map((allocation) => {
-                                    const selectionKey = `${allocation._id}`;
-                                    const currentSelection =
-                                      selectionValues[selectionKey] || {};
-
-                                    return (
-                                      <tr key={allocation._id}>
-                                        <td className="fw-semibold">
-                                          {allocation.splitNumber ||
-                                            part.partsCodeId}
-                                        </td>
-                                        <td className="white-space-pre">
-                                          {formatWordsInChunks(part.partName)}
-                                        </td>
-                                        <td>{process.processName}</td>
-                                        <td className="text-center">
-                                          {allocation.plannedQuantity}
-                                        </td>
-                                        <td className="text-center">
-                                          {allocation.plannedTime}
-                                        </td>
-                                        <td className="text-center">
-                                          {formatDate(allocation.startDate)}
-                                        </td>
-                                        <td className="text-center">-</td>
-                                        <td className="text-center">
-                                          <select
-                                            className="form-select form-select-sm no-print"
-                                            style={{ width: "120px" }}
-                                            value={
-                                              currentSelection.status || "Fresh"
-                                            }
-                                            onChange={(e) =>
-                                              handleSelectionChange(
-                                                selectionKey,
-                                                "status",
-                                                e.target.value
-                                              )
-                                            }
-                                          >
-                                            <option value="Fresh">Fresh</option>
-                                            <option value="Pending">
-                                              Pending
-                                            </option>
-                                            <option value="Completed">
-                                              Completed
-                                            </option>
-                                          </select>
-                                          <span className="print-only">
-                                            {currentSelection.status || "Fresh"}
-                                          </span>
-                                        </td>
-                                        <td className="text-center">
-                                          <select
-                                            className="form-select form-select-sm no-print"
-                                            style={{ width: "120px" }}
-                                            value={
-                                              currentSelection.materialFrom ||
-                                              "GR"
-                                            }
-                                            onChange={(e) =>
-                                              handleSelectionChange(
-                                                selectionKey,
-                                                "materialFrom",
-                                                e.target.value
-                                              )
-                                            }
-                                          >
-                                            <option value="GR">GR</option>
-                                            <option value="MS">MS</option>
-                                            <option value="Store">Store</option>
-                                            <option value="Heat Treatment">
-                                              Heat Treatment
-                                            </option>
-                                            <option value="Auto Black">
-                                              Auto Black
-                                            </option>
-                                          </select>
-                                          <span className="print-only">
-                                            {currentSelection.materialFrom ||
-                                              "GR"}
-                                          </span>
-                                        </td>
-                                        <td className="text-center">
-                                          <select
-                                            className="form-select form-select-sm no-print"
-                                            style={{ width: "120px" }}
-                                            value={
-                                              currentSelection.materialTo ||
-                                              "MS"
-                                            }
-                                            onChange={(e) =>
-                                              handleSelectionChange(
-                                                selectionKey,
-                                                "materialTo",
-                                                e.target.value
-                                              )
-                                            }
-                                          >
-                                            <option value="GR">GR</option>
-                                            <option value="MS">MS</option>
-                                            <option value="Store">Store</option>
-                                            <option value="Heat Treatment">
-                                              Heat Treatment
-                                            </option>
-                                            <option value="Auto Black">
-                                              Auto Black
-                                            </option>
-                                          </select>
-                                          <span className="print-only">
-                                            {currentSelection.materialTo ||
-                                              "MS"}
-                                          </span>
-                                        </td>
-                                        <td className="text-center">
-                                          <select
-                                            className="form-select form-select-sm no-print"
-                                            style={{ width: "120px" }}
-                                            value={
-                                              currentSelection.nextLocationFrom ||
-                                              "GR"
-                                            }
-                                            onChange={(e) =>
-                                              handleSelectionChange(
-                                                selectionKey,
-                                                "nextLocationFrom",
-                                                e.target.value
-                                              )
-                                            }
-                                          >
-                                            <option value="GR">GR</option>
-                                            <option value="MS">MS</option>
-                                            <option value="Store">Store</option>
-                                            <option value="Heat Treatment">
-                                              Heat Treatment
-                                            </option>
-                                            <option value="Auto Black">
-                                              Auto Black
-                                            </option>
-                                          </select>
-                                          <span className="print-only">
-                                            {currentSelection.nextLocationFrom ||
-                                              "GR"}
-                                          </span>
-                                        </td>
-                                        <td className="text-center">
-                                          <select
-                                            className="form-select form-select-sm no-print"
-                                            style={{ width: "120px" }}
-                                            value={
-                                              currentSelection.nextLocationTo ||
-                                              "MS"
-                                            }
-                                            onChange={(e) =>
-                                              handleSelectionChange(
-                                                selectionKey,
-                                                "nextLocationTo",
-                                                e.target.value
-                                              )
-                                            }
-                                          >
-                                            <option value="GR">GR</option>
-                                            <option value="MS">MS</option>
-                                            <option value="Store">Store</option>
-                                            <option value="Heat Treatment">
-                                              Heat Treatment
-                                            </option>
-                                            <option value="Auto Black">
-                                              Auto Black
-                                            </option>
-                                          </select>
-                                          <span className="print-only">
-                                            {currentSelection.nextLocationTo ||
-                                              "MS"}
-                                          </span>
-                                        </td>
+                                <div className="table-responsive">
+                                  <Table bordered hover className="mb-0">
+                                    <thead className="table-light">
+                                      <tr>
+                                        <th
+                                          rowSpan="2"
+                                          className="align-middle"
+                                        >
+                                          Part No.
+                                        </th>
+                                        <th
+                                          rowSpan="2"
+                                          className="align-middle"
+                                        >
+                                          Description
+                                        </th>
+                                        <th
+                                          rowSpan="2"
+                                          className="align-middle"
+                                        >
+                                          Nature of Work
+                                        </th>
+                                        <th
+                                          rowSpan="2"
+                                          className="align-middle text-center"
+                                        >
+                                          QTY Planned
+                                        </th>
+                                        <th
+                                          rowSpan="2"
+                                          className="align-middle text-center"
+                                        >
+                                          Time (min)
+                                        </th>
+                                        <th colSpan="2" className="text-center">
+                                          Date
+                                        </th>
+                                        <th
+                                          rowSpan="2"
+                                          className="align-middle text-center"
+                                        >
+                                          Status
+                                        </th>
+                                        <th colSpan="2" className="text-center">
+                                          Material Location
+                                        </th>
+                                        <th colSpan="2" className="text-center">
+                                          Next Location/Process
+                                        </th>
                                       </tr>
-                                    );
-                                  })}
-                                </tbody>
-                              </Table>
-                            </div>
-                          </div>
-                        ))
-                      )}
+                                      <tr>
+                                        <th className="text-center">Target</th>
+                                        <th className="text-center">
+                                          Completion
+                                        </th>
+                                        <th className="text-center">From</th>
+                                        <th className="text-center">To</th>
+                                        <th className="text-center">From</th>
+                                        <th className="text-center">To</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {process.allocations.map((allocation) => {
+                                        const selectionKey = `${allocation._id}`;
+                                        const currentSelection =
+                                          selectionValues[selectionKey] || {};
+
+                                        return (
+                                          <tr key={allocation._id}>
+                                            <td className="fw-semibold">
+                                              {allocation?.partsCodeId ||
+                                                process?.partsCodeId ||
+                                                part?.partsCodeId ||
+                                                "N/A"}
+                                            </td>
+
+                                            <td className="white-space-pre">
+                                              {formatWordsInChunks(
+                                                part.partName
+                                              )}
+                                            </td>
+                                            <td>{process.processName}</td>
+                                            <td className="text-center">
+                                              {allocation.plannedQuantity}
+                                            </td>
+                                            <td className="text-center">
+                                              {allocation.plannedTime}
+                                            </td>
+                                            <td className="text-center">
+                                              {formatDate(allocation.startDate)}
+                                            </td>
+                                            <td className="text-center">-</td>
+                                            <td className="text-center">--</td>
+                                            {/* status + selects unchanged */}
+                                            {/* Material Location */}
+                                            <td className="text-center">
+                                              <select
+                                                className="form-select form-select-sm no-print"
+                                                style={{ width: "120px" }}
+                                                value={
+                                                  currentSelection.materialFrom ||
+                                                  "GR"
+                                                }
+                                                onChange={(e) =>
+                                                  handleSelectionChange(
+                                                    selectionKey,
+                                                    "materialFrom",
+                                                    e.target.value
+                                                  )
+                                                }
+                                              >
+                                                <option value="GR">GR</option>
+                                                <option value="MS">MS</option>
+                                                <option value="Store">
+                                                  Store
+                                                </option>
+                                                <option value="Heat Treatment">
+                                                  Heat Treatment
+                                                </option>
+                                                <option value="Auto Black">
+                                                  Auto Black
+                                                </option>
+                                              </select>
+                                              <span className="print-only">
+                                                {currentSelection.materialFrom ||
+                                                  "GR"}
+                                              </span>
+                                            </td>
+                                            <td className="text-center">
+                                              <select
+                                                className="form-select form-select-sm no-print"
+                                                style={{ width: "120px" }}
+                                                value={
+                                                  currentSelection.materialTo ||
+                                                  "MS"
+                                                }
+                                                onChange={(e) =>
+                                                  handleSelectionChange(
+                                                    selectionKey,
+                                                    "materialTo",
+                                                    e.target.value
+                                                  )
+                                                }
+                                              >
+                                                <option value="GR">GR</option>
+                                                <option value="MS">MS</option>
+                                                <option value="Store">
+                                                  Store
+                                                </option>
+                                                <option value="Heat Treatment">
+                                                  Heat Treatment
+                                                </option>
+                                                <option value="Auto Black">
+                                                  Auto Black
+                                                </option>
+                                              </select>
+                                              <span className="print-only">
+                                                {currentSelection.materialTo ||
+                                                  "MS"}
+                                              </span>
+                                            </td>
+                                            {/* Next Location/Process */}
+                                            <td className="text-center">
+                                              <select
+                                                className="form-select form-select-sm no-print"
+                                                style={{ width: "120px" }}
+                                                value={
+                                                  currentSelection.nextLocationFrom ||
+                                                  "GR"
+                                                }
+                                                onChange={(e) =>
+                                                  handleSelectionChange(
+                                                    selectionKey,
+                                                    "nextLocationFrom",
+                                                    e.target.value
+                                                  )
+                                                }
+                                              >
+                                                <option value="GR">GR</option>
+                                                <option value="MS">MS</option>
+                                                <option value="Store">
+                                                  Store
+                                                </option>
+                                                <option value="Heat Treatment">
+                                                  Heat Treatment
+                                                </option>
+                                                <option value="Auto Black">
+                                                  Auto Black
+                                                </option>
+                                              </select>
+                                              <span className="print-only">
+                                                {currentSelection.nextLocationFrom ||
+                                                  "GR"}
+                                              </span>
+                                            </td>
+                                            <td className="text-center">
+                                              <select
+                                                className="form-select form-select-sm no-print"
+                                                style={{ width: "120px" }}
+                                                value={
+                                                  currentSelection.nextLocationTo ||
+                                                  "MS"
+                                                }
+                                                onChange={(e) =>
+                                                  handleSelectionChange(
+                                                    selectionKey,
+                                                    "nextLocationTo",
+                                                    e.target.value
+                                                  )
+                                                }
+                                              >
+                                                <option value="GR">GR</option>
+                                                <option value="MS">MS</option>
+                                                <option value="Store">
+                                                  Store
+                                                </option>
+                                                <option value="Heat Treatment">
+                                                  Heat Treatment
+                                                </option>
+                                                <option value="Auto Black">
+                                                  Auto Black
+                                                </option>
+                                              </select>
+                                              <span className="print-only">
+                                                {currentSelection.nextLocationTo ||
+                                                  "MS"}
+                                              </span>
+                                            </td>
+                                          </tr>
+                                        );
+                                      })}
+                                    </tbody>
+                                  </Table>
+                                </div>
+                              </div>
+                            ))
+                        )}
                     </Card>
 
                     {projectIndex < filteredAllocations.length - 1 && (
                       <div className="print-page-break"></div>
                     )}
                   </div>
-                ))} */}
-
-                {filteredAllocations
-  .filter(
-    (project) =>
-      project.allocations?.some(
-        (part) =>
-          part.allocations?.some(
-            (process) => process.allocations?.length > 0
-          )
-      )
-  )
-  .map((project, projectIndex) => (
-    <div key={project.projectName} className="print-section">
-      <Card
-        className="shadow-none"
-        style={{
-          pageBreakInside: "avoid",
-          boxShadow: "none",
-          marginTop: "-2px",
-        }}
-      >
-        {project.allocations
-          .filter((part) =>
-            part.allocations?.some(
-              (process) => process.allocations?.length > 0
-            )
-          )
-          .map((part) =>
-            part.allocations
-              .filter((process) => process.allocations?.length > 0)
-              .map((process) => (
-                <div
-                  key={`${process.processId}-${process._id}`}
-                  className="mb-3"
-                  style={{
-                    borderBottom: "1px solid black",
-                    display:
-                      process.allocations.length === 0 ? "none" : "block",
-                  }}
-                >
-                  <div className="bg-light p-2 px-3 small d-flex justify-content-between align-items-center">
-                    <div>
-                      <h5 style={{ fontWeight: "bold" }}>
-                        {process.processName} (
-                        {process.allocations[0]?.machineId || "N/A"}) -{" "}
-                        {process.allocations[0]?.operator || "N/A"}
-                      </h5>
-                    </div>
-                  </div>
-
-                  <div className="table-responsive">
-                    <Table bordered hover className="mb-0">
-                      <thead className="table-light">
-                        <tr>
-                          <th rowSpan="2" className="align-middle">
-                            Part No.
-                          </th>
-                          <th rowSpan="2" className="align-middle">
-                            Description
-                          </th>
-                          <th rowSpan="2" className="align-middle">
-                            Nature of Work
-                          </th>
-                          <th
-                            rowSpan="2"
-                            className="align-middle text-center"
-                          >
-                            QTY Planned
-                          </th>
-                          <th
-                            rowSpan="2"
-                            className="align-middle text-center"
-                          >
-                            Time (min)
-                          </th>
-                          <th colSpan="2" className="text-center">
-                            Date
-                          </th>
-                          <th
-                            rowSpan="2"
-                            className="align-middle text-center"
-                          >
-                            Status
-                          </th>
-                          <th colSpan="2" className="text-center">
-                            Material Location
-                          </th>
-                          <th colSpan="2" className="text-center">
-                            Next Location/Process
-                          </th>
-                        </tr>
-                        <tr>
-                          <th className="text-center">Target</th>
-                          <th className="text-center">Completion</th>
-                          <th className="text-center">From</th>
-                          <th className="text-center">To</th>
-                          <th className="text-center">From</th>
-                          <th className="text-center">To</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {process.allocations.map((allocation) => {
-                          const selectionKey = `${allocation._id}`;
-                          const currentSelection =
-                            selectionValues[selectionKey] || {};
-
-                          return (
-                            <tr key={allocation._id}>
-                              <td className="fw-semibold">
-                                {allocation.splitNumber ||
-                                  part.partsCodeId}
-                              </td>
-                              <td className="white-space-pre">
-                                {formatWordsInChunks(part.partName)}
-                              </td>
-                              <td>{process.processName}</td>
-                              <td className="text-center">
-                                {allocation.plannedQuantity}
-                              </td>
-                              <td className="text-center">
-                                {allocation.plannedTime}
-                              </td>
-                              <td className="text-center">
-                                {formatDate(allocation.startDate)}
-                              </td>
-                              <td className="text-center">-</td>
-                              {/* status + selects unchanged */}
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </Table>
-                  </div>
-                </div>
-              ))
-          )}
-      </Card>
-
-      {projectIndex < filteredAllocations.length - 1 && (
-        <div className="print-page-break"></div>
-      )}
-    </div>
-  ))}
-
+                ))}
             </div>
           )}
         </CardBody>

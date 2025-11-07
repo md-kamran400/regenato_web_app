@@ -506,13 +506,61 @@ const List = () => {
   };
 
   // Also update the filter type handler if you have one:
-  const handleFilterStatusChange = (selectedOption) => {
-    setFilterStatus(selectedOption?.value || "");
+  // const handleFilterStatusChange = (selectedOption) => {
+  //   setFilterStatus(selectedOption?.value || "");
+  //   setCurrentPage(1);
+  //   if (currentSearch) {
+  //     fetchData(1, itemsPerPage, currentSearch);
+  //   } else {
+  //     fetchData(1, itemsPerPage);
+  //   }
+  // };
+
+  const handleFilterStatusChange = async (selectedOption) => {
+    const selectedStatus = selectedOption?.value || "";
+    setFilterStatus(selectedStatus);
     setCurrentPage(1);
-    if (currentSearch) {
-      fetchData(1, itemsPerPage, currentSearch);
-    } else {
-      fetchData(1, itemsPerPage);
+
+    // If no filter selected, just reload current page as usual
+    if (!selectedStatus) {
+      if (currentSearch) {
+        fetchData(1, itemsPerPage, currentSearch);
+      } else {
+        fetchData(1, itemsPerPage);
+      }
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      // Fetch all data temporarily for full filtering
+      const response = await fetch(
+        `${process.env.REACT_APP_BASE_URL}/api/defpartproject/projectss?limit=100000`
+      );
+      const result = await response.json();
+
+      if (result.success && Array.isArray(result.data)) {
+        // Filter client-side for the selected status
+        const filtered = result.data.filter((item) => {
+          const statusElement = getStatus(item);
+          const statusText =
+            typeof statusElement?.props?.children === "string"
+              ? statusElement.props.children
+              : "";
+          return (
+            statusText.toLowerCase().trim() ===
+            selectedStatus.toLowerCase().trim()
+          );
+        });
+
+        // Update only the filtered data but keep pagination for table
+        setprojectListsData(filtered);
+        setTotalPages(1); // only one page since it's filtered view
+      }
+    } catch (err) {
+      console.error("Filter fetch error:", err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -1219,7 +1267,7 @@ const List = () => {
                   <th className="child_parts">Posting Date</th>
                   <th className="child_parts">Production Order-Types</th>
                   {userRole === "admin" && (
-                  <th className="child_parts">Total Cost (INR)</th>
+                    <th className="child_parts">Total Cost (INR)</th>
                   )}
                   <th className="child_parts">Total Hour</th>
                   <th className="child_parts">Status</th>
@@ -1263,9 +1311,9 @@ const List = () => {
                         {item?.partsLists?.[0]?.partsListItems?.[0]
                           ?.partsCodeId || "--"}
                       </td>
-                        <td>
-                        {item?.partsLists?.[0]?.partsListItems?.[0]
-                          ?.quantity || "--"}
+                      <td>
+                        {item?.partsLists?.[0]?.partsListItems?.[0]?.quantity ||
+                          "--"}
                       </td>
                       <td>
                         {item.createdAt
@@ -1294,10 +1342,9 @@ const List = () => {
 
                       <td>{item.postingdate || "--"}</td>
                       <td>{item.projectType}</td>
-                       {userRole === "admin" && (
-                      <td>{Math.ceil(item.costPerUnit)}</td>
-
-                  )}
+                      {userRole === "admin" && (
+                        <td>{Math.ceil(item.costPerUnit)}</td>
+                      )}
                       <td>{formatTime(item.timePerUnit)}</td>
                       <td>{getStatus(item)}</td>
                       {getMachineHoursCells(item)}
