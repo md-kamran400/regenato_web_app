@@ -36,7 +36,7 @@ stagingRoutes.get("/GoodsIssue/GetGoodsIssue", async (req, res) => {
   }
 });
 
-stagingRoutes.get("/Production/Product", async (req, res) => {
+stagingRoutes.get("/Production/Productt", async (req, res) => {
   try {
     const response = await axios.get(
       "http://182.77.56.228:90/Production/Product",
@@ -84,7 +84,7 @@ stagingRoutes.get("/Production/Product", async (req, res) => {
 
 // http://182.77.56.228:90/Production/Product
 
-stagingRoutes.post("/Production/Product", async (req, res) => {
+stagingRoutes.post("/Production/Productt", async (req, res) => {
   try {
     const response = await axios.post(
       "http://182.77.56.228:90/Production/Product",
