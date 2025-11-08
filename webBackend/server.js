@@ -45,7 +45,7 @@ const {
 } = require("./routes/variableRoutes/stores.routes");
 const stagingRoutes = require("./routes/staging/Staging");
 const { InventoryRouter } = require("./routes/variableRoutes/inventory.route");
-const autoSyncService = require("./services/autoSyncService");
+// const autoSyncService = require("./services/autoSyncService");
 
 // MongoDB connection
 const connect = async () => {
@@ -91,37 +91,37 @@ app.use("/api", stagingRoutes);
 app.use("/api/InventoryVaraible", InventoryRouter);
 
 // Auto-sync service endpoints
-app.get("/api/auto-sync/status", (req, res) => {
-  res.json(autoSyncService.getStatus());
-});
+// app.get("/api/auto-sync/statuss", (req, res) => {
+//   res.json(autoSyncService.getStatus());
+// });
 
-app.post("/api/auto-sync/start", (req, res) => {
-  autoSyncService.start();
-  res.json({
-    message: "Auto-sync service started",
-    status: autoSyncService.getStatus(),
-  });
-});
+// app.post("/api/auto-sync/startt", (req, res) => {
+//   autoSyncService.start();
+//   res.json({
+//     message: "Auto-sync service started",
+//     status: autoSyncService.getStatus(),
+//   });
+// });
 
-app.post("/api/auto-sync/stop", (req, res) => {
-  autoSyncService.stop();
-  res.json({
-    message: "Auto-sync service stopped",
-    status: autoSyncService.getStatus(),
-  });
-});
+// app.post("/api/auto-sync/stopp", (req, res) => {
+//   autoSyncService.stop();
+//   res.json({
+//     message: "Auto-sync service stopped",
+//     status: autoSyncService.getStatus(),
+//   });
+// });
 
-app.post("/api/auto-sync/sync-now", async (req, res) => {
-  try {
-    await autoSyncService.performSync();
-    res.json({
-      message: "Manual sync completed",
-      status: autoSyncService.getStatus(),
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
+// app.post("/api/auto-sync/sync-noww", async (req, res) => {
+//   try {
+//     await autoSyncService.performSync();
+//     res.json({
+//       message: "Manual sync completed",
+//       status: autoSyncService.getStatus(),
+//     });
+//   } catch (error) {
+//     res.status(500).json({ error: error.message });
+//   }
+// });
 
 app.get("/api/holidays", async (req, res) => {
   try {
@@ -361,7 +361,7 @@ app.listen(PORT, "0.0.0.0", () => {
 
   // Start auto-sync service after server starts
   setTimeout(() => {
-    autoSyncService.start();
-    console.log("Auto-sync service started automatically for 2526 series");
+    // autoSyncService.start();
+    // console.log("Auto-sync service started automatically for 2526 series");
   }, 5000); // Start after 5 seconds to ensure database connection is ready
 });

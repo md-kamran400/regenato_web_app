@@ -3301,25 +3301,25 @@ partproject.post(
 );
 
 // Delete all projects except a few specified projectNames
-// partproject.delete("/projectss/cleanup", async (req, res) => {
-//   try {
-//     // List of projectNames to KEEP
-//     const keepProjects = ["18436", "18437", "18438"];
+partproject.delete("/projectss/cleanup", async (req, res) => {
+  try {
+    // List of projectNames to KEEP
+    const keepProjects = ["18436", "18437", "18438"];
 
-//     // Delete all others
-//     const result = await PartListProjectModel.deleteMany({
-//       projectName: { $nin: keepProjects },
-//     });
+    // Delete all others
+    const result = await PartListProjectModel.deleteMany({
+      projectName: { $nin: keepProjects },
+    });
 
-//     res.status(200).json({
-//       success: true,
-//       message: `Deleted ${result.deletedCount} projects successfully (except ${keepProjects.join(", ")})`,
-//     });
-//   } catch (error) {
-//     console.error("Error deleting projects:", error);
-//     res.status(500).json({ success: false, error: error.message });
-//   }
-// });
+    res.status(200).json({
+      success: true,
+      message: `Deleted ${result.deletedCount} projects successfully (except ${keepProjects.join(", ")})`,
+    });
+  } catch (error) {
+    console.error("Error deleting projects:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
 
 
 module.exports = partproject;
