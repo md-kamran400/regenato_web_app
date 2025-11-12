@@ -175,17 +175,84 @@ PartsExcelRoutes.delete("/", async (req, res) => {
 //   }
 // });
 
+// PartsExcelRoutes.get("/", async (req, res) => {
+//   try {
+//     const page = parseInt(req.query.page) || 1;
+//     const limit = parseInt(req.query.limit) || 25;
+//     const filterType = req.query.filterType || "";
+//     const search = req.query.search || "";
+
+//     const query = {};
+
+//     if (filterType) {
+//       query.partType = filterType;
+//     }
+
+//     if (search) {
+//       query.$or = [
+//         { partName: { $regex: search, $options: "i" } },
+//         { id: { $regex: search, $options: "i" } },
+//       ];
+//     }
+
+//     // ALWAYS search across all records when there's a search term
+//     if (search) {
+//       const parts = await PartsModel.find(query)
+//         .sort({ createdAt: -1 })
+//         .limit(1000); // Increase limit for search results
+      
+//       return res.status(200).json({
+//         data: parts,
+//         pagination: {
+//           total: parts.length,
+//           page: 1,
+//           pages: 1,
+//           limit: parts.length,
+//         },
+//       });
+//     }
+
+//     // Normal pagination when no search
+//     const total = await PartsModel.countDocuments(query);
+//     const parts = await PartsModel.find(query)
+//       .skip((page - 1) * limit)
+//       .limit(limit)
+//       .sort({ createdAt: -1 });
+
+//     return res.status(200).json({
+//       data: parts,
+//       pagination: {
+//         total,
+//         page,
+//         pages: Math.ceil(total / limit),
+//         limit,
+//       },
+//     });
+//   } catch (error) {
+//     res.status(500).json({ message: error.message });
+//   }
+// });
+
 PartsExcelRoutes.get("/", async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 25;
     const filterType = req.query.filterType || "";
     const search = req.query.search || "";
+    const statusFilter = req.query.status || ""; // Add status filter
 
     const query = {};
 
     if (filterType) {
       query.partType = filterType;
+    }
+
+    if (statusFilter) {
+      if (statusFilter === 'finalized') {
+        query.timePerUnit = { $gt: 0 };
+      } else if (statusFilter === 'notFinalized') {
+        query.timePerUnit = { $eq: 0 };
+      }
     }
 
     if (search) {
@@ -1827,5 +1894,59 @@ PartsExcelRoutes.get("/image/:_id", async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
+
+// PUT - Duplicate data from one part to another (OVERWRITE existing data)
+PartsExcelRoutes.put("/duplicate-data/:_id", async (req, res) => {
+  try {
+    const { _id } = req.params;
+    const {
+      generalVariables,
+      rmVariables,
+      manufacturingVariables,
+      shipmentVariables,
+      overheadsAndProfits
+    } = req.body;
+
+    console.log("Received data for duplication:", {
+      targetPartId: _id,
+      generalVariablesCount: generalVariables?.length,
+      rmVariablesCount: rmVariables?.length,
+      manufacturingVariablesCount: manufacturingVariables?.length,
+      shipmentVariablesCount: shipmentVariables?.length,
+      overheadsAndProfitsCount: overheadsAndProfits?.length
+    });
+
+    // Find the target part
+    const targetPart = await PartsModel.findById(_id);
+    if (!targetPart) {
+      return res.status(404).json({ message: "Target part not found" });
+    }
+
+    // Update the target part - this will OVERWRITE existing arrays
+    const updatedPart = await PartsModel.findByIdAndUpdate(
+      _id,
+      {
+        generalVariables: generalVariables || [],
+        rmVariables: rmVariables || [],
+        manufacturingVariables: manufacturingVariables || [],
+        shipmentVariables: shipmentVariables || [],
+        overheadsAndProfits: overheadsAndProfits || [],
+        updatedAt: new Date()
+      },
+      { new: true, runValidators: true }
+    );
+
+    console.log("Successfully updated target part:", updatedPart._id);
+
+    res.status(200).json({
+      message: "Data duplicated successfully",
+      part: updatedPart
+    });
+  } catch (error) {
+    console.error("Error duplicating data:", error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
 
 module.exports = { PartsExcelRoutes };
