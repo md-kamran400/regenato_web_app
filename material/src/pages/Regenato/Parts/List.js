@@ -381,47 +381,46 @@ const List = () => {
   //   [filterType, currentPage, itemsPerPage]
   // );
 
- 
   const fetchData = useCallback(
-  async (forceRefresh = false, page = currentPage) => {
-    setLoading(true);
-    setError(null);
-    try {
-      if (forceRefresh) {
-        sessionStorage.removeItem("cachedPartsData");
+    async (forceRefresh = false, page = currentPage) => {
+      setLoading(true);
+      setError(null);
+      try {
+        if (forceRefresh) {
+          sessionStorage.removeItem("cachedPartsData");
+        }
+
+        // Build query parameters
+        const params = new URLSearchParams({
+          filterType: filterType,
+          page: page,
+          limit: itemsPerPage,
+        });
+
+        // Add status filter if selected
+        if (finalizedFilter) {
+          params.append("status", finalizedFilter);
+        }
+
+        const response = await fetch(
+          `${process.env.REACT_APP_BASE_URL}/api/parts?${params.toString()}`
+        );
+        if (!response.ok) {
+          throw new Error("Failed to fetch parts");
+        }
+        const { data, pagination } = await response.json();
+
+        setListData(data || []);
+        setTotalPages(pagination?.pages || 1);
+      } catch (err) {
+        setError(err.message);
+        setListData([]); // Set to empty array on error
+      } finally {
+        setLoading(false);
       }
-
-      // Build query parameters
-      const params = new URLSearchParams({
-        filterType: filterType,
-        page: page,
-        limit: itemsPerPage,
-      });
-
-      // Add status filter if selected
-      if (finalizedFilter) {
-        params.append('status', finalizedFilter);
-      }
-
-      const response = await fetch(
-        `${process.env.REACT_APP_BASE_URL}/api/parts?${params.toString()}`
-      );
-      if (!response.ok) {
-        throw new Error("Failed to fetch parts");
-      }
-      const { data, pagination } = await response.json();
-
-      setListData(data || []);
-      setTotalPages(pagination?.pages || 1);
-    } catch (err) {
-      setError(err.message);
-      setListData([]); // Set to empty array on error
-    } finally {
-      setLoading(false);
-    }
-  },
-  [filterType, finalizedFilter, currentPage, itemsPerPage] // Add finalizedFilter to dependencies
-);
+    },
+    [filterType, finalizedFilter, currentPage, itemsPerPage] // Add finalizedFilter to dependencies
+  );
   const fetchSearchOptions = useCallback(
     debounce(async (inputValue) => {
       if (!inputValue) {
@@ -513,7 +512,7 @@ const List = () => {
 
     setListData(sorted);
   };
-const filteredData = listData || [];
+  const filteredData = listData || [];
   // const filteredData = (listData || []).filter((item) => {
   //   // If no search term, return all items that match the filter type
   //   if (searchTerm.length === 0) {
@@ -1256,13 +1255,14 @@ const filteredData = listData || [];
             </div>
           </div>
         )}
-        <div style={{ overflowX: "auto", width: "100%" }}>
+        <div style={{  width: "100%" }}>
           <table
             className="table table-striped vertical-lines horizontals-lines"
             style={{
               border: "2px solid black",
               minWidth: "1000px",
               width: "100%",
+              minHeight:'100px'
             }}
           >
             <thead style={{ backgroundColor: "#f3f4f6" }}>
@@ -1365,7 +1365,9 @@ const filteredData = listData || [];
                           className="icon-sm"
                         />
                       </DropdownToggle>
-                      <DropdownMenu className="dropdown-menu-end">
+                      <DropdownMenu
+                        className="dropdown-menu-end"
+                      >
                         <DropdownItem
                           href="#"
                           onClick={() => {
