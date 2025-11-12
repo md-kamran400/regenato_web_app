@@ -10,6 +10,7 @@ import { debounce } from "lodash";
 import { Spinner } from "reactstrap";
 import { RiDeleteBin6Line } from "react-icons/ri";
 // import "./projectParts.css";
+import { useLocation } from "react-router-dom";
 
 import {
   Card,
@@ -77,8 +78,10 @@ const partTypeOptions = [
 
 const categories = [{ name: "Make" }, { name: "Purchase" }];
 import { FaSort } from "react-icons/fa";
+import InfiniteScrollSelect from "./InfiniteScrollSelect";
 
 const List = () => {
+  const location = useLocation();
   const [selectedPartId, setSelectedPartId] = useState(
     localStorage.getItem("selectedPartId")
   );
@@ -142,6 +145,173 @@ const List = () => {
   const [sortOrder, setSortOrder] = useState(null); // 'asc' for ascending, 'desc' for descending, null for default
   const [selectedRows, setSelectedRows] = useState([]); // Tracks selected rows
   const [selectAll, setSelectAll] = useState(false);
+  const [modal_duplicate2, setModalDuplicate2] = useState(false);
+  const [sourcePart, setSourcePart] = useState(null);
+  const [targetPartId, setTargetPartId] = useState("");
+  const [allParts, setAllParts] = useState([]);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [currentPageModel, setCurrentPageModel] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingParts, setLoadingParts] = useState(false);
+  const [finalizedFilter, setFinalizedFilter] = useState("");
+
+  const handleDuplicate2 = (item) => {
+    setSourcePart(item);
+    setSearchQuery("");
+    setCurrentPageModel(1);
+    setHasMore(true);
+    setAllParts([]); // Clear previous data
+    fetchAllParts(1, "", true); // Fetch first page
+    setModalDuplicate2(true);
+  };
+
+  // Function to fetch parts with pagination and search
+  const fetchAllParts = async (page = 1, search = "", reset = false) => {
+    if (loadingParts) return;
+
+    setLoadingParts(true);
+    try {
+      const response = await fetch(
+        `${
+          process.env.REACT_APP_BASE_URL
+        }/api/parts?page=${page}&limit=20&search=${encodeURIComponent(search)}`
+      );
+      const result = await response.json();
+
+      if (result.data && result.data.length > 0) {
+        setAllParts((prev) =>
+          reset ? result.data : [...prev, ...result.data]
+        );
+
+        // Check if there are more pages
+        setHasMore(page < (result.pagination?.pages || 1));
+        setCurrentPageModel(page); // Update current page
+      } else {
+        setHasMore(false);
+        if (reset) {
+          setAllParts([]);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to fetch parts:", error);
+      toast.error("Failed to load parts");
+    } finally {
+      setLoadingParts(false);
+    }
+  };
+
+  // Function to handle search
+  const handleSearch1 = (query) => {
+    setSearchQuery(query);
+    setCurrentPageModel(1);
+    setHasMore(true);
+    fetchAllParts(1, query, true);
+  };
+  // Function to load more parts
+  const handleLoadMore = () => {
+    if (hasMore && !loadingParts) {
+      const nextPage = currentPageModel + 1;
+      setCurrentPageModel(nextPage);
+      fetchAllParts(nextPage, searchQuery, false);
+    }
+  };
+
+  // Function to handle target part selection
+  const handleTargetPartChange = (partId) => {
+    setTargetPartId(partId);
+    // Find the selected part and set the search query to show its name
+    const selectedPart = allParts.find((part) => part._id === partId);
+    if (selectedPart) {
+      setSearchQuery(`${selectedPart.partName} (${selectedPart.id})`);
+    }
+  };
+
+  // Function to handle duplicate confirmation
+  const handleDuplicateClick = () => {
+    if (!targetPartId) {
+      toast.error("Please select a target part");
+      return;
+    }
+
+    const targetPart = allParts.find((part) => part._id === targetPartId);
+    if (targetPart) {
+      setShowConfirmModal(true);
+    }
+  };
+
+  // Function to perform the actual duplication (keep the same as before)
+  const handleFinalDuplicate = async () => {
+    if (!sourcePart || !targetPartId) {
+      toast.error("Source or target part not selected");
+      return;
+    }
+
+    if (sourcePart._id === targetPartId) {
+      toast.error("Cannot duplicate to the same part");
+      return;
+    }
+
+    try {
+      console.log("Starting duplication process...");
+      console.log("Source Part:", sourcePart._id, sourcePart.partName);
+      console.log("Target Part ID:", targetPartId);
+
+      // Prepare the data to copy
+      const dataToCopy = {
+        generalVariables: sourcePart.generalVariables || [],
+        rmVariables: sourcePart.rmVariables || [],
+        manufacturingVariables: sourcePart.manufacturingVariables || [],
+        shipmentVariables: sourcePart.shipmentVariables || [],
+        overheadsAndProfits: sourcePart.overheadsAndProfits || [],
+      };
+
+      console.log("Data being copied:", {
+        generalVariables: dataToCopy.generalVariables.length,
+        rmVariables: dataToCopy.rmVariables.length,
+        manufacturingVariables: dataToCopy.manufacturingVariables.length,
+        shipmentVariables: dataToCopy.shipmentVariables.length,
+        overheadsAndProfits: dataToCopy.overheadsAndProfits.length,
+      });
+
+      // Send PUT request to update the target part
+      const response = await fetch(
+        `${process.env.REACT_APP_BASE_URL}/api/parts/duplicate-data/${targetPartId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(dataToCopy),
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Backend error:", errorText);
+        throw new Error(`Failed to duplicate data: ${errorText}`);
+      }
+
+      const result = await response.json();
+      console.log("Duplication successful:", result);
+
+      // Clear cache and refresh data
+      sessionStorage.removeItem("cachedPartsData");
+      await fetchData(true);
+
+      // Close modals and reset state
+      setModalDuplicate2(false);
+      setShowConfirmModal(false);
+      setSourcePart(null);
+      setTargetPartId("");
+      setSearchQuery("");
+
+      toast.success("Data duplicated successfully!");
+    } catch (error) {
+      console.error("Error duplicating data:", error);
+      toast.error(`Failed to duplicate data: ${error.message}`);
+    }
+  };
 
   const toggleModal = () => {
     setModalList(!modal_list);
@@ -182,35 +352,76 @@ const List = () => {
     setModalDuplicate(!modal_duplicate);
   };
 
+  // const fetchData = useCallback(
+  //   async (forceRefresh = false, page = currentPage) => {
+  //     setLoading(true);
+  //     setError(null);
+  //     try {
+  //       if (forceRefresh) {
+  //         sessionStorage.removeItem("cachedPartsData");
+  //       }
+
+  //       const response = await fetch(
+  //         `${process.env.REACT_APP_BASE_URL}/api/parts?filterType=${filterType}&page=${page}&limit=${itemsPerPage}`
+  //       );
+  //       if (!response.ok) {
+  //         throw new Error("Failed to fetch parts");
+  //       }
+  //       const { data, pagination } = await response.json();
+
+  //       setListData(data || []);
+  //       setTotalPages(pagination?.pages || 1);
+  //     } catch (err) {
+  //       setError(err.message);
+  //       setListData([]); // Set to empty array on error
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   },
+  //   [filterType, currentPage, itemsPerPage]
+  // );
+
+ 
   const fetchData = useCallback(
-    async (forceRefresh = false, page = currentPage) => {
-      setLoading(true);
-      setError(null);
-      try {
-        if (forceRefresh) {
-          sessionStorage.removeItem("cachedPartsData");
-        }
-
-        const response = await fetch(
-          `${process.env.REACT_APP_BASE_URL}/api/parts?filterType=${filterType}&page=${page}&limit=${itemsPerPage}`
-        );
-        if (!response.ok) {
-          throw new Error("Failed to fetch parts");
-        }
-        const { data, pagination } = await response.json();
-
-        setListData(data || []);
-        setTotalPages(pagination?.pages || 1);
-      } catch (err) {
-        setError(err.message);
-        setListData([]); // Set to empty array on error
-      } finally {
-        setLoading(false);
+  async (forceRefresh = false, page = currentPage) => {
+    setLoading(true);
+    setError(null);
+    try {
+      if (forceRefresh) {
+        sessionStorage.removeItem("cachedPartsData");
       }
-    },
-    [filterType, currentPage, itemsPerPage]
-  );
 
+      // Build query parameters
+      const params = new URLSearchParams({
+        filterType: filterType,
+        page: page,
+        limit: itemsPerPage,
+      });
+
+      // Add status filter if selected
+      if (finalizedFilter) {
+        params.append('status', finalizedFilter);
+      }
+
+      const response = await fetch(
+        `${process.env.REACT_APP_BASE_URL}/api/parts?${params.toString()}`
+      );
+      if (!response.ok) {
+        throw new Error("Failed to fetch parts");
+      }
+      const { data, pagination } = await response.json();
+
+      setListData(data || []);
+      setTotalPages(pagination?.pages || 1);
+    } catch (err) {
+      setError(err.message);
+      setListData([]); // Set to empty array on error
+    } finally {
+      setLoading(false);
+    }
+  },
+  [filterType, finalizedFilter, currentPage, itemsPerPage] // Add finalizedFilter to dependencies
+);
   const fetchSearchOptions = useCallback(
     debounce(async (inputValue) => {
       if (!inputValue) {
@@ -302,31 +513,59 @@ const List = () => {
 
     setListData(sorted);
   };
+const filteredData = listData || [];
+  // const filteredData = (listData || []).filter((item) => {
+  //   // If no search term, return all items that match the filter type
+  //   if (searchTerm.length === 0) {
+  //     return filterType === "" || item.partType === filterType;
+  //   }
 
-  const filteredData = (listData || []).filter((item) => {
-    // If no search term, return all items that match the filter type
-    if (searchTerm.length === 0) {
-      return filterType === "" || item.partType === filterType;
-    }
+  //   // Check if any search term matches either partName or drawingNumber
+  //   const matchesSearch = searchTerm.some(
+  //     (term) =>
+  //       item.partName?.toLowerCase().includes(term.partName.toLowerCase()) ||
+  //       item.id?.toLowerCase().includes(term.drawingNumber.toLowerCase())
+  //   );
 
-    // Check if any search term matches either partName or drawingNumber
-    const matchesSearch = searchTerm.some(
-      (term) =>
-        item.partName?.toLowerCase().includes(term.partName.toLowerCase()) ||
-        item.id?.toLowerCase().includes(term.drawingNumber.toLowerCase())
-    );
+  //   // Also check the filter type
+  //   const matchesFilter = filterType === "" || item.partType === filterType;
 
-    // Also check the filter type
-    const matchesFilter = filterType === "" || item.partType === filterType;
-
-    return matchesSearch && matchesFilter;
-  });
+  //   return matchesSearch && matchesFilter;
+  // });
 
   // const totalPages = Math.ceil(filteredData.length / itemsPerPage);
   // const paginatedData = filteredData.slice(
   //   (currentPage - 1) * itemsPerPage,
   //   currentPage * itemsPerPage
   // );
+
+  // const filteredData = (listData || []).filter((item) => {
+  //   // Determine finalized status
+  //   const isFinalized = item.timePerUnit > 0;
+  //   const matchesFinalized =
+  //     finalizedFilter === ""
+  //       ? true
+  //       : finalizedFilter === "finalized"
+  //       ? isFinalized
+  //       : !isFinalized;
+
+  //   // Determine part type filter
+  //   const matchesPartType = filterType === "" || item.partType === filterType;
+
+  //   // If no search term, only apply type and finalized filters
+  //   if (searchTerm.length === 0) {
+  //     return matchesPartType && matchesFinalized;
+  //   }
+
+  //   // Apply search logic (matches partName or drawingNumber)
+  //   const matchesSearch = searchTerm.some(
+  //     (term) =>
+  //       item.partName?.toLowerCase().includes(term.partName.toLowerCase()) ||
+  //       item.id?.toLowerCase().includes(term.drawingNumber.toLowerCase())
+  //   );
+
+  //   return matchesSearch && matchesPartType && matchesFinalized;
+  // });
 
   const handleSearch = (e) => {
     const value = e.target.value;
@@ -571,15 +810,21 @@ const List = () => {
     }
   };
 
+  // useEffect(() => {
+  //   return () => {
+  //     // Clear the selection when component unmounts
+  //     localStorage.removeItem("selectedPartId");
+  //     setSelectedPartId(null);
+  //     // Clear cache when component unmounts
+  //     sessionStorage.removeItem("cachedPartsData");
+  //   };
+  // }, []);
+
   useEffect(() => {
-    return () => {
-      // Clear the selection when component unmounts
-      localStorage.removeItem("selectedPartId");
-      setSelectedPartId(null);
-      // Clear cache when component unmounts
-      sessionStorage.removeItem("cachedPartsData");
-    };
-  }, []);
+    // Always call API fresh whenever List.js mounts or route changes
+    sessionStorage.removeItem("cachedPartsData");
+    fetchData(true);
+  }, [location.pathname]);
 
   // Modify the clearSelection function to be more thorough
   const clearSelection = useCallback(() => {
@@ -883,7 +1128,7 @@ const List = () => {
       />
       <Row className="g-4 mb-3">
         {/* Buttons Section - Will stack on small screens */}
-        <div className="col-12 col-md-auto d-flex flex-wrap gap-2 mb-2 mb-md-0">
+        {/* <div className="col-12 col-md-auto d-flex flex-wrap gap-2 mb-2 mb-md-0">
           <Button
             color="success"
             className="add-btn"
@@ -901,7 +1146,7 @@ const List = () => {
           >
             <i className="ri-add-line align-bottom me-1"></i> Upload Excel
           </Button>
-        </div>
+        </div> */}
 
         {/* Search and Filter Section - Will stack on small screens */}
         <div className="col-12 col-md-7 ms-md-auto">
@@ -927,7 +1172,7 @@ const List = () => {
                   control: (provided) => ({
                     ...provided,
                     width: "100%",
-                    minWidth: "150px",
+                    minWidth: "100px",
                     height: "40px",
                     overflow: "hidden",
                   }),
@@ -954,6 +1199,31 @@ const List = () => {
                     ...provided,
                     width: "100%", // Full width on small screens
                     minWidth: "100px", // Minimum width
+                    height: "40px",
+                    overflow: "hidden",
+                  }),
+                }}
+              />
+            </div>
+
+            <div className="flex-grow-1">
+              <Select
+                options={[
+                  { value: "", label: "All Status" },
+                  { value: "finalized", label: "Finalized" },
+                  { value: "notFinalized", label: "Not Finalized" },
+                ]}
+                placeholder="Filter by Status"
+                onChange={(selectedOption) => {
+                  if (selectedOption) setFinalizedFilter(selectedOption.value);
+                  else setFinalizedFilter("");
+                }}
+                styles={{
+                  ...customStyles,
+                  control: (provided) => ({
+                    ...provided,
+                    width: "100%",
+                    minWidth: "100px",
                     height: "40px",
                     overflow: "hidden",
                   }),
@@ -1022,6 +1292,7 @@ const List = () => {
                 <th>Part Type</th>
                 <th>Drawing Number</th>
                 <th>Client Number</th>
+                <th>Status</th>
                 <th>Cost per Unit</th>
                 <th>Total Hours</th>
                 <th>Total Cost (INR) </th>
@@ -1030,7 +1301,7 @@ const List = () => {
               </tr>
             </thead>
             <tbody style={{ border: "2px solid black" }}>
-              {filteredData?.map((item, index) => (
+              {listData?.map((item, index) => (
                 <tr key={index} style={{ border: "2px solid black" }}>
                   <td
                     style={{
@@ -1072,6 +1343,13 @@ const List = () => {
                   <td>{item.partType || "-"}</td>
                   <td>{item.id}</td>
                   <td>{item.clientNumber}</td>
+                  <td>
+                    {item.timePerUnit > 0 ? (
+                      <span className="badge bg-success">Finalized</span>
+                    ) : (
+                      <span className="badge bg-danger">Not Finalized</span>
+                    )}
+                  </td>
                   <td>{Math.ceil(item.costPerUnit)}</td>
                   <td>{formatTime(item.timePerUnit || 0)}</td>
                   <td>{item.totalCost}</td>
@@ -1104,6 +1382,13 @@ const List = () => {
                         >
                           <i className="ri-file-copy-line align-bottom me-2 text-muted"></i>{" "}
                           Duplicate
+                        </DropdownItem>
+                        <DropdownItem
+                          href="#"
+                          onClick={() => handleDuplicate2(item)}
+                        >
+                          <i className="ri-file-copy-line align-bottom me-2 text-muted"></i>{" "}
+                          Duplicate To
                         </DropdownItem>
                         <DropdownItem onClick={() => toggleEditModal(item)}>
                           <i className="ri-pencil-fill align-bottom me-2 text-muted"></i>{" "}
@@ -1720,6 +2005,142 @@ const List = () => {
           </Button>
           <Button color="secondary" onClick={() => setShowDeleteModal(false)}>
             Cancel
+          </Button>
+        </ModalFooter>
+      </Modal>
+
+      {/* Duplicate 2 Modal */}
+      <Modal
+        isOpen={modal_duplicate2}
+        toggle={() => {
+          setModalDuplicate2(false);
+          setSearchQuery("");
+          setTargetPartId("");
+        }}
+        centered
+        size="lg"
+        style={{ marginTop: "-3rem" }}
+      >
+        <ModalHeader
+          toggle={() => {
+            setModalDuplicate2(false);
+            setSearchQuery("");
+            setTargetPartId("");
+          }}
+        >
+          Duplicate Data to Another Part
+        </ModalHeader>
+        <ModalBody>
+          <div className="mb-3">
+            <label className="form-label fw-bold">
+              Source Part (Copy FROM):
+            </label>
+            <Input
+              type="text"
+              className="form-control bg-light"
+              value={
+                sourcePart ? `${sourcePart.partName} (${sourcePart.id})` : ""
+              }
+              disabled
+            />
+            <small className="text-muted">
+              This part's data will be copied to the selected target part
+            </small>
+          </div>
+
+          <div className="mb-3">
+            <label htmlFor="target-part" className="form-label fw-bold">
+              Target Part (Copy TO):
+            </label>
+
+            <InfiniteScrollSelect
+              options={allParts.filter((part) => part._id !== sourcePart?._id)}
+              value={targetPartId}
+              onChange={handleTargetPartChange}
+              onSearch={handleSearch1}
+              onLoadMore={handleLoadMore}
+              hasMore={hasMore}
+              loading={loadingParts}
+              placeholder="Search parts by name or drawing number..."
+            />
+
+            <small className="text-muted">
+              Start typing to search. Scroll down to load more parts. All
+              existing data in selected part will be overwritten.
+            </small>
+          </div>
+
+          {targetPartId && (
+            <div className="alert alert-warning mt-3">
+              <i className="ri-alert-line me-2"></i>
+              <strong>Warning:</strong> This will completely overwrite all
+              existing data in the target part. This action cannot be undone.
+            </div>
+          )}
+        </ModalBody>
+        <ModalFooter>
+          <Button
+            color="primary"
+            onClick={handleDuplicateClick}
+            disabled={!targetPartId}
+          >
+            <i className="ri-file-copy-line align-bottom me-1"></i> Duplicate
+            Data
+          </Button>
+          <Button
+            color="secondary"
+            onClick={() => {
+              setModalDuplicate2(false);
+              setSearchQuery("");
+              setTargetPartId("");
+            }}
+          >
+            Cancel
+          </Button>
+        </ModalFooter>
+      </Modal>
+
+      {/* Confirmation Modal (keep the same as before) */}
+      <Modal
+        isOpen={showConfirmModal}
+        toggle={() => setShowConfirmModal(false)}
+        centered
+      >
+        <ModalHeader toggle={() => setShowConfirmModal(false)}>
+          Confirm Data Duplication
+        </ModalHeader>
+        <ModalBody>
+          <div className="text-center">
+            <lord-icon
+              src="https://cdn.lordicon.com/gsqxdxog.json"
+              trigger="loop"
+              colors="primary:#f7b84b,secondary:#f06548"
+              style={{ width: "80px", height: "80px" }}
+            ></lord-icon>
+            <div className="mt-4">
+              <h4>Are you absolutely sure?</h4>
+              <p className="text-muted">
+                You are about to copy data from{" "}
+                <strong>{sourcePart?.partName}</strong> to{" "}
+                <strong>
+                  {allParts.find((p) => p._id === targetPartId)?.partName}
+                </strong>
+                .
+              </p>
+              <div className="alert alert-danger">
+                <strong>This will DELETE ALL EXISTING DATA</strong> in the
+                target part and replace it with data from the source part.
+              </div>
+            </div>
+          </div>
+        </ModalBody>
+        <ModalFooter>
+          <Button color="danger" onClick={handleFinalDuplicate}>
+            <i className="ri-check-line align-bottom me-1"></i> Yes, Overwrite
+            Data
+          </Button>
+          <Button color="secondary" onClick={() => setShowConfirmModal(false)}>
+            <i className="ri-close-line align-bottom me-1"></i> Cancel
           </Button>
         </ModalFooter>
       </Modal>
