@@ -45,6 +45,7 @@ const {
 } = require("./routes/variableRoutes/stores.routes");
 const stagingRoutes = require("./routes/staging/Staging");
 const { InventoryRouter } = require("./routes/variableRoutes/inventory.route");
+const externalApiRoutes = require("./routes/staging/ExternalApiroutes");
 // const autoSyncService = require("./services/autoSyncService");
 
 // MongoDB connection
@@ -88,6 +89,7 @@ app.use("/api/assmebly", AssemblyRoutes);
 app.use("/api/userManagement", UserRoute);
 app.use("/api/allocation", allocationRoutes);
 app.use("/api", stagingRoutes);
+app.use("/api" , externalApiRoutes)
 app.use("/api/InventoryVaraible", InventoryRouter);
 
 // Auto-sync service endpoints
