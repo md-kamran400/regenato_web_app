@@ -6,6 +6,7 @@ import ProfileDropdown from "../Components/Common/ProfileDropdown";
 import "./navbar.css";
 import navdata from "../Layouts/LayoutMenuData";
 import logo1 from "../assets/logo/remove -bg-regenato logo.png";
+import axios from "axios";
 
 const Navbar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -17,6 +18,7 @@ const Navbar = () => {
   const [isMediumScreen, setIsMediumScreen] = useState(
     window.innerWidth <= 992 && window.innerWidth > 768
   );
+  const [activeLogo, setActiveLogo] = useState(null);
 
   useEffect(() => {
     const handleResize = () => {
@@ -32,6 +34,24 @@ const Navbar = () => {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, [menuOpen]);
+
+  // Add this useEffect to fetch active logo
+  useEffect(() => {
+    const fetchActiveLogo = async () => {
+      try {
+        const response = await axios.get(
+          `${process.env.REACT_APP_BASE_URL}/api/logos/active`
+        );
+        if (response.data) {
+          setActiveLogo(response.data.imageUrl);
+        }
+      } catch (error) {
+        console.error("Failed to fetch active logo:", error);
+      }
+    };
+
+    fetchActiveLogo();
+  }, []);
 
   const useLocalStorageSync = () => {
     useEffect(() => {
@@ -81,17 +101,26 @@ const Navbar = () => {
     <header className="header-class">
       <div className="layout-width">
         <div className="navbar-header">
-          
           <div className="logo-wrapper" style={{ width: "12rem" }}>
             <Link to={"/regenato-home"}>
               <img
-                src={logo1}
+                src={
+                  activeLogo ? `${process.env.REACT_APP_BASE_URL}${activeLogo}` : logo1 // fallback to default logo
+                }
                 alt="Regenato Logo"
-                style={{ width: "100%", cursor: "pointer" }}
+                style={{
+                  width: "100%",
+                  height: "auto",
+                  maxHeight: "60px",
+                  objectFit: "contain",
+                  cursor: "pointer",
+                }}
+                onError={(e) => {
+                  e.target.src = logo1; // Fallback to default logo if error
+                }}
               />
             </Link>
           </div>
-
           {userRole !== "guest" && (
             <button
               onClick={toggleMobileMenu}
@@ -106,7 +135,6 @@ const Navbar = () => {
               )}
             </button>
           )}
-
           {userRole !== "guest" && (
             <nav
               className={`navbar ${menuOpen ? "show" : ""} ${
@@ -144,7 +172,8 @@ const Navbar = () => {
                       >
                         {item.children.map((child) => (
                           <li key={child.id}>
-                            <Link style={{border:'2px soil'}}
+                            <Link
+                              style={{ border: "2px soil" }}
                               to={child.link}
                               className="dropdown-item"
                               onClick={() => {
@@ -164,12 +193,9 @@ const Navbar = () => {
               </ul>
             </nav>
           )}
-          <div
-            className="profile_icon_layout"
-          >
+          <div className="profile_icon_layout">
             <ProfileDropdown />
           </div>
-          
         </div>
       </div>
     </header>

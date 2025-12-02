@@ -5,6 +5,8 @@ import RoleManagement from "./RoleManagement";
 import AccessControl from "./AccessControl";
 import UserHandle from "./UserHandle";
 import "./Settings.css";
+import LogoHandler from "./LogoHandler";
+import ApiHandler from "./ApiHandler";
 
 const Settings = () => {
   const [activeTab, setActiveTab] = useState("users");
@@ -23,6 +25,10 @@ const Settings = () => {
         return <RoleManagement />;
       case "access-control":
         return <AccessControl />;
+        case "logo-handler":
+        return <LogoHandler />;
+         case "api-handler":
+        return <ApiHandler />;
       default:
         return <UserHandle />;
     }
@@ -32,6 +38,8 @@ const Settings = () => {
     { id: "users", label: "Users" },
     { id: "roles", label: "Roles" },
     { id: "access-control", label: "Access Control" },
+    { id: "logo-handler", label: "Logo Handler" },
+    { id: "api-handler", label: "API Handler" },
   ];
 
   return (

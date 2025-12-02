@@ -5,11 +5,16 @@ const app = express();
 const axios = require("axios");
 const cron = require("node-cron");
 const PartListProjectModel = require("./model/project/PartListProjectModel");
+const path = require("path");
 
 // Middleware
 app.use(express.json());
 app.use(cors());
 
+
+// api handler route 
+const ApiHnandlerRoute = require("./routes/ApiHandlerRoute/ApiHandler.route");
+const logoRoutes = require("./routes/logo.route");
 // Import routes (unchanged)
 const { RmRouter } = require("./routes/variableRoutes/rmvariable.route");
 const {
@@ -60,6 +65,8 @@ const connect = async () => {
   }
 };
 
+app.use("/api/logos", logoRoutes);
+app.use("/api/apiHandler", ApiHnandlerRoute);
 // Use routes
 app.use("/api/rmvariable", RmRouter);
 app.use("/api/manufacturing", manufacturRouter);
@@ -92,6 +99,8 @@ app.use("/api", stagingRoutes);
 app.use("/api" , externalApiRoutes)
 app.use("/api/InventoryVaraible", InventoryRouter);
 
+
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 // Auto-sync service endpoints
 // app.get("/api/auto-sync/statuss", (req, res) => {
 //   res.json(autoSyncService.getStatus());
