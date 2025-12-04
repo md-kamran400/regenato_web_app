@@ -153,7 +153,7 @@ const MachineCapacityChart = () => {
           />
           <YAxis
             label={{
-              value: "Number of Machines",
+              value: "Machines",
               angle: -90,
               position: "insideLeft",
             }}

@@ -153,70 +153,70 @@ export const PartListHrPlan = ({
   // };
 
   // Function to fetch blank store quantity with fallback
-const fetchBlankStoreQuantity = async () => {
-  try {
-    setIsLoadingBlankStore(true);
-    setBlankStoreError(null);
-    setBlankStoreStatus(null);
+    const fetchBlankStoreQuantity = async () => {
+      try {
+        setIsLoadingBlankStore(true);
+        setBlankStoreError(null);
+        setBlankStoreStatus(null);
 
-    // -----------------------------
-    // 1) TRY PRIMARY API (ClsIncoming)
-    // -----------------------------
-    try {
-      const response = await axios.get(
-        `${process.env.REACT_APP_BASE_URL}/api/ClsIncoming`
-      );
+        // -----------------------------
+        // 1) TRY PRIMARY API (ClsIncoming)
+        // -----------------------------
+        try {
+          const response = await axios.get(
+            `${process.env.REACT_APP_BASE_URL}/api/ClsIncoming`
+          );
 
-      if (response.data && Array.isArray(response.data)) {
-        const item = response.data.find((item) => item.ItemCode === partsCodeId);
+          if (response.data && Array.isArray(response.data)) {
+            const item = response.data.find((item) => item.ItemCode === partsCodeId);
 
-        if (item && item.Warehouse === "BLNK") {
-          const onhandQuantity = parseFloat(item.Onhand) || 0;
-          setBlankStoreQty(onhandQuantity);
-          setBlankStoreStatus("found");
-          return; // SUCCESS — no fallback needed
+            if (item && item.Warehouse === "BLNK") {
+              const onhandQuantity = parseFloat(item.Onhand) || 0;
+              setBlankStoreQty(onhandQuantity);
+              setBlankStoreStatus("found");
+              return; // SUCCESS — no fallback needed
+            }
+          }
+        } catch (err) {
+          console.warn("ClsIncoming API failed. Switching to fallback...");
+          // continue to fallback
         }
-      }
-    } catch (err) {
-      console.warn("ClsIncoming API failed. Switching to fallback...");
-      // continue to fallback
-    }
 
-    // ---------------------------------------------------
-    // 2) FALLBACK API → http://localhost:4040/api/storesVariable
-    // ---------------------------------------------------
-    try {
-      const fallbackRes = await axios.get(`${process.env.REACT_APP_BASE_URL}/api/storesVariable`);
+        // ---------------------------------------------------
+        // 2) FALLBACK API → http://localhost:4040/api/storesVariable
+        // ---------------------------------------------------
+        try {
+          const fallbackRes = await axios.get(`${process.env.REACT_APP_BASE_URL}/api/storesVariable`);
 
-      if (fallbackRes.data) {
-        // Filter BLNK category
-        const blnkItem = fallbackRes.data.find(
-          (item) => item.categoryId === "BLNK"
-        );
+          if (fallbackRes.data) {
+            // Filter BLNK category
+            const blnkItem = fallbackRes.data.find(
+              (item) => item.categoryId === "BLNK"
+            );
 
-        if (blnkItem) {
-          const qty = Array.isArray(blnkItem.quantity)
-            ? blnkItem.quantity[0] || 0
-            : 0;
+            if (blnkItem) {
+              const qty = Array.isArray(blnkItem.quantity)
+                ? blnkItem.quantity[0] || 0
+                : 0;
 
-          setBlankStoreQty(qty);
-          setBlankStoreStatus("fallback_used");
-          console.log("Fallback BLNK quantity:", qty);
-          return;
+              setBlankStoreQty(qty);
+              setBlankStoreStatus("fallback_used");
+              console.log("Fallback BLNK quantity:", qty);
+              return;
+            }
+          }
+
+          setBlankStoreQty(0);
+          setBlankStoreStatus("fallback_not_found");
+        } catch (err) {
+          console.error("Fallback API also failed", err);
+          setBlankStoreQty(0);
+          setBlankStoreStatus("error");
         }
+      } finally {
+        setIsLoadingBlankStore(false);
       }
-
-      setBlankStoreQty(0);
-      setBlankStoreStatus("fallback_not_found");
-    } catch (err) {
-      console.error("Fallback API also failed", err);
-      setBlankStoreQty(0);
-      setBlankStoreStatus("error");
-    }
-  } finally {
-    setIsLoadingBlankStore(false);
-  }
-};
+    };
 
   // Fetch blank store quantity on component mount
   useEffect(() => {

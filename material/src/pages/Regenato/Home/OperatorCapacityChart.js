@@ -187,7 +187,7 @@ const OperatorCapacityChart = () => {
           />
           <YAxis
             label={{
-              value: "Number of Operators",
+              value: "Operators",
               angle: -90,
               position: "insideLeft",
             }}
