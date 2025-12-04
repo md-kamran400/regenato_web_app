@@ -1429,10 +1429,10 @@ export const AllocatedPartListHrPlan = ({
       // === Helper to post to both inventory APIs ===
       const postInventory = (payload) =>
         Promise.all([
-          axios.post(
-            `${process.env.REACT_APP_BASE_URL}/api/Inventory/PostInventory`,
-            payload
-          ),
+          // axios.post(
+          //   `${process.env.REACT_APP_BASE_URL}/api/Inventory/PostInventory`,
+          //   payload
+          // ),
           axios.post(
             `${process.env.REACT_APP_BASE_URL}/api/InventoryVaraible/PostInventoryVaraibleVaraible`,
             payload

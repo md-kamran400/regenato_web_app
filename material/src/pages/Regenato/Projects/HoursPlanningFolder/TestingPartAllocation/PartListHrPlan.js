@@ -2444,17 +2444,17 @@ export const PartListHrPlan = ({
           FromWhsCod: "BLNK",
         };
 
-        const inventoryUrl = `${process.env.REACT_APP_BASE_URL}/api/Inventory/PostInventory`;
-        const inventoryResp = await axios.post(inventoryUrl, inventoryPayload, {
-          headers: { "Content-Type": "application/json" },
-          timeout: 15000,
-        });
+        // const inventoryUrl = `${process.env.REACT_APP_BASE_URL}/api/Inventory/PostInventory`;
+        // const inventoryResp = await axios.post(inventoryUrl, inventoryPayload, {
+        //   headers: { "Content-Type": "application/json" },
+        //   timeout: 15000,
+        // });
 
-        const invMsg =
-          typeof inventoryResp?.data === "string"
-            ? inventoryResp.data
-            : inventoryResp?.data?.message || "Inventory posted successfully";
-        toast.success(invMsg);
+        // const invMsg =
+        //   typeof inventoryResp?.data === "string"
+        //     ? inventoryResp.data
+        //     : inventoryResp?.data?.message || "Inventory posted successfully";
+        // toast.success(invMsg);
 
         // Also reflect this movement in StoreVariable quantities so UI shows updated stock
         // try {

@@ -887,7 +887,7 @@ const SingeProject = () => {
                 <span style={{ fontWeight: "bold" }}>PO Type:</span>{" "}
                 {projectType}
               </p>
-              <p className="po-id">
+              {/* <p className="po-id">
                 {" "}
                 <span style={{ fontWeight: "bold" }}>Total Cost (INR):</span>{" "}
                 
@@ -911,7 +911,7 @@ const SingeProject = () => {
                 {" "}
                 <span style={{ fontWeight: "bold" }}>Acctual end Date:</span>{" "}
                 
-              </p>
+              </p> */}
             </div>
           </div>
           <div className="button-group" style={{ marginLeft: "7.9rem" }}>
