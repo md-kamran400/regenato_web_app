@@ -100,7 +100,9 @@ app.use("/api" , externalApiRoutes)
 app.use("/api/InventoryVaraible", InventoryRouter);
 
 
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+// app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+app.use("/uploads", express.static("/var/www/Uploads"));
+
 // Auto-sync service endpoints
 // app.get("/api/auto-sync/statuss", (req, res) => {
 //   res.json(autoSyncService.getStatus());

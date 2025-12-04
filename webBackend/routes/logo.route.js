@@ -30,10 +30,18 @@ const upload = multer({
 });
 
 // Ensure upload directory exists
-const uploadDir = path.join(__dirname, "../uploads/logos");
+// const uploadDir = path.join(__dirname, "../uploads/logos");
+// if (!fs.existsSync(uploadDir)) {
+//   fs.mkdirSync(uploadDir, { recursive: true });
+// }
+
+// Save images at this Ubuntu path
+const uploadDir = "/var/www/Uploads/Client-Demo/logo/";
+
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
+
 
 // 1. Upload new logo
 router.post("/upload", upload.single("logo"), async (req, res) => {
@@ -66,7 +74,8 @@ router.post("/upload", upload.single("logo"), async (req, res) => {
     // Create logo record
     const logo = new Logo({
       name: req.body.name || req.file.originalname,
-      imageUrl: `/uploads/logos/${filename}`,
+      // imageUrl: `/uploads/logos/${filename}`,
+      imageUrl: `/uploads/Client-Demo/logo/${filename}`,
       fileSize: req.file.size,
       originalName: req.file.originalname,
       isActive: false, // New logos are inactive by default
@@ -176,10 +185,16 @@ router.delete("/:id", async (req, res) => {
     }
 
     // Delete file from server
-    const filepath = path.join(__dirname, "..", logo.imageUrl);
-    if (fs.existsSync(filepath)) {
-      fs.unlinkSync(filepath);
-    }
+    // const filepath = path.join(__dirname, "..", logo.imageUrl);
+    // if (fs.existsSync(filepath)) {
+    //   fs.unlinkSync(filepath);
+    // }
+    // Delete file from server (Ubuntu path)
+const filepath = path.join("/var/www", logo.imageUrl);
+if (fs.existsSync(filepath)) {
+  fs.unlinkSync(filepath);
+}
+
 
     // Delete from database
     await Logo.findByIdAndDelete(id);

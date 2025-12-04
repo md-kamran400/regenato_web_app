@@ -81,6 +81,12 @@ const navdata = (userRole = "guest") => {
           link: "/regenato-planPage",
           icon: "fa fa-list",
         },
+        {
+          id: "planView",
+          label: "Production View",
+          link: "/regenato-Production-timeline",
+          icon: "fa fa-list",
+        },
       ],
     },
     parts: {

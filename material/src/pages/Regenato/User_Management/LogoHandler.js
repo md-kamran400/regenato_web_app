@@ -241,7 +241,8 @@ const LogoHandler = () => {
                         <td>
                           <div className="d-flex align-items-center">
                             <img
-                              src={`http://localhost:4040${logo.imageUrl}`}
+                              // src={`http://localhost:4040${logo.imageUrl}`}
+                              src={`${process.env.REACT_APP_BASE_URL}${logo.imageUrl}`}
                               alt={logo.name}
                               style={{ width: "50px", height: "50px", objectFit: "contain", backgroundColor: "#f8f9fa", padding: "5px", borderRadius: "4px" }}
                               onError={(e) => {

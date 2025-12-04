@@ -93,64 +93,130 @@ export const PartListHrPlan = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Function to fetch blank store quantity from API
-  const fetchBlankStoreQuantity = async () => {
-    try {
-      setIsLoadingBlankStore(true);
-      setBlankStoreError(null);
-      setBlankStoreStatus(null);
+  // const fetchBlankStoreQuantity = async () => {
+  //   try {
+  //     setIsLoadingBlankStore(true);
+  //     setBlankStoreError(null);
+  //     setBlankStoreStatus(null);
 
+  //     const response = await axios.get(
+  //       `${process.env.REACT_APP_BASE_URL}/api/ClsIncoming`
+  //     );
+
+  //     if (response.data && Array.isArray(response.data)) {
+  //       // Find the item that matches our part code (ItemCode should match partsCodeId)
+  //       const item = response.data.find(
+  //         (item) => item.ItemCode === partsCodeId
+  //       );
+
+  //       if (item) {
+  //         // Check if the item is in BLNK warehouse
+  //         if (item.Warehouse === "BLNK") {
+  //           const onhandQuantity = parseFloat(item.Onhand) || 0;
+  //           setBlankStoreQty(onhandQuantity);
+  //           setBlankStoreStatus("found");
+  //           console.log(
+  //             `Found blank store quantity for ItemCode ${partsCodeId}: ${onhandQuantity}`
+  //           );
+  //         } else {
+  //           // Item found but not in BLNK warehouse
+  //           setBlankStoreQty(0);
+  //           setBlankStoreStatus("wrong_warehouse");
+  //           console.log(
+  //             `Item ${partsCodeId} found but not in BLNK warehouse. Current warehouse: ${item.Warehouse}`
+  //           );
+  //         }
+  //       } else {
+  //         // Item not found in API response
+  //         setBlankStoreQty(0);
+  //         setBlankStoreStatus("not_found");
+  //         console.log(`ItemCode ${partsCodeId} not found in API response`);
+  //         console.log(
+  //           "Available ItemCodes:",
+  //           response.data.map((item) => item.ItemCode)
+  //         );
+  //       }
+  //     } else {
+  //       setBlankStoreQty(0);
+  //       setBlankStoreStatus("error");
+  //       console.log("Invalid API response format - expected array");
+  //     }
+  //   } catch (error) {
+  //     console.error("Error fetching blank store quantity:", error);
+  //     setBlankStoreError("Failed to fetch blank store quantity");
+  //     setBlankStoreQty(0);
+  //     setBlankStoreStatus("error");
+  //     // toast.error("Failed to fetch blank store quantity from API");
+  //   } finally {
+  //     setIsLoadingBlankStore(false);
+  //   }
+  // };
+
+  // Function to fetch blank store quantity with fallback
+const fetchBlankStoreQuantity = async () => {
+  try {
+    setIsLoadingBlankStore(true);
+    setBlankStoreError(null);
+    setBlankStoreStatus(null);
+
+    // -----------------------------
+    // 1) TRY PRIMARY API (ClsIncoming)
+    // -----------------------------
+    try {
       const response = await axios.get(
         `${process.env.REACT_APP_BASE_URL}/api/ClsIncoming`
       );
 
       if (response.data && Array.isArray(response.data)) {
-        // Find the item that matches our part code (ItemCode should match partsCodeId)
-        const item = response.data.find(
-          (item) => item.ItemCode === partsCodeId
+        const item = response.data.find((item) => item.ItemCode === partsCodeId);
+
+        if (item && item.Warehouse === "BLNK") {
+          const onhandQuantity = parseFloat(item.Onhand) || 0;
+          setBlankStoreQty(onhandQuantity);
+          setBlankStoreStatus("found");
+          return; // SUCCESS — no fallback needed
+        }
+      }
+    } catch (err) {
+      console.warn("ClsIncoming API failed. Switching to fallback...");
+      // continue to fallback
+    }
+
+    // ---------------------------------------------------
+    // 2) FALLBACK API → http://localhost:4040/api/storesVariable
+    // ---------------------------------------------------
+    try {
+      const fallbackRes = await axios.get(`${process.env.REACT_APP_BASE_URL}/api/storesVariable`);
+
+      if (fallbackRes.data) {
+        // Filter BLNK category
+        const blnkItem = fallbackRes.data.find(
+          (item) => item.categoryId === "BLNK"
         );
 
-        if (item) {
-          // Check if the item is in BLNK warehouse
-          if (item.Warehouse === "BLNK") {
-            const onhandQuantity = parseFloat(item.Onhand) || 0;
-            setBlankStoreQty(onhandQuantity);
-            setBlankStoreStatus("found");
-            console.log(
-              `Found blank store quantity for ItemCode ${partsCodeId}: ${onhandQuantity}`
-            );
-          } else {
-            // Item found but not in BLNK warehouse
-            setBlankStoreQty(0);
-            setBlankStoreStatus("wrong_warehouse");
-            console.log(
-              `Item ${partsCodeId} found but not in BLNK warehouse. Current warehouse: ${item.Warehouse}`
-            );
-          }
-        } else {
-          // Item not found in API response
-          setBlankStoreQty(0);
-          setBlankStoreStatus("not_found");
-          console.log(`ItemCode ${partsCodeId} not found in API response`);
-          console.log(
-            "Available ItemCodes:",
-            response.data.map((item) => item.ItemCode)
-          );
+        if (blnkItem) {
+          const qty = Array.isArray(blnkItem.quantity)
+            ? blnkItem.quantity[0] || 0
+            : 0;
+
+          setBlankStoreQty(qty);
+          setBlankStoreStatus("fallback_used");
+          console.log("Fallback BLNK quantity:", qty);
+          return;
         }
-      } else {
-        setBlankStoreQty(0);
-        setBlankStoreStatus("error");
-        console.log("Invalid API response format - expected array");
       }
-    } catch (error) {
-      console.error("Error fetching blank store quantity:", error);
-      setBlankStoreError("Failed to fetch blank store quantity");
+
+      setBlankStoreQty(0);
+      setBlankStoreStatus("fallback_not_found");
+    } catch (err) {
+      console.error("Fallback API also failed", err);
       setBlankStoreQty(0);
       setBlankStoreStatus("error");
-      // toast.error("Failed to fetch blank store quantity from API");
-    } finally {
-      setIsLoadingBlankStore(false);
     }
-  };
+  } finally {
+    setIsLoadingBlankStore(false);
+  }
+};
 
   // Fetch blank store quantity on component mount
   useEffect(() => {
@@ -3171,7 +3237,7 @@ export const PartListHrPlan = ({
                     isApproved ||
                     isLoadingBlankStore ||
                     blankStoreError ||
-                    blankStoreStatus !== "found" ||
+                    // blankStoreStatus !== "found" ||
                     quantity > blankStoreQty
                   }
                   style={{
@@ -5494,10 +5560,8 @@ export const PartListHrPlan = ({
             color="primary"
             onClick={handleApprove}
             disabled={
-              quantity > blankStoreQty ||
-              isLoadingBlankStore ||
-              blankStoreError ||
-              blankStoreStatus !== "found"
+              quantity > blankStoreQty
+              
             }
           >
             Confirm Approval

@@ -887,6 +887,31 @@ const SingeProject = () => {
                 <span style={{ fontWeight: "bold" }}>PO Type:</span>{" "}
                 {projectType}
               </p>
+              <p className="po-id">
+                {" "}
+                <span style={{ fontWeight: "bold" }}>Total Cost (INR):</span>{" "}
+                
+              </p>
+              <p className="po-id">
+                {" "}
+                <span style={{ fontWeight: "bold" }}>Total Machining Hours:</span>{" "}
+                
+              </p>
+              <p className="po-id">
+                {" "}
+                <span style={{ fontWeight: "bold" }}>Alloction start Date:</span>{" "}
+                
+              </p>
+              <p className="po-id">
+                {" "}
+                <span style={{ fontWeight: "bold" }}>Alloction end Date:</span>{" "}
+                
+              </p>
+              <p className="po-id">
+                {" "}
+                <span style={{ fontWeight: "bold" }}>Acctual end Date:</span>{" "}
+                
+              </p>
             </div>
           </div>
           <div className="button-group" style={{ marginLeft: "7.9rem" }}>

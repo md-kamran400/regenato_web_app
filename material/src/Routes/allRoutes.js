@@ -42,6 +42,7 @@ import OperatorTime from "../pages/Regenato/ProcessTImeline/OperatorTimeline/Ope
 import AllocationPlan from "../pages/Regenato/AllocationPlan/AllocationPlan";
 import WareHouseAllocation from "../pages/Regenato/AllocationPlan/WareHouseAllocation";
 import User_Management from "../pages/Regenato/User_Management";
+import PoTimeline from "../pages/Regenato/TimeLine/PoTimeline";
 // import ProjectSection from "../pages/Regenato/Projects/ProjectSection";
 
 // Auth
@@ -103,6 +104,7 @@ const publicRoutes = [
 
   { path: "/regenato-process-view", component: <TimePage /> },
   { path: "/regenato-operator-view", component: <OperatorTime /> },
+  {path: "/regenato-Production-timeline" , component: <PoTimeline/>},
 
   { path: "/regenato-user-management", component: <User_Management /> },
 

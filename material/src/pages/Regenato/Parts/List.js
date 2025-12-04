@@ -1127,7 +1127,7 @@ const List = () => {
       />
       <Row className="g-4 mb-3">
         {/* Buttons Section - Will stack on small screens */}
-        {/* <div className="col-12 col-md-auto d-flex flex-wrap gap-2 mb-2 mb-md-0">
+         <div className="col-12 col-md-auto d-flex flex-wrap gap-2 mb-2 mb-md-0">
           <Button
             color="success"
             className="add-btn"
@@ -1137,15 +1137,15 @@ const List = () => {
             <i className="ri-add-line align-bottom me-1"></i> Add Part
           </Button>
 
-          <Button
+         {/* <Button
             color="success"
             className="add-btn"
             onClick={toggleModalUpload}
             id="create-btn"
           >
             <i className="ri-add-line align-bottom me-1"></i> Upload Excel
-          </Button>
-        </div> */}
+          </Button>*/}
+        </div> 
 
         {/* Search and Filter Section - Will stack on small screens */}
         <div className="col-12 col-md-7 ms-md-auto">

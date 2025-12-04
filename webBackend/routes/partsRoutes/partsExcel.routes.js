@@ -22,7 +22,9 @@ const upload = multer({
 });
 
 // Define the directory for storing images
-const imageUploadDir = path.join(__dirname, "../../Images");
+// const imageUploadDir = path.join(__dirname, "../../Images");
+const imageUploadDir = "/var/www/Uploads/Client-Demo/parts/";
+
 
 // Ensure the directory exists
 if (!fs.existsSync(imageUploadDir)) {
@@ -1809,7 +1811,8 @@ PartsExcelRoutes.post(
         return res.status(400).json({ message: "No valid image provided" });
       }
 
-      part.image = `/Images/${partId}.webp`;
+      // part.image = `/Images/${partId}.webp`;
+      part.image = `/uploads/Client-Demo/parts/${partId}.webp`;
       await part.save();
 
       res
@@ -1889,7 +1892,9 @@ PartsExcelRoutes.get("/image/:_id", async (req, res) => {
       return res.status(404).json({ message: "Image not found" });
     }
 
-    res.sendFile(path.join(__dirname, "../../", part.image));
+    // res.sendFile(path.join(__dirname, "../../", part.image));
+    const filePath = "/var/www/Uploads/Client-Demo/parts/" + `${partId}.webp`;
+    return res.sendFile(filePath);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

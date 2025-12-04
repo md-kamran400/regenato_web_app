@@ -30,26 +30,37 @@ const ImageUploader = ({
   // Webcam reference
   const webcamRef = useRef(null);
 
+  // const GetImage = useCallback(async () => {
+  //   try {
+  //     const response = await fetch(
+  //       `${process.env.REACT_APP_BASE_URL}/api/parts/image/${partId}`
+  //     );
+
+  //     if (!response.ok) {
+  //       throw new Error("No image found");
+  //     }
+
+  //     const blob = await response.blob();
+  //     const imageUrl = URL.createObjectURL(blob);
+
+  //     setImageUrl(imageUrl);
+  //     setHasImage(true);
+  //   } catch (error) {
+  //     console.error("Error fetching image:", error);
+  //     setHasImage(false);
+  //   }
+  // }, [partId]);
+
   const GetImage = useCallback(async () => {
-    try {
-      const response = await fetch(
-        `${process.env.REACT_APP_BASE_URL}/api/parts/image/${partId}`
-      );
-
-      if (!response.ok) {
-        throw new Error("No image found");
-      }
-
-      const blob = await response.blob();
-      const imageUrl = URL.createObjectURL(blob);
-
-      setImageUrl(imageUrl);
-      setHasImage(true);
-    } catch (error) {
-      console.error("Error fetching image:", error);
-      setHasImage(false);
-    }
-  }, [partId]);
+  try {
+    const imageUrl = `${process.env.REACT_APP_BASE_URL}/uploads/Client-Demo/parts/${partId}.webp`;
+    setImageUrl(imageUrl);
+    setHasImage(true);
+  } catch (error) {
+    console.error("Error fetching image:", error);
+    setHasImage(false);
+  }
+}, [partId]);
 
   useEffect(() => {
     if (partId) {

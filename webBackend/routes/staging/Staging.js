@@ -183,15 +183,49 @@
 const express = require("express");
 const axios = require("axios");
 const ExternalApi = require("../../model/ExternalApiConfig");
+const StoreVariableModal = require("../../model/storemodel");
 
 const stagingRoutes = express.Router();
 
 // Helper to get URL from DB
 async function getApiUrl(key) {
   const config = await ExternalApi.findOne({ key });
-  if (!config) throw new Error(`API URL not found for ${key}`);
+
+  if (!config) throw new Error(`API URL not found for key '${key}'`);
+
+  // If API is inactive → THROW ERROR so frontend fallback can run
+  if (!config.active) {
+    throw new Error(`API '${key}' is disabled`);
+  }
+
   return config.url;
 }
+
+
+async function resolveApi(key) {
+  const config = await ExternalApi.findOne({ key });
+
+  if (!config) throw new Error(`Config for ${key} not found`);
+
+  // Toggle Active -> Use Primary URL
+  if (config.active) {
+    return { url: config.url, isAlternate: false };
+  }
+
+  // Toggle OFF but no alternate configured
+  if (!config.alternateUrlKey) {
+    throw new Error(`API '${key}' is disabled and no alternate API found`);
+  }
+
+  // Fetch alternate config
+  const altConfig = await ExternalApi.findOne({ key: config.alternateUrlKey });
+  if (!altConfig) {
+    throw new Error(`Alternate config '${config.alternateUrlKey}' not found`);
+  }
+
+  return { url: altConfig.url, isAlternate: true };
+}
+
 
 // GOODS RECEIPT
 stagingRoutes.get("/GoodsReceipt/GetGoodsReceipt", async (req, res) => {
@@ -258,5 +292,91 @@ stagingRoutes.get("/ClsIncoming", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+// stagingRoutes.get("/ClsIncoming", async (req, res) => {
+//   try {
+//     const { url, isAlternate } = await resolveApi("clsIncoming");
+
+//     if (isAlternate) {
+//       // Using alternate API → directly call local handler
+//       return stagingRoutes.handleBlnk(req, res);
+//     }
+
+//     const response = await axios.get(url);
+//     res.json(response.data);
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// });
+
+
+stagingRoutes.handleBlnk = async (req, res) => {
+  try {
+    const categoryId = "BLNK";
+    const storeVariable = await StoreVariableModal.findOne({ categoryId });
+
+    if (!storeVariable) {
+      return res.status(404).json({ error: "BLNK category not found" });
+    }
+
+    const onhand = storeVariable.quantity.reduce((sum, q) => sum + q, 0);
+
+    const response = [
+      {
+        _id: storeVariable._id,
+        categoryId: storeVariable.categoryId,
+        name: storeVariable.Name,
+        onhand,
+        quantity: storeVariable.quantity,
+        location: storeVariable.location,
+        transactionHistory: storeVariable.transactionHistory,
+      }
+    ];
+
+    res.json(response);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+stagingRoutes.get("/onhand-blnk", stagingRoutes.handleBlnk);
+
+
+// stagingRoutes.get("/onhand-blnk", async (req, res) => {
+//   try {
+//     // Hardcoded categoryId = BLNK
+//     const categoryId = "BLNK";
+
+//     // Find the BLNK document
+//     const storeVariable = await StoreVariableModal.findOne({ categoryId });
+
+//     if (!storeVariable) {
+//       return res.status(404).json({ error: "BLNK category not found" });
+//     }
+
+//     // Calculate onhand (sum of quantity array)
+//     const onhand = storeVariable.quantity.reduce((sum, q) => sum + q, 0);
+
+//     // Prepare final array response
+//     const response = [
+//       {
+//         _id: storeVariable._id,
+//         categoryId: storeVariable.categoryId,
+//         name: storeVariable.Name,
+//         onhand,
+//         quantity: storeVariable.quantity,
+//         location: storeVariable.location,
+//         transactionHistory: storeVariable.transactionHistory,
+//       }
+//     ];
+
+//     res.json(response);
+//   } catch (error) {
+//     res.status(500).json({ error: error.message });
+//   }
+// });
+
+
+
 
 module.exports = stagingRoutes;
