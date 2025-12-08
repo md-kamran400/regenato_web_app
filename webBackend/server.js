@@ -9,10 +9,16 @@ const path = require("path");
 
 // Middleware
 app.use(express.json());
-app.use(cors());
+// app.use(cors());
 
+app.use(
+  cors({
+    origin: ["https://ccmpl.rm-dev1.com", "http://localhost:3000"],
+    credentials: true,
+  })
+);
 
-// api handler route 
+// api handler route
 const ApiHnandlerRoute = require("./routes/ApiHandlerRoute/ApiHandler.route");
 const logoRoutes = require("./routes/logo.route");
 // Import routes (unchanged)
@@ -96,9 +102,8 @@ app.use("/api/assmebly", AssemblyRoutes);
 app.use("/api/userManagement", UserRoute);
 app.use("/api/allocation", allocationRoutes);
 app.use("/api", stagingRoutes);
-app.use("/api" , externalApiRoutes)
+app.use("/api", externalApiRoutes);
 app.use("/api/InventoryVaraible", InventoryRouter);
-
 
 // app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use("/uploads", express.static("/var/www/Uploads"));
@@ -271,7 +276,6 @@ cron.schedule(
         for (const partItem of partsItems) {
           for (const process of partItem.allocations) {
             for (const allocation of process.allocations) {
-              
               // Skip auto generation if remaining is 0
               if (allocation.remaining === 0) {
                 console.log(
@@ -365,7 +369,6 @@ cron.schedule(
     timezone: "Asia/Kolkata",
   }
 );
-
 
 const PORT = 4040;
 app.listen(PORT, "0.0.0.0", () => {
